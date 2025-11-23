@@ -12,7 +12,7 @@ export const useMeals = () => {
    */
   const getDishDetails = useCallback(
     async (dish_id: string) => {
-      try {
+      try { 
         setIsLoading(true);
         const convex = getConvexClient();
         const sessionToken = await getSessionToken();

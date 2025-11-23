@@ -68,7 +68,7 @@ export default function PaymentScreen({
   const [offlineChefs, setOfflineChefs] = useState<Array<{ chefId: string; chefName: string; itemNames: string[] }>>([]);
   const [cartOrderNote, setCartOrderNote] = useState<string | undefined>(undefined);
 
-  // Use hooks instead of RTK Query
+  // Using Convex directly for all API calls
   const { getCart } = useCart();
   const { createCheckout } = usePayments();
   const { createOrderFromCart } = useOrders();

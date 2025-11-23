@@ -1,10 +1,4 @@
-// RTK Query mutations no longer needed for these endpoints - using Convex directly
-// Keeping imports commented out in case we need them for other endpoints
-// import {
-//   usePhoneLoginMutation,
-//   useSendLoginOTPMutation,
-//   useAppleSignInMutation,
-// } from "@/store/authApi";
+// Using Convex directly for all auth endpoints
 import { useToast } from "@/lib/ToastContext";
 import { API_CONFIG } from "@/constants/api";
 import { useCallback } from "react";
@@ -18,11 +12,6 @@ import { getDeviceInfo } from '../utils/device';
 
 export const useAuth = () => {
   const { showToast } = useToast();
-
-  // RTK Query mutations no longer used - using Convex directly
-  // const [sendLoginOTP] = useSendLoginOTPMutation();
-  // const [phoneLogin] = usePhoneLoginMutation();
-  // const [appleSignIn] = useAppleSignInMutation();
 
   // Send OTP function
   const handleSendOTP = useCallback(

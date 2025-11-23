@@ -13,29 +13,27 @@ import * as Linking from 'expo-linking';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Updates from 'expo-updates';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Platform, StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Provider } from 'react-redux';
 
 import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
 import { STRIPE_CONFIG } from '@/constants/api';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { AddressSelectionProvider } from '@/contexts/AddressSelectionContext';
 import { ModalSheetProvider } from '@/context/ModalSheetContext';
+import { AddressSelectionProvider } from '@/contexts/AddressSelectionContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { store } from '@/store/index';
+import { getConvexReactClient } from '@/lib/convexClient';
 import { AppProvider } from '@/utils/AppContext';
 import { EmotionsUIProvider } from '@/utils/EmotionsUIContext';
+import { ConvexProvider } from 'convex/react';
+import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { GlobalToastContainer } from '../components/ui/GlobalToastContainer';
+import { UpdateAvailableModal } from '../components/ui/UpdateAvailableModal';
 import { ToastProvider } from '../lib/ToastContext';
 import { handleDeepLink } from '../lib/deepLinkHandler';
 import { logMockStatus } from '../utils/mockConfig';
-import { ConvexProvider } from 'convex/react';
-import { getConvexReactClient } from '@/lib/convexClient';
-import { UpdateAvailableModal } from '../components/ui/UpdateAvailableModal';
-import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 
 // Check if we're running in Expo Go (which doesn't support native modules like Stripe)
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
@@ -374,28 +372,26 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary>
-      <Provider store={store}>
-        <ConvexProvider client={convexClient}>
-          <AuthProvider>
-            <EmotionsUIProvider>
-              <AppProvider>
-                <AddressSelectionProvider>
-                  <ModalSheetProvider>
-                    <ToastProvider>
-                      {wrappedContent}
-                      <UpdateAvailableModal
-                        isVisible={showUpdateModal}
-                        onUpdate={handleUpdateNow}
-                        onLater={handleUpdateLater}
-                      />
-                    </ToastProvider>
-                  </ModalSheetProvider>
-                </AddressSelectionProvider>
-              </AppProvider>
-            </EmotionsUIProvider>
-          </AuthProvider>
-        </ConvexProvider>
-      </Provider>
+      <ConvexProvider client={convexClient}>
+        <AuthProvider>
+          <EmotionsUIProvider>
+            <AppProvider>
+              <AddressSelectionProvider>
+                <ModalSheetProvider>
+                  <ToastProvider>
+                    {wrappedContent}
+                    <UpdateAvailableModal
+                      isVisible={showUpdateModal}
+                      onUpdate={handleUpdateNow}
+                      onLater={handleUpdateLater}
+                    />
+                  </ToastProvider>
+                </ModalSheetProvider>
+              </AddressSelectionProvider>
+            </AppProvider>
+          </EmotionsUIProvider>
+        </AuthProvider>
+      </ConvexProvider>
     </ErrorBoundary>
   );
 }
