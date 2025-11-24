@@ -10,7 +10,7 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { useMutation, useQuery } from 'convex/react';
-import { CheckCircle2, ChevronDown, ChevronUp, Circle, Loader2, Save, X } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Circle, Loader2, Maximize2, Minimize2, Save, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BlogEditor } from './blog-editor';
 import { BlogImageUpload } from './blog-image-upload';
@@ -50,6 +50,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
   const [showSeo, setShowSeo] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialLoadRef = useRef(true);
 
@@ -300,8 +301,9 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
   const charCount = content.replace(/<[^>]*>/g, '').length;
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className={`h-screen flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-white' : ''}`}>
       {/* Sticky Header */}
+      {!isFullscreen && (
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
           <div>
@@ -337,7 +339,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
           <div className="text-xs text-gray-500 hidden md:block">
             {wordCount} words • {charCount} chars
           </div>
-          {onCancel && (
+          {onCancel && !isFullscreen && (
             <Button type="button" variant="outline" onClick={onCancel} size="sm">
               Cancel
             </Button>
@@ -363,6 +365,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
           </Button>
         </div>
       </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 p-3 mx-6 mt-4 rounded-lg">
@@ -371,17 +374,17 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       )}
 
       {/* Main Content - Two Column Layout */}
-      <div className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
-          {/* Left Column - Main Content (2/3 width) */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Title */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-              <Label htmlFor="title" className="text-sm font-medium mb-2 block text-gray-700">
+      <div className={`flex-1 overflow-y-auto ${isFullscreen ? 'bg-white' : 'bg-gray-50'}`}>
+        {isFullscreen ? (
+          /* Fullscreen Mode - Content Only */
+          <div className="h-full flex flex-col p-6">
+            {/* Title in Fullscreen */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm mb-4">
+              <Label htmlFor="title-fullscreen" className="text-sm font-medium mb-2 block text-gray-700">
                 Title *
               </Label>
               <Input
-                id="title"
+                id="title-fullscreen"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Enter blog post title"
@@ -389,24 +392,84 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
               />
             </div>
 
-            {/* Content Editor */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+            {/* Content Editor in Fullscreen */}
+            <div className="flex-1 bg-white rounded-lg border border-gray-200 p-4 shadow-sm flex flex-col min-h-0">
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-sm font-medium text-gray-700">Content *</Label>
-                <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                  {wordCount} words • {charCount} characters
+                <div className="flex items-center gap-2">
+                  <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                    {wordCount} words • {charCount} characters
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsFullscreen(false)}
+                    className="h-8 w-8 p-0"
+                    title="Exit Fullscreen"
+                  >
+                    <Minimize2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
-              <BlogEditor
-                content={content}
-                onChange={setContent}
-                placeholder="Start writing your blog post..."
-              />
+              <div className="flex-1 min-h-0">
+                <BlogEditor
+                  content={content}
+                  onChange={setContent}
+                  placeholder="Start writing your blog post..."
+                />
+              </div>
             </div>
           </div>
+        ) : (
+          /* Normal Mode - Two Column Layout */
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+            {/* Left Column - Main Content (2/3 width) */}
+            <div className="lg:col-span-2 space-y-4">
+              {/* Title */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                <Label htmlFor="title" className="text-sm font-medium mb-2 block text-gray-700">
+                  Title *
+                </Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Enter blog post title"
+                  className="text-lg border-gray-300 focus:border-[#F23E2E] focus:ring-[#F23E2E]"
+                />
+              </div>
 
-          {/* Right Column - Metadata (1/3 width) */}
-          <div className="space-y-4">
+              {/* Content Editor */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium text-gray-700">Content *</Label>
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      {wordCount} words • {charCount} characters
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsFullscreen(true)}
+                      className="h-8 w-8 p-0"
+                      title="Enter Fullscreen"
+                    >
+                      <Maximize2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <BlogEditor
+                  content={content}
+                  onChange={setContent}
+                  placeholder="Start writing your blog post..."
+                />
+              </div>
+            </div>
+
+            {/* Right Column - Metadata (1/3 width) */}
+            <div className="space-y-4">
             {/* Status */}
             <Card className="shadow-sm">
               <CardHeader className="pb-3">
@@ -598,8 +661,9 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
                 </CardContent>
               )}
             </Card>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
