@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Mail, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Clock, Mail } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useEffect, useState } from 'react';
 
 interface EmailOTPVerificationProps {
   email: string;
@@ -66,8 +66,8 @@ export function EmailOTPVerification({
       const data = await response.json();
 
       if (data.success) {
-        // Handle both response structures: data.token or data.data.token
-        const token = data.data?.token || data.token;
+        // Handle response structure: data.data.sessionToken or data.data.token (for backwards compatibility)
+        const token = data.data?.sessionToken || data.data?.token || data.sessionToken || data.token;
         const user = data.data?.user || data.user;
         onSuccess(token, user);
       } else {

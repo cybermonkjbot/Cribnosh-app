@@ -117,7 +117,8 @@ const TEST_OTP = '123456'; // Test OTP for development
  */
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { email, action, otp, name, location, referralCode, source } = await request.json();
+    const requestBody = await request.json();
+    const { email, action, otp, name, location, referralCode, source } = requestBody;
     
     if (!email) {
       return ResponseFactory.validationError('Email is required.');
@@ -250,8 +251,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
                           request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                           undefined;
         const { getDeviceInfoFromBodyOrHeaders } = await import('@/lib/utils/device');
-        const body = await request.json().catch(() => ({}));
-        const deviceInfo = getDeviceInfoFromBodyOrHeaders(body, userAgent);
+        const deviceInfo = getDeviceInfoFromBodyOrHeaders(requestBody, userAgent);
         
         const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
           userId: newUser._id,
@@ -308,8 +308,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
                         request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                         undefined;
       const { getDeviceInfoFromBodyOrHeaders } = await import('@/lib/utils/device');
-      const body = await request.json().catch(() => ({}));
-      const deviceInfo = getDeviceInfoFromBodyOrHeaders(body, userAgent);
+      const deviceInfo = getDeviceInfoFromBodyOrHeaders(requestBody, userAgent);
       
       const sessionResult = await convex.mutation(api.mutations.users.createAndSetSessionToken, {
         userId: user._id,

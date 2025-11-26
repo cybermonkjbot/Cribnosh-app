@@ -116,8 +116,8 @@ export function EmailOTPVerification({
       const data = await response.json();
 
       if (data.success) {
-        // Handle both response structures: data.token or data.data.token
-        const token = data.data?.token || data.token;
+        // Handle response structure: data.data.sessionToken or data.data.token (for backwards compatibility)
+        const token = data.data?.sessionToken || data.data?.token || data.sessionToken || data.token;
         const user = data.data?.user || data.user;
         
         if (token) {
