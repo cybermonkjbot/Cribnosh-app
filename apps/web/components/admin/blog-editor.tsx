@@ -1,69 +1,69 @@
 "use client";
 
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Image from '@tiptap/extension-image';
-import Link from '@tiptap/extension-link';
-import Placeholder from '@tiptap/extension-placeholder';
-import Underline from '@tiptap/extension-underline';
-import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
-import { TextAlign } from '@tiptap/extension-text-align';
-import { Color } from '@tiptap/extension-color';
-import { TextStyle } from '@tiptap/extension-text-style';
-import { Highlight } from '@tiptap/extension-highlight';
-import { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { 
-  Bold, 
-  Italic, 
-  Underline as UnderlineIcon, 
-  Strikethrough,
-  Heading1,
-  Heading2,
-  Heading3,
-  List,
-  ListOrdered,
-  Link as LinkIcon,
-  Image as ImageIcon,
-  Video,
-  Quote,
-  Code,
-  Undo,
-  Redo,
-  X,
-  CheckCircle2,
-  Youtube,
-  Twitter,
-  Minus,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  AlignJustify,
-  Palette,
-  Highlighter,
-  Table as TableIcon,
-  MousePointerClick,
-  AlertCircle,
-  ChevronDown,
-  Type
-} from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
-import { BlogImageUpload } from './blog-image-upload';
-import { useMutation } from 'convex/react';
+import { Button } from '@/components/ui/button';
 import { api } from '@/convex/_generated/api';
-import { YouTubeEmbed } from '@/lib/tiptap-extensions/youtube-embed';
-import { TwitterEmbed } from '@/lib/tiptap-extensions/twitter-embed';
-import { TikTokEmbed } from '@/lib/tiptap-extensions/tiktok-embed';
 import { Button as ButtonExtension } from '@/lib/tiptap-extensions/button';
 import { Callout } from '@/lib/tiptap-extensions/callout';
 import { Collapsible } from '@/lib/tiptap-extensions/collapsible';
-import { 
-  parseYouTubeUrl, 
-  parseTwitterUrl, 
-  parseTikTokUrl,
-  detectEmbedType 
-} from '@/lib/utils/embed-utils';
+import { TikTokEmbed } from '@/lib/tiptap-extensions/tiktok-embed';
+import { TwitterEmbed } from '@/lib/tiptap-extensions/twitter-embed';
+import { YouTubeEmbed } from '@/lib/tiptap-extensions/youtube-embed';
 import { validateEmbedUrl } from '@/lib/utils/embed-sanitizer';
+import {
+  detectEmbedType,
+  parseTikTokUrl,
+  parseTwitterUrl,
+  parseYouTubeUrl
+} from '@/lib/utils/embed-utils';
+import { Color } from '@tiptap/extension-color';
+import { Highlight } from '@tiptap/extension-highlight';
+import Image from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
+import { TextAlign } from '@tiptap/extension-text-align';
+import { TextStyle } from '@tiptap/extension-text-style';
+import Underline from '@tiptap/extension-underline';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { useMutation } from 'convex/react';
+import {
+  AlertCircle,
+  AlignCenter,
+  AlignJustify,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  CheckCircle2,
+  ChevronDown,
+  Code,
+  Heading1,
+  Heading2,
+  Heading3,
+  Highlighter,
+  Image as ImageIcon,
+  Italic,
+  Link as LinkIcon,
+  List,
+  ListOrdered,
+  Minus,
+  MousePointerClick,
+  Palette,
+  Quote,
+  Redo,
+  Strikethrough,
+  Table as TableIcon,
+  Twitter,
+  Type,
+  Underline as UnderlineIcon,
+  Undo,
+  Video,
+  X,
+  Youtube
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { BlogImageUpload } from './blog-image-upload';
 
 interface BlogEditorProps {
   content?: string;
