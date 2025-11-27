@@ -17,7 +17,9 @@ export async function generateStaticParams() {
       status: "published",
     });
     if (!posts || !Array.isArray(posts)) return [];
-    return posts.map((post: any) => ({ slug: post.slug }));
+    return posts
+      .filter((post: any) => post && post.slug && typeof post.slug === 'string')
+      .map((post: any) => ({ slug: post.slug }));
   } catch (error) {
     console.error('Error generating static params:', error);
     return [];
@@ -33,13 +35,23 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     if (!post || post.status !== 'published') {
       return { title: "Post not found | CribNosh" };
     }
+    const title = post.title && typeof post.title === 'string' ? post.title : 'Untitled';
+    const description = (post.excerpt && typeof post.excerpt === 'string' ? post.excerpt : '') || 
+                        (post.seoDescription && typeof post.seoDescription === 'string' ? post.seoDescription : '') || 
+                        '';
+    const imageUrl = (post.coverImage && typeof post.coverImage === 'string' && post.coverImage.trim() !== '') 
+      ? post.coverImage 
+      : (post.featuredImage && typeof post.featuredImage === 'string' && post.featuredImage.trim() !== '') 
+        ? post.featuredImage 
+        : '';
+    
     return {
-      title: `${post.title} | CribNosh`,
-      description: post.excerpt || post.seoDescription || '',
+      title: `${title} | CribNosh`,
+      description,
       openGraph: {
-        title: `${post.title} | CribNosh`,
-        description: post.excerpt || post.seoDescription || '',
-        images: [post.coverImage || post.featuredImage || '']
+        title: `${title} | CribNosh`,
+        description,
+        images: imageUrl ? [imageUrl] : []
       }
     };
   } catch (error) {
@@ -74,8 +86,15 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
     });
     if (allPosts && Array.isArray(allPosts)) {
       relatedPosts = allPosts
-        .filter((p: any) => p.slug !== slug && p.categories && post.categories && 
-          p.categories.some((c: string) => post.categories.includes(c)))
+        .filter((p: any) => {
+          if (!p || !p.slug || p.slug === slug) return false;
+          if (!p.categories || !Array.isArray(p.categories)) return false;
+          if (!post.categories || !Array.isArray(post.categories)) return false;
+          // Filter out non-string categories and check for matches
+          const pCategories = p.categories.filter((c: any) => typeof c === 'string');
+          const postCategories = post.categories.filter((c: any) => typeof c === 'string');
+          return pCategories.some((c: string) => postCategories.includes(c));
+        })
         .slice(0, 6);
     }
   } catch (error) {
@@ -93,18 +112,28 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Article",
-            headline: post.title,
-            description: post.excerpt || post.seoDescription || '',
-            image: (post.coverImage && post.coverImage.trim() !== '') 
-              ? post.coverImage 
-              : (post.featuredImage && post.featuredImage.trim() !== '') 
-                ? post.featuredImage 
-                : '',
-            author: { "@type": "Organization", name: post.author?.name || 'CribNosh Editorial' },
-            datePublished: post.date || (post.publishedAt && !isNaN(post.publishedAt) ? new Date(post.publishedAt).toISOString() : ''),
+            headline: (post.title && typeof post.title === 'string') ? post.title : 'Untitled',
+            description: (post.excerpt && typeof post.excerpt === 'string' ? post.excerpt : '') || 
+                        (post.seoDescription && typeof post.seoDescription === 'string' ? post.seoDescription : '') || 
+                        '',
+            image: (() => {
+              const coverImg = post.coverImage && typeof post.coverImage === 'string' && post.coverImage.trim() !== '' ? post.coverImage : null;
+              const featuredImg = post.featuredImage && typeof post.featuredImage === 'string' && post.featuredImage.trim() !== '' ? post.featuredImage : null;
+              return coverImg || featuredImg || '';
+            })(),
+            author: { 
+              "@type": "Organization", 
+              name: (post.author && typeof post.author === 'object' && typeof post.author.name === 'string') 
+                ? post.author.name 
+                : 'CribNosh Editorial' 
+            },
+            datePublished: (post.date && typeof post.date === 'string' ? post.date : '') || 
+                          (post.publishedAt && typeof post.publishedAt === 'number' && !isNaN(post.publishedAt) 
+                            ? new Date(post.publishedAt).toISOString() 
+                            : ''),
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": `https://cribnosh.com/by-us/${slug}`
+              "@id": `https://cribnosh.com/by-us/${slug || ''}`
             }
           })
         }}
@@ -115,13 +144,15 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
           <nav className="mb-6 p-4 rounded-xl bg-neutral-100/60 border border-neutral-200">
             <p className="font-satoshi text-sm text-neutral-700 mb-3">On this page</p>
             <ul className="space-y-2">
-              {post.headings.map((h: { id: string; text: string }) => (
-                <li key={h.id}>
-                  <a href={`#${h.id}`} className="text-[#ff3b30] font-satoshi text-sm">
-                    {h.text}
-                  </a>
-                </li>
-              ))}
+              {post.headings
+                .filter((h: any) => h && typeof h === 'object' && typeof h.id === 'string' && typeof h.text === 'string')
+                .map((h: { id: string; text: string }) => (
+                  <li key={h.id}>
+                    <a href={`#${h.id}`} className="text-[#ff3b30] font-satoshi text-sm">
+                      {h.text}
+                    </a>
+                  </li>
+                ))}
             </ul>
           </nav>
         )}
@@ -129,26 +160,29 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
         <header className="mb-8">
           <div className="relative w-full h-64 rounded-2xl overflow-hidden mb-6">
             {(() => {
-              const imageUrl = post.coverImage || post.featuredImage;
-              const hasImage = imageUrl && imageUrl.trim() !== '';
+              const coverImg = post.coverImage && typeof post.coverImage === 'string' ? post.coverImage : null;
+              const featuredImg = post.featuredImage && typeof post.featuredImage === 'string' ? post.featuredImage : null;
+              const imageUrl = coverImg || featuredImg;
+              const hasImage = imageUrl && typeof imageUrl === 'string' && imageUrl.trim() !== '';
+              const title = (post.title && typeof post.title === 'string') ? post.title : 'Blog post';
               
               if (!hasImage) {
                 return (
                   <Image 
                     src="/backgrounds/masonry-1.jpg" 
-                    alt={post.title} 
+                    alt={title} 
                     fill 
                     className="object-cover" 
                   />
                 );
               }
               
-              if (imageUrl.startsWith('/api/files/')) {
+              if (typeof imageUrl === 'string' && imageUrl.startsWith('/api/files/')) {
                 // Use regular img tag for API redirect URLs with fill layout
                 return (
                   <img 
                     src={imageUrl} 
-                    alt={post.title} 
+                    alt={title} 
                     className="absolute inset-0 w-full h-full object-cover" 
                     loading="eager"
                   />
@@ -159,36 +193,40 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
               return (
                 <Image 
                   src={imageUrl} 
-                  alt={post.title} 
+                  alt={title} 
                   fill 
                   className="object-cover" 
                 />
               );
             })()}
           </div>
-          <h1 className="font-asgard text-3xl md:text-4xl mb-3">{post.title}</h1>
+          <h1 className="font-asgard text-3xl md:text-4xl mb-3">
+            {(post.title && typeof post.title === 'string') ? post.title : 'Untitled'}
+          </h1>
           <div className="flex items-center gap-3 text-sm text-neutral-600">
             <div className="relative w-8 h-8 rounded-full overflow-hidden">
               {(() => {
-                const avatarUrl = post.author?.avatar;
+                const author = post.author && typeof post.author === 'object' ? post.author : null;
+                const avatarUrl = author && typeof author.avatar === 'string' ? author.avatar : null;
+                const authorName = author && typeof author.name === 'string' ? author.name : 'CribNosh Editorial';
                 const hasAvatar = avatarUrl && avatarUrl.trim() !== '';
                 
                 if (!hasAvatar) {
                   return (
                     <Image 
                       src="/card-images/IMG_2262.png" 
-                      alt={post.author?.name || 'CribNosh Editorial'} 
+                      alt={authorName} 
                       fill 
                       className="object-cover" 
                     />
                   );
                 }
                 
-                if (avatarUrl.startsWith('/api/files/')) {
+                if (typeof avatarUrl === 'string' && avatarUrl.startsWith('/api/files/')) {
                   return (
                     <img 
                       src={avatarUrl} 
-                      alt={post.author?.name || 'CribNosh Editorial'} 
+                      alt={authorName} 
                       className="absolute inset-0 w-full h-full object-cover" 
                     />
                   );
@@ -197,14 +235,18 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
                 return (
                   <Image 
                     src={avatarUrl} 
-                    alt={post.author?.name || 'CribNosh Editorial'} 
+                    alt={authorName} 
                     fill 
                     className="object-cover" 
                   />
                 );
               })()}
             </div>
-            <span className="font-satoshi">{post.author?.name || 'CribNosh Editorial'}</span>
+            <span className="font-satoshi">
+              {(post.author && typeof post.author === 'object' && typeof post.author.name === 'string') 
+                ? post.author.name 
+                : 'CribNosh Editorial'}
+            </span>
             <span className="opacity-60">•</span>
             <span className="font-satoshi">
               {post.date || (post.createdAt && !isNaN(post.createdAt) 
@@ -223,94 +265,120 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
           {/* Render body paragraphs if available */}
           {post.body && Array.isArray(post.body) && post.body.length > 0 && (
             <>
-              {post.body.map((paragraph: string, idx: number) => (
-                <p key={`p-${idx}`} id={post.headings && Array.isArray(post.headings) && post.headings[idx] ? post.headings[idx].id : undefined}>
-                  {paragraph}
-                </p>
-              ))}
+              {post.body
+                .filter((paragraph: any) => paragraph && typeof paragraph === 'string' && paragraph.trim() !== '')
+                .map((paragraph: string, idx: number) => {
+                  const headingId = post.headings && Array.isArray(post.headings) && post.headings[idx] && 
+                                   typeof post.headings[idx] === 'object' && 
+                                   typeof post.headings[idx].id === 'string' 
+                    ? post.headings[idx].id 
+                    : undefined;
+                  return (
+                    <p key={`p-${idx}`} id={headingId}>
+                      {paragraph}
+                    </p>
+                  );
+                })}
             </>
           )}
 
           {/* Render sections if available */}
           {post.sections && Array.isArray(post.sections) && post.sections.length > 0 && (
             <>
-              {post.sections.map((section: any) => (
-                <section key={section.id} id={section.id} className="mt-8">
-                  <h2 className="font-asgard text-2xl mb-2">{section.title}</h2>
-                  {section.paragraphs && Array.isArray(section.paragraphs) && section.paragraphs.map((p: string, i: number) => (
-                    <p key={`${section.id}-p-${i}`}>{p}</p>
-                  ))}
-                  {section.image && section.image.trim() !== '' && (
-                    <div className="my-6 rounded-xl overflow-hidden">
-                      {section.image.startsWith('/api/files/') ? (
-                        // Use regular img tag for API redirect URLs
-                        <img 
-                          src={section.image} 
-                          alt={section.imageAlt || section.title} 
-                          className="w-full h-auto object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        // Use Next.js Image for direct URLs
-                        <Image 
-                          src={section.image} 
-                          alt={section.imageAlt || section.title} 
-                          width={800}
-                          height={600}
-                          className="w-full h-auto object-cover"
-                        />
+              {post.sections
+                .filter((section: any) => section && typeof section === 'object' && 
+                       section.id && typeof section.id === 'string')
+                .map((section: any) => {
+                  const sectionId = typeof section.id === 'string' ? section.id : `section-${Math.random()}`;
+                  const sectionTitle = (section.title && typeof section.title === 'string') ? section.title : 'Untitled Section';
+                  
+                  return (
+                    <section key={sectionId} id={sectionId} className="mt-8">
+                      <h2 className="font-asgard text-2xl mb-2">{sectionTitle}</h2>
+                      {section.paragraphs && Array.isArray(section.paragraphs) && 
+                       section.paragraphs
+                         .filter((p: any) => p && typeof p === 'string' && p.trim() !== '')
+                         .map((p: string, i: number) => (
+                           <p key={`${sectionId}-p-${i}`}>{p}</p>
+                         ))}
+                      {section.image && typeof section.image === 'string' && section.image.trim() !== '' && (
+                        <div className="my-6 rounded-xl overflow-hidden">
+                          {section.image.startsWith('/api/files/') ? (
+                            // Use regular img tag for API redirect URLs
+                            <img 
+                              src={section.image} 
+                              alt={(section.imageAlt && typeof section.imageAlt === 'string' ? section.imageAlt : '') || sectionTitle} 
+                              className="w-full h-auto object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            // Use Next.js Image for direct URLs
+                            <Image 
+                              src={section.image} 
+                              alt={(section.imageAlt && typeof section.imageAlt === 'string' ? section.imageAlt : '') || sectionTitle} 
+                              width={800}
+                              height={600}
+                              className="w-full h-auto object-cover"
+                            />
+                          )}
+                        </div>
                       )}
-                    </div>
-                  )}
-                  {section.video && (
-                    <div className="my-6 rounded-xl overflow-hidden">
-                      <video 
-                        src={section.video}
-                        controls
-                        className="w-full h-auto"
-                        poster={section.videoThumbnail}
-                      >
-                        Your browser does not support the video tag.
-                      </video>
-                    </div>
-                  )}
-                  {section.bullets && Array.isArray(section.bullets) && section.bullets.length > 0 && (
-                    <ul className="list-disc pl-6">
-                      {section.bullets.map((b: string, i: number) => (
-                        <li key={`${section.id}-b-${i}`}>{b}</li>
-                      ))}
-                    </ul>
-                  )}
-                  {section.checklist && Array.isArray(section.checklist) && section.checklist.length > 0 && (
-                    <ul className="list-disc pl-6">
-                      {section.checklist.map((c: string, i: number) => (
-                        <li key={`${section.id}-c-${i}`}>{c}</li>
-                      ))}
-                    </ul>
-                  )}
-                  {section.proTips && Array.isArray(section.proTips) && section.proTips.length > 0 && (
-                    <div className="mt-3 p-4 rounded-xl bg-[#ff3b30]/5 border border-[#ff3b30]/20">
-                      <p className="font-satoshi text-sm font-medium text-[#ff3b30] mb-1">Pro tips</p>
-                      <ul className="list-disc pl-6">
-                        {section.proTips.map((t: string, i: number) => (
-                          <li key={`${section.id}-t-${i}`}>{t}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {section.callout && (
-                    <div className={`mt-3 p-4 rounded-xl border ${
-                      section.callout.variant === 'warning'
-                        ? 'bg-yellow-50 border-yellow-200 text-yellow-900'
-                        : section.callout.variant === 'tip'
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                        : 'bg-neutral-50 border-neutral-200 text-neutral-800'
-                    }`}>
-                      <p className="text-sm">{section.callout.text}</p>
-                    </div>
-                  )}
-                </section>
-              ))}
+                      {section.video && typeof section.video === 'string' && section.video.trim() !== '' && (
+                        <div className="my-6 rounded-xl overflow-hidden">
+                          <video 
+                            src={section.video}
+                            controls
+                            className="w-full h-auto"
+                            poster={(section.videoThumbnail && typeof section.videoThumbnail === 'string') ? section.videoThumbnail : undefined}
+                          >
+                            Your browser does not support the video tag.
+                          </video>
+                        </div>
+                      )}
+                      {section.bullets && Array.isArray(section.bullets) && section.bullets.length > 0 && (
+                        <ul className="list-disc pl-6">
+                          {section.bullets
+                            .filter((b: any) => b && typeof b === 'string' && b.trim() !== '')
+                            .map((b: string, i: number) => (
+                              <li key={`${sectionId}-b-${i}`}>{b}</li>
+                            ))}
+                        </ul>
+                      )}
+                      {section.checklist && Array.isArray(section.checklist) && section.checklist.length > 0 && (
+                        <ul className="list-disc pl-6">
+                          {section.checklist
+                            .filter((c: any) => c && typeof c === 'string' && c.trim() !== '')
+                            .map((c: string, i: number) => (
+                              <li key={`${sectionId}-c-${i}`}>{c}</li>
+                            ))}
+                        </ul>
+                      )}
+                      {section.proTips && Array.isArray(section.proTips) && section.proTips.length > 0 && (
+                        <div className="mt-3 p-4 rounded-xl bg-[#ff3b30]/5 border border-[#ff3b30]/20">
+                          <p className="font-satoshi text-sm font-medium text-[#ff3b30] mb-1">Pro tips</p>
+                          <ul className="list-disc pl-6">
+                            {section.proTips
+                              .filter((t: any) => t && typeof t === 'string' && t.trim() !== '')
+                              .map((t: string, i: number) => (
+                                <li key={`${sectionId}-t-${i}`}>{t}</li>
+                              ))}
+                          </ul>
+                        </div>
+                      )}
+                      {section.callout && typeof section.callout === 'object' && section.callout.text && typeof section.callout.text === 'string' && (
+                        <div className={`mt-3 p-4 rounded-xl border ${
+                          section.callout.variant === 'warning'
+                            ? 'bg-yellow-50 border-yellow-200 text-yellow-900'
+                            : section.callout.variant === 'tip'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                            : 'bg-neutral-50 border-neutral-200 text-neutral-800'
+                        }`}>
+                          <p className="text-sm">{section.callout.text}</p>
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
             </>
           )}
         </div>
@@ -320,22 +388,27 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
           <section className="mt-12">
             <h3 className="font-asgard text-2xl mb-4">Related posts</h3>
             <div className="flex flex-wrap gap-2">
-              {relatedPosts.map((p: any) => (
-                <Link key={p.slug} href={`/by-us/${p.slug}`} className="px-3 py-1 rounded-full bg-neutral-100 text-neutral-700 text-xs font-satoshi hover:bg-neutral-200">
-                  {p.title}
-                </Link>
-              ))}
+              {relatedPosts
+                .filter((p: any) => p && p.slug && typeof p.slug === 'string' && p.title && typeof p.title === 'string')
+                .map((p: any) => (
+                  <Link key={p.slug} href={`/by-us/${p.slug}`} className="px-3 py-1 rounded-full bg-neutral-100 text-neutral-700 text-xs font-satoshi hover:bg-neutral-200">
+                    {p.title}
+                  </Link>
+                ))}
             </div>
           </section>
         )}
 
         <footer className="mt-10 flex items-center justify-between">
           <div className="flex gap-2">
-            {post.categories && Array.isArray(post.categories) && post.categories.map((c: string) => (
-              <span key={c} className="px-3 py-1 rounded-full bg-neutral-100 text-neutral-700 text-xs font-satoshi">
-                {c}
-              </span>
-            ))}
+            {post.categories && Array.isArray(post.categories) && 
+             post.categories
+               .filter((c: any) => c && typeof c === 'string' && c.trim() !== '')
+               .map((c: string) => (
+                 <span key={c} className="px-3 py-1 rounded-full bg-neutral-100 text-neutral-700 text-xs font-satoshi">
+                   {c}
+                 </span>
+               ))}
           </div>
           <Link href="/by-us" className="text-[#ff3b30] font-satoshi">← Back</Link>
         </footer>
