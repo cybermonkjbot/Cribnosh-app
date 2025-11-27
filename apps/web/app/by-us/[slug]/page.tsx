@@ -29,7 +29,10 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const convex = getConvexClient();
   try {
     const post = await convex.query(api.queries.blog.getBlogPostBySlug, { slug });
-    if (!post) return { title: "Post not found | CribNosh" };
+    // Only generate metadata for published posts
+    if (!post || post.status !== 'published') {
+      return { title: "Post not found | CribNosh" };
+    }
     return {
       title: `${post.title} | CribNosh`,
       description: post.excerpt || post.seoDescription || '',
@@ -56,7 +59,8 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
     post = null;
   }
 
-  if (!post) {
+  // Only show published posts - return 404 for draft or archived posts
+  if (!post || post.status !== 'published') {
     notFound();
   }
 

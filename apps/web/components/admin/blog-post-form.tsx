@@ -130,10 +130,22 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       setTags(loadedState.tags);
       
       // Don't overwrite status if we just published (to prevent race condition)
-      // Only update status if it's actually different and we haven't just published
-      if (!justPublishedRef.current || loadedState.status === 'published') {
+      // Only update status if we haven't just published, OR if the query shows it's published (query has caught up)
+      if (!justPublishedRef.current) {
+        // Normal case: update status from query
         setStatus(loadedState.status);
+      } else if (justPublishedRef.current && loadedState.status === 'published') {
+        // Query has caught up and shows published - safe to update
+        setStatus(loadedState.status);
+        // Reset flag since query is now in sync
+        justPublishedRef.current = false;
+        if (justPublishedTimeoutRef.current) {
+          clearTimeout(justPublishedTimeoutRef.current);
+          justPublishedTimeoutRef.current = null;
+        }
       }
+      // If justPublishedRef.current is true and loadedState.status is NOT published,
+      // we keep the current status (don't overwrite published with draft from stale query)
       
       // Store original author to preserve it
       const originalAuthor = {
@@ -169,15 +181,13 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       isInitialLoadRef.current = false;
       setHasUnsavedChanges(false);
       
-      // Reset the just published flag after a short delay to allow query to update
-      if (justPublishedRef.current) {
-        if (justPublishedTimeoutRef.current) {
-          clearTimeout(justPublishedTimeoutRef.current);
-        }
+      // Reset the just published flag after a delay to allow query to update
+      // Only reset if we haven't already set a timeout from handlePublish
+      if (justPublishedRef.current && !justPublishedTimeoutRef.current) {
         justPublishedTimeoutRef.current = setTimeout(() => {
           justPublishedRef.current = false;
           justPublishedTimeoutRef.current = null;
-        }, 1000);
+        }, 2000);
       }
       
       return () => {
@@ -606,11 +616,21 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
         }
       }
 
-      // Set flag to prevent status from being overwritten by query refetch
+      // Set flag BEFORE any potential query refetch to prevent status from being overwritten
       justPublishedRef.current = true;
       setStatus('published');
       setLastSaved(new Date());
       setHasUnsavedChanges(false);
+      
+      // Clear any existing timeout and set a new one
+      if (justPublishedTimeoutRef.current) {
+        clearTimeout(justPublishedTimeoutRef.current);
+      }
+      // Reset the flag after a delay to allow query to update with published status
+      justPublishedTimeoutRef.current = setTimeout(() => {
+        justPublishedRef.current = false;
+        justPublishedTimeoutRef.current = null;
+      }, 2000); // Increased delay to ensure query has time to update
 
       // Update original state after successful publish
       originalStateRef.current = {
