@@ -35,6 +35,15 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     if (!post || post.status !== 'published') {
       return { title: "Post not found | CribNosh" };
     }
+    // Check if this is a CribNosh Team post
+    const author = post.author && typeof post.author === 'object' ? post.author : null;
+    const authorName = author && typeof author.name === 'string' ? author.name : '';
+    const isCribNoshTeam = !authorName || 
+                          authorName.trim() === '' || 
+                          authorName.toLowerCase() === 'cribnosh team' ||
+                          authorName.toLowerCase() === 'cribnosh editorial';
+    const displayAuthorName = isCribNoshTeam ? 'CribNosh Team' : authorName;
+    
     const title = post.title && typeof post.title === 'string' ? post.title : 'Untitled';
     const description = (post.excerpt && typeof post.excerpt === 'string' ? post.excerpt : '') || 
                         (post.seoDescription && typeof post.seoDescription === 'string' ? post.seoDescription : '') || 
@@ -76,10 +85,21 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
     notFound();
   }
 
+  // Check if this is a CribNosh Team post (staff-authored)
+  const author = post.author && typeof post.author === 'object' ? post.author : null;
+  const authorName = author && typeof author.name === 'string' ? author.name : '';
+  const isCribNoshTeam = !authorName || 
+                        authorName.trim() === '' || 
+                        authorName.toLowerCase() === 'cribnosh team' ||
+                        authorName.toLowerCase() === 'cribnosh editorial';
+  const displayAuthorName = isCribNoshTeam ? 'CribNosh Team' : authorName;
+  const displayAvatar = isCribNoshTeam ? '/card-images/IMG_2262.png' : (author?.avatar || '/card-images/IMG_2262.png');
+
   // Get related posts
   let relatedPosts: any[] = [];
   try {
     // Add limit to prevent fetching all posts (50 max for related posts)
+    // @ts-ignore - TypeScript has issues with deep type instantiation for Convex queries
     const allPosts = await convex.query(api.queries.blog.getBlogPosts, {
       status: "published",
       limit: 50,
@@ -123,9 +143,7 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
             })(),
             author: { 
               "@type": "Organization", 
-              name: (post.author && typeof post.author === 'object' && typeof post.author.name === 'string') 
-                ? post.author.name 
-                : 'CribNosh Editorial' 
+              name: displayAuthorName
             },
             datePublished: (post.date && typeof post.date === 'string' ? post.date : '') || 
                           (post.publishedAt && typeof post.publishedAt === 'number' && !isNaN(post.publishedAt) 
@@ -206,16 +224,14 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
           <div className="flex items-center gap-3 text-sm text-neutral-600">
             <div className="relative w-8 h-8 rounded-full overflow-hidden">
               {(() => {
-                const author = post.author && typeof post.author === 'object' ? post.author : null;
-                const avatarUrl = author && typeof author.avatar === 'string' ? author.avatar : null;
-                const authorName = author && typeof author.name === 'string' ? author.name : 'CribNosh Editorial';
-                const hasAvatar = avatarUrl && avatarUrl.trim() !== '';
+                const avatarUrl = displayAvatar;
+                const hasAvatar = avatarUrl && typeof avatarUrl === 'string' && avatarUrl.trim() !== '';
                 
-                if (!hasAvatar) {
+                if (!hasAvatar || isCribNoshTeam) {
                   return (
                     <Image 
                       src="/card-images/IMG_2262.png" 
-                      alt={authorName} 
+                      alt={displayAuthorName} 
                       fill 
                       className="object-cover" 
                     />
@@ -226,7 +242,7 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
                   return (
                     <img 
                       src={avatarUrl} 
-                      alt={authorName} 
+                      alt={displayAuthorName} 
                       className="absolute inset-0 w-full h-full object-cover" 
                     />
                   );
@@ -235,18 +251,14 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
                 return (
                   <Image 
                     src={avatarUrl} 
-                    alt={authorName} 
+                    alt={displayAuthorName} 
                     fill 
                     className="object-cover" 
                   />
                 );
               })()}
             </div>
-            <span className="font-satoshi">
-              {(post.author && typeof post.author === 'object' && typeof post.author.name === 'string') 
-                ? post.author.name 
-                : 'CribNosh Editorial'}
-            </span>
+            <span className="font-satoshi">{displayAuthorName}</span>
             <span className="opacity-60">•</span>
             <span className="font-satoshi">
               {post.date || (post.createdAt && !isNaN(post.createdAt) 

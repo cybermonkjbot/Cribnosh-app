@@ -161,7 +161,7 @@ function HistorySection({ referralHistory }: { referralHistory: any[] }) {
                       Referral #{item._id.slice(-6)}
                     </div>
                     <div className="font-satoshi text-xs text-gray-600">
-                      {new Date(item.createdAt).toLocaleDateString()}
+                      {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
                     </div>
                   </div>
                 </div>
@@ -187,9 +187,19 @@ function HistorySection({ referralHistory }: { referralHistory: any[] }) {
 // Paginated loader
 function LoadMoreHistory({ userId }: { userId: Id<'users'> }) {
   const [cursor, setCursor] = useState<string | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedSessionToken = localStorage.getItem("cribnosh_waitlist_session");
+      if (storedSessionToken) setSessionToken(storedSessionToken);
+    }
+  }, []);
+
   const page = useQuery(api.queries.users.getUserReferralHistoryPaginated, {
     userId,
     paginationOpts: { numItems: 5, cursor },
+    sessionToken: sessionToken || undefined,
   });
 
   if (!page) return null;
@@ -214,7 +224,7 @@ function LoadMoreHistory({ userId }: { userId: Id<'users'> }) {
                   Referral #{String(item._id).slice(-6)}
                 </div>
                 <div className="font-satoshi text-xs text-gray-600">
-                  {new Date(item.createdAt).toLocaleDateString()}
+                  {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
                 </div>
               </div>
             </div>
@@ -299,20 +309,29 @@ function ResourcesSection() {
 
 export default function ReferralDashboard() {
   const [userId, setUserId] = useState<Id<"users"> | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedUserId = localStorage.getItem("cribnosh_user_id");
+      const storedSessionToken = localStorage.getItem("cribnosh_waitlist_session");
       if (storedUserId) setUserId(storedUserId as Id<"users">);
+      if (storedSessionToken) setSessionToken(storedSessionToken);
     }
   }, []);
 
-  const userStats = useQuery(api.queries.users.getUserReferralStats, userId ? { userId } : "skip");
-  const referralHistory = useQuery(api.queries.users.getUserReferralHistory, userId ? { userId } : "skip");
+  const userStats = useQuery(
+    api.queries.users.getUserReferralStats, 
+    userId ? { userId, sessionToken: sessionToken || undefined } : "skip"
+  );
+  const referralHistory = useQuery(
+    api.queries.users.getUserReferralHistory, 
+    userId ? { userId, sessionToken: sessionToken || undefined } : "skip"
+  );
   const paged = useQuery(
     api.queries.users.getUserReferralHistoryPaginated,
     userId
-      ? { userId, paginationOpts: { numItems: 5, cursor: null } }
+      ? { userId, paginationOpts: { numItems: 5, cursor: null }, sessionToken: sessionToken || undefined }
       : "skip"
   );
 
@@ -337,7 +356,10 @@ export default function ReferralDashboard() {
   // Bar chart data
   const dealsPerMonth = Array(6).fill(0);
   completedReferrals.forEach((r: any) => {
-    const d = new Date(r.completedAt || r.createdAt);
+    const timestamp = r.completedAt || r.createdAt;
+    if (!timestamp) return; // Skip if no timestamp
+    const d = new Date(timestamp);
+    if (isNaN(d.getTime())) return; // Skip if invalid date
     const now = new Date();
     const monthDiff = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
     if (monthDiff >= 0 && monthDiff < 6) {
