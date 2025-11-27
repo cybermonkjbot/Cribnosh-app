@@ -159,6 +159,7 @@ export async function POST(req: NextRequest) {
     // Extract user/session info from cookies
     const user = await getUserFromRequest(req);
     const userId = user?._id || body.userId || undefined;
+    const sessionToken = req.cookies.get("convex-auth-token")?.value || null;
     // Get emotions engine context - this consolidates nearby chefs, user data, and preferences
     const convex = getConvexClientFromRequest(req);
     const emotionsContext = await convex.action(api.actions.emotionsEngine.getEmotionsEngineContext, {
@@ -172,7 +173,7 @@ export async function POST(req: NextRequest) {
     
     // Aggregate context (merge frontend and backend data)
     const nearbyCuisines = emotionsContext.nearbyCuisines || [];
-    const context = await aggregateContext(body, userId, nearbyCuisines);
+    const context = await aggregateContext(body, userId, nearbyCuisines, sessionToken);
     // Run inference
     const result = await runInference({ ...context, ...body });
     return ResponseFactory.success(result.data);

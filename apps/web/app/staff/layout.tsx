@@ -165,7 +165,7 @@ function StaffLayoutContent({
                   >
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">{notification.message}</p>
-                      <p className="text-xs text-gray-700">{new Date(notification.createdAt).toLocaleString()}</p>
+                      <p className="text-xs text-gray-700">{notification.createdAt ? new Date(notification.createdAt).toLocaleString() : 'N/A'}</p>
                     </div>
                     {!notification.read && (
                       <button

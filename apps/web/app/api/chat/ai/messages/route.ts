@@ -161,7 +161,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     
     // Aggregate context
     const nearbyCuisines = emotionsContextData.nearbyCuisines || [];
-    const context = await aggregateContext(emotionsContext, userId, nearbyCuisines);
+    const sessionToken = request.cookies.get("convex-auth-token")?.value || null;
+    const context = await aggregateContext(emotionsContext, userId, nearbyCuisines, sessionToken);
 
     // Run inference with full context
     const result = await runInference({

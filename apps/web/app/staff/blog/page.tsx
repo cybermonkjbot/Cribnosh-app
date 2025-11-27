@@ -266,7 +266,7 @@ export default function StaffBlogPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      {post.date || new Date(post.createdAt).toLocaleDateString()}
+                      {post.date || (post.createdAt ? new Date(post.createdAt).toLocaleDateString() : 'N/A')}
                     </div>
                     <div className="flex items-center gap-1">
                       <Eye className="w-4 h-4" />

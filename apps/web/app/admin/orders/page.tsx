@@ -497,7 +497,7 @@ export default function OrderManagementPage() {
                                 {getPaymentBadge(order.payment_status)}
                               </div>
                               <p className="text-sm text-gray-500 mt-1">
-                                {new Date(order.createdAt).toLocaleString()}
+                                {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
                               </p>
                             </div>
                             <div className="flex gap-2">
@@ -599,7 +599,7 @@ export default function OrderManagementPage() {
                             <div className="text-right">
                               <p className="font-bold text-lg">${order.total_amount.toLocaleString()}</p>
                               <p className="text-sm text-gray-500">
-                                {new Date(order.createdAt).toLocaleString()}
+                                {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
                               </p>
                             </div>
                           </div>

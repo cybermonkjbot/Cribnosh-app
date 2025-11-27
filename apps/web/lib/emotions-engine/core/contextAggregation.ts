@@ -5,24 +5,34 @@ import { Id } from '@/convex/_generated/dataModel';
 import { logger } from '@/lib/utils/logger';
 
 // Real fetch for backend user data from Convex
-async function fetchUserData(userId: string): Promise<Partial<EmotionsContext>> {
+async function fetchUserData(userId: string, sessionToken?: string | null): Promise<Partial<EmotionsContext>> {
   try {
     const convex = getConvexClient();
     
     // Fetch user profile and preferences
-    const userProfile = await convex.query(api.queries.users.getUserProfile, { userId: userId as Id<"users"> });
+    const userProfile = await convex.query(api.queries.users.getUserProfile, { 
+      userId: userId as Id<"users">,
+      sessionToken: sessionToken || undefined
+    });
     
     // Fetch recent orders
     const recentOrders = await convex.query(api.queries.orders.getRecentOrders, { 
       userId: userId as Id<"users">, 
-      limit: 10 
+      limit: 10,
+      sessionToken: sessionToken || undefined
     });
     
     // Fetch dietary preferences
-    const dietaryPreferences = await convex.query(api.queries.users.getDietaryPreferences, { userId: userId as Id<"users"> });
+    const dietaryPreferences = await convex.query(api.queries.users.getDietaryPreferences, { 
+      userId: userId as Id<"users">,
+      sessionToken: sessionToken || undefined
+    });
     
     // Fetch favorite cuisines
-    const favoriteCuisines = await convex.query(api.queries.users.getFavoriteCuisines, { userId: userId as Id<"users"> });
+    const favoriteCuisines = await convex.query(api.queries.users.getFavoriteCuisines, { 
+      userId: userId as Id<"users">,
+      sessionToken: sessionToken || undefined
+    });
     
     // Extract meal names from order items
     interface OrderItem {
@@ -62,11 +72,12 @@ async function fetchUserData(userId: string): Promise<Partial<EmotionsContext>> 
 export async function aggregateContext(
   uiContext: Partial<EmotionsContext>,
   userId?: string,
-  nearbyCuisines?: string[]
+  nearbyCuisines?: string[],
+  sessionToken?: string | null
 ): Promise<EmotionsContext> {
   let apiContext: Partial<EmotionsContext> = {};
   if (userId) {
-    apiContext = await fetchUserData(userId);
+    apiContext = await fetchUserData(userId, sessionToken);
   }
   if (nearbyCuisines) {
     apiContext.nearby_cuisines = nearbyCuisines;

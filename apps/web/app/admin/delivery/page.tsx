@@ -358,8 +358,11 @@ export default function DeliveryManagementPage() {
                     <p className="text-sm font-medium text-gray-600">Completed Today</p>
                     <p className="text-2xl font-bold text-gray-900">
                       {deliveries?.filter(d => {
+                        const timestamp = d.actualDeliveryTime || d.createdAt;
+                        if (!timestamp) return false;
                         const today = new Date();
-                        const deliveryDate = new Date(d.actualDeliveryTime || d.createdAt);
+                        const deliveryDate = new Date(timestamp);
+                        if (isNaN(deliveryDate.getTime())) return false;
                         return deliveryDate.toDateString() === today.toDateString() && d.status === 'delivered';
                       }).length || 0}
                     </p>

@@ -212,7 +212,7 @@ export default function AdminDashboard() {
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 wrap-break-word">{notification.message}</p>
-                      <p className="text-xs text-gray-700">{new Date(notification.createdAt).toLocaleString()}</p>
+                      <p className="text-xs text-gray-700">{notification.createdAt ? new Date(notification.createdAt).toLocaleString() : 'N/A'}</p>
                     </div>
                     {!notification.read && (
                       <Button
