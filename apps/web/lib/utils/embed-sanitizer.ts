@@ -54,6 +54,40 @@ export function sanitizeIframeSrc(src: string): string | null {
 }
 
 /**
+ * Sanitize button href attribute
+ */
+function sanitizeButtonHref(href: string): string | null {
+  if (!href) return null;
+  
+  try {
+    // Allow relative URLs
+    if (href.startsWith('/') || href.startsWith('#')) {
+      return href;
+    }
+    
+    const urlObj = new URL(href);
+    
+    // Only allow http and https protocols
+    if (!['http:', 'https:'].includes(urlObj.protocol)) {
+      return null;
+    }
+    
+    // Block javascript: and data: protocols
+    if (href.toLowerCase().startsWith('javascript:') || href.toLowerCase().startsWith('data:')) {
+      return null;
+    }
+    
+    return href;
+  } catch {
+    // If URL parsing fails, it might be a relative URL
+    if (href.startsWith('/') || href.startsWith('#')) {
+      return href;
+    }
+    return null;
+  }
+}
+
+/**
  * Sanitize embed HTML content
  */
 export function sanitizeEmbedHTML(html: string): string {
@@ -75,6 +109,20 @@ export function sanitizeEmbedHTML(html: string): string {
         return `<iframe${attributes.replace(/src\s*=\s*["'][^"']+["']/i, `src="${sanitizedSrc}"`)}>`;
       }
       // Remove iframe if src is not allowed
+      return '';
+    }
+    return match;
+  });
+  
+  // Sanitize button href attributes (for data-type="button" links)
+  sanitized = sanitized.replace(/<a([^>]*data-type=["']button["'][^>]*)>/gi, (match, attributes) => {
+    const hrefMatch = attributes.match(/href\s*=\s*["']([^"']+)["']/i);
+    if (hrefMatch && hrefMatch[1]) {
+      const sanitizedHref = sanitizeButtonHref(hrefMatch[1]);
+      if (sanitizedHref) {
+        return `<a${attributes.replace(/href\s*=\s*["'][^"']+["']/i, `href="${sanitizedHref}"`)}>`;
+      }
+      // Remove button if href is not allowed
       return '';
     }
     return match;

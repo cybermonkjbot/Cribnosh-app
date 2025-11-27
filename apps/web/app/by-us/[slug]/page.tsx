@@ -153,8 +153,6 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
           </div>
         </header>
 
-        <p className="font-satoshi text-lg text-neutral-700 mb-6">{post.excerpt || post.description || ''}</p>
-
         <div className="prose prose-neutral max-w-none font-satoshi">
           {/* Render rich content from editor */}
           {post.content && <BlogContent content={post.content} />}

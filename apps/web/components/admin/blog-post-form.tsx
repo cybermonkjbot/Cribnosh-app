@@ -41,6 +41,8 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
   const [categories, setCategories] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [status, setStatus] = useState<'draft' | 'published' | 'archived'>('draft');
+  const [authorName, setAuthorName] = useState('');
+  const [authorAvatar, setAuthorAvatar] = useState('');
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [date, setDate] = useState('');
@@ -76,6 +78,8 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       setCategories(existingPost.categories || []);
       setTags(existingPost.tags || []);
       setStatus(existingPost.status || 'draft');
+      setAuthorName(existingPost.author?.name || '');
+      setAuthorAvatar(existingPost.author?.avatar || '');
       setSeoTitle(existingPost.seoTitle || '');
       setSeoDescription(existingPost.seoDescription || '');
       setDate(existingPost.date || '');
@@ -118,11 +122,15 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
     if (!isInitialLoadRef.current) {
       setHasUnsavedChanges(true);
     }
-  }, [title, content, excerpt, coverImage, featuredImage, categories, tags, status, seoTitle, seoDescription, date]);
+  }, [title, content, excerpt, coverImage, featuredImage, categories, tags, status, authorName, authorAvatar, seoTitle, seoDescription, date]);
 
   // Auto-save functionality (debounced)
   const autoSave = useCallback(async () => {
-    if (!title.trim() || !content.trim() || !staff || !hasUnsavedChanges) {
+    // Don't auto-save if post was published before or is not a draft
+    const wasPublishedBefore = existingPost?.publishedAt !== undefined;
+    const isDraft = status === 'draft';
+    
+    if (!title.trim() || !content.trim() || !staff || !hasUnsavedChanges || !isDraft || wasPublishedBefore) {
       return;
     }
 
@@ -144,13 +152,13 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
           featuredImage,
           categories,
           tags,
-          status: 'draft', // Auto-save always as draft
+          status: postId ? status : 'draft', // Preserve existing status when editing, use draft for new posts
           seoTitle: seoTitle || title,
           seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
           date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
           author: {
-            name: staff.name || 'Staff Member',
-            avatar: staff.avatar || '/default-avatar.png'
+            name: authorName || 'CribNosh Team',
+            avatar: authorAvatar || '/card-images/IMG_2262.png'
           },
         };
 
@@ -171,8 +179,8 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       } finally {
         setSaving(false);
       }
-    }, 2000); // Auto-save after 2 seconds of inactivity
-  }, [title, slug, excerpt, content, coverImage, featuredImage, categories, tags, seoTitle, seoDescription, date, staff, postId, hasUnsavedChanges, createPost, updatePost]);
+    }, 15000); // Auto-save after 15 seconds of inactivity
+  }, [title, slug, excerpt, content, coverImage, featuredImage, categories, tags, status, authorName, authorAvatar, seoTitle, seoDescription, date, staff, postId, hasUnsavedChanges, existingPost, createPost, updatePost]);
 
   // Trigger auto-save on changes
   useEffect(() => {
@@ -238,12 +246,12 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
         status,
         seoTitle: seoTitle || title,
         seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
-        date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-        author: {
-          name: staff.name || 'Staff Member',
-          avatar: staff.avatar || '/default-avatar.png'
-        },
-      };
+          date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+          author: {
+            name: authorName || 'CribNosh Team',
+            avatar: authorAvatar || '/card-images/IMG_2262.png'
+          },
+        };
 
       if (postId) {
         // Update existing post
@@ -486,6 +494,37 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
                     <SelectItem value="archived">Archived</SelectItem>
                   </SelectContent>
                 </Select>
+              </CardContent>
+            </Card>
+
+            {/* Author Settings */}
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Author</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label htmlFor="authorName" className="text-xs text-gray-600 mb-1 block">Author Name</Label>
+                  <Input
+                    id="authorName"
+                    value={authorName}
+                    onChange={(e) => setAuthorName(e.target.value)}
+                    placeholder="CribNosh Team"
+                    className="text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Leave empty to use "CribNosh Team"</p>
+                </div>
+                <div>
+                  <Label htmlFor="authorAvatar" className="text-xs text-gray-600 mb-1 block">Author Avatar URL</Label>
+                  <Input
+                    id="authorAvatar"
+                    value={authorAvatar}
+                    onChange={(e) => setAuthorAvatar(e.target.value)}
+                    placeholder="/card-images/IMG_2262.png"
+                    className="text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Leave empty to use default CribNosh avatar</p>
+                </div>
               </CardContent>
             </Card>
 

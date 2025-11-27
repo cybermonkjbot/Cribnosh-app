@@ -1,6 +1,6 @@
-import { mutation, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
 import { sanitizeContent } from "../../../apps/web/lib/utils/content-sanitizer";
+import { internalMutation, mutation } from "../_generated/server";
 
 export const createBlogPost = mutation({
   args: {
@@ -167,21 +167,30 @@ export const updateBlogPost = mutation({
   handler: async (ctx: any, args: any) => {
     const { postId, ...updates } = args;
     
+    // Get current post to check existing slug
+    const currentPost = await ctx.db.get(postId);
+    if (!currentPost) {
+      throw new Error("Post not found");
+    }
+    
     // Build update object
     const updateData: any = {
       updatedAt: Date.now(),
     };
     
-    // Handle slug change
-    if (updates.slug) {
-      // Check if new slug already exists (excluding current post)
-      const existing = await ctx.db
-        .query("blogPosts")
-        .withIndex("by_slug", (q: any) => q.eq("slug", updates.slug))
-        .first();
-      
-      if (existing && existing._id !== postId) {
-        throw new Error("Slug already exists");
+    // Handle slug change - only check for conflicts if slug is actually changing
+    if (updates.slug !== undefined) {
+      // Only validate if the slug is different from the current slug
+      if (updates.slug !== currentPost.slug) {
+        // Check if new slug already exists (excluding current post)
+        const existing = await ctx.db
+          .query("blogPosts")
+          .withIndex("by_slug", (q: any) => q.eq("slug", updates.slug))
+          .first();
+        
+        if (existing && existing._id !== postId) {
+          throw new Error("Slug already exists");
+        }
       }
       updateData.slug = updates.slug;
     }
@@ -325,6 +334,26 @@ export const archiveBlogPost = mutation({
     });
 
     return { success: true };
+  },
+});
+
+export const setAllBlogPostsToDraft = mutation({
+  args: {},
+  handler: async (ctx: any) => {
+    const allPosts = await ctx.db.query("blogPosts").collect();
+    let updated = 0;
+    
+    for (const post of allPosts) {
+      if (post.status !== "draft") {
+        await ctx.db.patch(post._id, {
+          status: "draft",
+          updatedAt: Date.now(),
+        });
+        updated++;
+      }
+    }
+    
+    return { success: true, updated, total: allPosts.length };
   },
 });
 

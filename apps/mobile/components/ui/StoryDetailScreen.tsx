@@ -258,11 +258,6 @@ export function StoryDetailScreen({ storyId, onClose }: StoryDetailScreenProps) 
                 </View>
               )}
 
-              {/* Story Content */}
-              {story.excerpt && (
-                <Text style={styles.excerpt}>{story.excerpt}</Text>
-              )}
-
               {/* Render HTML content */}
               {processedContent && (
                 <View style={styles.contentSection}>
