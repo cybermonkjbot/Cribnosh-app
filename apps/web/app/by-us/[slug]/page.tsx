@@ -1,18 +1,18 @@
 import { JsonLd } from "@/components/JsonLd";
-import { useSessionToken } from '@/hooks/useSessionToken';
+import { BlogContent } from "@/components/blog/blog-content";
 import { api } from "@/convex/_generated/api";
 import { getConvexClient } from "@/lib/conxed-client";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BlogContent } from "@/components/blog/blog-content";
 
 type Params = { slug: string };
 
 export async function generateStaticParams() {
   const convex = getConvexClient();
   try {
+    // @ts-ignore - TypeScript has issues with deep type instantiation for Convex queries
     const posts = await convex.query(api.queries.blog.getBlogPosts, {
       status: "published",
     });
@@ -95,9 +95,13 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
             "@type": "Article",
             headline: post.title,
             description: post.excerpt || post.seoDescription || '',
-            image: post.coverImage || post.featuredImage || '',
+            image: (post.coverImage && post.coverImage.trim() !== '') 
+              ? post.coverImage 
+              : (post.featuredImage && post.featuredImage.trim() !== '') 
+                ? post.featuredImage 
+                : '',
             author: { "@type": "Organization", name: post.author?.name || 'CribNosh Editorial' },
-            datePublished: post.date || (post.publishedAt ? new Date(post.publishedAt).toISOString() : ''),
+            datePublished: post.date || (post.publishedAt && !isNaN(post.publishedAt) ? new Date(post.publishedAt).toISOString() : ''),
             mainEntityOfPage: {
               "@type": "WebPage",
               "@id": `https://cribnosh.com/by-us/${slug}`
@@ -124,42 +128,97 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
 
         <header className="mb-8">
           <div className="relative w-full h-64 rounded-2xl overflow-hidden mb-6">
-            {(post.coverImage || post.featuredImage)?.startsWith('/api/files/') ? (
-              // Use regular img tag for API redirect URLs with fill layout
-              <img 
-                src={post.coverImage || post.featuredImage || '/backgrounds/masonry-1.jpg'} 
-                alt={post.title} 
-                className="absolute inset-0 w-full h-full object-cover" 
-                loading="eager"
-              />
-            ) : (
-              <Image 
-                src={post.coverImage || post.featuredImage || '/backgrounds/masonry-1.jpg'} 
-                alt={post.title} 
-                fill 
-                className="object-cover" 
-              />
-            )}
+            {(() => {
+              const imageUrl = post.coverImage || post.featuredImage;
+              const hasImage = imageUrl && imageUrl.trim() !== '';
+              
+              if (!hasImage) {
+                return (
+                  <Image 
+                    src="/backgrounds/masonry-1.jpg" 
+                    alt={post.title} 
+                    fill 
+                    className="object-cover" 
+                  />
+                );
+              }
+              
+              if (imageUrl.startsWith('/api/files/')) {
+                // Use regular img tag for API redirect URLs with fill layout
+                return (
+                  <img 
+                    src={imageUrl} 
+                    alt={post.title} 
+                    className="absolute inset-0 w-full h-full object-cover" 
+                    loading="eager"
+                  />
+                );
+              }
+              
+              // Use Next.js Image for direct URLs
+              return (
+                <Image 
+                  src={imageUrl} 
+                  alt={post.title} 
+                  fill 
+                  className="object-cover" 
+                />
+              );
+            })()}
           </div>
           <h1 className="font-asgard text-3xl md:text-4xl mb-3">{post.title}</h1>
           <div className="flex items-center gap-3 text-sm text-neutral-600">
             <div className="relative w-8 h-8 rounded-full overflow-hidden">
-              <Image 
-                src={post.author?.avatar || '/card-images/IMG_2262.png'} 
-                alt={post.author?.name || 'CribNosh Editorial'} 
-                fill 
-                className="object-cover" 
-              />
+              {(() => {
+                const avatarUrl = post.author?.avatar;
+                const hasAvatar = avatarUrl && avatarUrl.trim() !== '';
+                
+                if (!hasAvatar) {
+                  return (
+                    <Image 
+                      src="/card-images/IMG_2262.png" 
+                      alt={post.author?.name || 'CribNosh Editorial'} 
+                      fill 
+                      className="object-cover" 
+                    />
+                  );
+                }
+                
+                if (avatarUrl.startsWith('/api/files/')) {
+                  return (
+                    <img 
+                      src={avatarUrl} 
+                      alt={post.author?.name || 'CribNosh Editorial'} 
+                      className="absolute inset-0 w-full h-full object-cover" 
+                    />
+                  );
+                }
+                
+                return (
+                  <Image 
+                    src={avatarUrl} 
+                    alt={post.author?.name || 'CribNosh Editorial'} 
+                    fill 
+                    className="object-cover" 
+                  />
+                );
+              })()}
             </div>
             <span className="font-satoshi">{post.author?.name || 'CribNosh Editorial'}</span>
             <span className="opacity-60">•</span>
-            <span className="font-satoshi">{post.date || (post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '')}</span>
+            <span className="font-satoshi">
+              {post.date || (post.createdAt && !isNaN(post.createdAt) 
+                ? new Date(post.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) 
+                : '')}
+            </span>
           </div>
         </header>
 
         <div className="prose prose-neutral max-w-none font-satoshi">
           {/* Render rich content from editor */}
-          {post.content && <BlogContent content={post.content} />}
+          {post.content && typeof post.content === 'string' && post.content.trim() !== '' && (
+            <BlogContent content={post.content} />
+          )}
 
           {/* Render body paragraphs if available */}
           {post.body && Array.isArray(post.body) && post.body.length > 0 && (
@@ -181,7 +240,7 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
                   {section.paragraphs && Array.isArray(section.paragraphs) && section.paragraphs.map((p: string, i: number) => (
                     <p key={`${section.id}-p-${i}`}>{p}</p>
                   ))}
-                  {section.image && (
+                  {section.image && section.image.trim() !== '' && (
                     <div className="my-6 rounded-xl overflow-hidden">
                       {section.image.startsWith('/api/files/') ? (
                         // Use regular img tag for API redirect URLs
