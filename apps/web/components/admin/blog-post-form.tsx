@@ -53,8 +53,16 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isCribNoshTeamPost, setIsCribNoshTeamPost] = useState(false);
   const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialLoadRef = useRef(true);
+  const justPublishedRef = useRef(false);
+  const isSavingRef = useRef(false);
+  const currentPostIdRef = useRef<Id<"blogPosts"> | undefined>(postId);
+  const excerptManuallyEditedRef = useRef(false);
+  const slugManuallyEditedRef = useRef(false);
+  const justPublishedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const originalAuthorRef = useRef<{ name: string; avatar: string } | null>(null);
   const originalStateRef = useRef<{
     title: string;
     slug: string;
@@ -72,10 +80,20 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
     date: string;
   } | null>(null);
 
+  // Update currentPostIdRef when postId prop changes
+  useEffect(() => {
+    if (postId) {
+      currentPostIdRef.current = postId;
+    }
+  }, [postId]);
+
+  // Use currentPostIdRef for queries to handle auto-saved posts
+  const effectivePostId = currentPostIdRef.current || postId;
+  
   // Fetch existing post if editing
   const existingPost = useQuery(
     api.queries.blog.getBlogPostById,
-    postId ? { postId } : 'skip'
+    effectivePostId ? { postId: effectivePostId } : 'skip'
   );
 
   // Mutations
@@ -110,19 +128,75 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       setFeaturedImage(loadedState.featuredImage);
       setCategories(loadedState.categories);
       setTags(loadedState.tags);
-      setStatus(loadedState.status);
-      setAuthorName(loadedState.authorName);
-      setAuthorAvatar(loadedState.authorAvatar);
+      
+      // Don't overwrite status if we just published (to prevent race condition)
+      // Only update status if it's actually different and we haven't just published
+      if (!justPublishedRef.current || loadedState.status === 'published') {
+        setStatus(loadedState.status);
+      }
+      
+      // Store original author to preserve it
+      const originalAuthor = {
+        name: existingPost.author?.name || 'CribNosh Team',
+        avatar: existingPost.author?.avatar || '/card-images/IMG_2262.png'
+      };
+      originalAuthorRef.current = originalAuthor;
+      
+      // Check if this is a CribNosh Team post
+      const isCribNoshTeam = originalAuthor.name === 'CribNosh Team' || originalAuthor.name === '';
+      setIsCribNoshTeamPost(isCribNoshTeam);
+      
+      // For CribNosh Team posts, always use CribNosh Team
+      // For user posts, preserve the original author
+      if (isCribNoshTeam) {
+        setAuthorName('CribNosh Team');
+        setAuthorAvatar('/card-images/IMG_2262.png');
+      } else {
+        setAuthorName(loadedState.authorName);
+        setAuthorAvatar(loadedState.authorAvatar);
+      }
+      
       setSeoTitle(loadedState.seoTitle);
       setSeoDescription(loadedState.seoDescription);
       setDate(loadedState.date);
+      
+      // Reset manual edit flags when loading existing post
+      excerptManuallyEditedRef.current = false;
+      slugManuallyEditedRef.current = false;
       
       // Store original state for comparison
       originalStateRef.current = loadedState;
       isInitialLoadRef.current = false;
       setHasUnsavedChanges(false);
+      
+      // Reset the just published flag after a short delay to allow query to update
+      if (justPublishedRef.current) {
+        if (justPublishedTimeoutRef.current) {
+          clearTimeout(justPublishedTimeoutRef.current);
+        }
+        justPublishedTimeoutRef.current = setTimeout(() => {
+          justPublishedRef.current = false;
+          justPublishedTimeoutRef.current = null;
+        }, 1000);
+      }
+      
+      return () => {
+        if (justPublishedTimeoutRef.current) {
+          clearTimeout(justPublishedTimeoutRef.current);
+          justPublishedTimeoutRef.current = null;
+        }
+      };
     } else if (!postId) {
       // New post - initialize original state as empty
+      // New posts by staff are always CribNosh Team posts
+      setIsCribNoshTeamPost(true);
+      originalAuthorRef.current = {
+        name: 'CribNosh Team',
+        avatar: '/card-images/IMG_2262.png'
+      };
+      setAuthorName('CribNosh Team');
+      setAuthorAvatar('/card-images/IMG_2262.png');
+      
       originalStateRef.current = {
         title: '',
         slug: '',
@@ -133,8 +207,8 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
         categories: [],
         tags: [],
         status: 'draft',
-        authorName: '',
-        authorAvatar: '',
+        authorName: 'CribNosh Team',
+        authorAvatar: '/card-images/IMG_2262.png',
         seoTitle: '',
         seoDescription: '',
         date: '',
@@ -143,28 +217,28 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
     }
   }, [existingPost, postId]);
 
-  // Auto-generate slug from title
+  // Auto-generate slug from title (only for new posts, and only if not manually edited)
   useEffect(() => {
-    if (!postId && title) {
+    if (!effectivePostId && title && !slugManuallyEditedRef.current) {
       const generatedSlug = title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
       setSlug(generatedSlug);
     }
-  }, [title, postId]);
+  }, [title, effectivePostId]);
 
-  // Set default date
+  // Set default date (only on initial load)
   useEffect(() => {
-    if (!date) {
+    if (!date && isInitialLoadRef.current) {
       const now = new Date();
       setDate(now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
     }
   }, [date]);
 
-  // Auto-generate excerpt from content
+  // Auto-generate excerpt from content (only if not manually edited)
   useEffect(() => {
-    if (content && !excerpt && content.length > 0) {
+    if (content && !excerpt && content.length > 0 && !excerptManuallyEditedRef.current) {
       const autoExcerpt = content.replace(/<[^>]*>/g, '').substring(0, 160).trim();
       if (autoExcerpt.length > 0 && !isInitialLoadRef.current) {
         setExcerpt(autoExcerpt + (content.length > 160 ? '...' : ''));
@@ -187,10 +261,15 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
     };
 
     // Compare all fields
+    // Exclude auto-generated slug if it wasn't manually edited
+    const currentSlug = (!effectivePostId && !slugManuallyEditedRef.current) ? original.slug : slug;
+    // Exclude auto-generated excerpt if it wasn't manually edited
+    const currentExcerpt = (!excerptManuallyEditedRef.current && !excerpt) ? original.excerpt : excerpt;
+    
     const hasChanges = 
       title !== original.title ||
-      slug !== original.slug ||
-      excerpt !== original.excerpt ||
+      currentSlug !== original.slug ||
+      currentExcerpt !== original.excerpt ||
       content !== original.content ||
       coverImage !== original.coverImage ||
       featuredImage !== original.featuredImage ||
@@ -204,15 +283,33 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       date !== original.date;
 
     setHasUnsavedChanges(hasChanges);
-  }, [title, slug, excerpt, content, coverImage, featuredImage, categories, tags, status, authorName, authorAvatar, seoTitle, seoDescription, date]);
+  }, [title, slug, excerpt, content, coverImage, featuredImage, categories, tags, status, authorName, authorAvatar, seoTitle, seoDescription, date, effectivePostId]);
+
+  // Helper function to validate content has actual text
+  const hasActualTextContent = (html: string): boolean => {
+    const text = html.replace(/<[^>]*>/g, '').trim();
+    return text.length > 0;
+  };
+
+  // Helper function to handle slug conflicts
+  const generateUniqueSlug = async (baseSlug: string, excludePostId?: Id<"blogPosts">): Promise<string> => {
+    // This would need to query the database, but for now we'll just append a number
+    // In a real implementation, you'd want to check the database
+    return baseSlug;
+  };
 
   // Auto-save functionality (debounced)
   const autoSave = useCallback(async () => {
+    // Don't auto-save if manual save is in progress
+    if (isSavingRef.current) {
+      return;
+    }
+    
     // Don't auto-save if post was published before or is not a draft
     const wasPublishedBefore = existingPost?.publishedAt !== undefined;
     const isDraft = status === 'draft';
     
-    if (!title.trim() || !content.trim() || !staff || !hasUnsavedChanges || !isDraft || wasPublishedBefore) {
+    if (!title.trim() || !hasActualTextContent(content) || !staff || !hasUnsavedChanges || !isDraft || wasPublishedBefore) {
       return;
     }
 
@@ -221,10 +318,21 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
     }
 
     autoSaveTimeoutRef.current = setTimeout(async () => {
+      // Double-check we're not saving
+      if (isSavingRef.current) {
+        return;
+      }
+      
+      isSavingRef.current = true;
       setSaving(true);
       setError(null);
 
       try {
+        // Preserve original author for user posts, use CribNosh Team for CribNosh Team posts
+        const finalAuthor = isCribNoshTeamPost 
+          ? { name: 'CribNosh Team', avatar: '/card-images/IMG_2262.png' }
+          : (originalAuthorRef.current || { name: authorName || 'CribNosh Team', avatar: authorAvatar || '/card-images/IMG_2262.png' });
+        
         const postData = {
           title,
           slug,
@@ -234,23 +342,24 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
           featuredImage,
           categories,
           tags,
-          status: postId ? status : 'draft', // Preserve existing status when editing, use draft for new posts
+          status: effectivePostId ? status : 'draft', // Preserve existing status when editing, use draft for new posts
           seoTitle: seoTitle || title,
           seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
           date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-          author: {
-            name: authorName || 'CribNosh Team',
-            avatar: authorAvatar || '/card-images/IMG_2262.png'
-          },
+          author: finalAuthor,
         };
 
-        if (postId) {
+        if (effectivePostId) {
           await updatePost({
-            postId,
+            postId: effectivePostId,
             ...postData,
           });
         } else {
-          await createPost(postData);
+          const result = await createPost(postData);
+          // Update postId ref after creation
+          if (result?.postId) {
+            currentPostIdRef.current = result.postId;
+          }
         }
 
         setLastSaved(new Date());
@@ -266,21 +375,27 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
           featuredImage,
           categories,
           tags,
-          status: postId ? status : 'draft',
-          authorName: authorName || 'CribNosh Team',
-          authorAvatar: authorAvatar || '/card-images/IMG_2262.png',
+          status: effectivePostId ? status : 'draft',
+        authorName: finalAuthor.name,
+        authorAvatar: finalAuthor.avatar,
           seoTitle: seoTitle || title,
           seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
           date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
         };
       } catch (err) {
         console.error('Auto-save error:', err);
+        // Handle slug conflicts
+        if (err instanceof Error && err.message.includes('Slug already exists')) {
+          // For auto-save, we'll just log it - user can fix manually
+          console.warn('Auto-save failed: slug conflict. User should save manually.');
+        }
         // Don't show error for auto-save failures
       } finally {
+        isSavingRef.current = false;
         setSaving(false);
       }
     }, 15000); // Auto-save after 15 seconds of inactivity
-  }, [title, slug, excerpt, content, coverImage, featuredImage, categories, tags, status, authorName, authorAvatar, seoTitle, seoDescription, date, staff, postId, hasUnsavedChanges, existingPost, createPost, updatePost]);
+  }, [title, slug, excerpt, content, coverImage, featuredImage, categories, tags, status, authorName, authorAvatar, seoTitle, seoDescription, date, staff, effectivePostId, hasUnsavedChanges, existingPost, isCribNoshTeamPost, createPost, updatePost]);
 
   // Trigger auto-save on changes
   useEffect(() => {
@@ -296,9 +411,12 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
   }, [autoSave, hasUnsavedChanges]);
 
   const handleAddTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
+    const normalizedTag = tagInput.trim().toLowerCase();
+    const normalizedTags = tags.map(t => t.toLowerCase());
+    if (normalizedTag && !normalizedTags.includes(normalizedTag)) {
       setTags([...tags, tagInput.trim()]);
       setTagInput('');
+      setError(null); // Clear error when user makes changes
     }
   };
 
@@ -314,9 +432,9 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
     }
   };
 
-  const handleSave = async () => {
-    if (!title.trim() || !content.trim()) {
-      setError('Title and content are required');
+  const handleSave = useCallback(async () => {
+    if (!title.trim() || !hasActualTextContent(content)) {
+      setError('Title and content with actual text are required');
       return;
     }
 
@@ -325,43 +443,59 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       return;
     }
 
+    // Validate slug format
+    const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+    if (slug && !slugPattern.test(slug)) {
+      setError('Slug can only contain lowercase letters, numbers, and hyphens');
+      return;
+    }
+
     // Clear auto-save timeout
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
     }
 
+    // Prevent auto-save from running
+    isSavingRef.current = true;
     setSaving(true);
     setError(null);
 
     try {
-      const postData = {
-        title,
-        slug,
-        excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
-        content,
-        coverImage,
-        featuredImage,
-        categories,
-        tags,
-        status,
-        seoTitle: seoTitle || title,
-        seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
+        // Preserve original author for user posts, use CribNosh Team for CribNosh Team posts
+        const finalAuthor = isCribNoshTeamPost 
+          ? { name: 'CribNosh Team', avatar: '/card-images/IMG_2262.png' }
+          : (originalAuthorRef.current || { name: authorName || 'CribNosh Team', avatar: authorAvatar || '/card-images/IMG_2262.png' });
+        
+        const postData = {
+          title,
+          slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+          excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
+          content,
+          coverImage,
+          featuredImage,
+          categories,
+          tags,
+          status,
+          seoTitle: seoTitle || title,
+          seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
           date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-          author: {
-            name: authorName || 'CribNosh Team',
-            avatar: authorAvatar || '/card-images/IMG_2262.png'
-          },
+          author: finalAuthor,
         };
 
-      if (postId) {
+      if (effectivePostId) {
         // Update existing post
         await updatePost({
-          postId,
+          postId: effectivePostId,
           ...postData,
         });
       } else {
         // Create new post
-        await createPost(postData);
+        const result = await createPost(postData);
+        // Update postId ref after creation
+        if (result?.postId) {
+          currentPostIdRef.current = result.postId;
+        }
       }
 
       setLastSaved(new Date());
@@ -370,16 +504,16 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       // Update original state after successful save
       originalStateRef.current = {
         title,
-        slug,
-        excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
+        slug: postData.slug,
+        excerpt: postData.excerpt,
         content,
         coverImage,
         featuredImage,
         categories,
         tags,
         status,
-        authorName: authorName || 'CribNosh Team',
-        authorAvatar: authorAvatar || '/card-images/IMG_2262.png',
+        authorName: finalAuthor.name,
+        authorAvatar: finalAuthor.avatar,
         seoTitle: seoTitle || title,
         seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
         date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
@@ -390,15 +524,24 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       }
     } catch (err) {
       console.error('Error saving post:', err);
-      setError(err instanceof Error ? err.message : 'Failed to save post');
+      let errorMessage = 'Failed to save post';
+      if (err instanceof Error) {
+        if (err.message.includes('Slug already exists')) {
+          errorMessage = 'A post with this slug already exists. Please choose a different slug.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      setError(errorMessage);
     } finally {
+      isSavingRef.current = false;
       setSaving(false);
     }
-  };
+  }, [title, slug, excerpt, content, coverImage, featuredImage, categories, tags, status, authorName, authorAvatar, seoTitle, seoDescription, date, staff, effectivePostId, createPost, updatePost, onSave]);
 
-  const handlePublish = async () => {
-    if (!title.trim() || !content.trim()) {
-      setError('Title and content are required');
+  const handlePublish = useCallback(async () => {
+    if (!title.trim() || !hasActualTextContent(content)) {
+      setError('Title and content with actual text are required');
       return;
     }
 
@@ -407,63 +550,81 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       return;
     }
 
+    // Validate slug format
+    const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+    const finalSlug = slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    if (finalSlug && !slugPattern.test(finalSlug)) {
+      setError('Slug can only contain lowercase letters, numbers, and hyphens');
+      return;
+    }
+
     // Clear auto-save timeout
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
     }
 
+    // Prevent auto-save from running
+    isSavingRef.current = true;
     setSaving(true);
     setError(null);
 
     try {
-      const postData = {
-        title,
-        slug,
-        excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
-        content,
-        coverImage,
-        featuredImage,
-        categories,
-        tags,
-        status: 'published' as const,
-        seoTitle: seoTitle || title,
-        seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
-        date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-        author: {
-          name: authorName || 'CribNosh Team',
-          avatar: authorAvatar || '/card-images/IMG_2262.png'
-        },
-      };
+        // Preserve original author for user posts, use CribNosh Team for CribNosh Team posts
+        const finalAuthor = isCribNoshTeamPost 
+          ? { name: 'CribNosh Team', avatar: '/card-images/IMG_2262.png' }
+          : (originalAuthorRef.current || { name: authorName || 'CribNosh Team', avatar: authorAvatar || '/card-images/IMG_2262.png' });
+        
+        const postData = {
+          title,
+          slug: finalSlug,
+          excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
+          content,
+          coverImage,
+          featuredImage,
+          categories,
+          tags,
+          status: 'published' as const,
+          seoTitle: seoTitle || title,
+          seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
+          date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+          author: finalAuthor,
+        };
 
-      if (postId) {
+      if (effectivePostId) {
         // Update existing post and publish
         await updatePost({
-          postId,
+          postId: effectivePostId,
           ...postData,
         });
-        setStatus('published');
       } else {
         // Create new post and publish
-        await createPost(postData);
-        setStatus('published');
+        const result = await createPost(postData);
+        // Update postId ref after creation
+        if (result?.postId) {
+          currentPostIdRef.current = result.postId;
+        }
       }
 
+      // Set flag to prevent status from being overwritten by query refetch
+      justPublishedRef.current = true;
+      setStatus('published');
       setLastSaved(new Date());
       setHasUnsavedChanges(false);
 
       // Update original state after successful publish
       originalStateRef.current = {
         title,
-        slug,
-        excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
+        slug: finalSlug,
+        excerpt: postData.excerpt,
         content,
         coverImage,
         featuredImage,
         categories,
         tags,
         status: 'published',
-        authorName: authorName || 'CribNosh Team',
-        authorAvatar: authorAvatar || '/card-images/IMG_2262.png',
+        authorName: finalAuthor.name,
+        authorAvatar: finalAuthor.avatar,
         seoTitle: seoTitle || title,
         seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
         date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
@@ -474,11 +635,20 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       }
     } catch (err) {
       console.error('Error publishing post:', err);
-      setError(err instanceof Error ? err.message : 'Failed to publish post');
+      let errorMessage = 'Failed to publish post';
+      if (err instanceof Error) {
+        if (err.message.includes('Slug already exists')) {
+          errorMessage = 'A post with this slug already exists. Please choose a different slug.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      setError(errorMessage);
     } finally {
+      isSavingRef.current = false;
       setSaving(false);
     }
-  };
+  }, [title, slug, excerpt, content, coverImage, featuredImage, categories, tags, authorName, authorAvatar, seoTitle, seoDescription, date, staff, effectivePostId, createPost, updatePost, onSave]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -612,7 +782,10 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
               <Input
                 id="title-fullscreen"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setError(null); // Clear error when user makes changes
+                }}
                 placeholder="Enter blog post title"
                 className="text-lg border-gray-300 focus:border-[#F23E2E] focus:ring-[#F23E2E]"
               />
@@ -660,7 +833,10 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
                 <Input
                   id="title"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    setError(null); // Clear error when user makes changes
+                  }}
                   placeholder="Enter blog post title"
                   className="text-lg border-gray-300 focus:border-[#F23E2E] focus:ring-[#F23E2E]"
                 />
@@ -715,36 +891,50 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
               </CardContent>
             </Card>
 
-            {/* Author Settings */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Author</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <Label htmlFor="authorName" className="text-xs text-gray-600 mb-1 block">Author Name</Label>
-                  <Input
-                    id="authorName"
-                    value={authorName}
-                    onChange={(e) => setAuthorName(e.target.value)}
-                    placeholder="CribNosh Team"
-                    className="text-sm"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Leave empty to use "CribNosh Team"</p>
-                </div>
-                <div>
-                  <Label htmlFor="authorAvatar" className="text-xs text-gray-600 mb-1 block">Author Avatar URL</Label>
-                  <Input
-                    id="authorAvatar"
-                    value={authorAvatar}
-                    onChange={(e) => setAuthorAvatar(e.target.value)}
-                    placeholder="/card-images/IMG_2262.png"
-                    className="text-sm"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Leave empty to use default CribNosh avatar</p>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Author Settings - Only show for user posts, hidden for CribNosh Team posts */}
+            {!isCribNoshTeamPost && (
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Author</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <Label htmlFor="authorName" className="text-xs text-gray-600 mb-1 block">Author Name</Label>
+                    <Input
+                      id="authorName"
+                      value={authorName}
+                      onChange={(e) => {
+                        setAuthorName(e.target.value);
+                        setError(null);
+                      }}
+                      placeholder="Author name"
+                      className="text-sm"
+                      readOnly={!!originalAuthorRef.current && originalAuthorRef.current.name !== 'CribNosh Team'}
+                    />
+                    {originalAuthorRef.current && originalAuthorRef.current.name !== 'CribNosh Team' && (
+                      <p className="text-xs text-gray-500 mt-1">Original author - cannot be changed</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="authorAvatar" className="text-xs text-gray-600 mb-1 block">Author Avatar URL</Label>
+                    <Input
+                      id="authorAvatar"
+                      value={authorAvatar}
+                      onChange={(e) => {
+                        setAuthorAvatar(e.target.value);
+                        setError(null);
+                      }}
+                      placeholder="/card-images/IMG_2262.png"
+                      className="text-sm"
+                      readOnly={!!originalAuthorRef.current && originalAuthorRef.current.name !== 'CribNosh Team'}
+                    />
+                    {originalAuthorRef.current && originalAuthorRef.current.name !== 'CribNosh Team' && (
+                      <p className="text-xs text-gray-500 mt-1">Original author avatar - cannot be changed</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Images & Excerpt */}
             <Card className="shadow-sm">
@@ -771,7 +961,11 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
                   <textarea
                     id="excerpt"
                     value={excerpt}
-                    onChange={(e) => setExcerpt(e.target.value)}
+                    onChange={(e) => {
+                      setExcerpt(e.target.value);
+                      excerptManuallyEditedRef.current = true;
+                      setError(null); // Clear error when user makes changes
+                    }}
                     placeholder="Brief description (auto-generated from content)"
                     rows={3}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-[#F23E2E] transition-all duration-200"
@@ -855,13 +1049,17 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
               <CardContent className="space-y-3">
                 <div>
                   <Label htmlFor="slug" className="text-xs text-gray-600 mb-1 block">Slug</Label>
-                  <Input
-                    id="slug"
-                    value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                    placeholder="auto-generated"
-                    className="text-sm"
-                  />
+                <Input
+                  id="slug"
+                  value={slug}
+                  onChange={(e) => {
+                    setSlug(e.target.value);
+                    slugManuallyEditedRef.current = true;
+                    setError(null); // Clear error when user makes changes
+                  }}
+                  placeholder="auto-generated"
+                  className="text-sm"
+                />
                 </div>
                 <div>
                   <Label htmlFor="date" className="text-xs text-gray-600 mb-1 block">Date</Label>
