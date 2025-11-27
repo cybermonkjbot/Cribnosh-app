@@ -10,7 +10,7 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { useMutation, useQuery } from 'convex/react';
-import { CheckCircle2, ChevronDown, ChevronUp, Circle, Loader2, Maximize2, Minimize2, Save, X } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Circle, Loader2, Maximize2, Minimize2, Save, Send, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BlogEditor } from './blog-editor';
 import { BlogImageUpload } from './blog-image-upload';
@@ -55,6 +55,22 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialLoadRef = useRef(true);
+  const originalStateRef = useRef<{
+    title: string;
+    slug: string;
+    excerpt: string;
+    content: string;
+    coverImage: string;
+    featuredImage: string;
+    categories: string[];
+    tags: string[];
+    status: 'draft' | 'published' | 'archived';
+    authorName: string;
+    authorAvatar: string;
+    seoTitle: string;
+    seoDescription: string;
+    date: string;
+  } | null>(null);
 
   // Fetch existing post if editing
   const existingPost = useQuery(
@@ -69,24 +85,63 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
   // Load existing post data
   useEffect(() => {
     if (existingPost) {
-      setTitle(existingPost.title || '');
-      setSlug(existingPost.slug || '');
-      setExcerpt(existingPost.excerpt || '');
-      setContent(existingPost.content || '');
-      setCoverImage(existingPost.coverImage || '');
-      setFeaturedImage(existingPost.featuredImage || '');
-      setCategories(existingPost.categories || []);
-      setTags(existingPost.tags || []);
-      setStatus(existingPost.status || 'draft');
-      setAuthorName(existingPost.author?.name || '');
-      setAuthorAvatar(existingPost.author?.avatar || '');
-      setSeoTitle(existingPost.seoTitle || '');
-      setSeoDescription(existingPost.seoDescription || '');
-      setDate(existingPost.date || '');
+      const loadedState = {
+        title: existingPost.title || '',
+        slug: existingPost.slug || '',
+        excerpt: existingPost.excerpt || '',
+        content: existingPost.content || '',
+        coverImage: existingPost.coverImage || '',
+        featuredImage: existingPost.featuredImage || '',
+        categories: existingPost.categories || [],
+        tags: existingPost.tags || [],
+        status: existingPost.status || 'draft',
+        authorName: existingPost.author?.name || '',
+        authorAvatar: existingPost.author?.avatar || '',
+        seoTitle: existingPost.seoTitle || '',
+        seoDescription: existingPost.seoDescription || '',
+        date: existingPost.date || '',
+      };
+      
+      setTitle(loadedState.title);
+      setSlug(loadedState.slug);
+      setExcerpt(loadedState.excerpt);
+      setContent(loadedState.content);
+      setCoverImage(loadedState.coverImage);
+      setFeaturedImage(loadedState.featuredImage);
+      setCategories(loadedState.categories);
+      setTags(loadedState.tags);
+      setStatus(loadedState.status);
+      setAuthorName(loadedState.authorName);
+      setAuthorAvatar(loadedState.authorAvatar);
+      setSeoTitle(loadedState.seoTitle);
+      setSeoDescription(loadedState.seoDescription);
+      setDate(loadedState.date);
+      
+      // Store original state for comparison
+      originalStateRef.current = loadedState;
       isInitialLoadRef.current = false;
       setHasUnsavedChanges(false);
+    } else if (!postId) {
+      // New post - initialize original state as empty
+      originalStateRef.current = {
+        title: '',
+        slug: '',
+        excerpt: '',
+        content: '',
+        coverImage: '',
+        featuredImage: '',
+        categories: [],
+        tags: [],
+        status: 'draft',
+        authorName: '',
+        authorAvatar: '',
+        seoTitle: '',
+        seoDescription: '',
+        date: '',
+      };
+      isInitialLoadRef.current = false;
     }
-  }, [existingPost]);
+  }, [existingPost, postId]);
 
   // Auto-generate slug from title
   useEffect(() => {
@@ -117,12 +172,39 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
     }
   }, [content, excerpt]);
 
-  // Track unsaved changes
+  // Track unsaved changes by comparing to original state
   useEffect(() => {
-    if (!isInitialLoadRef.current) {
-      setHasUnsavedChanges(true);
+    if (isInitialLoadRef.current || !originalStateRef.current) {
+      return;
     }
-  }, [title, content, excerpt, coverImage, featuredImage, categories, tags, status, authorName, authorAvatar, seoTitle, seoDescription, date]);
+
+    const original = originalStateRef.current;
+    
+    // Helper to compare arrays
+    const arraysEqual = (a: string[], b: string[]) => {
+      if (a.length !== b.length) return false;
+      return a.every((val, idx) => val === b[idx]);
+    };
+
+    // Compare all fields
+    const hasChanges = 
+      title !== original.title ||
+      slug !== original.slug ||
+      excerpt !== original.excerpt ||
+      content !== original.content ||
+      coverImage !== original.coverImage ||
+      featuredImage !== original.featuredImage ||
+      !arraysEqual(categories, original.categories) ||
+      !arraysEqual(tags, original.tags) ||
+      status !== original.status ||
+      authorName !== original.authorName ||
+      authorAvatar !== original.authorAvatar ||
+      seoTitle !== original.seoTitle ||
+      seoDescription !== original.seoDescription ||
+      date !== original.date;
+
+    setHasUnsavedChanges(hasChanges);
+  }, [title, slug, excerpt, content, coverImage, featuredImage, categories, tags, status, authorName, authorAvatar, seoTitle, seoDescription, date]);
 
   // Auto-save functionality (debounced)
   const autoSave = useCallback(async () => {
@@ -173,6 +255,24 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
 
         setLastSaved(new Date());
         setHasUnsavedChanges(false);
+
+        // Update original state after successful auto-save
+        originalStateRef.current = {
+          title,
+          slug,
+          excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
+          content,
+          coverImage,
+          featuredImage,
+          categories,
+          tags,
+          status: postId ? status : 'draft',
+          authorName: authorName || 'CribNosh Team',
+          authorAvatar: authorAvatar || '/card-images/IMG_2262.png',
+          seoTitle: seoTitle || title,
+          seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
+          date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        };
       } catch (err) {
         console.error('Auto-save error:', err);
         // Don't show error for auto-save failures
@@ -267,12 +367,114 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       setLastSaved(new Date());
       setHasUnsavedChanges(false);
 
+      // Update original state after successful save
+      originalStateRef.current = {
+        title,
+        slug,
+        excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
+        content,
+        coverImage,
+        featuredImage,
+        categories,
+        tags,
+        status,
+        authorName: authorName || 'CribNosh Team',
+        authorAvatar: authorAvatar || '/card-images/IMG_2262.png',
+        seoTitle: seoTitle || title,
+        seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
+        date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      };
+
       if (onSave) {
         onSave();
       }
     } catch (err) {
       console.error('Error saving post:', err);
       setError(err instanceof Error ? err.message : 'Failed to save post');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!title.trim() || !content.trim()) {
+      setError('Title and content are required');
+      return;
+    }
+
+    if (!staff) {
+      setError('You must be logged in to publish posts');
+      return;
+    }
+
+    // Clear auto-save timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const postData = {
+        title,
+        slug,
+        excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
+        content,
+        coverImage,
+        featuredImage,
+        categories,
+        tags,
+        status: 'published' as const,
+        seoTitle: seoTitle || title,
+        seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
+        date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        author: {
+          name: authorName || 'CribNosh Team',
+          avatar: authorAvatar || '/card-images/IMG_2262.png'
+        },
+      };
+
+      if (postId) {
+        // Update existing post and publish
+        await updatePost({
+          postId,
+          ...postData,
+        });
+        setStatus('published');
+      } else {
+        // Create new post and publish
+        await createPost(postData);
+        setStatus('published');
+      }
+
+      setLastSaved(new Date());
+      setHasUnsavedChanges(false);
+
+      // Update original state after successful publish
+      originalStateRef.current = {
+        title,
+        slug,
+        excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
+        content,
+        coverImage,
+        featuredImage,
+        categories,
+        tags,
+        status: 'published',
+        authorName: authorName || 'CribNosh Team',
+        authorAvatar: authorAvatar || '/card-images/IMG_2262.png',
+        seoTitle: seoTitle || title,
+        seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
+        date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      };
+
+      if (onSave) {
+        onSave();
+      }
+    } catch (err) {
+      console.error('Error publishing post:', err);
+      setError(err instanceof Error ? err.message : 'Failed to publish post');
     } finally {
       setSaving(false);
     }
@@ -347,16 +549,11 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
           <div className="text-xs text-gray-500 hidden md:block">
             {wordCount} words • {charCount} chars
           </div>
-          {onCancel && !isFullscreen && (
-            <Button type="button" variant="outline" onClick={onCancel} size="sm">
-              Cancel
-            </Button>
-          )}
           <Button
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
+            variant="outline"
             size="sm"
           >
             {saving ? (
@@ -367,10 +564,31 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
             ) : (
               <>
                 <Save className="w-4 h-4 mr-2" />
-                {postId ? 'Update' : 'Publish'}
+                {postId ? 'Update' : 'Save'}
               </>
             )}
           </Button>
+          {status !== 'published' && (
+            <Button
+              type="button"
+              onClick={handlePublish}
+              disabled={saving}
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
+              size="sm"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Publish
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
       )}

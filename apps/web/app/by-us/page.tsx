@@ -12,7 +12,7 @@ import { SparkleEffect } from "@/components/ui/sparkle-effect";
 import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { Search } from "lucide-react";
 
 type Post = {
@@ -42,6 +42,9 @@ export default function ByUsPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [filterMode, setFilterMode] = useState<"any" | "all">("any");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
+  const [visiblePostsCount, setVisiblePostsCount] = useState<number>(10);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Fetch blog posts from Convex
   const blogPosts = useQuery(api.queries.blog.getBlogPosts, {
@@ -100,6 +103,16 @@ export default function ByUsPage() {
     return transformedPosts.filter((post) => post.slug !== featuredPostData.slug);
   }, [transformedPosts, featuredPostData]);
 
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setVisiblePostsCount(10); // Reset to initial count when search changes
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Initialize from URL on mount (only once when categories are ready)
   const [isInitialized, setIsInitialized] = useState(false);
   useEffect(() => {
@@ -114,9 +127,15 @@ export default function ByUsPage() {
     if (initialCategories.length) setSelectedCategories(initialCategories);
     setFilterMode(initialMode);
     setSearchQuery(initialSearch);
+    setDebouncedSearchQuery(initialSearch);
     setIsInitialized(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dynamicCategories.length]); // Only run when categories are ready
+
+  // Reset visible posts count when filters change
+  useEffect(() => {
+    setVisiblePostsCount(10);
+  }, [selectedCategories, filterMode, debouncedSearchQuery]);
 
   // Sync state to URL (but don't create a loop)
   useEffect(() => {
@@ -126,7 +145,7 @@ export default function ByUsPage() {
     
     const newCategories = selectedCategories.length ? selectedCategories.join(",") : "";
     const newMode = filterMode;
-    const newSearch = searchQuery.trim();
+    const newSearch = debouncedSearchQuery.trim();
     
     // Only update URL if it's different from current state
     if (currentCategories !== newCategories || currentMode !== newMode || currentSearch !== newSearch) {
@@ -141,14 +160,14 @@ export default function ByUsPage() {
       router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategories, filterMode, searchQuery]); // Only depend on state, not searchParams
+  }, [selectedCategories, filterMode, debouncedSearchQuery]); // Only depend on state, not searchParams
 
   const filteredPosts = useMemo(() => {
     let posts = LATEST_POSTS;
 
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
+    // Apply search filter (using debounced query)
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase().trim();
       posts = posts.filter((post: Post) =>
         post.title.toLowerCase().includes(query) ||
         post.excerpt.toLowerCase().includes(query) ||
@@ -172,7 +191,39 @@ export default function ByUsPage() {
     }
 
     return posts;
-  }, [selectedCategories, filterMode, LATEST_POSTS, searchQuery]);
+  }, [selectedCategories, filterMode, LATEST_POSTS, debouncedSearchQuery]);
+
+  // Get visible posts (for infinite scroll)
+  const visiblePosts = useMemo(() => {
+    return filteredPosts.slice(0, visiblePostsCount);
+  }, [filteredPosts, visiblePostsCount]);
+
+  // Infinite scroll with intersection observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const firstEntry = entries[0];
+        if (firstEntry?.isIntersecting && visiblePostsCount < filteredPosts.length) {
+          setVisiblePostsCount((prev) => Math.min(prev + 10, filteredPosts.length));
+        }
+      },
+      {
+        rootMargin: "100px",
+        threshold: 0.1,
+      }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [visiblePostsCount, filteredPosts.length]);
 
   return (
     <>
@@ -314,7 +365,7 @@ export default function ByUsPage() {
               </ContainerScrollAnimation>
 
               {/* Latest Posts Grid */}
-              <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-[20%] sm:-mt-[40%]">
+              <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 sm:mt-12">
                 <div className="flex items-center justify-between mb-6 sm:mb-8">
                   <h2 className="text-2xl sm:text-3xl font-asgard font-bold text-white">
                     Latest Stories
@@ -327,14 +378,20 @@ export default function ByUsPage() {
                   </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
-                  {filteredPosts.map((post: Post) => (
+                  {visiblePosts.map((post: Post) => (
                     <BlogPostCard key={post.slug} {...post} />
                   ))}
                 </div>
                 {filteredPosts.length === 0 && (
                   <p className="text-neutral-300 font-satoshi text-sm mt-6">
-                    {searchQuery ? `No stories found matching "${searchQuery}".` : "No stories yet in this category."}
+                    {debouncedSearchQuery ? `No stories found matching "${debouncedSearchQuery}".` : "No stories yet in this category."}
                   </p>
+                )}
+                {/* Infinite scroll trigger */}
+                {visiblePostsCount < filteredPosts.length && (
+                  <div ref={loadMoreRef} className="h-20 flex items-center justify-center">
+                    <div className="text-neutral-400 font-satoshi text-sm">Loading more stories...</div>
+                  </div>
                 )}
               </div>
 
