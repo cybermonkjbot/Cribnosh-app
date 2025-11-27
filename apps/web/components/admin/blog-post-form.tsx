@@ -129,23 +129,39 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       setCategories(loadedState.categories);
       setTags(loadedState.tags);
       
-      // Don't overwrite status if we just published (to prevent race condition)
-      // Only update status if we haven't just published, OR if the query shows it's published (query has caught up)
-      if (!justPublishedRef.current) {
+      // Determine the correct status to use
+      // Priority: 1) If post has publishedAt, it's published (even if query shows draft - query might be stale)
+      //           2) If we just published from this form, preserve published status
+      //           3) Otherwise, use status from query
+      const hasPublishedAt = existingPost.publishedAt !== undefined;
+      const shouldBePublished = hasPublishedAt || justPublishedRef.current;
+      
+      if (shouldBePublished) {
+        // Post is published (either has publishedAt or we just published it)
+        if (loadedState.status === 'published') {
+          // Query has caught up and shows published - safe to update
+          setStatus('published');
+          if (justPublishedRef.current) {
+            // Reset flag since query is now in sync
+            justPublishedRef.current = false;
+            if (justPublishedTimeoutRef.current) {
+              clearTimeout(justPublishedTimeoutRef.current);
+              justPublishedTimeoutRef.current = null;
+            }
+          }
+        } else if (justPublishedRef.current) {
+          // We just published but query hasn't caught up yet - keep published status
+          setStatus('published');
+        } else if (hasPublishedAt && loadedState.status === 'draft') {
+          // Post has publishedAt but query shows draft (stale query) - preserve published
+          setStatus('published');
+          // Update loadedState to reflect published status so originalStateRef is correct
+          loadedState.status = 'published';
+        }
+      } else {
         // Normal case: update status from query
         setStatus(loadedState.status);
-      } else if (justPublishedRef.current && loadedState.status === 'published') {
-        // Query has caught up and shows published - safe to update
-        setStatus(loadedState.status);
-        // Reset flag since query is now in sync
-        justPublishedRef.current = false;
-        if (justPublishedTimeoutRef.current) {
-          clearTimeout(justPublishedTimeoutRef.current);
-          justPublishedTimeoutRef.current = null;
-        }
       }
-      // If justPublishedRef.current is true and loadedState.status is NOT published,
-      // we keep the current status (don't overwrite published with draft from stale query)
       
       // Store original author to preserve it
       const originalAuthor = {
@@ -343,6 +359,11 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
           ? { name: 'CribNosh Team', avatar: '/card-images/IMG_2262.png' }
           : (originalAuthorRef.current || { name: authorName || 'CribNosh Team', avatar: authorAvatar || '/card-images/IMG_2262.png' });
         
+        // If post was published before, preserve published status (don't let auto-save change it to draft)
+        const finalStatus = wasPublishedBefore 
+          ? 'published' 
+          : (effectivePostId ? status : 'draft');
+        
         const postData = {
           title,
           slug,
@@ -352,7 +373,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
           featuredImage,
           categories,
           tags,
-          status: effectivePostId ? status : 'draft', // Preserve existing status when editing, use draft for new posts
+          status: finalStatus,
           seoTitle: seoTitle || title,
           seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
           date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
@@ -385,7 +406,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
           featuredImage,
           categories,
           tags,
-          status: effectivePostId ? status : 'draft',
+          status: finalStatus,
         authorName: finalAuthor.name,
         authorAvatar: finalAuthor.avatar,
           seoTitle: seoTitle || title,
@@ -477,6 +498,32 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
           ? { name: 'CribNosh Team', avatar: '/card-images/IMG_2262.png' }
           : (originalAuthorRef.current || { name: authorName || 'CribNosh Team', avatar: authorAvatar || '/card-images/IMG_2262.png' });
         
+        // If post was published before, preserve published status unless user explicitly changed it via dropdown
+        // The issue: status state can get reset to 'draft' due to query refetches, so we need to preserve published status
+        const wasPublished = existingPost?.publishedAt !== undefined;
+        const originalWasPublished = originalStateRef.current?.status === 'published';
+        // If post was published and status state is draft, check if this is intentional
+        // If user made other changes (not just status), they likely intentionally changed status too
+        // Otherwise, it's likely a bug (state reset) and we should preserve published
+        let finalStatus = status;
+        if ((wasPublished || originalWasPublished) && status === 'draft' && originalWasPublished) {
+          // Check if user made other changes - if so, they might have intentionally changed status
+          const hasOtherChanges = originalStateRef.current && (
+            title !== originalStateRef.current.title ||
+            content !== originalStateRef.current.content ||
+            excerpt !== originalStateRef.current.excerpt ||
+            coverImage !== originalStateRef.current.coverImage ||
+            featuredImage !== originalStateRef.current.featuredImage ||
+            categories.length !== originalStateRef.current.categories.length ||
+            tags.length !== originalStateRef.current.tags.length
+          );
+          // Only preserve published if no other changes were made (likely a bug)
+          // If other changes were made, user might have intentionally changed status too
+          if (!hasOtherChanges) {
+            finalStatus = 'published'; // Preserve published status - likely a bug where state got reset
+          }
+        }
+        
         const postData = {
           title,
           slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
@@ -486,7 +533,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
           featuredImage,
           categories,
           tags,
-          status,
+          status: finalStatus,
           seoTitle: seoTitle || title,
           seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
           date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
@@ -521,7 +568,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
         featuredImage,
         categories,
         tags,
-        status,
+        status: finalStatus,
         authorName: finalAuthor.name,
         authorAvatar: finalAuthor.avatar,
         seoTitle: seoTitle || title,
@@ -547,7 +594,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       isSavingRef.current = false;
       setSaving(false);
     }
-  }, [title, slug, excerpt, content, coverImage, featuredImage, categories, tags, status, authorName, authorAvatar, seoTitle, seoDescription, date, staff, effectivePostId, createPost, updatePost, onSave]);
+  }, [title, slug, excerpt, content, coverImage, featuredImage, categories, tags, status, authorName, authorAvatar, seoTitle, seoDescription, date, staff, effectivePostId, existingPost, hasUnsavedChanges, createPost, updatePost, onSave]);
 
   const handlePublish = useCallback(async () => {
     if (!title.trim() || !hasActualTextContent(content)) {
