@@ -6,14 +6,11 @@ import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
-import Table from '@tiptap/extension-table';
-import TableRow from '@tiptap/extension-table-row';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
-import TextAlign from '@tiptap/extension-text-align';
-import Color from '@tiptap/extension-color';
-import TextStyle from '@tiptap/extension-text-style';
-import Highlight from '@tiptap/extension-highlight';
+import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
+import { TextAlign } from '@tiptap/extension-text-align';
+import { Color } from '@tiptap/extension-color';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Highlight } from '@tiptap/extension-highlight';
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -171,7 +168,7 @@ export function BlogEditor({ content = '', onChange, placeholder = 'Start writin
     // This prevents overwriting user edits while allowing initial load and external updates
     if (normalizedNew !== normalizedPrevious && normalizedNew !== normalizedCurrent) {
       // This is an external content update (e.g., loading existing post)
-      editor.commands.setContent(content || '', false);
+      editor.commands.setContent(content || '');
       previousContentRef.current = content || '';
     } else if (normalizedNew === normalizedCurrent && normalizedNew !== normalizedPrevious) {
       // Content matches editor, just update our ref
