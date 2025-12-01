@@ -15,6 +15,7 @@ import { CreateMealModal } from '@/components/ui/CreateMealModal';
 import { CreateStoryModal } from '@/components/ui/CreateStoryModal';
 import { FloatingActionButton } from '@/components/ui/FloatingActionButton';
 import { useToast } from '@/lib/ToastContext';
+import { Eye, CheckCircle, Circle } from 'lucide-react-native';
 
 export default function ChefProfileScreen() {
   const { chef, sessionToken } = useChefAuth();
@@ -28,6 +29,7 @@ export default function ChefProfileScreen() {
   const [isRecipeModalVisible, setIsRecipeModalVisible] = useState(false);
   const [isMealModalVisible, setIsMealModalVisible] = useState(false);
   const [isStoryModalVisible, setIsStoryModalVisible] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   // Get all chef content
   const contentData = useQuery(
@@ -219,6 +221,28 @@ export default function ChefProfileScreen() {
   const isVerified = chef.verificationStatus === 'verified';
   const rating = chef.rating || 0;
 
+  // Calculate profile completion
+  const profileCompletion = useMemo(() => {
+    const fields = {
+      name: !!chef.name,
+      bio: !!chef.bio && chef.bio.length > 0,
+      specialties: !!chef.specialties && chef.specialties.length > 0,
+      location: !!chef.location?.city,
+      profileImage: !!(chef.image || chef.profileImage),
+    };
+    
+    const completedCount = Object.values(fields).filter(Boolean).length;
+    const totalFields = Object.keys(fields).length;
+    const percentage = Math.round((completedCount / totalFields) * 100);
+    
+    return {
+      percentage,
+      completedCount,
+      totalFields,
+      fields,
+    };
+  }, [chef]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
@@ -229,18 +253,72 @@ export default function ChefProfileScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-        <ProfileHeader
-          name={chef.name || 'Chef'}
-          handle={handle}
-          profileImage={chef.image || chef.profileImage}
-          kitchenName={kitchenName}
-          stats={stats}
-          rating={rating}
-          reviewCount={reviewsCount}
-          isVerified={isVerified}
-          specialties={chef.specialties}
-          onMenu={() => setIsMenuVisible(true)}
-        />
+        {/* Profile Completion Indicator */}
+        {profileCompletion.percentage < 100 && (
+          <View style={styles.completionCard}>
+            <View style={styles.completionHeader}>
+              <Text style={styles.completionTitle}>Profile Completion</Text>
+              <Text style={styles.completionPercentage}>{profileCompletion.percentage}%</Text>
+            </View>
+            <View style={styles.completionBar}>
+              <View 
+                style={[
+                  styles.completionBarFill, 
+                  { width: `${profileCompletion.percentage}%` }
+                ]} 
+              />
+            </View>
+            <View style={styles.completionFields}>
+              {Object.entries(profileCompletion.fields).map(([key, completed]) => (
+                <View key={key} style={styles.completionField}>
+                  {completed ? (
+                    <CheckCircle size={16} color="#10B981" />
+                  ) : (
+                    <Circle size={16} color="#9CA3AF" />
+                  )}
+                  <Text style={[
+                    styles.completionFieldText,
+                    !completed && styles.completionFieldTextIncomplete
+                  ]}>
+                    {key === 'name' ? 'Name' : 
+                     key === 'bio' ? 'Bio' :
+                     key === 'specialties' ? 'Specialties' :
+                     key === 'location' ? 'Location' :
+                     key === 'profileImage' ? 'Profile Image' : key}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={styles.editProfileButton}
+              onPress={() => router.push('/personal-info')}
+            >
+              <Text style={styles.editProfileButtonText}>Complete Profile</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={styles.profileHeaderContainer}>
+          <ProfileHeader
+            name={chef.name || 'Chef'}
+            handle={handle}
+            profileImage={chef.image || chef.profileImage}
+            kitchenName={kitchenName}
+            stats={stats}
+            rating={rating}
+            reviewCount={reviewsCount}
+            isVerified={isVerified}
+            specialties={chef.specialties}
+            onMenu={() => setIsMenuVisible(true)}
+          />
+          <TouchableOpacity
+            style={styles.previewButton}
+            onPress={() => setShowPreview(true)}
+          >
+            <Eye size={18} color="#094327" />
+            <Text style={styles.previewButtonText}>Preview</Text>
+          </TouchableOpacity>
+        </View>
 
         <ContentTabs
           activeTab={activeTab}
@@ -342,6 +420,64 @@ export default function ChefProfileScreen() {
           setIsStoryModalVisible(true);
         }}
       />
+
+      {/* Profile Preview Modal */}
+      <Modal
+        visible={showPreview}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowPreview(false)}
+      >
+        <SafeAreaView style={styles.previewContainer}>
+          <View style={styles.previewHeader}>
+            <Text style={styles.previewTitle}>Profile Preview</Text>
+            <TouchableOpacity onPress={() => setShowPreview(false)}>
+              <Text style={styles.previewClose}>Close</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.previewContent}>
+            <Text style={styles.previewHint}>
+              This is how your profile appears to customers
+            </Text>
+            <ProfileHeader
+              name={chef.name || 'Chef'}
+              handle={handle}
+              profileImage={chef.image || chef.profileImage}
+              kitchenName={kitchenName}
+              stats={stats}
+              rating={rating}
+              reviewCount={reviewsCount}
+              isVerified={isVerified}
+              specialties={chef.specialties}
+              onMenu={() => {}}
+            />
+            {chef.bio && (
+              <View style={styles.previewSection}>
+                <Text style={styles.previewSectionTitle}>About</Text>
+                <Text style={styles.previewBio}>{chef.bio}</Text>
+              </View>
+            )}
+            {chef.specialties && chef.specialties.length > 0 && (
+              <View style={styles.previewSection}>
+                <Text style={styles.previewSectionTitle}>Specialties</Text>
+                <View style={styles.previewSpecialties}>
+                  {chef.specialties.map((specialty, index) => (
+                    <View key={index} style={styles.previewSpecialtyChip}>
+                      <Text style={styles.previewSpecialtyText}>{specialty}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+            {chef.location?.city && (
+              <View style={styles.previewSection}>
+                <Text style={styles.previewSectionTitle}>Location</Text>
+                <Text style={styles.previewLocation}>{chef.location.city}</Text>
+              </View>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -387,5 +523,176 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  profileHeaderContainer: {
+    position: 'relative',
+  },
+  previewButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    zIndex: 10,
+  },
+  previewButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#094327',
+    fontFamily: 'Inter',
+  },
+  completionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  completionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  completionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    fontFamily: 'Inter',
+  },
+  completionPercentage: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#094327',
+    fontFamily: 'Inter',
+  },
+  completionBar: {
+    height: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  completionBarFill: {
+    height: '100%',
+    backgroundColor: '#10B981',
+    borderRadius: 4,
+  },
+  completionFields: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  completionField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  completionFieldText: {
+    fontSize: 14,
+    color: '#374151',
+    fontFamily: 'Inter',
+  },
+  completionFieldTextIncomplete: {
+    color: '#9CA3AF',
+  },
+  editProfileButton: {
+    backgroundColor: '#094327',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  editProfileButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    fontFamily: 'Inter',
+  },
+  previewContainer: {
+    flex: 1,
+    backgroundColor: '#FAFFFA',
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  previewTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    fontFamily: 'Inter',
+  },
+  previewClose: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#094327',
+    fontFamily: 'Inter',
+  },
+  previewContent: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  previewHint: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'Inter',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  previewSection: {
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  previewSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    fontFamily: 'Inter',
+    marginBottom: 12,
+  },
+  previewBio: {
+    fontSize: 16,
+    color: '#374151',
+    fontFamily: 'Inter',
+    lineHeight: 24,
+  },
+  previewSpecialties: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  previewSpecialtyChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  previewSpecialtyText: {
+    fontSize: 14,
+    color: '#094327',
+    fontWeight: '500',
+    fontFamily: 'Inter',
+  },
+  previewLocation: {
+    fontSize: 16,
+    color: '#374151',
+    fontFamily: 'Inter',
   },
 });

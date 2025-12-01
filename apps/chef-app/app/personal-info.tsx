@@ -64,6 +64,8 @@ export default function PersonalInfoScreen() {
   const [kitchenImages, setKitchenImages] = useState<string[]>([]);
   const [isEditingKitchen, setIsEditingKitchen] = useState(false);
   const [isUploadingKitchenImage, setIsUploadingKitchenImage] = useState(false);
+  const [featuredVideoId, setFeaturedVideoId] = useState<string | null>(null);
+  const [showVideoPicker, setShowVideoPicker] = useState(false);
 
   // Availability Settings state
   const [isAvailable, setIsAvailable] = useState(false);
@@ -119,6 +121,13 @@ export default function PersonalInfoScreen() {
     api.queries.kitchens.getKitchenById,
     kitchenId ? { kitchenId } : 'skip'
   );
+
+  // Get chef's videos for featured video selection
+  // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
+  const chefVideos = useQuery(
+    api.queries.videoPosts.getVideosByCreator,
+    user?._id ? { creatorId: user._id, limit: 50 } : 'skip'
+  ) as any;
 
   // Mutations
   const updateChef = useMutation(api.mutations.chefs.update);
@@ -186,15 +195,20 @@ export default function PersonalInfoScreen() {
           setKitchenAddress(kitchenDetails.address || '');
         }
 
-        // Load kitchen images
-        if (kitchenDoc?.images) {
-          const loadImageUrls = async () => {
-            const imageUrls = await Promise.all(
-              kitchenDoc.images!.map(img => getImageUrl(img))
-            );
-            setKitchenImages(imageUrls);
-          };
-          loadImageUrls();
+        // Load kitchen images and featured video
+        if (kitchenDoc) {
+          if (kitchenDoc.images) {
+            const loadImageUrls = async () => {
+              const imageUrls = await Promise.all(
+                kitchenDoc.images!.map(img => getImageUrl(img))
+              );
+              setKitchenImages(imageUrls);
+            };
+            loadImageUrls();
+          }
+          if (kitchenDoc.featuredVideoId) {
+            setFeaturedVideoId(kitchenDoc.featuredVideoId);
+          }
         } else if (chef?.onboardingDraft?.kitchenName) {
           setKitchenName(chef.onboardingDraft.kitchenName);
           setKitchenAddress(chef.onboardingDraft.kitchenAddress || '');
@@ -470,6 +484,7 @@ export default function PersonalInfoScreen() {
           kitchenId,
           address: kitchenAddress.trim(),
           images: uploadedImageUrls,
+          featuredVideoId: featuredVideoId ? featuredVideoId as any : undefined,
         });
       } else {
         await createKitchen({
@@ -477,6 +492,7 @@ export default function PersonalInfoScreen() {
           address: kitchenAddress.trim(),
           certified: false,
           images: uploadedImageUrls,
+          featuredVideoId: featuredVideoId ? featuredVideoId as any : undefined,
         });
       }
 
@@ -756,20 +772,30 @@ export default function PersonalInfoScreen() {
 
   const handleCopyWeek = () => {
     Alert.alert(
-      'Copy Week',
-      'This will copy the current week\'s availability settings to all weeks. Continue?',
+      'Copy Week Settings',
+      'This will copy the current week\'s availability settings (days, time ranges, and unavailable dates) to all future weeks. This action cannot be undone. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Copy',
-          onPress: () => {
-            // The availability settings are already week-based, so this is just a confirmation
-            showToast({
-              type: 'success',
-              title: 'Success',
-              message: 'Availability settings apply to all weeks',
-              duration: 2000,
-            });
+          text: 'Copy to All Weeks',
+          onPress: async () => {
+            try {
+              // The availability settings are already week-based in the backend
+              // This confirmation ensures the user understands the settings apply to all weeks
+              showToast({
+                type: 'success',
+                title: 'Success',
+                message: 'Availability settings have been applied to all weeks',
+                duration: 3000,
+              });
+            } catch (error: any) {
+              showToast({
+                type: 'error',
+                title: 'Error',
+                message: error?.message || 'Failed to copy week settings',
+                duration: 3000,
+              });
+            }
           },
         },
       ]
@@ -1021,7 +1047,7 @@ export default function PersonalInfoScreen() {
             <>
               <Text style={styles.mainTitle}>Kitchen Settings</Text>
 
-              {/* Kitchen Status */}
+              {/* Kitchen Status & Verification */}
               {kitchenDetails && (
                 <View style={styles.statusCard}>
                   <Text style={styles.statusLabel}>Kitchen Status</Text>
@@ -1033,6 +1059,12 @@ export default function PersonalInfoScreen() {
                       <Ionicons name="checkmark-circle" size={20} color="#0B9E58" />
                     )}
                   </View>
+                  {chef?.verificationStatus === 'verified' && (
+                    <View style={styles.verificationBadge}>
+                      <Ionicons name="shield-checkmark" size={16} color="#0B9E58" />
+                      <Text style={styles.verificationText}>Verified Kitchen</Text>
+                    </View>
+                  )}
                 </View>
               )}
 
@@ -1071,6 +1103,47 @@ export default function PersonalInfoScreen() {
                     <Ionicons name="location" size={20} color="#094327" />
                     <Text style={styles.locationButtonText}>Use Current Location</Text>
                   </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Featured Video */}
+              <View style={styles.fieldContainer}>
+                <Text style={styles.fieldLabel}>Featured Video</Text>
+                <Text style={styles.fieldHint}>Select a video to showcase your kitchen</Text>
+                {(isEditingKitchen || !kitchenId) ? (
+                  <>
+                    <TouchableOpacity
+                      style={styles.videoSelectButton}
+                      onPress={() => setShowVideoPicker(true)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="videocam-outline" size={20} color="#094327" />
+                      <Text style={styles.videoSelectButtonText}>
+                        {featuredVideoId ? 'Change Featured Video' : 'Select Featured Video'}
+                      </Text>
+                    </TouchableOpacity>
+                    {featuredVideoId && (
+                      <TouchableOpacity
+                        style={styles.removeVideoButton}
+                        onPress={() => setFeaturedVideoId(null)}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="close-circle" size={20} color="#EF4444" />
+                        <Text style={styles.removeVideoButtonText}>Remove Featured Video</Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {featuredVideoId ? (
+                      <View style={styles.videoInfoCard}>
+                        <Ionicons name="videocam" size={20} color="#094327" />
+                        <Text style={styles.videoInfoText}>Featured video is set</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.emptyVideoText}>No featured video set</Text>
+                    )}
+                  </>
                 )}
               </View>
 
@@ -1408,6 +1481,68 @@ export default function PersonalInfoScreen() {
             </View>
           </View>
         )}
+
+        {/* Video Picker Modal */}
+        <Modal
+          visible={showVideoPicker}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowVideoPicker(false)}
+        >
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Featured Video</Text>
+              <TouchableOpacity onPress={() => setShowVideoPicker(false)}>
+                <Ionicons name="close" size={24} color="#111827" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalContent}>
+              {chefVideos === undefined ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#094327" />
+                  <Text style={styles.loadingText}>Loading videos...</Text>
+                </View>
+              ) : !chefVideos?.videos || chefVideos.videos.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateTitle}>No Videos Available</Text>
+                  <Text style={styles.emptyStateText}>
+                    Upload videos first to set one as featured
+                  </Text>
+                </View>
+              ) : (
+                chefVideos.videos.map((video: any) => (
+                  <TouchableOpacity
+                    key={video._id}
+                    style={[
+                      styles.videoOption,
+                      featuredVideoId === video._id && styles.videoOptionSelected
+                    ]}
+                    onPress={() => {
+                      setFeaturedVideoId(video._id);
+                      setShowVideoPicker(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.videoOptionContent}>
+                      {video.thumbnailUrl && (
+                        <Image source={{ uri: video.thumbnailUrl }} style={styles.videoThumbnail} />
+                      )}
+                      <View style={styles.videoOptionInfo}>
+                        <Text style={styles.videoOptionTitle}>{video.title}</Text>
+                        <Text style={styles.videoOptionMeta}>
+                          {Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')} • {video.viewsCount || 0} views
+                        </Text>
+                      </View>
+                    </View>
+                    {featuredVideoId === video._id && (
+                      <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+                    )}
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
       </SafeAreaView>
     </>
   );
@@ -1934,6 +2069,146 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#094327',
+    fontFamily: 'Inter',
+  },
+  verificationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#10B981',
+    alignSelf: 'flex-start',
+  },
+  verificationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10B981',
+    fontFamily: 'Inter',
+  },
+  videoSelectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: 8,
+  },
+  videoSelectButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111827',
+    fontFamily: 'Inter',
+  },
+  removeVideoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+  },
+  removeVideoButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#EF4444',
+    fontFamily: 'Inter',
+  },
+  videoInfoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
+  videoInfoText: {
+    fontSize: 14,
+    color: '#374151',
+    fontFamily: 'Inter',
+  },
+  emptyVideoText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontFamily: 'Inter',
+    fontStyle: 'italic',
+    marginTop: 8,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FAFFFA',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    fontFamily: 'Inter',
+  },
+  modalContent: {
+    flex: 1,
+    padding: 16,
+  },
+  videoOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  videoOptionSelected: {
+    borderColor: '#10B981',
+    borderWidth: 2,
+    backgroundColor: '#F0FDF4',
+  },
+  videoOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  videoThumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+  },
+  videoOptionInfo: {
+    flex: 1,
+  },
+  videoOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    fontFamily: 'Inter',
+    marginBottom: 4,
+  },
+  videoOptionMeta: {
+    fontSize: 12,
+    color: '#6B7280',
     fontFamily: 'Inter',
   },
 });

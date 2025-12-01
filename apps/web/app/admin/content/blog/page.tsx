@@ -78,7 +78,7 @@ export default function BlogManagementPage() {
   // Queries
   const blogPosts = useQuery(
     api.queries.blog.getBlogPosts, 
-    sessionToken ? {} as { search?: string; status?: string; category?: string; limit?: number } : "skip"
+    sessionToken ? { status: 'all', sessionToken } as { search?: string; status?: string; category?: string; limit?: number; sessionToken?: string } : "skip"
   );
   
   // Mutations

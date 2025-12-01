@@ -81,6 +81,8 @@ export default defineSchema({
       totalTips: v.number(),
       totalOrders: v.number()
     }),
+    savedAsVideo: v.optional(v.boolean()),
+    savedVideoPostId: v.optional(v.id("videoPosts")),
   })
     .index("by_chef", ["chef_id"])
     .index("by_status", ["status"])
@@ -2796,6 +2798,38 @@ export default defineSchema({
     .index("by_published", ["publishedAt"])
     .index("by_video", ["videoId"]),
 
+  // Stories table (chef stories/posts)
+  stories: defineTable({
+    slug: v.string(),
+    title: v.string(),
+    content: v.string(), // Rich HTML/JSON from editor
+    excerpt: v.optional(v.string()),
+    author: v.object({
+      name: v.string(),
+      avatar: v.string()
+    }),
+    authorName: v.string(), // For indexing purposes (duplicate of author.name)
+    categories: v.array(v.string()),
+    date: v.string(), // Format: "August 2025"
+    coverImage: v.optional(v.string()), // Convex storage URL
+    featuredImage: v.optional(v.string()), // Convex storage URL
+    status: v.union(
+      v.literal("draft"),
+      v.literal("published"),
+      v.literal("archived")
+    ),
+    tags: v.array(v.string()),
+    videoId: v.optional(v.id("videoPosts")), // Associated video for story
+    publishedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_status", ["status"])
+    .index("by_author", ["authorName"])
+    .index("by_published", ["publishedAt"])
+    .index("by_video", ["videoId"]),
+
   // Recipes table (separate from content for specific recipe functionality)
   recipes: defineTable({
     title: v.string(),
@@ -3454,6 +3488,9 @@ export default defineSchema({
     last_message: v.optional(v.string()),
     chat_id: v.optional(v.id("chats")),
     assigned_agent_id: v.optional(v.id("users")),
+    resolved_at: v.optional(v.number()),
+    rating: v.optional(v.number()),
+    rating_comment: v.optional(v.string()),
     created_at: v.number(),
     updated_at: v.number(),
   })

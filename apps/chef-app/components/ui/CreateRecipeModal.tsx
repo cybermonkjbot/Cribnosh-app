@@ -1,14 +1,14 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator, Modal } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
-import { useRouter } from 'expo-router';
-import { X } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
 import { getConvexClient } from '@/lib/convexClient';
+import { useMutation, useQuery } from 'convex/react';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import { Link2, Utensils, X } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 
 // Close icon SVG
@@ -33,6 +33,7 @@ const STEPS = [
   { id: 'image', question: 'Add a featured image' },
   { id: 'ingredients', question: 'What ingredients do you need?' },
   { id: 'instructions', question: 'How do you make it?' },
+  { id: 'link', question: 'Link to a meal (optional)' },
 ];
 
 export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps) {
@@ -58,9 +59,19 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
     ingredients: [] as Ingredient[],
     instructions: [] as string[],
     status: 'draft' as 'draft' | 'published',
+    linkedMealId: null as string | null,
   });
+  const [showMealPicker, setShowMealPicker] = useState(false);
 
   const createRecipe = useMutation(api.mutations.recipes.createRecipe);
+  const updateMeal = useMutation(api.mutations.meals.updateMeal);
+  
+  // Get meals for linking
+  // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
+  const meals = useQuery(
+    api.queries.meals.getByChefId,
+    chef?._id ? { chefId: chef._id } : 'skip'
+  ) as any[] | undefined;
 
   // Check authentication when modal opens
   useEffect(() => {
@@ -88,6 +99,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
       ingredients: [],
       instructions: [],
       status: 'draft',
+      linkedMealId: null,
     });
     setCurrentStep(0);
     setIsSubmitted(false);
@@ -206,6 +218,8 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
       case 'instructions':
         return formData.instructions.length > 0 && 
           formData.instructions.some(inst => inst.trim());
+      case 'link':
+        return true; // Optional
       default:
         return false;
     }
@@ -271,7 +285,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
     setIsSubmitting(true);
 
     try {
-      await createRecipe({
+      const recipeId = await createRecipe({
         title: formData.title.trim(),
         description: formData.description.trim(),
         ingredients: validIngredients.map(ing => ({
@@ -289,8 +303,25 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
         author: chef.name,
         featuredImage: formData.featuredImage || undefined,
         status: publish ? 'published' : 'draft',
+        sessionToken,
       });
 
+      // If a meal is selected, link the recipe to that meal
+      if (formData.linkedMealId && recipeId) {
+        try {
+          await updateMeal({
+            mealId: formData.linkedMealId as any,
+            updates: {
+              linkedRecipeId: recipeId,
+            },
+            sessionToken,
+          });
+        } catch (error) {
+          console.error('Error linking recipe to meal:', error);
+          // Don't fail the recipe creation if linking fails
+        }
+      }
+      
       setIsSubmitted(true);
       showSuccess(
         publish ? 'Recipe Published' : 'Recipe Saved',
@@ -495,6 +526,35 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
           </View>
         );
 
+      case 'link':
+        return (
+          <View style={styles.stepContent}>
+            <Text style={styles.hintText}>Optionally link this recipe to a meal</Text>
+            <TouchableOpacity
+              style={styles.linkMealButton}
+              onPress={() => setShowMealPicker(true)}
+            >
+              <Utensils size={20} color="#094327" />
+              <Text style={styles.linkMealButtonText}>
+                {formData.linkedMealId ? 'Change Linked Meal' : 'Link to Meal'}
+              </Text>
+            </TouchableOpacity>
+            {formData.linkedMealId && (
+              <View style={styles.linkedMealInfo}>
+                <Link2 size={16} color="#10B981" />
+                <Text style={styles.linkedMealText}>
+                  {meals?.find((m: any) => m._id === formData.linkedMealId)?.name || 'Meal linked'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setFormData({ ...formData, linkedMealId: null })}
+                >
+                  <X size={16} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        );
+
       case 'instructions':
         return (
           <View style={styles.stepContent}>
@@ -642,6 +702,67 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
           )}
         </View>
       </SafeAreaView>
+
+      {/* Meal Picker Modal */}
+      <Modal
+        visible={showMealPicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowMealPicker(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Meal</Text>
+            <TouchableOpacity onPress={() => setShowMealPicker(false)}>
+              <X size={24} color="#111827" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalContent}>
+            {meals === undefined ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#094327" />
+                <Text style={styles.loadingText}>Loading meals...</Text>
+              </View>
+            ) : meals.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No meals available</Text>
+                <Text style={styles.emptyStateSubtext}>Create meals first to link recipes</Text>
+              </View>
+            ) : (
+              meals.map((meal: any) => (
+                <TouchableOpacity
+                  key={meal._id}
+                  style={[
+                    styles.mealOption,
+                    formData.linkedMealId === meal._id && styles.mealOptionSelected
+                  ]}
+                  onPress={() => {
+                    setFormData({ ...formData, linkedMealId: meal._id });
+                    setShowMealPicker(false);
+                  }}
+                >
+                  <View style={styles.mealOptionContent}>
+                    {meal.images && meal.images.length > 0 && (
+                      <Image source={{ uri: meal.images[0] }} style={styles.mealOptionImage} />
+                    )}
+                    <View style={styles.mealOptionInfo}>
+                      <Text style={styles.mealOptionName}>{meal.name}</Text>
+                      <Text style={styles.mealOptionPrice}>
+                        £{((meal.price || 0) / 100).toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                  {formData.linkedMealId === meal._id && (
+                    <View style={styles.checkIcon}>
+                      <X size={20} color="#10B981" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </Modal>
   );
 }

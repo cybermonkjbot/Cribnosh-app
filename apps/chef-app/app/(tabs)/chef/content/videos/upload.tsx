@@ -1,16 +1,15 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator, Alert, Platform } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
-import { ArrowLeft, Upload, Video as VideoIcon, X } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 import { getConvexClient } from '@/lib/convexClient';
 import { generateVideoThumbnail, getVideoMetadata } from '@/utils/videoThumbnail';
+import { useMutation } from 'convex/react';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import { ArrowLeft, ChefHat, Link2, Utensils, Video as VideoIcon, X } from 'lucide-react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function VideoUploadScreen() {
   const { chef, sessionToken } = useChefAuth();
@@ -33,9 +32,28 @@ export default function VideoUploadScreen() {
     width: number;
     height: number;
   } | null>(null);
+  const [linkedRecipeId, setLinkedRecipeId] = useState<string | null>(null);
+  const [linkedMealId, setLinkedMealId] = useState<string | null>(null);
+  const [showRecipePicker, setShowRecipePicker] = useState(false);
+  const [showMealPicker, setShowMealPicker] = useState(false);
 
   const generateUploadUrl = useMutation(api.mutations.videoPosts.generateVideoUploadUrl);
   const createVideoPost = useMutation(api.mutations.videoPosts.createVideoPostByUserId);
+  
+  // Get recipes and meals for linking
+  // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
+  const recipes = useQuery(
+    api.queries.recipes.getByAuthor,
+    chef?.name && sessionToken
+      ? { author: chef.name, sessionToken }
+      : 'skip'
+  ) as any[] | undefined;
+  
+  // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
+  const meals = useQuery(
+    api.queries.meals.getByChefId,
+    chef?._id ? { chefId: chef._id } : 'skip'
+  ) as any[] | undefined;
 
   const handlePickVideo = async () => {
     try {
@@ -49,7 +67,7 @@ export default function VideoUploadScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
         allowsEditing: true,
         quality: 1,
-        videoMaxDuration: 300, // 5 minutes max
+        videoMaxDuration: 1800, // 30 minutes max
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -64,6 +82,35 @@ export default function VideoUploadScreen() {
 
           // Get video metadata
           const metadata = await getVideoMetadata(asset.uri);
+          
+          // Validate file size (max 500MB)
+          const maxFileSize = 500 * 1024 * 1024; // 500MB in bytes
+          if (metadata.fileSize > maxFileSize) {
+            Alert.alert(
+              'File Too Large',
+              `Video file size (${formatFileSize(metadata.fileSize)}) exceeds the maximum allowed size of 500MB. Please select a smaller video.`,
+              [{ text: 'OK' }]
+            );
+            setVideoUri(null);
+            setThumbnailUri(null);
+            setVideoMetadata(null);
+            return;
+          }
+          
+          // Validate duration (max 30 minutes)
+          const maxDuration = 30 * 60; // 30 minutes in seconds
+          if (metadata.duration > maxDuration) {
+            Alert.alert(
+              'Video Too Long',
+              `Video duration (${formatDuration(metadata.duration)}) exceeds the maximum allowed duration of 30 minutes. Please select a shorter video.`,
+              [{ text: 'OK' }]
+            );
+            setVideoUri(null);
+            setThumbnailUri(null);
+            setVideoMetadata(null);
+            return;
+          }
+          
           setVideoMetadata(metadata);
         } catch (error) {
           console.error('Error generating thumbnail:', error);
@@ -178,6 +225,7 @@ export default function VideoUploadScreen() {
           height: videoMetadata.height,
         },
         tags: tags,
+        mealId: linkedMealId ? (linkedMealId as any) : undefined,
       });
 
       setUploadProgress(100);
@@ -275,7 +323,7 @@ export default function VideoUploadScreen() {
             <TouchableOpacity style={styles.uploadButton} onPress={handlePickVideo}>
               <VideoIcon size={32} color="#094327" />
               <Text style={styles.uploadButtonText}>Select Video</Text>
-              <Text style={styles.uploadButtonHint}>Max 5 minutes</Text>
+              <Text style={styles.uploadButtonHint}>Max 30 minutes • 500MB</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -306,6 +354,51 @@ export default function VideoUploadScreen() {
             numberOfLines={4}
             maxLength={500}
           />
+        </View>
+
+        {/* Link to Recipe or Meal */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Link to Content (Optional)</Text>
+          <View style={styles.linkButtonsContainer}>
+            <TouchableOpacity
+              style={[styles.linkButton, linkedRecipeId && styles.linkButtonActive]}
+              onPress={() => setShowRecipePicker(true)}
+            >
+              <ChefHat size={18} color={linkedRecipeId ? "#FFFFFF" : "#094327"} />
+              <Text style={[styles.linkButtonText, linkedRecipeId && styles.linkButtonTextActive]}>
+                {linkedRecipeId ? 'Recipe Linked' : 'Link Recipe'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.linkButton, linkedMealId && styles.linkButtonActive]}
+              onPress={() => setShowMealPicker(true)}
+            >
+              <Utensils size={18} color={linkedMealId ? "#FFFFFF" : "#094327"} />
+              <Text style={[styles.linkButtonText, linkedMealId && styles.linkButtonTextActive]}>
+                {linkedMealId ? 'Meal Linked' : 'Link Meal'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {(linkedRecipeId || linkedMealId) && (
+            <View style={styles.linkedContentInfo}>
+              <Link2 size={16} color="#10B981" />
+              <Text style={styles.linkedContentText}>
+                {linkedRecipeId && linkedMealId 
+                  ? 'Linked to recipe and meal'
+                  : linkedRecipeId 
+                  ? 'Linked to recipe'
+                  : 'Linked to meal'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setLinkedRecipeId(null);
+                  setLinkedMealId(null);
+                }}
+              >
+                <X size={16} color="#EF4444" />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Tags */}
@@ -361,6 +454,92 @@ export default function VideoUploadScreen() {
           )}
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Recipe Picker Modal */}
+      <Modal
+        visible={showRecipePicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowRecipePicker(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Recipe</Text>
+            <TouchableOpacity onPress={() => setShowRecipePicker(false)}>
+              <X size={24} color="#111827" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalContent}>
+            {recipes && recipes.length > 0 ? (
+              recipes.map((recipe: any) => (
+                <TouchableOpacity
+                  key={recipe._id}
+                  style={[
+                    styles.optionItem,
+                    linkedRecipeId === recipe._id && styles.optionItemSelected
+                  ]}
+                  onPress={() => {
+                    setLinkedRecipeId(recipe._id);
+                    setShowRecipePicker(false);
+                  }}
+                >
+                  <Text style={styles.optionItemText}>{recipe.title}</Text>
+                  {linkedRecipeId === recipe._id && (
+                    <X size={20} color="#10B981" />
+                  )}
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No recipes available</Text>
+              </View>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Meal Picker Modal */}
+      <Modal
+        visible={showMealPicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowMealPicker(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Meal</Text>
+            <TouchableOpacity onPress={() => setShowMealPicker(false)}>
+              <X size={24} color="#111827" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalContent}>
+            {meals && meals.length > 0 ? (
+              meals.map((meal: any) => (
+                <TouchableOpacity
+                  key={meal._id}
+                  style={[
+                    styles.optionItem,
+                    linkedMealId === meal._id && styles.optionItemSelected
+                  ]}
+                  onPress={() => {
+                    setLinkedMealId(meal._id);
+                    setShowMealPicker(false);
+                  }}
+                >
+                  <Text style={styles.optionItemText}>{meal.name}</Text>
+                  {linkedMealId === meal._id && (
+                    <X size={20} color="#10B981" />
+                  )}
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No meals available</Text>
+              </View>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -591,6 +770,108 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+    fontFamily: 'Inter',
+  },
+  linkButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  linkButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  linkButtonActive: {
+    backgroundColor: '#094327',
+    borderColor: '#094327',
+  },
+  linkButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#094327',
+    fontFamily: 'Inter',
+  },
+  linkButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  linkedContentInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  linkedContentText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#10B981',
+    fontFamily: 'Inter',
+    fontWeight: '500',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FAFFFA',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    fontFamily: 'Inter',
+  },
+  modalContent: {
+    flex: 1,
+    padding: 16,
+  },
+  optionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  optionItemSelected: {
+    borderColor: '#10B981',
+    borderWidth: 2,
+    backgroundColor: '#F0FDF4',
+  },
+  optionItemText: {
+    fontSize: 16,
+    color: '#111827',
+    fontFamily: 'Inter',
+    fontWeight: '500',
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#6B7280',
     fontFamily: 'Inter',
   },
 });

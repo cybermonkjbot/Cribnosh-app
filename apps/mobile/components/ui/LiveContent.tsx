@@ -1,35 +1,33 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { BookOpen, Clock, Eye, Radio, Video } from "lucide-react-native";
+import { BookOpen, Clock, Eye, Video } from "lucide-react-native";
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 
-import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import {
-  FlatList,
-  Modal,
-  RefreshControl,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    FlatList,
+    Modal,
+    RefreshControl,
+    Share,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import Animated, {
-  SharedValue,
-  interpolate,
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-  withRepeat,
-  withTiming,
+    SharedValue,
+    interpolate,
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
+    withRepeat,
+    withTiming,
 } from "react-native-reanimated";
 import LiveScreenView from "./LiveViewerScreen";
 import { MealData, NoshHeavenPlayer } from "./NoshHeavenPlayer";
@@ -43,10 +41,10 @@ import { LiveStream } from "@/types/customer";
 import { useQuery } from "convex/react";
 
 // Global toast imports
-import { showInfo, showWarning, showSuccess, showError } from "../../lib/GlobalToastManager";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
 import { navigateToSignIn } from "@/utils/signInNavigationGuard";
+import { showError, showInfo, showSuccess, showWarning } from "../../lib/GlobalToastManager";
 
 interface LiveKitchen {
   id: string;
@@ -434,19 +432,19 @@ export default function LiveContent({
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
   const recipesData = useQuery(
     api.queries.recipes.getRecipes,
-    (activeCategory === 'recipes' || activeCategory === 'all') ? { limit: 20 } : "skip"
+    (activeCategory === 'recipes' || activeCategory === 'all') ? { limit: 20, sessionToken: sessionToken || undefined } : "skip"
   );
 
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
   const storiesData = useQuery(
     api.queries.blog.getBlogPosts,
-    (activeCategory === 'stories' || activeCategory === 'all') ? { limit: 20, status: 'published' } : "skip"
+    (activeCategory === 'stories' || activeCategory === 'all') ? { limit: 20, status: 'published', sessionToken: sessionToken || undefined } : "skip"
   );
 
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
   const videosData = useQuery(
     api.queries.videoPosts.getVideoFeed,
-    (activeCategory === 'stories' || activeCategory === 'all') ? { limit: 20 } : "skip" // Videos are shown in stories category and all
+    (activeCategory === 'stories' || activeCategory === 'all') ? { limit: 20, sessionToken: sessionToken || undefined } : "skip" // Videos are shown in stories category and all
   );
 
   // Transform API live streams to component format

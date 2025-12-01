@@ -10,11 +10,13 @@ export const createKitchen = mutation(
       certified: boolean;
       inspectionDates?: string[];
       images?: string[];
+      featuredVideoId?: Id<'videoPosts'>;
     }
   ) => {
     // Convert owner_id to Id<'users'> if needed
     const ownerId = (typeof args.owner_id === 'string') ? (args.owner_id as Id<'users'>) : args.owner_id;
-    const id = await db.insert("kitchens", { ...args, owner_id: ownerId });
+    const { owner_id, ...rest } = args;
+    const id = await db.insert("kitchens", { ...rest, owner_id: ownerId });
     return id;
   }
 );
@@ -27,6 +29,7 @@ export const updateKitchen = mutation(
       address?: string;
       images?: string[];
       inspectionDates?: string[];
+      featuredVideoId?: Id<'videoPosts'>;
     }
   ) => {
     const kitchen = await db.get(args.kitchenId);
@@ -40,6 +43,9 @@ export const updateKitchen = mutation(
     }
     if (args.images !== undefined) {
       updates.images = args.images;
+    }
+    if (args.featuredVideoId !== undefined) {
+      updates.featuredVideoId = args.featuredVideoId;
     }
     if (args.inspectionDates !== undefined) {
       updates.inspectionDates = args.inspectionDates;

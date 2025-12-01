@@ -140,7 +140,9 @@ export {
   setDefault as setPaymentMethodDefault
 } from './paymentMethods';
 export {
-  create as createSupportCase
+  create as createSupportCase,
+  resolveCase,
+  rateCase
 } from './supportCases';
 
 // Export profile tracking mutations

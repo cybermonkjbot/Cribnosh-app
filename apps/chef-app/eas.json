@@ -1,0 +1,55 @@
+{
+  "cli": {
+    "version": ">= 16.19.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "bun": "1.2.20",
+      "cache": {
+        "key": "folly-fix-v1"
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true,
+        "cocoapods": "1.14.3"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "bun": "1.2.20",
+      "ios": {
+        "simulator": false
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production",
+      "bun": "1.2.20",
+      "ios": {
+        "simulator": false
+      },
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6755956753",
+        "appleTeamId": "9H45CVD35P"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json"
+      }
+    }
+  }
+}
+

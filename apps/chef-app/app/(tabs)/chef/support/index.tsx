@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LiveChatDrawer } from '@/components/ui/LiveChatDrawer';
 import { MessageCircle, Plus, Clock, CheckCircle, XCircle, HelpCircle, Search, Filter, X, Star } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 type SupportCategory = 'order' | 'payment' | 'account' | 'technical' | 'other';
 type SupportPriority = 'low' | 'medium' | 'high';
@@ -34,6 +35,12 @@ export default function SupportScreen() {
   const [statusFilter, setStatusFilter] = useState<SupportStatus | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<SupportCategory | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [dateFilterStart, setDateFilterStart] = useState<Date | null>(null);
+  const [dateFilterEnd, setDateFilterEnd] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState<'start' | 'end' | null>(null);
+  const [ratingCaseId, setRatingCaseId] = useState<string | null>(null);
+  const [ratingValue, setRatingValue] = useState<number>(0);
+  const [ratingComment, setRatingComment] = useState('');
 
   // Get chef's support cases
   const supportCases = useQuery(
@@ -44,6 +51,7 @@ export default function SupportScreen() {
   ) as any[] | undefined;
 
   const createSupportCase = useMutation(api.mutations.supportCases.create);
+  const rateCase = useMutation(api.mutations.supportCases.rateCase);
 
   const handleCreateCase = async () => {
     if (!user?._id || !sessionToken) {
@@ -175,8 +183,38 @@ export default function SupportScreen() {
       filtered = filtered.filter(c => c.category === categoryFilter);
     }
     
+    // Apply date range filter
+    if (dateFilterStart) {
+      filtered = filtered.filter(c => c.created_at >= dateFilterStart.getTime());
+    }
+    if (dateFilterEnd) {
+      const endTime = dateFilterEnd.getTime() + 24 * 60 * 60 * 1000 - 1; // End of day
+      filtered = filtered.filter(c => c.created_at <= endTime);
+    }
+    
     return filtered;
-  }, [resolvedCases, searchQuery, statusFilter, categoryFilter]);
+  }, [resolvedCases, searchQuery, statusFilter, categoryFilter, dateFilterStart, dateFilterEnd]);
+
+  const handleRateCase = async (caseId: string) => {
+    if (ratingValue === 0) {
+      showError('Validation Error', 'Please select a rating');
+      return;
+    }
+
+    try {
+      await rateCase({
+        caseId: caseId as any,
+        rating: ratingValue,
+        comment: ratingComment.trim() || undefined,
+      });
+      showSuccess('Rating Submitted', 'Thank you for your feedback!');
+      setRatingCaseId(null);
+      setRatingValue(0);
+      setRatingComment('');
+    } catch (error: any) {
+      showError('Error', error.message || 'Failed to submit rating');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -385,6 +423,39 @@ export default function SupportScreen() {
                 ))}
               </ScrollView>
             </View>
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Date Range</Text>
+              <View style={styles.dateFilterRow}>
+                <TouchableOpacity
+                  style={styles.dateFilterButton}
+                  onPress={() => setShowDatePicker('start')}
+                >
+                  <Text style={styles.dateFilterText}>
+                    {dateFilterStart ? formatDate(dateFilterStart.getTime()) : 'Start Date'}
+                  </Text>
+                </TouchableOpacity>
+                <Text style={styles.dateFilterSeparator}>to</Text>
+                <TouchableOpacity
+                  style={styles.dateFilterButton}
+                  onPress={() => setShowDatePicker('end')}
+                >
+                  <Text style={styles.dateFilterText}>
+                    {dateFilterEnd ? formatDate(dateFilterEnd.getTime()) : 'End Date'}
+                  </Text>
+                </TouchableOpacity>
+                {(dateFilterStart || dateFilterEnd) && (
+                  <TouchableOpacity
+                    style={styles.dateFilterClear}
+                    onPress={() => {
+                      setDateFilterStart(null);
+                      setDateFilterEnd(null);
+                    }}
+                  >
+                    <X size={16} color="#666" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
           </View>
         )}
 
@@ -446,7 +517,7 @@ export default function SupportScreen() {
             {filteredHistoryCases.length === 0 ? (
               <View style={styles.emptyHistoryContainer}>
                 <Text style={styles.emptyHistoryText}>
-                  {searchQuery || statusFilter !== 'all' || categoryFilter !== 'all'
+                  {searchQuery || statusFilter !== 'all' || categoryFilter !== 'all' || dateFilterStart || dateFilterEnd
                     ? 'No cases match your filters'
                     : 'No resolved cases yet'}
                 </Text>
@@ -485,7 +556,7 @@ export default function SupportScreen() {
                     </Text>
                   </View>
                 )}
-                {supportCase.rating && (
+                {supportCase.rating ? (
                   <View style={styles.ratingContainer}>
                     <Text style={styles.ratingLabel}>Your Rating:</Text>
                     <View style={styles.ratingStars}>
@@ -498,6 +569,32 @@ export default function SupportScreen() {
                         />
                       ))}
                     </View>
+                  </View>
+                ) : (
+                  <View style={styles.actionButtons}>
+                    <Button
+                      variant="outline"
+                      onPress={() => {
+                        setSelectedCaseId(supportCase._id);
+                        setIsChatVisible(true);
+                      }}
+                      style={styles.chatButton}
+                    >
+                      <MessageCircle size={16} color="#007AFF" />
+                      <Text style={styles.chatButtonText}>View Chat</Text>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onPress={() => {
+                        setRatingCaseId(supportCase._id);
+                        setRatingValue(0);
+                        setRatingComment('');
+                      }}
+                      style={styles.rateButton}
+                    >
+                      <Star size={16} color="#FFB800" />
+                      <Text style={styles.rateButtonText}>Rate</Text>
+                    </Button>
                   </View>
                 )}
               </View>
@@ -530,6 +627,140 @@ export default function SupportScreen() {
         }}
         caseId={selectedCaseId || undefined}
       />
+
+      {/* Rating Modal */}
+      <Modal
+        visible={ratingCaseId !== null}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setRatingCaseId(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Rate Support Case</Text>
+              <TouchableOpacity onPress={() => setRatingCaseId(null)}>
+                <X size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSubtitle}>How would you rate your support experience?</Text>
+            <View style={styles.ratingStarsContainer}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity
+                  key={star}
+                  onPress={() => setRatingValue(star)}
+                  style={styles.ratingStarButton}
+                >
+                  <Star
+                    size={40}
+                    color={star <= ratingValue ? '#FFB800' : '#E5E7EB'}
+                    fill={star <= ratingValue ? '#FFB800' : 'transparent'}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.commentLabel}>Optional Comment</Text>
+            <TextInput
+              style={styles.commentInput}
+              value={ratingComment}
+              onChangeText={setRatingComment}
+              placeholder="Share your feedback..."
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+            <View style={styles.modalButtons}>
+              <Button
+                variant="outline"
+                onPress={() => {
+                  setRatingCaseId(null);
+                  setRatingValue(0);
+                  setRatingComment('');
+                }}
+                style={styles.modalCancelButton}
+              >
+                Cancel
+              </Button>
+              <Button
+                onPress={() => ratingCaseId && handleRateCase(ratingCaseId)}
+                disabled={ratingValue === 0}
+                style={styles.modalSubmitButton}
+              >
+                Submit Rating
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Date Picker */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={showDatePicker === 'start' 
+            ? (dateFilterStart || new Date()) 
+            : (dateFilterEnd || new Date())}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={(event, selectedDate) => {
+            if (Platform.OS === 'android') {
+              setShowDatePicker(null);
+            }
+            if (selectedDate) {
+              if (showDatePicker === 'start') {
+                setDateFilterStart(selectedDate);
+              } else {
+                setDateFilterEnd(selectedDate);
+              }
+              if (Platform.OS === 'ios') {
+                setShowDatePicker(null);
+              }
+            }
+          }}
+          onTouchCancel={() => setShowDatePicker(null)}
+        />
+      )}
+      {Platform.OS === 'ios' && showDatePicker && (
+        <View style={styles.datePickerModal}>
+          <View style={styles.datePickerModalContent}>
+            <View style={styles.datePickerModalHeader}>
+              <TouchableOpacity onPress={() => setShowDatePicker(null)}>
+                <Text style={styles.datePickerModalCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.datePickerModalTitle}>
+                Select {showDatePicker === 'start' ? 'Start' : 'End'} Date
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (showDatePicker === 'start') {
+                    setDateFilterStart(new Date());
+                  } else {
+                    setDateFilterEnd(new Date());
+                  }
+                  setShowDatePicker(null);
+                }}
+              >
+                <Text style={styles.datePickerModalDone}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={showDatePicker === 'start' 
+                ? (dateFilterStart || new Date()) 
+                : (dateFilterEnd || new Date())}
+              mode="date"
+              display="spinner"
+              onChange={(event, selectedDate) => {
+                if (selectedDate) {
+                  if (showDatePicker === 'start') {
+                    setDateFilterStart(selectedDate);
+                  } else {
+                    setDateFilterEnd(selectedDate);
+                  }
+                }
+              }}
+            />
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -936,6 +1167,151 @@ const styles = StyleSheet.create({
   ratingStars: {
     flexDirection: 'row',
     gap: 4,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    fontFamily: 'Inter',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 24,
+    fontFamily: 'Inter',
+  },
+  ratingStarsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    marginBottom: 24,
+  },
+  ratingStarButton: {
+    padding: 4,
+  },
+  commentLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+    fontFamily: 'Inter',
+  },
+  commentInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    minHeight: 100,
+    marginBottom: 24,
+    fontFamily: 'Inter',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+  },
+  modalSubmitButton: {
+    flex: 1,
+  },
+  // Date Filter Styles
+  dateFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dateFilterButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  dateFilterText: {
+    fontSize: 14,
+    color: '#111827',
+    fontFamily: 'Inter',
+  },
+  dateFilterSeparator: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'Inter',
+  },
+  dateFilterClear: {
+    padding: 8,
+  },
+  // Action Buttons
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  rateButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  rateButtonText: {
+    marginLeft: 4,
+  },
+  // Date Picker Modal Styles
+  datePickerModal: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  datePickerModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+  },
+  datePickerModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  datePickerModalCancel: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontFamily: 'Inter',
+  },
+  datePickerModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    fontFamily: 'Inter',
+  },
+  datePickerModalDone: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '600',
+    fontFamily: 'Inter',
   },
 });
 

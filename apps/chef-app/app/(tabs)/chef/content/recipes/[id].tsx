@@ -29,7 +29,7 @@ export default function EditRecipeScreen() {
 
   const recipe = useQuery(
     api.queries.recipes.getRecipeById,
-    recipeId ? { recipeId } : 'skip'
+    recipeId ? { recipeId, sessionToken: sessionToken || undefined } : 'skip'
   ) as any;
 
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
+import { getAuthenticatedUser, isAdmin } from "../utils/auth";
 
 // Helper: Get video URL from storage ID
 export const getVideoUrl = query({
@@ -102,6 +103,8 @@ export const getVideoFeed = query({
   args: {
     limit: v.optional(v.number()),
     cursor: v.optional(v.string()),
+    status: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.object({
     videos: v.array(v.object({
@@ -162,19 +165,46 @@ export const getVideoFeed = query({
     const limit = args.limit || 20;
     const cursor = args.cursor ? parseInt(args.cursor) : undefined;
 
+    // Check if user is admin or content owner
+    const user = await getAuthenticatedUser(ctx, args.sessionToken);
+    const isUserAdmin = user ? isAdmin(user) : false;
+    
+    // Determine status filter
+    const status = args.status || 'published';
+    const canSeeAllStatuses = status === 'all' && isUserAdmin;
+    const targetStatus = canSeeAllStatuses ? undefined : (status === 'all' ? 'published' : status);
+
     // Get videos with pagination
-    let videosQuery = ctx.db
-      .query('videoPosts')
-      .withIndex('by_status', q => q.eq('status', 'published'))
-      .order('desc');
+    let videosQuery;
+    if (targetStatus) {
+      videosQuery = ctx.db
+        .query('videoPosts')
+        .withIndex('by_status', q => q.eq('status', targetStatus))
+        .order('desc');
+    } else {
+      // Fetch all videos (for admin with status='all')
+      videosQuery = ctx.db
+        .query('videoPosts')
+        .order('desc');
+    }
 
     if (cursor) {
       videosQuery = videosQuery.filter(q => q.lt(q.field('_creationTime'), cursor));
     }
 
-    const videos = await videosQuery.take(limit + 1);
+    let videos = await videosQuery.take(limit + 1);
     const hasMore = videos.length > limit;
-    const videosToReturn = hasMore ? videos.slice(0, limit) : videos;
+    let videosToReturn = hasMore ? videos.slice(0, limit) : videos;
+
+    // If user is not admin, filter to only show their own content or published content
+    if (!isUserAdmin && user) {
+      videosToReturn = videosToReturn.filter(v => 
+        v.status === 'published' || v.creatorId === user._id
+      );
+    } else if (!isUserAdmin) {
+      // Non-admin, non-authenticated users only see published content
+      videosToReturn = videosToReturn.filter(v => v.status === 'published');
+    }
 
     // Get user info for each video
     const videosWithCreator = await Promise.all(
@@ -270,6 +300,7 @@ export const getVideoFeed = query({
 export const getVideoById = query({
   args: {
     videoId: v.id("videoPosts"),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.union(v.object({
     _id: v.id("videoPosts"),
@@ -326,6 +357,16 @@ export const getVideoById = query({
   handler: async (ctx, args) => {
     const video = await ctx.db.get(args.videoId);
     if (!video) {
+      return null;
+    }
+
+    // Check if user is admin or content owner
+    const user = await getAuthenticatedUser(ctx, args.sessionToken);
+    const isUserAdmin = user ? isAdmin(user) : false;
+    const isContentOwner = user && video.creatorId === user._id;
+    
+    // Allow access if: published, OR user is admin, OR user is content owner
+    if (video.status !== 'published' && !isUserAdmin && !isContentOwner) {
       return null;
     }
 
@@ -529,6 +570,47 @@ export const getVideosByCreator = query({
     return {
       videos: videosWithLikes,
       nextCursor,
+    };
+  },
+});
+
+// Get all videos by creator (including all statuses - for content library)
+export const getAllVideosByCreator = query({
+  args: {
+    creatorId: v.id("users"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit || 1000;
+
+    // Get all videos by creator (all statuses)
+    const videos = await ctx.db
+      .query('videoPosts')
+      .withIndex('by_creator', q => q.eq('creatorId', args.creatorId))
+      .order('desc')
+      .take(limit);
+
+    // Generate URLs from Convex storage IDs
+    const videosWithUrls = await Promise.all(
+      videos.map(async (video) => {
+        const videoUrl = await ctx.storage.getUrl(video.videoStorageId) || '';
+        const thumbnailUrl = video.thumbnailStorageId 
+          ? await ctx.storage.getUrl(video.thumbnailStorageId) || undefined
+          : undefined;
+
+        // Exclude storage IDs from the response - only return URLs
+        const { videoStorageId, thumbnailStorageId, ...videoWithoutStorageIds } = video;
+
+        return {
+          ...videoWithoutStorageIds,
+          videoUrl,
+          thumbnailUrl,
+        };
+      })
+    );
+
+    return {
+      videos: videosWithUrls,
     };
   },
 });

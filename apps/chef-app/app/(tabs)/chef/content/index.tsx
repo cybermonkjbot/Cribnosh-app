@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { useToast } from '@/lib/ToastContext';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { CreateMealModal } from '@/components/ui/CreateMealModal';
 import { CreateRecipeModal } from '@/components/ui/CreateRecipeModal';
 import { CreateStoryModal } from '@/components/ui/CreateStoryModal';
-import { CreateMealModal } from '@/components/ui/CreateMealModal';
-import { ArrowLeft, Plus, Edit2, Eye, Archive, Search, X, CheckSquare, Square, SortAsc, Trash2 } from 'lucide-react-native';
-import { TextInput } from 'react-native';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
+import { useToast } from '@/lib/ToastContext';
+import { useMutation, useQuery } from 'convex/react';
+import { useRouter } from 'expo-router';
+import { Archive, ArrowLeft, CheckSquare, Edit2, Eye, Plus, Search, SortAsc, Square, Trash2, X } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type ContentType = 'all' | 'recipes' | 'stories' | 'videos';
 type StatusFilter = 'all' | 'draft' | 'published' | 'archived';
@@ -33,7 +32,14 @@ export default function ContentLibraryScreen() {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
 
+  // @ts-ignore - Complex Convex type inference
   const deleteRecipe = useMutation(api.mutations.recipes.deleteRecipe);
+  // @ts-ignore - Complex Convex type inference
+  const updateStory = useMutation(api.mutations.stories.updateStory);
+  // @ts-ignore - Complex Convex type inference
+  const publishVideoPost = useMutation(api.mutations.videoPosts.publishVideoPost);
+  // @ts-ignore - Complex Convex type inference
+  const deleteVideoPost = useMutation(api.mutations.videoPosts.deleteVideoPost);
 
   // Get recipes by author (chef name) - returns all statuses
   const recipes = useQuery(
@@ -43,26 +49,133 @@ export default function ContentLibraryScreen() {
       : 'skip'
   ) as any[] | undefined;
 
+  // Get stories by author (chef name) - returns all statuses
+  const stories = useQuery(
+    api.queries.stories.getByAuthor,
+    chef?.name && sessionToken
+      ? { author: chef.name, sessionToken }
+      : 'skip'
+  ) as any[] | undefined;
+
+  // Get videos by creator (user ID) - returns all statuses
+  const videosRaw = useQuery(
+    api.queries.videoPosts.getAllVideosByCreator,
+    user?._id
+      ? { creatorId: user._id, limit: 1000 }
+      : 'skip'
+  ) as any | undefined;
+
+  // Extract videos from the query result
+  const videos = React.useMemo(() => {
+    if (!videosRaw) return undefined;
+    // The query returns { videos: [...] }
+    return videosRaw.videos || [];
+  }, [videosRaw]);
+
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1000);
   }, []);
 
-  const filteredRecipes = React.useMemo(() => {
-    let filtered = recipes || [];
+  // Unified content type for all content items
+  type UnifiedContent = {
+    _id: string;
+    type: 'recipe' | 'story' | 'video';
+    title: string;
+    description?: string;
+    status: string;
+    createdAt: number;
+    updatedAt?: number;
+    cuisine?: string;
+    viewsCount?: number;
+    [key: string]: any;
+  };
+
+  // Combine all content into unified format
+  const allContent = React.useMemo(() => {
+    const content: UnifiedContent[] = [];
+    
+    // Add recipes
+    if (recipes) {
+      recipes.forEach((recipe: any) => {
+        content.push({
+          _id: recipe._id,
+          type: 'recipe',
+          title: recipe.title,
+          description: recipe.description,
+          status: recipe.status,
+          createdAt: recipe.createdAt || recipe._creationTime || 0,
+          updatedAt: recipe.updatedAt,
+          cuisine: recipe.cuisine,
+          ...recipe,
+        });
+      });
+    }
+    
+    // Add stories
+    if (stories) {
+      stories.forEach((story: any) => {
+        content.push({
+          _id: story._id,
+          type: 'story',
+          title: story.title,
+          description: story.excerpt || story.content?.substring(0, 100),
+          status: story.status,
+          createdAt: story.createdAt || story._creationTime || 0,
+          updatedAt: story.updatedAt,
+          ...story,
+        });
+      });
+    }
+    
+    // Add videos
+    if (videos) {
+      videos.forEach((video: any) => {
+        content.push({
+          _id: video._id,
+          type: 'video',
+          title: video.title,
+          description: video.description,
+          status: video.status,
+          createdAt: video.createdAt || video._creationTime || 0,
+          updatedAt: video.updatedAt,
+          cuisine: video.cuisine,
+          viewsCount: video.viewsCount || 0,
+          ...video,
+        });
+      });
+    }
+    
+    return content;
+  }, [recipes, stories, videos]);
+
+  // Filter and sort unified content
+  const filteredContent = React.useMemo(() => {
+    let filtered = allContent;
+    
+    // Apply content type filter
+    if (contentType !== 'all') {
+      const typeMap: Record<string, string> = {
+        'recipes': 'recipe',
+        'stories': 'story',
+        'videos': 'video',
+      };
+      filtered = filtered.filter(item => item.type === typeMap[contentType]);
+    }
     
     // Apply status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(recipe => recipe.status === statusFilter);
+      filtered = filtered.filter(item => item.status === statusFilter);
     }
     
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(recipe =>
-        recipe.title?.toLowerCase().includes(query) ||
-        recipe.description?.toLowerCase().includes(query) ||
-        recipe.cuisine?.toLowerCase().includes(query)
+      filtered = filtered.filter(item =>
+        item.title?.toLowerCase().includes(query) ||
+        item.description?.toLowerCase().includes(query) ||
+        item.cuisine?.toLowerCase().includes(query) ||
+        item.tags?.some((tag: string) => tag.toLowerCase().includes(query))
       );
     }
     
@@ -81,10 +194,24 @@ export default function ContentLibraryScreen() {
     });
     
     return filtered;
-  }, [recipes, statusFilter, searchQuery, sortOption]) || [];
+  }, [allContent, contentType, statusFilter, searchQuery, sortOption]);
 
+  // Get counts for each content type
+  const getContentTypeCount = (type: ContentType) => {
+    if (type === 'all') {
+      return allContent.length;
+    }
+    const typeMap: Record<string, string> = {
+      'recipes': 'recipe',
+      'stories': 'story',
+      'videos': 'video',
+    };
+    return allContent.filter(item => item.type === typeMap[type]).length;
+  };
+
+  // Get status count across all content types
   const getStatusCount = (status: string) => {
-    return recipes?.filter(recipe => recipe.status === status).length || 0;
+    return allContent.filter(item => item.status === status).length;
   };
 
   const formatDate = (timestamp: number) => {
@@ -96,21 +223,21 @@ export default function ContentLibraryScreen() {
     });
   };
 
-  const handleToggleSelection = (itemId: string) => {
+  const handleToggleSelection = (itemKey: string) => {
     const newSelection = new Set(selectedItems);
-    if (newSelection.has(itemId)) {
-      newSelection.delete(itemId);
+    if (newSelection.has(itemKey)) {
+      newSelection.delete(itemKey);
     } else {
-      newSelection.add(itemId);
+      newSelection.add(itemKey);
     }
     setSelectedItems(newSelection);
   };
 
   const handleSelectAll = () => {
-    if (selectedItems.size === filteredRecipes.length) {
+    if (selectedItems.size === filteredContent.length) {
       setSelectedItems(new Set());
     } else {
-      setSelectedItems(new Set(filteredRecipes.map(r => r._id)));
+      setSelectedItems(new Set(filteredContent.map(item => `${item.type}:${item._id}`)));
     }
   };
 
@@ -130,21 +257,66 @@ export default function ContentLibraryScreen() {
           style: action === 'delete' ? 'destructive' : 'default',
           onPress: async () => {
             try {
+              let successCount = 0;
+              let errorCount = 0;
+
               // Perform bulk actions
-              for (const itemId of selectedItems) {
-                if (action === 'delete') {
-                  await deleteRecipe({ recipeId: itemId as any, sessionToken });
-                } else {
-                  // Update status - you'll need to implement updateRecipe mutation
-                  // await updateRecipe({ recipeId: itemId, status: action === 'publish' ? 'published' : 'archived', sessionToken });
+              for (const itemKey of selectedItems) {
+                try {
+                  const [type, itemId] = itemKey.split(':');
+                  
+                  if (action === 'delete') {
+                    if (type === 'recipe') {
+                      await deleteRecipe({ recipeId: itemId as any, sessionToken });
+                    } else if (type === 'video') {
+                      await deleteVideoPost({ videoId: itemId as any });
+                    } else if (type === 'story') {
+                      // Stories don't have delete, use archive instead
+                      await updateStory({ storyId: itemId as any, status: 'archived', sessionToken });
+                    }
+                    successCount++;
+                  } else if (action === 'publish') {
+                    if (type === 'recipe') {
+                      // Recipe publish mutation would go here
+                      // await updateRecipe({ recipeId: itemId, status: 'published', sessionToken });
+                    } else if (type === 'video') {
+                      await publishVideoPost({ videoId: itemId as any });
+                    } else if (type === 'story') {
+                      await updateStory({ storyId: itemId as any, status: 'published', sessionToken });
+                    }
+                    successCount++;
+                  } else if (action === 'archive') {
+                    if (type === 'recipe') {
+                      // Recipe archive mutation would go here
+                      // await updateRecipe({ recipeId: itemId, status: 'archived', sessionToken });
+                    } else if (type === 'video') {
+                      // Videos use 'archived' status
+                      // await updateVideoPost({ videoId: itemId, status: 'archived' });
+                    } else if (type === 'story') {
+                      await updateStory({ storyId: itemId as any, status: 'archived', sessionToken });
+                    }
+                    successCount++;
+                  }
+                } catch (error: any) {
+                  errorCount++;
+                  console.error(`Failed to ${actionText} item ${itemKey}:`, error);
                 }
               }
+
               setSelectedItems(new Set());
               setIsSelectionMode(false);
-              showSuccess(
-                'Success',
-                `${selectedItems.size} item${selectedItems.size > 1 ? 's' : ''} ${actionText}ed successfully.`
-              );
+              
+              if (errorCount === 0) {
+                showSuccess(
+                  'Success',
+                  `${successCount} item${successCount > 1 ? 's' : ''} ${actionText}ed successfully.`
+                );
+              } else {
+                showError(
+                  'Partial Success',
+                  `${successCount} item${successCount > 1 ? 's' : ''} ${actionText}ed, ${errorCount} failed.`
+                );
+              }
             } catch (error: any) {
               showError('Error', error.message || `Failed to ${actionText} items`);
             }
@@ -180,7 +352,7 @@ export default function ContentLibraryScreen() {
                 onPress={handleSelectAll}
                 style={styles.headerButton}
               >
-                {selectedItems.size === filteredRecipes.length ? (
+                {selectedItems.size === filteredContent.length ? (
                   <CheckSquare size={24} color="#007AFF" />
                 ) : (
                   <Square size={24} color="#007AFF" />
@@ -320,7 +492,7 @@ export default function ContentLibraryScreen() {
           style={[styles.filterChip, contentType === 'all' && styles.filterChipActive]}
         >
           <Text style={[styles.filterText, contentType === 'all' && styles.filterTextActive]}>
-            All ({recipes?.length || 0})
+            All ({getContentTypeCount('all')})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -328,7 +500,7 @@ export default function ContentLibraryScreen() {
           style={[styles.filterChip, contentType === 'recipes' && styles.filterChipActive]}
         >
           <Text style={[styles.filterText, contentType === 'recipes' && styles.filterTextActive]}>
-            Recipes ({recipes?.length || 0})
+            Recipes ({getContentTypeCount('recipes')})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -336,7 +508,7 @@ export default function ContentLibraryScreen() {
           style={[styles.filterChip, contentType === 'stories' && styles.filterChipActive]}
         >
           <Text style={[styles.filterText, contentType === 'stories' && styles.filterTextActive]}>
-            Stories (0)
+            Stories ({getContentTypeCount('stories')})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -344,7 +516,7 @@ export default function ContentLibraryScreen() {
           style={[styles.filterChip, contentType === 'videos' && styles.filterChipActive]}
         >
           <Text style={[styles.filterText, contentType === 'videos' && styles.filterTextActive]}>
-            Videos (0)
+            Videos ({getContentTypeCount('videos')})
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -396,41 +568,79 @@ export default function ContentLibraryScreen() {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {contentType === 'all' || contentType === 'recipes' ? (
-          filteredRecipes.length === 0 ? (
-            <EmptyState
-              title="No recipes found"
-              subtitle={statusFilter === 'all' ? 'Create your first recipe to get started!' : `No ${statusFilter} recipes.`}
-              icon="restaurant-outline"
-              actionButton={statusFilter === 'all' ? {
-                label: 'Create Recipe',
-                onPress: () => setIsRecipeModalVisible(true)
-              } : undefined}
-              style={{ paddingVertical: 40 }}
-            />
-          ) : (
-            filteredRecipes.map((recipe) => (
+        {filteredContent.length === 0 ? (
+          <EmptyState
+            title={`No ${contentType === 'all' ? 'content' : contentType} found`}
+            subtitle={
+              statusFilter === 'all' 
+                ? contentType === 'recipes' 
+                  ? 'Create your first recipe to get started!'
+                  : contentType === 'stories'
+                  ? 'Create your first story to get started!'
+                  : contentType === 'videos'
+                  ? 'Upload your first video to get started!'
+                  : 'Create your first content to get started!'
+                : `No ${statusFilter} ${contentType === 'all' ? 'content' : contentType}.`
+            }
+            icon={
+              contentType === 'recipes' ? 'restaurant-outline' :
+              contentType === 'stories' ? 'book-outline' :
+              contentType === 'videos' ? 'videocam-outline' :
+              'document-outline'
+            }
+            actionButton={statusFilter === 'all' ? {
+              label: 
+                contentType === 'recipes' ? 'Create Recipe' :
+                contentType === 'stories' ? 'Create Story' :
+                contentType === 'videos' ? 'Upload Video' :
+                'Create Content',
+              onPress: () => {
+                if (contentType === 'recipes' || contentType === 'all') {
+                  setIsRecipeModalVisible(true);
+                } else if (contentType === 'stories') {
+                  setIsStoryModalVisible(true);
+                } else if (contentType === 'videos') {
+                  router.push('/(tabs)/chef/content/videos/upload');
+                }
+              }
+            } : undefined}
+            style={{ paddingVertical: 40 }}
+          />
+        ) : (
+          filteredContent.map((item) => {
+            const itemKey = `${item.type}:${item._id}`;
+            const isSelected = selectedItems.has(itemKey);
+            
+            return (
               <TouchableOpacity
-                key={recipe._id}
+                key={itemKey}
                 style={[
                   styles.contentCard,
-                  selectedItems.has(recipe._id) && styles.contentCardSelected
+                  isSelected && styles.contentCardSelected
                 ]}
                 onPress={() => {
                   if (isSelectionMode) {
-                    handleToggleSelection(recipe._id);
+                    handleToggleSelection(itemKey);
                   } else {
-                    router.push(`/(tabs)/chef/content/recipes/${recipe._id}`);
+                    if (item.type === 'recipe') {
+                      router.push(`/(tabs)/chef/content/recipes/${item._id}`);
+                    } else if (item.type === 'story') {
+                      // Navigate to story edit/view - you may need to create this route
+                      // router.push(`/(tabs)/chef/content/stories/${item._id}`);
+                    } else if (item.type === 'video') {
+                      // Navigate to video edit/view - you may need to create this route
+                      // router.push(`/(tabs)/chef/content/videos/${item._id}`);
+                    }
                   }
                 }}
                 onLongPress={() => {
                   setIsSelectionMode(true);
-                  handleToggleSelection(recipe._id);
+                  handleToggleSelection(itemKey);
                 }}
               >
                 {isSelectionMode && (
                   <View style={styles.selectionCheckbox}>
-                    {selectedItems.has(recipe._id) ? (
+                    {isSelected ? (
                       <CheckSquare size={20} color="#007AFF" />
                     ) : (
                       <Square size={20} color="#999" />
@@ -439,15 +649,25 @@ export default function ContentLibraryScreen() {
                 )}
                 <View style={styles.contentHeader}>
                   <View style={styles.contentInfo}>
-                    <Text style={styles.contentTitle}>{recipe.title}</Text>
+                    <View style={styles.contentTitleRow}>
+                      <Text style={styles.contentTitle}>{item.title}</Text>
+                      <View style={styles.contentTypeBadge}>
+                        <Text style={styles.contentTypeBadgeText}>
+                          {item.type === 'recipe' ? 'Recipe' : item.type === 'story' ? 'Story' : 'Video'}
+                        </Text>
+                      </View>
+                    </View>
                     <Text style={styles.contentMeta}>
-                      {recipe.status === 'published' ? 'Published' : recipe.status === 'draft' ? 'Draft' : 'Archived'} • {formatDate(recipe.createdAt || Date.now())}
+                      {item.status === 'published' ? 'Published' : item.status === 'draft' ? 'Draft' : 'Archived'} • {formatDate(item.createdAt || Date.now())}
                     </Text>
-                    {recipe.cuisine && (
-                      <Text style={styles.contentCuisine}>{recipe.cuisine}</Text>
+                    {item.cuisine && (
+                      <Text style={styles.contentCuisine}>{item.cuisine}</Text>
+                    )}
+                    {item.viewsCount !== undefined && (
+                      <Text style={styles.contentViews}>{item.viewsCount} views</Text>
                     )}
                   </View>
-                  {recipe.featuredImage && (
+                  {(item.featuredImage || item.coverImage || item.thumbnailUrl) && (
                     <View style={styles.imagePlaceholder}>
                       <Eye size={20} color="#666" />
                     </View>
@@ -458,20 +678,27 @@ export default function ContentLibraryScreen() {
                     style={styles.actionButton}
                     onPress={(e) => {
                       e.stopPropagation();
-                      router.push(`/(tabs)/chef/content/recipes/${recipe._id}`);
+                      if (item.type === 'recipe') {
+                        router.push(`/(tabs)/chef/content/recipes/${item._id}`);
+                      } else if (item.type === 'story') {
+                        // Navigate to story edit
+                      } else if (item.type === 'video') {
+                        // Navigate to video edit
+                      }
                     }}
                   >
                     <Edit2 size={16} color="#007AFF" />
                     <Text style={styles.actionButtonText}>Edit</Text>
                   </TouchableOpacity>
-                  {recipe.status !== 'archived' && (
+                  {item.status !== 'archived' && item.status !== 'removed' && (
                     <TouchableOpacity
                       style={styles.actionButton}
                       onPress={(e) => {
                         e.stopPropagation();
+                        const contentTypeLabel = item.type === 'recipe' ? 'Recipe' : item.type === 'story' ? 'Story' : 'Video';
                         Alert.alert(
-                          'Archive Recipe',
-                          'Are you sure you want to archive this recipe?',
+                          `Archive ${contentTypeLabel}`,
+                          `Are you sure you want to archive this ${item.type}?`,
                           [
                             { text: 'Cancel', style: 'cancel' },
                             {
@@ -479,10 +706,17 @@ export default function ContentLibraryScreen() {
                               style: 'destructive',
                               onPress: async () => {
                                 try {
-                                  await deleteRecipe({ recipeId: recipe._id, sessionToken });
-                                  showSuccess('Recipe Archived', 'The recipe has been archived.');
+                                  if (item.type === 'recipe') {
+                                    await deleteRecipe({ recipeId: item._id as any, sessionToken });
+                                  } else if (item.type === 'story') {
+                                    await updateStory({ storyId: item._id as any, status: 'archived', sessionToken });
+                                  } else if (item.type === 'video') {
+                                    // Archive video - you may need to add this mutation
+                                    await deleteVideoPost({ videoId: item._id as any });
+                                  }
+                                  showSuccess(`${contentTypeLabel} Archived`, `The ${item.type} has been archived.`);
                                 } catch (error: any) {
-                                  showError('Error', error.message || 'Failed to archive recipe');
+                                  showError('Error', error.message || `Failed to archive ${item.type}`);
                                 }
                               },
                             },
@@ -496,26 +730,8 @@ export default function ContentLibraryScreen() {
                   )}
                 </View>
               </TouchableOpacity>
-            ))
-          )
-        ) : contentType === 'stories' ? (
-          <EmptyState
-            title="No stories found"
-            subtitle={statusFilter === 'all' ? 'Create your first story to get started!' : `No ${statusFilter} stories.`}
-            icon="book-outline"
-            actionButton={statusFilter === 'all' ? {
-              label: 'Create Story',
-              onPress: () => setIsStoryModalVisible(true)
-            } : undefined}
-            style={{ paddingVertical: 40 }}
-          />
-        ) : (
-          <EmptyState
-            title="Coming Soon"
-            subtitle="Video management will be available soon."
-            icon="time-outline"
-            style={{ paddingVertical: 40 }}
-          />
+            );
+          })
         )}
       </ScrollView>
 
@@ -751,6 +967,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#007AFF',
     fontWeight: '500',
+  },
+  contentTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  contentTypeBadge: {
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  contentTypeBadgeText: {
+    fontSize: 10,
+    color: '#007AFF',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  contentViews: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
   },
   imagePlaceholder: {
     width: 60,

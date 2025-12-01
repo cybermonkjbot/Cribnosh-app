@@ -636,6 +636,58 @@ export const getById = query({
 });
 
 // Get live sessions by chef ID
+// Get stream history for a chef with analytics
+export const getStreamHistory = query({
+  args: {
+    chefId: v.id('chefs'),
+    limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+    
+    // Get the chef to verify ownership
+    const chef = await ctx.db.get(args.chefId);
+    if (!chef) {
+      throw new Error("Chef not found");
+    }
+    
+    // Users can only view their own stream history, staff/admin can view any
+    if (!user.roles?.includes("admin") && !user.roles?.includes("staff") && chef.userId !== user._id) {
+      throw new Error("Access denied");
+    }
+
+    const limit = args.limit || 50;
+    
+    const sessions = await ctx.db
+      .query('liveSessions')
+      .withIndex('by_chef', q => q.eq('chef_id', args.chefId))
+      .filter(q => q.eq(q.field('status'), 'ended'))
+      .order('desc')
+      .take(limit);
+
+    return sessions.map(session => ({
+      _id: session._id,
+      title: session.title,
+      description: session.description,
+      startedAt: session.actual_start_time || session.scheduled_start_time,
+      endedAt: session.endedAt,
+      duration: session.endedAt && session.actual_start_time 
+        ? Math.floor((session.endedAt - session.actual_start_time) / 1000) 
+        : 0,
+      peakViewers: session.sessionStats?.peakViewers || 0,
+      totalViewers: session.sessionStats?.totalViewers || session.viewerCount || 0,
+      totalComments: session.totalComments || 0,
+      totalOrders: session.sessionStats?.totalOrders || 0,
+      savedAsVideo: session.savedAsVideo || false,
+      savedVideoPostId: session.savedVideoPostId,
+      tags: session.tags || [],
+      mealId: session.mealId,
+    }));
+  },
+});
+
 export const getByChefId = query({
   args: {
     chefId: v.id('chefs'),

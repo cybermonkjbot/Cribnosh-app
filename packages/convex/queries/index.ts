@@ -95,6 +95,9 @@ export * from './blog';
 // Export recipes queries
 export * from './recipes';
 
+// Export stories queries
+export * from './stories';
+
 // Export video posts queries
 export * from './videoPosts';
 

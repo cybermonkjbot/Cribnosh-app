@@ -3,7 +3,8 @@ import { api } from '@/convex/_generated/api';
 import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
-import { useRef } from 'react';
+import { useRef, useEffect, useState } from 'react';
+import { getSessionToken } from '@/lib/convexClient';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Id } from '@/convex/_generated/dataModel';
@@ -16,11 +17,21 @@ export default function KitchenVideoPage() {
   }>();
   const router = useRouter();
   const videoRef = useRef<Video>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+
+  // Load session token
+  useEffect(() => {
+    const loadToken = async () => {
+      const token = await getSessionToken();
+      setSessionToken(token);
+    };
+    loadToken();
+  }, []);
   
   // Fetch video data from Convex
   const videoData = useQuery(
     api.queries.videoPosts.getVideoById,
-    videoId ? { videoId: videoId as Id<'videoPosts'> } : "skip"
+    videoId ? { videoId: videoId as Id<'videoPosts'>, sessionToken: sessionToken || undefined } : "skip"
   );
 
   const isLoading = videoData === undefined;

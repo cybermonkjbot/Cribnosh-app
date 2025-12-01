@@ -130,3 +130,58 @@ export const linkChat = mutation({
   },
 });
 
+export const resolveCase = mutation({
+  args: {
+    caseId: v.id('supportCases'),
+    status: v.union(v.literal('resolved'), v.literal('closed')),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const updateData: any = {
+      status: args.status,
+      updated_at: now,
+    };
+    
+    // Set resolved_at if resolving
+    if (args.status === 'resolved') {
+      updateData.resolved_at = now;
+    }
+    
+    await ctx.db.patch(args.caseId, updateData);
+    return { success: true };
+  },
+});
+
+export const rateCase = mutation({
+  args: {
+    caseId: v.id('supportCases'),
+    rating: v.number(),
+    comment: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Validate rating
+    if (args.rating < 1 || args.rating > 5) {
+      throw new Error('Rating must be between 1 and 5');
+    }
+    
+    const supportCase = await ctx.db.get(args.caseId);
+    if (!supportCase) {
+      throw new Error('Support case not found');
+    }
+    
+    // Only allow rating resolved or closed cases
+    if (supportCase.status !== 'resolved' && supportCase.status !== 'closed') {
+      throw new Error('Can only rate resolved or closed cases');
+    }
+    
+    const now = Date.now();
+    await ctx.db.patch(args.caseId, {
+      rating: args.rating,
+      rating_comment: args.comment,
+      updated_at: now,
+    });
+    
+    return { success: true };
+  },
+});
+

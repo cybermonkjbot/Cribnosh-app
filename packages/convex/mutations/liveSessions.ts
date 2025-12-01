@@ -1,7 +1,6 @@
-import { mutation } from "../_generated/server";
 import { v } from "convex/values";
-import { internal } from "../_generated/api";
-import { requireAuth, isAdmin, isStaff } from '../utils/auth';
+import { mutation } from "../_generated/server";
+import { isAdmin, isStaff, requireAuth } from '../utils/auth';
 
 export const createLiveSession = mutation({
   args: {
@@ -251,10 +250,12 @@ export const endLiveSession = mutation({
     sessionId: v.id("liveSessions"),
     reason: v.optional(v.string()),
     sessionToken: v.optional(v.string()),
+    saveAsVideo: v.optional(v.boolean()),
   },
   returns: v.object({
     success: v.boolean(),
     message: v.string(),
+    videoId: v.optional(v.id("videoPosts")),
   }),
   handler: async (ctx, args) => {
     // Require authentication
@@ -285,17 +286,69 @@ export const endLiveSession = mutation({
       };
     }
 
+    const now = Date.now();
+    const startTime = session.actual_start_time || session.scheduled_start_time || now;
+    const duration = Math.floor((now - startTime) / 1000); // Duration in seconds
+
+    // Update session status
     await ctx.db.patch(args.sessionId, {
       status: "ended",
-      endedAt: Date.now(),
+      endedAt: now,
       endReason: args.reason || "manual_end",
       viewerCount: 0,
       currentViewers: 0,
+      savedAsVideo: args.saveAsVideo || false,
     });
+
+    let videoId: Id<"videoPosts"> | undefined;
+    
+    // If saveAsVideo is requested, create a video post
+    // Note: Actual video recording would need to be handled by Agora recording service
+    // This creates a placeholder video post that can be updated when the recording is available
+    if (args.saveAsVideo) {
+      try {
+        videoId = await ctx.db.insert("videoPosts", {
+          creatorId: user._id,
+          kitchenId: session.kitchen_id,
+          mealId: session.mealId,
+          title: session.title || "Live Cooking Session",
+          description: session.description || `Live stream from ${new Date(startTime).toLocaleDateString()}`,
+          videoStorageId: "" as any, // Placeholder - will be updated when recording is available
+          duration: duration,
+          fileSize: 0, // Will be updated when recording is available
+          resolution: { width: 1920, height: 1080 }, // Default resolution
+          tags: session.tags || [],
+          cuisine: undefined,
+          difficulty: undefined,
+          status: "draft", // Start as draft until video is processed
+          visibility: "public",
+          isLive: false,
+          liveSessionId: args.sessionId,
+          likesCount: 0,
+          commentsCount: session.totalComments || 0,
+          sharesCount: 0,
+          viewsCount: session.sessionStats?.totalViewers || 0,
+          publishedAt: undefined,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+        // Update session with video post ID
+        await ctx.db.patch(args.sessionId, {
+          savedVideoPostId: videoId,
+        });
+      } catch (error) {
+        console.error("Error creating video post:", error);
+        // Continue with ending the stream even if video post creation fails
+      }
+    }
 
     return {
       success: true,
-      message: "Live session ended successfully",
+      message: args.saveAsVideo 
+        ? "Live session ended and saved as video post" 
+        : "Live session ended successfully",
+      videoId,
     };
   },
 });

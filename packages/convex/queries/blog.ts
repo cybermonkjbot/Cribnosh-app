@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
+import { getAuthenticatedUser, isAdmin } from "../utils/auth";
 
 export const getBlogPosts = query({
   args: {
@@ -7,19 +8,50 @@ export const getBlogPosts = query({
     status: v.optional(v.string()),
     category: v.optional(v.string()),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
-    // For admin views, fetch all posts if no status filter is provided
-    // Otherwise filter by the specified status
+    // Check if user is admin or content owner
+    const user = await getAuthenticatedUser(ctx, args.sessionToken);
+    const isUserAdmin = user ? isAdmin(user) : false;
+    
+    // Get chef for content owner check (if user is a chef)
+    let chef = null;
+    if (user) {
+      chef = await ctx.db
+        .query("chefs")
+        .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+        .first();
+    }
+    
+    // Default to 'published' status for customer-facing queries
+    // Only return all statuses if explicitly requested (for admin/chef views)
+    const status = args.status || 'published';
     let posts;
-    if (args.status) {
+    if (status === 'all' && (isUserAdmin || chef)) {
+      // Fetch all posts if status='all' AND user is admin or chef
       posts = await ctx.db.query("blogPosts")
-        .withIndex("by_status", (q: any) => q.eq("status", args.status))
+        .collect();
+    } else if (status === 'all') {
+      // If status='all' but user is not admin/chef, default to published
+      posts = await ctx.db.query("blogPosts")
+        .withIndex("by_status", (q: any) => q.eq("status", "published"))
         .collect();
     } else {
-      // Fetch all posts when no status filter is provided (for admin panel)
+      // Filter by the specified status (defaults to 'published')
       posts = await ctx.db.query("blogPosts")
+        .withIndex("by_status", (q: any) => q.eq("status", status))
         .collect();
+    }
+    
+    // If user is not admin, filter to only show their own content or published content
+    if (!isUserAdmin && chef) {
+      posts = posts.filter((post: any) => 
+        post.status === 'published' || post.author?.name === chef.name
+      );
+    } else if (!isUserAdmin) {
+      // Non-admin, non-chef users only see published content
+      posts = posts.filter((post: any) => post.status === 'published');
     }
     
     // Filter by category if provided
@@ -123,6 +155,7 @@ export const getBlogPosts = query({
 export const getBlogPostBySlug = query({
   args: {
     slug: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     const post = await ctx.db
@@ -131,6 +164,26 @@ export const getBlogPostBySlug = query({
       .first();
     
     if (!post) {
+      return null;
+    }
+
+    // Check if user is admin or content owner
+    const user = await getAuthenticatedUser(ctx, args.sessionToken);
+    const isUserAdmin = user ? isAdmin(user) : false;
+    
+    // Get chef for content owner check
+    let chef = null;
+    if (user) {
+      chef = await ctx.db
+        .query("chefs")
+        .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+        .first();
+    }
+    
+    const isContentOwner = chef && post.author?.name === chef.name;
+    
+    // Allow access if: published, OR user is admin, OR user is content owner
+    if (post.status !== 'published' && !isUserAdmin && !isContentOwner) {
       return null;
     }
     

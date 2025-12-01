@@ -1,7 +1,8 @@
 import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
 import { ChevronLeft } from "lucide-react-native";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { getSessionToken } from "@/lib/convexClient";
 import {
     Image,
     Modal,
@@ -21,12 +22,22 @@ interface RecipeDetailScreenProps {
 
 export function RecipeDetailScreen({ recipeId, onClose }: RecipeDetailScreenProps) {
   const insets = useSafeAreaInsets();
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+
+  // Load session token
+  useEffect(() => {
+    const loadToken = async () => {
+      const token = await getSessionToken();
+      setSessionToken(token);
+    };
+    loadToken();
+  }, []);
 
   // Use reactive query to fetch recipe
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
   const recipe = useQuery(
     api.queries.recipes.getRecipeById,
-    recipeId ? { recipeId: recipeId as any } : "skip"
+    recipeId ? { recipeId: recipeId as any, sessionToken: sessionToken || undefined } : "skip"
   );
 
   const isLoading = recipe === undefined;

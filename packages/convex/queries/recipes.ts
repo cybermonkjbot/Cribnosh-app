@@ -1,5 +1,6 @@
 import { query } from "../_generated/server";
 import { v } from "convex/values";
+import { getAuthenticatedUser, isAdmin } from "../utils/auth";
 
 // Get recipes feed with pagination
 export const getRecipes = query({
@@ -13,6 +14,8 @@ export const getRecipes = query({
       v.literal("hard")
     )),
     search: v.optional(v.string()),
+    status: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.object({
     recipes: v.array(v.object({
@@ -53,11 +56,37 @@ export const getRecipes = query({
     const limit = args.limit || 20;
     const cursor = args.cursor ? parseInt(args.cursor) : undefined;
 
+    // Check if user is admin or content owner
+    const user = await getAuthenticatedUser(ctx, args.sessionToken);
+    const isUserAdmin = user ? isAdmin(user) : false;
+    
+    // Get chef for content owner check
+    let chef = null;
+    if (user) {
+      chef = await ctx.db
+        .query("chefs")
+        .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+        .first();
+    }
+    
+    // Determine status filter
+    const status = args.status || 'published';
+    const canSeeAllStatuses = status === 'all' && (isUserAdmin || chef);
+    const targetStatus = canSeeAllStatuses ? undefined : (status === 'all' ? 'published' : status);
+
     // Get recipes with filters
-    let recipesQuery = ctx.db
-      .query('recipes')
-      .withIndex('by_status', q => q.eq('status', 'published'))
-      .order('desc');
+    let recipesQuery;
+    if (targetStatus) {
+      recipesQuery = ctx.db
+        .query('recipes')
+        .withIndex('by_status', q => q.eq('status', targetStatus))
+        .order('desc');
+    } else {
+      // Fetch all recipes (for admin/chef with status='all')
+      recipesQuery = ctx.db
+        .query('recipes')
+        .order('desc');
+    }
 
     if (cursor) {
       recipesQuery = recipesQuery.filter(q => q.lt(q.field('_creationTime'), cursor));
@@ -69,6 +98,16 @@ export const getRecipes = query({
 
     // Apply additional filters
     let filteredRecipes = recipesToReturn;
+    
+    // If user is not admin, filter to only show their own content or published content
+    if (!isUserAdmin && chef) {
+      filteredRecipes = filteredRecipes.filter(r => 
+        r.status === 'published' || r.author === chef.name
+      );
+    } else if (!isUserAdmin) {
+      // Non-admin, non-chef users only see published content
+      filteredRecipes = filteredRecipes.filter(r => r.status === 'published');
+    }
     
     if (args.cuisine) {
       filteredRecipes = filteredRecipes.filter(r => r.cuisine === args.cuisine);
@@ -102,6 +141,7 @@ export const getRecipes = query({
 export const getRecipeById = query({
   args: {
     recipeId: v.id("recipes"),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.union(v.object({
     _id: v.id("recipes"),
@@ -137,6 +177,30 @@ export const getRecipeById = query({
   }), v.null()),
   handler: async (ctx, args) => {
     const recipe = await ctx.db.get(args.recipeId);
+    if (!recipe) {
+      return null;
+    }
+    
+    // Check if user is admin or content owner
+    const user = await getAuthenticatedUser(ctx, args.sessionToken);
+    const isUserAdmin = user ? isAdmin(user) : false;
+    
+    // Get chef for content owner check
+    let chef = null;
+    if (user) {
+      chef = await ctx.db
+        .query("chefs")
+        .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+        .first();
+    }
+    
+    const isContentOwner = chef && recipe.author === chef.name;
+    
+    // Allow access if: published, OR user is admin, OR user is content owner
+    if (recipe.status !== 'published' && !isUserAdmin && !isContentOwner) {
+      return null;
+    }
+    
     return recipe;
   },
 });

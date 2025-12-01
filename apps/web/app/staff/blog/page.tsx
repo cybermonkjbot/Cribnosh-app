@@ -43,7 +43,8 @@ export default function StaffBlogPage() {
   const blogPosts = useQuery(
     api.queries.blog.getBlogPosts,
     sessionToken ? {
-      status: statusFilter === 'all' ? undefined : statusFilter,
+      status: statusFilter === 'all' ? 'all' : statusFilter,
+      sessionToken,
     } : "skip"
   );
   const categories = useQuery(

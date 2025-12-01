@@ -1,11 +1,12 @@
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { useToast } from '@/lib/ToastContext';
 import { useMutation, useQuery } from 'convex/react';
 import { Image } from 'expo-image';
-import { ChevronLeft, Power, ShoppingBag, X } from 'lucide-react-native';
+import { CheckCircle, ChevronLeft, Power, ShoppingBag, X, XCircle } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LiveCommentsView } from './LiveCommentsView';
 
@@ -19,27 +20,33 @@ interface LiveStreamDashboardProps {
 export function LiveStreamDashboard({ sessionId, onClose, onEndStream, onFlipCamera }: LiveStreamDashboardProps) {
   const { chef, sessionToken } = useChefAuth();
   const insets = useSafeAreaInsets();
+  const { showSuccess, showError } = useToast();
   const [showOrders, setShowOrders] = useState(false);
+  const updateOrderStatus = useMutation(api.mutations.orders.updateStatus);
 
   // Get live session data
+  // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const liveSession = useQuery(
     api.queries.liveSessions.getById,
     sessionId ? { sessionId } : 'skip'
   ) as any;
 
   // Get meal data if mealId exists
+  // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const meal = useQuery(
     api.queries.meals.getById,
     liveSession?.mealId ? { mealId: liveSession.mealId } : 'skip'
   ) as any;
 
   // Get live orders
+  // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const liveOrders = useQuery(
     api.queries.liveSessions.getLiveOrdersForChef,
     chef?._id && sessionToken ? { sessionToken } : 'skip'
   ) as any[] | undefined;
 
   // Get live comments
+  // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const liveComments = useQuery(
     api.queries.liveSessions.getLiveComments,
     sessionId ? { sessionId, limit: 50 } : 'skip'
@@ -53,6 +60,21 @@ export function LiveStreamDashboard({ sessionId, onClose, onEndStream, onFlipCam
       order.sessionId === sessionId
     );
   }, [liveOrders, liveSession, sessionId]);
+
+  // Track pending orders count for notifications
+  const pendingOrdersCount = React.useMemo(() => {
+    return sessionOrders.filter((order: any) => order.status === 'pending').length;
+  }, [sessionOrders]);
+
+  // Show notification when new pending orders arrive
+  const [lastPendingCount, setLastPendingCount] = useState(0);
+  useEffect(() => {
+    if (pendingOrdersCount > lastPendingCount && lastPendingCount > 0) {
+      const newOrders = pendingOrdersCount - lastPendingCount;
+      showSuccess('New Order', `${newOrders} new order${newOrders > 1 ? 's' : ''} received!`);
+    }
+    setLastPendingCount(pendingOrdersCount);
+  }, [pendingOrdersCount, lastPendingCount]);
 
   // Transform comments to display format
   const displayComments = React.useMemo(() => {
@@ -70,30 +92,108 @@ export function LiveStreamDashboard({ sessionId, onClose, onEndStream, onFlipCam
     // Comments and orders are reactive via Convex queries, no need for polling
   }, []);
 
-  const handleEndStream = () => {
+  const handleAcceptOrder = async (order: any) => {
+    if (!order._id && !order.order_id) {
+      showError('Error', 'Order ID not available');
+      return;
+    }
+
     Alert.alert(
-      'End Live Stream',
-      'Are you sure you want to end this live stream?',
+      'Accept Order',
+      `Accept order from ${order.user?.name || 'Customer'} for £${((order.totalAmount || 0) / 100).toFixed(2)}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'End Stream',
-          style: 'destructive',
+          text: 'Accept',
           onPress: async () => {
             try {
-              await endLiveSession({
-                sessionId,
-                reason: 'ended_by_chef',
-                sessionToken,
+              await updateOrderStatus({
+                order_id: order._id || order.order_id,
+                status: 'confirmed',
               });
-              onEndStream?.();
+              showSuccess('Order Accepted', 'Order has been accepted successfully');
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to end stream');
+              showError('Error', error.message || 'Failed to accept order');
             }
           },
         },
       ]
     );
+  };
+
+  const handleRejectOrder = async (order: any) => {
+    if (!order._id && !order.order_id) {
+      showError('Error', 'Order ID not available');
+      return;
+    }
+
+    Alert.alert(
+      'Reject Order',
+      `Reject order from ${order.user?.name || 'Customer'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reject',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await updateOrderStatus({
+                order_id: order._id || order.order_id,
+                status: 'cancelled',
+              });
+              showSuccess('Order Rejected', 'Order has been rejected');
+            } catch (error: any) {
+              showError('Error', error.message || 'Failed to reject order');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const [showEndStreamModal, setShowEndStreamModal] = useState(false);
+  const [saveAsVideo, setSaveAsVideo] = useState(false);
+
+  const handleEndStream = () => {
+    setShowEndStreamModal(true);
+  };
+
+  const confirmEndStream = async () => {
+    try {
+      await endLiveSession({
+        sessionId,
+        reason: 'ended_by_chef',
+        sessionToken,
+        saveAsVideo,
+      });
+      
+      // Show analytics summary before closing
+      const analytics = {
+        duration: streamDuration,
+        peakViewers: liveSession.sessionStats?.peakViewers || viewerCount,
+        totalViewers: liveSession.sessionStats?.totalViewers || viewerCount,
+        totalComments: commentCount,
+        totalOrders: totalOrders,
+        confirmedOrders: confirmedOrders,
+      };
+      
+      Alert.alert(
+        'Stream Ended',
+        `Stream Duration: ${analytics.duration}\nPeak Viewers: ${analytics.peakViewers}\nTotal Comments: ${analytics.totalComments}\nTotal Orders: ${analytics.totalOrders}${saveAsVideo ? '\n\nStream saved as video post!' : ''}`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setShowEndStreamModal(false);
+              onEndStream?.();
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to end stream');
+      setShowEndStreamModal(false);
+    }
   };
 
   const formatDuration = (startTime: number) => {
@@ -115,6 +215,9 @@ export function LiveStreamDashboard({ sessionId, onClose, onEndStream, onFlipCam
   const viewerCount = liveSession.viewerCount || liveSession.currentViewers || 0;
   const commentCount = liveSession.totalComments || 0;
   const startTime = liveSession.actual_start_time || liveSession.scheduled_start_time || Date.now();
+  const streamDuration = formatDuration(startTime);
+  const totalOrders = sessionOrders.length;
+  const confirmedOrders = sessionOrders.filter((o: any) => o.status === 'confirmed' || o.status === 'preparing' || o.status === 'ready').length;
 
   return (
     <View style={styles.container} pointerEvents="box-none">
@@ -132,10 +235,21 @@ export function LiveStreamDashboard({ sessionId, onClose, onEndStream, onFlipCam
               <View style={styles.viewersBadge}>
                 <Text style={styles.viewersText}>{viewerCount} Viewers</Text>
               </View>
+              {totalOrders > 0 && (
+                <View style={styles.ordersBadgeHeader}>
+                  <Text style={styles.ordersBadgeHeaderText}>{totalOrders} Orders</Text>
+                </View>
+              )}
               <View style={styles.liveIndicator}>
                 <View style={styles.liveDot} />
                 <Text style={styles.liveText}>LIVE</Text>
               </View>
+            </View>
+            <View style={styles.statsRowSecondary}>
+              <Text style={styles.streamDurationText}>{streamDuration}</Text>
+              {commentCount > 0 && (
+                <Text style={styles.commentsCountText}>{commentCount} comments</Text>
+              )}
             </View>
           </View>
         </View>
@@ -148,8 +262,8 @@ export function LiveStreamDashboard({ sessionId, onClose, onEndStream, onFlipCam
         </View>
       )}
 
-      {/* Orders Overlay - Bottom right */}
-      {showOrders && sessionOrders.length > 0 && (
+      {/* Orders Overlay - Bottom right - Auto-show if there are pending orders */}
+      {(showOrders || (pendingOrdersCount > 0 && !showOrders)) && sessionOrders.length > 0 && (
         <View style={styles.ordersOverlay}>
           <View style={styles.ordersHeader}>
             <Text style={styles.ordersTitle}>Live Orders ({sessionOrders.length})</Text>
@@ -158,42 +272,71 @@ export function LiveStreamDashboard({ sessionId, onClose, onEndStream, onFlipCam
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.ordersList} showsVerticalScrollIndicator={false}>
-            {sessionOrders.map((order: any) => (
-              <View key={order._id} style={styles.orderCard}>
-                <View style={styles.orderHeader}>
-                  <Text style={styles.orderUser}>
-                    {order.user?.name || 'Customer'}
-                  </Text>
-                  <View style={[
-                    styles.orderStatusBadge,
-                    { backgroundColor: getOrderStatusColor(order.status) + '40' }
-                  ]}>
-                    <Text style={[
-                      styles.orderStatusText,
-                      { color: getOrderStatusColor(order.status) }
-                    ]}>
-                      {order.status}
+            {sessionOrders.map((order: any) => {
+              const isPending = order.status === 'pending';
+              return (
+                <View key={order._id || order.order_id} style={styles.orderCard}>
+                  <View style={styles.orderHeader}>
+                    <Text style={styles.orderUser}>
+                      {order.user?.name || 'Customer'}
                     </Text>
+                    <View style={[
+                      styles.orderStatusBadge,
+                      { backgroundColor: getOrderStatusColor(order.status) + '40' }
+                    ]}>
+                      <Text style={[
+                        styles.orderStatusText,
+                        { color: getOrderStatusColor(order.status) }
+                      ]}>
+                        {order.status}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-                <Text style={styles.orderAmount}>
-                  £{((order.totalAmount || 0) / 100).toFixed(2)}
-                </Text>
-                {order.deliveryAddress && (
-                  <Text style={styles.orderAddress} numberOfLines={1}>
-                    {order.deliveryAddress}
+                  <Text style={styles.orderAmount}>
+                    £{((order.totalAmount || 0) / 100).toFixed(2)}
                   </Text>
-                )}
-              </View>
-            ))}
+                  {order.items && order.items.length > 0 && (
+                    <Text style={styles.orderItems} numberOfLines={2}>
+                      {order.items.slice(0, 2).map((item: any) => item.name || item.dish_name).join(', ')}
+                      {order.items.length > 2 && ` +${order.items.length - 2} more`}
+                    </Text>
+                  )}
+                  {order.deliveryAddress && (
+                    <Text style={styles.orderAddress} numberOfLines={1}>
+                      {order.deliveryAddress}
+                    </Text>
+                  )}
+                  {isPending && (
+                    <View style={styles.orderActions}>
+                      <TouchableOpacity
+                        style={[styles.orderActionButton, styles.acceptButton]}
+                        onPress={() => handleAcceptOrder(order)}
+                        activeOpacity={0.7}
+                      >
+                        <CheckCircle size={16} color="#FFFFFF" />
+                        <Text style={styles.orderActionText}>Accept</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.orderActionButton, styles.rejectButton]}
+                        onPress={() => handleRejectOrder(order)}
+                        activeOpacity={0.7}
+                      >
+                        <XCircle size={16} color="#FFFFFF" />
+                        <Text style={styles.orderActionText}>Reject</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
           </ScrollView>
         </View>
       )}
 
       {/* Bottom Controls */}
       <View style={[styles.controls, { bottom: Math.max(insets.bottom, 20) }]}>
-        {/* Orders Button */}
-        {sessionOrders.length > 0 && !showOrders && (
+        {/* Orders Button - Show if orders overlay is closed */}
+        {sessionOrders.length > 0 && !showOrders && pendingOrdersCount === 0 && (
           <TouchableOpacity
             style={styles.ordersButton}
             onPress={() => setShowOrders(true)}
@@ -235,6 +378,77 @@ export function LiveStreamDashboard({ sessionId, onClose, onEndStream, onFlipCam
           <Text style={styles.endButtonText}>End</Text>
         </TouchableOpacity>
       </View>
+
+      {/* End Stream Confirmation Modal */}
+      <Modal
+        visible={showEndStreamModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowEndStreamModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>End Live Stream</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to end this live stream?
+            </Text>
+            
+            {/* Save as Video Option */}
+            <View style={styles.saveVideoOption}>
+              <View style={styles.saveVideoOptionContent}>
+                <Text style={styles.saveVideoLabel}>Save as Video Post</Text>
+                <Text style={styles.saveVideoHint}>
+                  Save this stream as a video post that viewers can watch later
+                </Text>
+              </View>
+              <Switch
+                value={saveAsVideo}
+                onValueChange={setSaveAsVideo}
+                trackColor={{ false: '#E5E7EB', true: '#094327' }}
+                thumbColor={saveAsVideo ? '#FFFFFF' : '#FFFFFF'}
+              />
+            </View>
+
+            {/* Stream Stats Preview */}
+            <View style={styles.statsPreview}>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Duration</Text>
+                <Text style={styles.statValue}>{streamDuration}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Peak Viewers</Text>
+                <Text style={styles.statValue}>{liveSession.sessionStats?.peakViewers || viewerCount}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Total Orders</Text>
+                <Text style={styles.statValue}>{totalOrders}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Comments</Text>
+                <Text style={styles.statValue}>{commentCount}</Text>
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => {
+                  setShowEndStreamModal(false);
+                  setSaveAsVideo(false);
+                }}
+              >
+                <Text style={styles.modalButtonCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonEnd]}
+                onPress={confirmEndStream}
+              >
+                <Text style={styles.modalButtonEndText}>End Stream</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -423,6 +637,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
     fontFamily: 'Inter',
+    marginTop: 4,
+  },
+  orderItems: {
+    fontSize: 12,
+    color: '#E6FFE8',
+    fontFamily: 'Inter',
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  orderActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  orderActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  acceptButton: {
+    backgroundColor: '#10B981',
+  },
+  rejectButton: {
+    backgroundColor: '#EF4444',
+  },
+  orderActionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    fontFamily: 'Inter',
   },
   controls: {
     position: 'absolute',
@@ -536,5 +785,152 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#E6FFE8',
+  },
+  statsRowSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+  },
+  streamDurationText: {
+    fontSize: 12,
+    color: 'rgba(230, 255, 232, 0.7)',
+    fontFamily: 'Inter',
+    fontWeight: '400',
+  },
+  commentsCountText: {
+    fontSize: 12,
+    color: 'rgba(230, 255, 232, 0.7)',
+    fontFamily: 'Inter',
+    fontWeight: '400',
+  },
+  ordersBadgeHeader: {
+    backgroundColor: '#10B981',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  ordersBadgeHeaderText: {
+    color: '#FFFFFF',
+    fontFamily: 'Inter',
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+    fontFamily: 'Inter',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontFamily: 'Inter',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  saveVideoOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  saveVideoOptionContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  saveVideoLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    fontFamily: 'Inter',
+    marginBottom: 4,
+  },
+  saveVideoHint: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'Inter',
+    lineHeight: 16,
+  },
+  statsPreview: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
+    padding: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  statItem: {
+    flex: 1,
+    minWidth: '45%',
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: 'Inter',
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#094327',
+    fontFamily: 'Inter',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonCancel: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  modalButtonCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+    fontFamily: 'Inter',
+  },
+  modalButtonEnd: {
+    backgroundColor: '#EF4444',
+  },
+  modalButtonEndText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    fontFamily: 'Inter',
   },
 });
