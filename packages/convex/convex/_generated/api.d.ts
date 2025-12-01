@@ -222,6 +222,7 @@ import type * as queries_sides from "../queries/sides.js";
 import type * as queries_specialOffers from "../queries/specialOffers.js";
 import type * as queries_staff from "../queries/staff.js";
 import type * as queries_stats from "../queries/stats.js";
+import type * as queries_stories from "../queries/stories.js";
 import type * as queries_streaks from "../queries/streaks.js";
 import type * as queries_supportAgents from "../queries/supportAgents.js";
 import type * as queries_supportCases from "../queries/supportCases.js";
@@ -478,6 +479,7 @@ declare const fullApi: ApiFromModules<{
   "queries/specialOffers": typeof queries_specialOffers;
   "queries/staff": typeof queries_staff;
   "queries/stats": typeof queries_stats;
+  "queries/stories": typeof queries_stories;
   "queries/streaks": typeof queries_streaks;
   "queries/supportAgents": typeof queries_supportAgents;
   "queries/supportCases": typeof queries_supportCases;

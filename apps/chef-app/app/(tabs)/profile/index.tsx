@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl, Modal, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
@@ -15,7 +15,7 @@ import { CreateMealModal } from '@/components/ui/CreateMealModal';
 import { CreateStoryModal } from '@/components/ui/CreateStoryModal';
 import { FloatingActionButton } from '@/components/ui/FloatingActionButton';
 import { useToast } from '@/lib/ToastContext';
-import { Eye, CheckCircle, Circle } from 'lucide-react-native';
+import { CheckCircle, Circle } from 'lucide-react-native';
 
 export default function ChefProfileScreen() {
   const { chef, sessionToken } = useChefAuth();
@@ -29,7 +29,6 @@ export default function ChefProfileScreen() {
   const [isRecipeModalVisible, setIsRecipeModalVisible] = useState(false);
   const [isMealModalVisible, setIsMealModalVisible] = useState(false);
   const [isStoryModalVisible, setIsStoryModalVisible] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
 
   // Get all chef content
   const contentData = useQuery(
@@ -95,6 +94,16 @@ export default function ChefProfileScreen() {
       : 'skip'
   );
 
+  // Get the last livestream (most recent one)
+  const lastLiveSession = useMemo(() => {
+    if (!contentData || !contentData.liveSessions || contentData.liveSessions.length === 0) {
+      return null;
+    }
+    // Sort by creation time (newest first) and get the first one
+    const sorted = [...contentData.liveSessions].sort((a, b) => b.createdAt - a.createdAt);
+    return sorted[0];
+  }, [contentData]);
+
   // Transform content data into ContentItem format
   const allContentItems = useMemo(() => {
     if (!contentData) return [];
@@ -112,16 +121,19 @@ export default function ChefProfileScreen() {
       });
     });
 
-    // Add live sessions
-    contentData.liveSessions.forEach((session) => {
-      items.push({
-        id: session.id,
-        type: 'live',
-        title: session.title,
-        thumbnail: session.thumbnail,
-        createdAt: session.createdAt,
-      });
-    });
+    // Don't add live sessions to the grid - we'll show them separately
+    // Only add the last one if not on 'live' tab
+    if (activeTab !== 'live') {
+      if (lastLiveSession) {
+        items.push({
+          id: lastLiveSession.id,
+          type: 'live',
+          title: lastLiveSession.title,
+          thumbnail: lastLiveSession.thumbnail,
+          createdAt: lastLiveSession.createdAt,
+        });
+      }
+    }
 
     // Add videos
     contentData.videos.forEach((video) => {
@@ -149,7 +161,7 @@ export default function ChefProfileScreen() {
 
     // Sort by creation time (newest first)
     return items.sort((a, b) => b.createdAt - a.createdAt);
-  }, [contentData]);
+  }, [contentData, activeTab, lastLiveSession]);
 
   // Filter content by active tab
   const filteredContent = useMemo(() => {
@@ -161,7 +173,8 @@ export default function ChefProfileScreen() {
         case 'recipes':
           return item.type === 'recipe';
         case 'live':
-          return item.type === 'live';
+          // Don't show live items in grid when on live tab - we show them separately
+          return false;
         case 'videos':
           return item.type === 'video';
         case 'meals':
@@ -189,6 +202,13 @@ export default function ChefProfileScreen() {
       case 'meal':
         router.push(`/(tabs)/chef/meals/${item.id}`);
         break;
+    }
+  };
+
+  const handleContinueStream = () => {
+    if (lastLiveSession) {
+      // Navigate to the live stream screen with the session ID
+      router.push(`/(tabs)/chef/live/${lastLiveSession.id}`);
     }
   };
 
@@ -298,27 +318,18 @@ export default function ChefProfileScreen() {
           </View>
         )}
 
-        <View style={styles.profileHeaderContainer}>
-          <ProfileHeader
-            name={chef.name || 'Chef'}
-            handle={handle}
-            profileImage={chef.image || chef.profileImage}
-            kitchenName={kitchenName}
-            stats={stats}
-            rating={rating}
-            reviewCount={reviewsCount}
-            isVerified={isVerified}
-            specialties={chef.specialties}
-            onMenu={() => setIsMenuVisible(true)}
-          />
-          <TouchableOpacity
-            style={styles.previewButton}
-            onPress={() => setShowPreview(true)}
-          >
-            <Eye size={18} color="#094327" />
-            <Text style={styles.previewButtonText}>Preview</Text>
-          </TouchableOpacity>
-        </View>
+        <ProfileHeader
+          name={chef.name || 'Chef'}
+          handle={handle}
+          profileImage={chef.image || chef.profileImage}
+          kitchenName={kitchenName}
+          stats={stats}
+          rating={rating}
+          reviewCount={reviewsCount}
+          isVerified={isVerified}
+          specialties={chef.specialties}
+          onMenu={() => setIsMenuVisible(true)}
+        />
 
         <ContentTabs
           activeTab={activeTab}
@@ -341,6 +352,64 @@ export default function ChefProfileScreen() {
             <ActivityIndicator size="large" color="#065f46" />
             <Text style={styles.loadingText}>Loading content...</Text>
           </View>
+        ) : activeTab === 'live' ? (
+          // Show last livestream with continue button when on live tab
+          lastLiveSession ? (
+            <View style={styles.lastLiveContainer}>
+              <TouchableOpacity
+                style={styles.lastLiveCard}
+                onPress={handleContinueStream}
+                activeOpacity={0.8}
+              >
+                <View style={styles.lastLiveThumbnailContainer}>
+                  {lastLiveSession.thumbnail ? (
+                    <Image
+                      source={{ uri: lastLiveSession.thumbnail }}
+                      style={styles.lastLiveThumbnail}
+                    />
+                  ) : (
+                    <View style={styles.lastLivePlaceholder}>
+                      <Text style={styles.lastLivePlaceholderText}>
+                        {lastLiveSession.title?.charAt(0).toUpperCase() || 'L'}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.lastLiveBadge}>
+                    <View style={styles.lastLiveDot} />
+                    <Text style={styles.lastLiveBadgeText}>LIVE</Text>
+                  </View>
+                </View>
+                <View style={styles.lastLiveContent}>
+                  <Text style={styles.lastLiveTitle} numberOfLines={2}>
+                    {lastLiveSession.title || 'Untitled Stream'}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.continueButton}
+                    onPress={handleContinueStream}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.continueButtonText}>Continue Stream</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateTitle}>No Live Streams Yet</Text>
+              <Text style={styles.emptyStateText}>
+                Start your first live stream to connect with your audience!
+              </Text>
+              <TouchableOpacity
+                style={styles.startStreamButton}
+                onPress={() => {
+                  setAutoShowLiveStreamSetup(true);
+                  setIsCameraVisible(true);
+                }}
+              >
+                <Text style={styles.startStreamButtonText}>Start Live Stream</Text>
+              </TouchableOpacity>
+            </View>
+          )
         ) : filteredContent.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateTitle}>No Content Yet</Text>
@@ -421,63 +490,6 @@ export default function ChefProfileScreen() {
         }}
       />
 
-      {/* Profile Preview Modal */}
-      <Modal
-        visible={showPreview}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowPreview(false)}
-      >
-        <SafeAreaView style={styles.previewContainer}>
-          <View style={styles.previewHeader}>
-            <Text style={styles.previewTitle}>Profile Preview</Text>
-            <TouchableOpacity onPress={() => setShowPreview(false)}>
-              <Text style={styles.previewClose}>Close</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView style={styles.previewContent}>
-            <Text style={styles.previewHint}>
-              This is how your profile appears to customers
-            </Text>
-            <ProfileHeader
-              name={chef.name || 'Chef'}
-              handle={handle}
-              profileImage={chef.image || chef.profileImage}
-              kitchenName={kitchenName}
-              stats={stats}
-              rating={rating}
-              reviewCount={reviewsCount}
-              isVerified={isVerified}
-              specialties={chef.specialties}
-              onMenu={() => {}}
-            />
-            {chef.bio && (
-              <View style={styles.previewSection}>
-                <Text style={styles.previewSectionTitle}>About</Text>
-                <Text style={styles.previewBio}>{chef.bio}</Text>
-              </View>
-            )}
-            {chef.specialties && chef.specialties.length > 0 && (
-              <View style={styles.previewSection}>
-                <Text style={styles.previewSectionTitle}>Specialties</Text>
-                <View style={styles.previewSpecialties}>
-                  {chef.specialties.map((specialty, index) => (
-                    <View key={index} style={styles.previewSpecialtyChip}>
-                      <Text style={styles.previewSpecialtyText}>{specialty}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-            {chef.location?.city && (
-              <View style={styles.previewSection}>
-                <Text style={styles.previewSectionTitle}>Location</Text>
-                <Text style={styles.previewLocation}>{chef.location.city}</Text>
-              </View>
-            )}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -523,30 +535,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     textAlign: 'center',
     lineHeight: 20,
-  },
-  profileHeaderContainer: {
-    position: 'relative',
-  },
-  previewButton: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    zIndex: 10,
-  },
-  previewButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#094327',
-    fontFamily: 'Inter',
   },
   completionCard: {
     backgroundColor: '#FFFFFF',
@@ -618,81 +606,96 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: 'Inter',
   },
-  previewContainer: {
-    flex: 1,
-    backgroundColor: '#FAFFFA',
+  lastLiveContainer: {
+    padding: 16,
   },
-  previewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  lastLiveCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  lastLiveThumbnailContainer: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    position: 'relative',
+    backgroundColor: '#F5F5F5',
+  },
+  lastLiveThumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  lastLivePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#E5E5E5',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
-  previewTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    fontFamily: 'Inter',
-  },
-  previewClose: {
-    fontSize: 16,
+  lastLivePlaceholderText: {
+    fontSize: 48,
     fontWeight: '600',
-    color: '#094327',
-    fontFamily: 'Inter',
+    color: '#999',
   },
-  previewContent: {
-    flex: 1,
-    paddingHorizontal: 16,
+  lastLiveBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF0000',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
   },
-  previewHint: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontFamily: 'Inter',
-    marginTop: 16,
-    marginBottom: 8,
-    textAlign: 'center',
-    fontStyle: 'italic',
+  lastLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
+    marginRight: 4,
   },
-  previewSection: {
-    marginTop: 24,
-    marginBottom: 16,
-  },
-  previewSectionTitle: {
-    fontSize: 18,
+  lastLiveBadgeText: {
+    fontSize: 12,
     fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  lastLiveContent: {
+    padding: 16,
+  },
+  lastLiveTitle: {
+    fontSize: 18,
+    fontWeight: '600',
     color: '#111827',
     fontFamily: 'Inter',
     marginBottom: 12,
   },
-  previewBio: {
+  continueButton: {
+    backgroundColor: '#094327',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  continueButtonText: {
     fontSize: 16,
-    color: '#374151',
-    fontFamily: 'Inter',
-    lineHeight: 24,
-  },
-  previewSpecialties: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  previewSpecialtyChip: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  previewSpecialtyText: {
-    fontSize: 14,
-    color: '#094327',
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#FFFFFF',
     fontFamily: 'Inter',
   },
-  previewLocation: {
+  startStreamButton: {
+    backgroundColor: '#094327',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  startStreamButtonText: {
     fontSize: 16,
-    color: '#374151',
+    fontWeight: '600',
+    color: '#FFFFFF',
     fontFamily: 'Inter',
   },
 });

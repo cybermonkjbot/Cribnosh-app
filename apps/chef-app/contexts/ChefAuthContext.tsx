@@ -43,18 +43,32 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
   }, []);
 
   // Get user from session token
-  const user = useQuery(
+  // Wrap in try-catch pattern by using a wrapper that handles errors
+  const userQueryResult = useQuery(
     api.queries.users.getUserBySessionToken,
     sessionToken ? { sessionToken } : 'skip'
   );
 
+  // Get user from query result
+  const user = userQueryResult;
+
   // Get chef profile if user has chef role
-  const chef = useQuery(
+  // Only query if user exists, has chef role, and we have a valid session token
+  // This prevents calling the query with invalid tokens which would cause errors
+  const chefQueryResult = useQuery(
     api.queries.chefs.getByUserId,
-    user && user.roles?.includes('chef') && user._id
-      ? { userId: user._id, sessionToken: sessionToken || undefined }
+    // Only call if we have a valid user with chef role and session token
+    // This prevents errors from requireAuth when session token is invalid
+    user && 
+    user !== null && 
+    user.roles?.includes('chef') && 
+    user._id && 
+    sessionToken
+      ? { userId: user._id, sessionToken: sessionToken }
       : 'skip'
   );
+
+  const chef = chefQueryResult;
 
   // Check if basic onboarding is complete (profile setup)
   const isBasicOnboardingComplete = useQuery(
@@ -76,9 +90,30 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
   // User must exist, have a session token, and have the 'chef' role
   const isAuthenticated = !!user && !!sessionToken && user.roles?.includes('chef');
 
+  // Handle the case where user query returns null (no user found)
+  // This means the session token is invalid/expired - clear it immediately
+  useEffect(() => {
+    if (user === null && sessionToken) {
+      console.warn('ChefAuthContext: User query returned null - session token is invalid or expired, clearing it');
+      // Clear the invalid session token immediately
+      const clearToken = async () => {
+        try {
+          const { clearSessionToken } = await import('@/lib/convexClient');
+          await clearSessionToken();
+          setSessionToken(null);
+        } catch (error) {
+          console.error('Error clearing session token:', error);
+        }
+      };
+      clearToken();
+    }
+  }, [user, sessionToken]);
+
   // Determine if we're still loading:
   // - If sessionToken is null, we're done loading (no user to fetch)
   // - If sessionToken exists, we're loading until user query resolves (user !== undefined)
+  // - If user is null (query completed but no user), stop loading immediately
+  // - The useEffect above will clear the token when user is null, which will stop loading
   const isQueryLoading = sessionToken !== null && user === undefined;
 
   // Debug logging
@@ -86,8 +121,8 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
     if (sessionToken) {
       console.log('ChefAuthContext state:', {
         hasSessionToken: !!sessionToken,
-        user: user ? { id: user._id, roles: user.roles, email: user.email } : null,
-        chef: chef ? { id: chef._id, name: chef.name } : null,
+        user: user ? { id: user._id, roles: user.roles, email: user.email } : (user === null ? 'null (no user found - token invalid)' : 'undefined (loading)'),
+        chef: chef ? { id: chef._id, name: chef.name } : (chef === null ? 'null (no chef found)' : 'undefined (loading/skipped)'),
         isAuthenticated,
         isLoading,
         isQueryLoading,
