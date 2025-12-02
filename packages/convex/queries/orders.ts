@@ -15,29 +15,36 @@ export const listByChef = query({
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
     
+    // chef_id is actually a userId string - find the chef by userId
+    let chef;
+    try {
+      chef = await ctx.runQuery(api.queries.chefs.getByUserId, {
+        userId: args.chef_id,
+        sessionToken: args.sessionToken,
+      });
+    } catch (error) {
+      // If query fails, chef doesn't exist or access denied
+      throw new Error('Access denied');
+    }
+    
+    // If chef not found, user doesn't have a chef profile
+    if (!chef) {
+      throw new Error('Access denied');
+    }
+    
     // Allow if user is admin/staff, or if they own the chef account
     if (!isAdmin(user) && !isStaff(user)) {
-      // Check if user owns the chef account
-      try {
-        const chef = await ctx.runQuery(api.queries.chefs.getById, {
-          chefId: args.chef_id as any,
-        });
-        
-        if (!chef || chef.userId !== user._id) {
-          throw new Error('Access denied');
-        }
-      } catch (error) {
-        // If chef not found or access denied, throw error
+      if (chef.userId !== user._id) {
         throw new Error('Access denied');
       }
     }
     
     const { limit, offset = 0 } = args;
     
-    // Fetch orders filtered by chef_id (will be optimized with index)
+    // Fetch orders filtered by chef_id (using the actual chef._id)
     const allOrders = await ctx.db
       .query('orders')
-      .filter(q => q.eq(q.field('chef_id'), args.chef_id))
+      .filter(q => q.eq(q.field('chef_id'), chef._id))
       .collect();
     
     // Sort by createdAt desc (newest first)

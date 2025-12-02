@@ -17,6 +17,50 @@ function getOpenAI() {
 }
 
 /**
+ * Helper function to retry OpenAI API calls with exponential backoff
+ * Specifically handles 429 rate limit errors
+ */
+async function withExponentialBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 5,
+  initialDelay: number = 1000,
+  maxDelay: number = 30000
+): Promise<T> {
+  let lastError: any;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if it's a rate limit error (429)
+      const isRateLimit = 
+        error?.status === 429 ||
+        error?.response?.status === 429 ||
+        error?.message?.includes('429') ||
+        error?.message?.includes('quota') ||
+        error?.message?.includes('rate limit');
+      
+      // If it's not a rate limit error or we've exhausted retries, throw
+      if (!isRateLimit || attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Calculate exponential backoff delay with jitter
+      const baseDelay = Math.min(initialDelay * Math.pow(2, attempt), maxDelay);
+      const jitter = Math.random() * 0.3 * baseDelay; // Add up to 30% jitter
+      const delay = baseDelay + jitter;
+      
+      console.log(`Rate limit hit (429), retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+}
+
+/**
  * Generate embedding for a single meal
  */
 export const generateMealEmbedding = action({
@@ -42,11 +86,13 @@ export const generateMealEmbedding = action({
       ...(meal.ingredients?.map((ing: { name: string }) => ing.name) || []),
     ].filter(Boolean).join(' ');
 
-    // Generate embedding using OpenAI
+    // Generate embedding using OpenAI with exponential backoff for rate limits
     const openai = getOpenAI();
-    const response = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: textToEmbed,
+    const response = await withExponentialBackoff(async () => {
+      return await openai.embeddings.create({
+        model: 'text-embedding-3-small',
+        input: textToEmbed,
+      });
     });
 
     const embedding = response.data[0]?.embedding;
@@ -72,11 +118,13 @@ export const generateQueryEmbedding = action({
     query: v.string(),
   },
   handler: async (ctx, args) => {
-    // Generate embedding using OpenAI
+    // Generate embedding using OpenAI with exponential backoff for rate limits
     const openai = getOpenAI();
-    const response = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: args.query,
+    const response = await withExponentialBackoff(async () => {
+      return await openai.embeddings.create({
+        model: 'text-embedding-3-small',
+        input: args.query,
+      });
     });
 
     const embedding = response.data[0]?.embedding;
