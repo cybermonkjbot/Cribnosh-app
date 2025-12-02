@@ -1,0 +1,27 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "info": {
+      "en-US": {
+        "title": "Cribnosh Driver",
+        "subtitle": "Delivery driver app for Cribnosh",
+        "description": "Cribnosh Driver is the delivery app for drivers to accept orders, navigate to pickup and delivery locations, and manage deliveries. Join the Cribnosh delivery network and earn money delivering meals to customers.",
+        "keywords": ["delivery", "driver", "food delivery", "delivery app", "gig economy", "earn money"],
+        "marketingUrl": "https://cribnosh.com",
+        "supportUrl": "https://cribnosh.com/support",
+        "privacyPolicyUrl": "https://cribnosh.com/privacy"
+      }
+    }
+  },
+  "android": {
+    "info": {
+      "en-US": {
+        "title": "Cribnosh Driver",
+        "shortDescription": "Delivery driver app for Cribnosh",
+        "fullDescription": "Cribnosh Driver is the delivery app for drivers to accept orders, navigate to pickup and delivery locations, and manage deliveries. Join the Cribnosh delivery network and earn money delivering meals to customers.",
+        "keywords": ["delivery", "driver", "food delivery", "delivery app", "gig economy", "earn money"]
+      }
+    }
+  }
+}
+

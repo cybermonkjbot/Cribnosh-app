@@ -1,0 +1,27 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "info": {
+      "en-US": {
+        "title": "Cribnosh",
+        "subtitle": "Order meals from local chefs",
+        "description": "Cribnosh connects you with local chefs and home cooks in your area. Discover delicious homemade meals, order from your favorite chefs, and have fresh food delivered to your door. Support local culinary talent and enjoy authentic, home-cooked meals.",
+        "keywords": ["food delivery", "local chefs", "home cooked meals", "food ordering", "delivery", "restaurant", "meals"],
+        "marketingUrl": "https://cribnosh.com",
+        "supportUrl": "https://cribnosh.com/support",
+        "privacyPolicyUrl": "https://cribnosh.com/privacy"
+      }
+    }
+  },
+  "android": {
+    "info": {
+      "en-US": {
+        "title": "Cribnosh",
+        "shortDescription": "Order meals from local chefs",
+        "fullDescription": "Cribnosh connects you with local chefs and home cooks in your area. Discover delicious homemade meals, order from your favorite chefs, and have fresh food delivered to your door. Support local culinary talent and enjoy authentic, home-cooked meals.",
+        "keywords": ["food delivery", "local chefs", "home cooked meals", "food ordering", "delivery", "restaurant", "meals"]
+      }
+    }
+  }
+}
+
