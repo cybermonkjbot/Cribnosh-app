@@ -7,7 +7,7 @@ import { View } from 'react-native';
 
 export default function Index() {
   const router = useRouter();
-  const { isLoading } = useChefAuth();
+  const { isLoading, isAuthenticated } = useChefAuth();
   const navigatedRef = useRef(false);
   const [splashCompleted, setSplashCompleted] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
@@ -20,8 +20,12 @@ export default function Index() {
         navigatedRef.current = true;
         setShowSplash(false);
         SplashScreen.hideAsync().catch(() => {});
-        // Always navigate to dashboard (like customer app)
-        router.replace('/(tabs)');
+        // Navigate based on authentication state
+        if (isAuthenticated) {
+          router.replace('/(tabs)');
+        } else {
+          router.replace('/sign-in?notDismissable=true');
+        }
       }
     }, 10000);
 
@@ -29,7 +33,6 @@ export default function Index() {
     if (splashCompleted && !isLoading && !navigatedRef.current) {
       navigatedRef.current = true;
       clearTimeout(timeout);
-      console.log('Chef App Index: Navigating to dashboard');
       
       // Hide native splash screen
       SplashScreen.hideAsync().catch(() => {});
@@ -39,13 +42,19 @@ export default function Index() {
       
       // Use requestAnimationFrame to ensure state update happens before navigation
       requestAnimationFrame(() => {
-        // Always navigate to dashboard (like customer app)
-        router.replace('/(tabs)');
+        // Navigate based on authentication state
+        if (isAuthenticated) {
+          console.log('Chef App Index: Navigating to dashboard', { isAuthenticated });
+          router.replace('/(tabs)');
+        } else {
+          console.log('Chef App Index: Navigating to sign-in', { isAuthenticated });
+          router.replace('/sign-in?notDismissable=true');
+        }
       });
     }
 
     return () => clearTimeout(timeout);
-  }, [splashCompleted, isLoading, router]);
+  }, [splashCompleted, isLoading, isAuthenticated, router]);
 
   const handleSplashComplete = () => {
     setSplashCompleted(true);

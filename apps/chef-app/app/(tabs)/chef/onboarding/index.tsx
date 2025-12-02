@@ -1,5 +1,5 @@
+import { Mascot } from '@/components/Mascot';
 import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
@@ -283,18 +283,25 @@ export default function OnboardingScreen() {
               </Text>
             </View>
 
-            {/* Progress Card */}
-            <View style={styles.progressCard}>
-              <View style={styles.progressHeader}>
-                <Text style={styles.progressLabel}>Overall Progress</Text>
-                <Text style={styles.progressPercentage}>{Math.round(progress)}%</Text>
+            {/* Progress Percentage and Mascot */}
+            <View style={styles.progressMascotContainer}>
+              {/* Progress Percentage on Left */}
+              <View style={styles.progressPercentageContainer}>
+                <Text style={styles.progressPercentageDisplay}>{Math.round(progress)}%</Text>
+                <Text style={styles.progressPercentageSubtitle}>Training Complete</Text>
               </View>
-              <View style={styles.progressBarContainer}>
-                <View style={[styles.progressBar, { width: `${progress}%` }]} />
+              
+              {/* Mascot on Right */}
+              <View style={styles.mascotContainer}>
+                <View style={[styles.speechBubble, styles.speechBubbleRight]}>
+                  <Text style={styles.speechBubbleText}>
+                    Let's get you started to start receiving orders
+                  </Text>
+                </View>
+                <View style={styles.mascotZoom}>
+                  <Mascot emotion="excited" size={400} />
+                </View>
               </View>
-              <Text style={styles.progressText}>
-                {completedModules} of {totalModules} modules completed
-              </Text>
             </View>
 
             {/* Introduction Content */}
@@ -412,6 +419,81 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 24,
   },
+  progressMascotContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    paddingVertical: 16,
+    position: 'relative',
+  },
+  progressPercentageContainer: {
+    flex: 1,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    paddingTop: 20,
+    zIndex: 20,
+  },
+  progressPercentageDisplay: {
+    fontFamily: 'Poppins',
+    fontStyle: 'normal',
+    fontWeight: '700',
+    fontSize: 48,
+    lineHeight: 56,
+    color: COLORS.primary,
+    marginBottom: 4,
+  },
+  progressPercentageSubtitle: {
+    fontFamily: 'SF Pro',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontSize: 14,
+    lineHeight: 20,
+    color: COLORS.text.muted,
+  },
+  mascotContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 200,
+    height: 200,
+    overflow: 'visible',
+    position: 'relative',
+    zIndex: 1,
+  },
+  mascotZoom: {
+    transform: [{ scale: 1.0 }],
+  },
+  speechBubble: {
+    position: 'absolute',
+    top: -5,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    zIndex: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    maxWidth: 280,
+  },
+  speechBubbleLeft: {
+    left: -40,
+  },
+  speechBubbleRight: {
+    right: 40,
+  },
+  speechBubbleText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    fontFamily: 'Inter',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
   title: {
     fontFamily: 'Poppins',
     fontStyle: 'normal',
@@ -427,56 +509,6 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     fontSize: 16,
     lineHeight: 24,
-    color: COLORS.text.muted,
-  },
-  progressCard: {
-    padding: 16,
-    marginBottom: 24,
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  progressLabel: {
-    fontFamily: 'SF Pro',
-    fontStyle: 'normal',
-    fontWeight: '600',
-    fontSize: 16,
-    lineHeight: 20,
-    color: COLORS.text.primary,
-  },
-  progressPercentage: {
-    fontFamily: 'Poppins',
-    fontStyle: 'normal',
-    fontWeight: '700',
-    fontSize: 24,
-    lineHeight: 32,
-    color: COLORS.secondary,
-  },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: COLORS.border,
-    borderRadius: 4,
-    marginBottom: 8,
-    overflow: 'hidden',
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: COLORS.secondary,
-    borderRadius: 4,
-  },
-  progressText: {
-    fontFamily: 'SF Pro',
-    fontStyle: 'normal',
-    fontWeight: '400',
-    fontSize: 14,
-    lineHeight: 20,
     color: COLORS.text.muted,
   },
   introCard: {

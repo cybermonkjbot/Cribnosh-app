@@ -1,21 +1,20 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
 import { GradientBackground } from '@/components/ui/GradientBackground';
-import { ArrowLeft, Wallet } from 'lucide-react-native';
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
 import { BlurEffect } from '@/utils/blurEffects';
+import { useQuery } from 'convex/react';
+import { useRouter } from 'expo-router';
+import { ArrowLeft, Wallet } from 'lucide-react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
   runOnJS,
   useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withTiming
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TimeRange = '7d' | '30d' | '90d';
 
@@ -216,7 +215,7 @@ export default function EarningsScreen() {
       </ScrollView>
 
       {/* Action Buttons */}
-      <View style={[styles.actionButtonsContainer, { bottom: insets.bottom + 20 }]}>
+      <View style={[styles.actionButtonsContainer, { bottom: insets.bottom - 20 }]}>
         <TouchableOpacity
           style={styles.viewTaxesButton}
           onPress={() => router.push('/(tabs)/earnings/taxes')}

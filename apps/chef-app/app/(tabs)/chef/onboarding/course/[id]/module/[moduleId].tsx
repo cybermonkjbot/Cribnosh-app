@@ -4,10 +4,17 @@ import { useToast } from '@/lib/ToastContext';
 import { useMutation, useQuery } from 'convex/react';
 import { ResizeMode, Video } from 'expo-av';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CheckCircle, X, ChevronRight } from 'lucide-react-native';
+import { CheckCircle, ChevronRight, VideoOff, AlertCircle } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Pressable, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SvgXml } from 'react-native-svg';
+import { CribNoshLogo } from '@/components/ui/CribNoshLogo';
+
+// Back arrow SVG - white color for dark background
+const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M19 12H5M12 19L5 12L12 5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -22,6 +29,8 @@ const BRAND_COLORS = {
   overlayLight: 'rgba(0, 0, 0, 0.5)',
   textSecondary: 'rgba(255, 255, 255, 0.8)',
   textTertiary: 'rgba(255, 255, 255, 0.6)',
+  darkGreen: '#02120A', // Very dark green matching live stream pages
+  lightGreen: '#E6FFE8', // Light green for text on dark green
 };
 
 interface ModuleVideo {
@@ -60,7 +69,10 @@ export default function ModuleDetailScreen() {
   const flatListRef = useRef<FlatList>(null);
   const videoRefs = useRef<{ [key: string]: Video | null }>({});
   const [playingVideos, setPlayingVideos] = useState<Set<string>>(new Set());
+  const [videoErrors, setVideoErrors] = useState<Set<string>>(new Set());
+  const [loadedVideos, setLoadedVideos] = useState<Set<string>>(new Set());
   const saveProgressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const videoLoadTimeoutsRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
   // Get course enrollment to find module progress
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
@@ -177,6 +189,35 @@ export default function ModuleDetailScreen() {
     }
   }, [currentIndex, moduleVideos, saveVideoProgress]);
 
+  // Set timeout for video loading - if video doesn't load within 15 seconds, mark as error
+  useEffect(() => {
+    if (moduleVideos && moduleVideos.length > 0 && currentIndex >= 0) {
+      const currentVideo = moduleVideos[currentIndex];
+      if (currentVideo && !loadedVideos.has(currentVideo.id) && !videoErrors.has(currentVideo.id)) {
+        // Clear any existing timeout for this video
+        if (videoLoadTimeoutsRef.current[currentVideo.id]) {
+          clearTimeout(videoLoadTimeoutsRef.current[currentVideo.id]);
+        }
+        
+        // Set new timeout (15 seconds)
+        videoLoadTimeoutsRef.current[currentVideo.id] = setTimeout(() => {
+          if (!loadedVideos.has(currentVideo.id)) {
+            console.warn(`Video load timeout for ${currentVideo.id}`);
+            setVideoErrors(prev => new Set([...prev, currentVideo.id]));
+          }
+        }, 15000);
+      }
+      
+      // Cleanup timeout when video loads or index changes
+      return () => {
+        if (currentVideo && videoLoadTimeoutsRef.current[currentVideo.id]) {
+          clearTimeout(videoLoadTimeoutsRef.current[currentVideo.id]);
+          delete videoLoadTimeoutsRef.current[currentVideo.id];
+        }
+      };
+    }
+  }, [currentIndex, moduleVideos, loadedVideos, videoErrors]);
+
   // Get sorted modules to find next module
   const sortedModules = useMemo(() => {
     if (!enrollment?.progress) return [];
@@ -288,9 +329,12 @@ export default function ModuleDetailScreen() {
   const renderVideoItem = useCallback(({ item, index }: { item: ModuleVideo; index: number }) => {
     const isCurrentItem = index === currentIndex;
     const isPlaying = playingVideos.has(item.id);
+    const hasError = videoErrors.has(item.id);
+    const isLoaded = loadedVideos.has(item.id);
+    const showVideoError = hasError || (isCurrentItem && !isPlaying && !isLoaded);
 
     return (
-      <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT, backgroundColor: BRAND_COLORS.black }}>
+      <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT, backgroundColor: BRAND_COLORS.darkGreen }}>
         <Video
           ref={(ref) => {
             videoRefs.current[item.id] = ref;
@@ -302,14 +346,82 @@ export default function ModuleDetailScreen() {
           isLooping={false}
           isMuted={false}
           onLoad={() => {
+            // Clear timeout on successful load
+            if (videoLoadTimeoutsRef.current[item.id]) {
+              clearTimeout(videoLoadTimeoutsRef.current[item.id]);
+              delete videoLoadTimeoutsRef.current[item.id];
+            }
+            setLoadedVideos(prev => new Set([...prev, item.id]));
             if (isCurrentItem) {
               handleVideoPlayback(index, true);
             }
           }}
           onError={(error) => {
             console.error('Video error:', error);
+            // Clear timeout on error
+            if (videoLoadTimeoutsRef.current[item.id]) {
+              clearTimeout(videoLoadTimeoutsRef.current[item.id]);
+              delete videoLoadTimeoutsRef.current[item.id];
+            }
+            setVideoErrors(prev => new Set([...prev, item.id]));
           }}
         />
+        
+        {/* Video Error/Broken Icon - Show when video not playing or has error */}
+        {showVideoError && isCurrentItem && (
+          <View
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: 0,
+              right: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+              transform: [{ translateY: -60 }],
+              zIndex: 100,
+            }}
+          >
+            <View
+              style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 24,
+              }}
+            >
+              {hasError ? (
+                <>
+                  <VideoOff size={64} color={BRAND_COLORS.lightGreen} strokeWidth={1.5} />
+                  <Text
+                    style={{
+                      color: BRAND_COLORS.lightGreen,
+                      fontSize: 16,
+                      fontWeight: '600',
+                      marginTop: 16,
+                      textAlign: 'center',
+                    }}
+                  >
+                    Video unavailable
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <ActivityIndicator size="large" color={BRAND_COLORS.lightGreen} />
+                  <Text
+                    style={{
+                      color: BRAND_COLORS.lightGreen,
+                      fontSize: 16,
+                      fontWeight: '600',
+                      marginTop: 16,
+                      textAlign: 'center',
+                    }}
+                  >
+                    Loading video...
+                  </Text>
+                </>
+              )}
+            </View>
+          </View>
+        )}
         
         {/* Video Overlay with Title and Description */}
         {/* Adjust bottom padding when action buttons are shown */}
@@ -342,6 +454,9 @@ export default function ModuleDetailScreen() {
                 fontWeight: '700', 
                 marginBottom: 8,
                 letterSpacing: -0.5,
+                textShadowColor: 'transparent',
+                textShadowOffset: { width: 0, height: 0 },
+                textShadowRadius: 0,
               }}
             >
               {item.title}
@@ -361,7 +476,7 @@ export default function ModuleDetailScreen() {
         </View>
       </View>
     );
-  }, [currentIndex, playingVideos, insets, currentModule, moduleVideos.length, handleVideoPlayback]);
+  }, [currentIndex, playingVideos, videoErrors, loadedVideos, insets, currentModule, moduleVideos.length, handleVideoPlayback]);
 
   useEffect(() => {
     // Set loading state based on moduleContent query
@@ -447,30 +562,29 @@ export default function ModuleDetailScreen() {
         extraData={currentIndex}
       />
 
-      {/* Header with Close Button */}
+      {/* Header with Back Button and Logo */}
       <View
         style={{
           position: 'absolute',
           top: insets.top + 16,
           left: 20,
+          right: 20,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           zIndex: 10000,
         }}
       >
-        <Pressable
+        <TouchableOpacity
           onPress={() => router.back()}
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: BRAND_COLORS.overlay,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderColor: 'rgba(255, 255, 255, 0.1)',
+            padding: 8,
+            borderRadius: 8,
           }}
         >
-          <X size={22} color={BRAND_COLORS.white} strokeWidth={2.5} />
-        </Pressable>
+          <SvgXml xml={backArrowSVG} width={24} height={24} />
+        </TouchableOpacity>
+        <CribNoshLogo size={120} variant="white" />
       </View>
 
       {/* Action Buttons (shown on last video) */}

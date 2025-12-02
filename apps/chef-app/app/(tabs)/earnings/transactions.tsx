@@ -5,7 +5,6 @@ import { useRouter } from 'expo-router';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { GradientBackground } from '@/components/ui/GradientBackground';
 import { ArrowLeft, Search, Download, Filter, X } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Platform } from 'react-native';
@@ -185,17 +184,17 @@ export default function TransactionsScreen() {
 
   if (!chef) {
     return (
-      <GradientBackground>
+      <View style={styles.mainContainer}>
         <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
           <ActivityIndicator size="large" color="#0B9E58" />
           <Text style={styles.loadingText}>Loading transactions...</Text>
         </View>
-      </GradientBackground>
+      </View>
     );
   }
 
   return (
-    <GradientBackground>
+    <View style={styles.mainContainer}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
@@ -469,11 +468,15 @@ export default function TransactionsScreen() {
           </View>
         </View>
       )}
-    </GradientBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#FAFFFA',
+  },
   scrollView: {
     flex: 1,
   },

@@ -1,7 +1,7 @@
-import React, { createContext, ReactNode, useContext, useEffect, useState, useCallback } from 'react';
-import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { getSessionToken, setSessionToken as storeSessionToken } from '@/lib/convexClient';
+import { clearSessionToken, getSessionToken, setSessionToken as storeSessionToken } from '@/lib/convexClient';
+import { useQuery } from 'convex/react';
+import { ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 interface ChefAuthContextType {
   chef: any | null;
@@ -95,10 +95,11 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
   useEffect(() => {
     if (user === null && sessionToken) {
       console.warn('ChefAuthContext: User query returned null - session token is invalid or expired, clearing it');
+      // Immediately stop loading - don't wait for token clearing
+      setIsLoading(false);
       // Clear the invalid session token immediately
       const clearToken = async () => {
         try {
-          const { clearSessionToken } = await import('@/lib/convexClient');
           await clearSessionToken();
           setSessionToken(null);
         } catch (error) {
@@ -115,6 +116,18 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
   // - If user is null (query completed but no user), stop loading immediately
   // - The useEffect above will clear the token when user is null, which will stop loading
   const isQueryLoading = sessionToken !== null && user === undefined;
+  
+  // Safety timeout: if query loading takes too long, stop loading to prevent infinite loading
+  useEffect(() => {
+    if (isQueryLoading && sessionToken) {
+      const timeout = setTimeout(() => {
+        console.warn('ChefAuthContext: Query loading timeout - stopping loading to prevent infinite loading');
+        setIsLoading(false);
+      }, 10000); // 10 second timeout
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [isQueryLoading, sessionToken]);
 
   // Debug logging
   useEffect(() => {
@@ -150,7 +163,6 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
 
   const logout = useCallback(async () => {
     // Clear session token
-    const { clearSessionToken } = await import('@/lib/convexClient');
     await clearSessionToken();
     setSessionToken(null);
   }, []);

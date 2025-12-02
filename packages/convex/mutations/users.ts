@@ -927,6 +927,46 @@ export const setSessionToken = mutation({
   },
 });
 
+/**
+ * Clear expired session token from user document
+ * This helps fix infinite loading issues when users have expired session tokens
+ * that don't match any session in the sessions table
+ */
+export const clearExpiredSessionToken = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx: MutationCtx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      return { success: false, message: 'User not found' };
+    }
+    
+    // Check if session token is expired
+    const isExpired = user.sessionExpiry && user.sessionExpiry < Date.now();
+    
+    if (isExpired || !user.sessionToken) {
+      // Clear the expired session token
+      await ctx.db.patch(args.userId, {
+        sessionToken: undefined,
+        sessionExpiry: undefined,
+        lastModified: Date.now(),
+      });
+      
+      return { 
+        success: true, 
+        message: isExpired ? 'Expired session token cleared' : 'Session token cleared' 
+      };
+    }
+    
+    return { success: false, message: 'Session token is still valid' };
+  },
+});
+
 export const applyReferralReward = mutation({
   args: { userId: v.id('users') },
   handler: async (ctx, args) => {

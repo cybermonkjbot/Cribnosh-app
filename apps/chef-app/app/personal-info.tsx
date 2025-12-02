@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -61,6 +62,7 @@ export default function PersonalInfoScreen() {
   // Kitchen Settings state
   const [kitchenName, setKitchenName] = useState('');
   const [kitchenAddress, setKitchenAddress] = useState('');
+  const [kitchenType, setKitchenType] = useState('');
   const [kitchenImages, setKitchenImages] = useState<string[]>([]);
   const [isEditingKitchen, setIsEditingKitchen] = useState(false);
   const [isUploadingKitchenImage, setIsUploadingKitchenImage] = useState(false);
@@ -212,6 +214,7 @@ export default function PersonalInfoScreen() {
         } else if (chef?.onboardingDraft?.kitchenName) {
           setKitchenName(chef.onboardingDraft.kitchenName);
           setKitchenAddress(chef.onboardingDraft.kitchenAddress || '');
+          setKitchenType(chef.onboardingDraft.kitchenType || '');
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -921,6 +924,51 @@ export default function PersonalInfoScreen() {
         >
           {activeTab === 'chef' && (
             <>
+              {/* Chef Account Status */}
+              {chef && (
+                <View style={styles.statusCard}>
+                  <Text style={styles.statusLabel}>Account Status</Text>
+                  <View style={styles.statusRow}>
+                    <Text style={[
+                      styles.statusText,
+                      chef.status === 'active' && styles.statusTextActive,
+                      chef.status === 'suspended' && styles.statusTextSuspended,
+                      chef.status === 'pending_verification' && styles.statusTextPending,
+                    ]}>
+                      {chef.status === 'active' ? 'Active' : 
+                       chef.status === 'inactive' ? 'Inactive' :
+                       chef.status === 'suspended' ? 'Suspended' :
+                       chef.status === 'pending_verification' ? 'Pending Verification' : 
+                       'Unknown'}
+                    </Text>
+                    {chef.status === 'active' && (
+                      <Ionicons name="checkmark-circle" size={20} color="#0B9E58" />
+                    )}
+                    {chef.status === 'suspended' && (
+                      <Ionicons name="close-circle" size={20} color="#EF4444" />
+                    )}
+                    {chef.status === 'pending_verification' && (
+                      <Ionicons name="time" size={20} color="#F59E0B" />
+                    )}
+                  </View>
+                  {chef.status === 'suspended' && (
+                    <Text style={styles.statusWarningText}>
+                      Your account has been suspended. Please contact support for assistance.
+                    </Text>
+                  )}
+                  {chef.status === 'pending_verification' && (
+                    <Text style={styles.statusInfoText}>
+                      Your account is pending verification. You'll be able to go online once verified.
+                    </Text>
+                  )}
+                  {chef.status === 'inactive' && (
+                    <Text style={styles.statusInfoText}>
+                      Your account is inactive. Complete your profile to activate your account.
+                    </Text>
+                  )}
+                </View>
+              )}
+
               {/* Profile Picture Section */}
               <View style={styles.profileSection}>
                 <View style={styles.avatarContainer}>
@@ -1779,6 +1827,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: '#094327',
+  },
+  statusTextActive: {
+    color: '#0B9E58',
+  },
+  statusTextSuspended: {
+    color: '#EF4444',
+  },
+  statusTextPending: {
+    color: '#F59E0B',
+  },
+  statusWarningText: {
+    fontFamily: 'Inter',
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#EF4444',
+    marginTop: 8,
+  },
+  statusInfoText: {
+    fontFamily: 'Inter',
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#6B7280',
+    marginTop: 8,
   },
   locationButton: {
     flexDirection: 'row',

@@ -1,27 +1,40 @@
-import { Tabs, useSegments } from 'expo-router';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { CustomTabBar } from '@/components/ui/CustomTabBar';
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { Tabs, useSegments } from 'expo-router';
+import { useCallback } from 'react';
 
 export default function TabLayout() {
+  // Always call hooks unconditionally at the top level - never conditionally
+  // This ensures consistent hook order across all renders, including during logout
   const { isAuthenticated } = useChefAuth();
   const segments = useSegments();
 
+  // Defensive check: ensure segments is always an array to prevent errors during navigation transitions
+  const segmentsArray = Array.isArray(segments) ? segments : [];
+
   // Check if we're on onboarding or compliance pages
   // Segments can be like: ['(tabs)', 'chef', 'onboarding-setup'] or ['(tabs)', 'chef', 'onboarding', ...]
-  const segmentString = (segments as string[]).join('/');
+  const segmentString = segmentsArray.join('/');
   const isOnOnboardingRoute = 
     segmentString.includes('onboarding-setup') || 
     segmentString.includes('onboarding/') ||
     segmentString.endsWith('onboarding') ||
-    (segments as string[]).some(segment => 
+    segmentsArray.some(segment => 
       segment === 'onboarding-setup' || 
       segment === 'onboarding' ||
       (typeof segment === 'string' && segment.includes('onboarding'))
     );
 
-  // Hide tabs on onboarding/compliance pages
+  // Hide tabs on onboarding/compliance pages or when not authenticated
   const shouldShowTabs = isAuthenticated && !isOnOnboardingRoute;
 
+  // Memoize the tabBar function to prevent unnecessary re-renders and maintain stability
+  const renderTabBar = useCallback((props: any) => {
+    return <CustomTabBar {...props} />;
+  }, []);
+
+  // Always return the Tabs component to maintain consistent hook order
+  // The tab bar visibility is controlled via display: 'none' style
   return (
     <Tabs
       screenOptions={{
@@ -37,7 +50,7 @@ export default function TabLayout() {
           display: shouldShowTabs ? 'flex' : 'none',
         },
       }}
-      tabBar={(props) => <CustomTabBar {...props} />}
+      tabBar={renderTabBar}
     >
       <Tabs.Screen
         name="index"

@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/Button';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
@@ -6,17 +5,21 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChefLayout() {
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const { isLoading, isAuthenticated, isBasicOnboardingComplete, isOnboardingComplete, chef } = useChefAuth();
   const router = useRouter();
   const segments = useSegments();
 
   // Check current route segments
-  const isOnOnboardingRoute = (segments as string[]).includes('onboarding');
+  // IMPORTANT: Distinguish between basic onboarding (onboarding-setup) and compliance training (onboarding)
   const isOnOnboardingSetupRoute = (segments as string[]).includes('onboarding-setup');
+  const isOnComplianceTrainingRoute = (segments as string[]).includes('onboarding') && !isOnOnboardingSetupRoute;
   const isOnProfileRoute = (segments as string[]).includes('profile');
   
   // Determine what the user needs
+  // Basic onboarding (profile setup) must ALWAYS come before compliance training
   const needsBasicOnboarding = !chef || !isBasicOnboardingComplete;
+  // Compliance training can ONLY happen after basic onboarding is complete
   const needsComplianceTraining = chef && isBasicOnboardingComplete && !isOnboardingComplete && !chef.complianceTrainingSkipped;
   const hasSkippedTraining = chef?.complianceTrainingSkipped === true;
 
@@ -24,7 +27,7 @@ export default function ChefLayout() {
   useEffect(() => {
     if (isLoading || !isAuthenticated) return;
 
-    // If user has chef role but no chef profile, redirect to onboarding-setup
+    // PRIORITY 1: If user has chef role but no chef profile, redirect to onboarding-setup
     if (!chef) {
       if (!isOnOnboardingSetupRoute && !isOnProfileRoute) {
         router.replace('/(tabs)/chef/onboarding-setup');
@@ -32,32 +35,48 @@ export default function ChefLayout() {
       return;
     }
     
-    // If basic onboarding (profile setup) is not complete, redirect to onboarding-setup
+    // PRIORITY 2: Basic onboarding (profile setup) MUST be completed first
+    // Block ALL access to compliance training if basic onboarding is not complete
     if (needsBasicOnboarding) {
-      // Block access to compliance training routes if basic onboarding not complete
-      if (isOnOnboardingRoute && !isOnProfileRoute && !isOnOnboardingSetupRoute) {
+      // If user tries to access compliance training routes, force them back to basic onboarding
+      if (isOnComplianceTrainingRoute) {
         router.replace('/(tabs)/chef/onboarding-setup');
+        return;
       }
-      // If not on allowed routes, redirect
+      // If not on allowed routes (onboarding-setup or profile), redirect to onboarding-setup
       if (!isOnProfileRoute && !isOnOnboardingSetupRoute) {
         router.replace('/(tabs)/chef/onboarding-setup');
       }
       return;
     }
     
-    // If compliance training not complete and not skipped, redirect to onboarding
+    // PRIORITY 3: Only after basic onboarding is complete, check compliance training
+    // Compliance training can only be accessed if basic onboarding is complete
     if (needsComplianceTraining) {
-      if (!isOnOnboardingRoute) {
+      if (!isOnComplianceTrainingRoute && !isOnProfileRoute) {
         router.replace('/(tabs)/chef/onboarding');
       }
       return;
     }
 
-    // If onboarding is complete, redirect away from onboarding routes
-    if (isOnboardingComplete && isOnOnboardingRoute && !isOnOnboardingSetupRoute) {
+    // If all onboarding is complete, redirect away from onboarding routes
+    if (isOnboardingComplete && (isOnComplianceTrainingRoute || isOnOnboardingSetupRoute)) {
       router.replace('/(tabs)');
     }
-  }, [isLoading, isAuthenticated, isBasicOnboardingComplete, isOnboardingComplete, chef, needsBasicOnboarding, needsComplianceTraining, isOnOnboardingRoute, isOnOnboardingSetupRoute, isOnProfileRoute, router]);
+  }, [isLoading, isAuthenticated, isBasicOnboardingComplete, isOnboardingComplete, chef, needsBasicOnboarding, needsComplianceTraining, isOnComplianceTrainingRoute, isOnOnboardingSetupRoute, isOnProfileRoute, router]);
+
+  // Navigate to sign-in screen when not authenticated (instead of showing a button)
+  // This MUST be called before any conditional returns to maintain hook order
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      // Small delay to prevent navigation loops
+      const timeout = setTimeout(() => {
+        router.replace('/sign-in?notDismissable=true');
+      }, 100);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   // Authentication guard: Show loading or sign-in prompt if not authenticated
   // The root index.tsx handles initial navigation to sign-in
@@ -76,14 +95,12 @@ export default function ChefLayout() {
   }
 
   if (!isAuthenticated) {
+    // Show loading while navigating to sign-in
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.content}>
           <Text style={styles.title}>Chef Platform</Text>
-          <Text style={styles.subtitle}>Please sign in to continue</Text>
-          <Button onPress={() => router.push('/sign-in')}>
-            Sign In
-          </Button>
+          <Text style={styles.subtitle}>Redirecting to sign in...</Text>
         </View>
       </SafeAreaView>
     );
@@ -104,8 +121,8 @@ export default function ChefLayout() {
       );
     }
     
-    // If needs compliance training and not on onboarding route, show loading while redirecting
-    if (needsComplianceTraining && !isOnOnboardingRoute) {
+    // If needs compliance training and not on compliance training route, show loading while redirecting
+    if (needsComplianceTraining && !isOnComplianceTrainingRoute && !isOnProfileRoute) {
       return (
         <SafeAreaView style={styles.container}>
           <View style={styles.content}>
@@ -116,8 +133,8 @@ export default function ChefLayout() {
       );
     }
 
-    // If onboarding complete and on onboarding route, show loading while redirecting
-    if (isOnboardingComplete && isOnOnboardingRoute && !isOnOnboardingSetupRoute) {
+    // If onboarding complete and on any onboarding route, show loading while redirecting
+    if (isOnboardingComplete && (isOnComplianceTrainingRoute || isOnOnboardingSetupRoute)) {
       return (
         <SafeAreaView style={styles.container}>
           <View style={styles.content}>
