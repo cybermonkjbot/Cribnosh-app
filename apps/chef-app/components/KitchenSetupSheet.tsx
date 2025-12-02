@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
+import { DocumentUploadSheet } from './DocumentUploadSheet';
 
 interface KitchenSetupSheetProps {
   isVisible: boolean;
@@ -106,6 +107,7 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
   const insets = useSafeAreaInsets();
   const { chef, user, sessionToken: authSessionToken } = useChefAuth();
   const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [isDocumentSheetVisible, setIsDocumentSheetVisible] = useState(false);
 
   // Get session token - memoized to prevent unnecessary re-runs
   const loadToken = useCallback(async () => {
@@ -241,7 +243,7 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
         ? `${verifiedDocsCount} of ${requiredDocsCount} required document${requiredDocsCount !== 1 ? 's' : ''} verified`
         : 'Upload and verify required documents',
       completed: allRequiredDocumentsVerified,
-      route: '/(tabs)/profile', // Navigate to profile where documents can be uploaded
+      onPress: () => setIsDocumentSheetVisible(true), // Open document upload sheet
     });
 
     // 6. Bank Account (for payouts)
@@ -354,6 +356,12 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
           </ScrollView>
         )}
       </SafeAreaView>
+
+      {/* Document Upload Sheet */}
+      <DocumentUploadSheet
+        isVisible={isDocumentSheetVisible}
+        onClose={() => setIsDocumentSheetVisible(false)}
+      />
     </Modal>
   );
 }

@@ -205,21 +205,21 @@ export default function TransactionsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft size={24} color="#094327" />
+            <ArrowLeft size={20} color="#094327" />
           </TouchableOpacity>
           <View style={styles.titleContainer}>
             <Text style={styles.title}>Transactions</Text>
           </View>
           <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
-            <Download size={20} color="#094327" />
+            <Download size={18} color="#094327" />
           </TouchableOpacity>
         </View>
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <Search size={20} color="#6B7280" />
+          <Search size={18} color="#6B7280" />
           <TextInput
             style={styles.searchInput}
             placeholder="Search transactions..."
@@ -229,7 +229,7 @@ export default function TransactionsScreen() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <X size={20} color="#6B7280" />
+              <X size={18} color="#6B7280" />
             </TouchableOpacity>
           )}
         </View>
@@ -290,7 +290,7 @@ export default function TransactionsScreen() {
               style={styles.dateButton}
               onPress={() => setShowDatePicker('start')}
             >
-              <Filter size={16} color="#094327" />
+              <Filter size={14} color="#094327" />
               <Text style={styles.dateButtonText}>
                 {startDate ? startDate.toLocaleDateString('en-GB') : 'Start Date'}
               </Text>
@@ -300,7 +300,7 @@ export default function TransactionsScreen() {
               style={styles.dateButton}
               onPress={() => setShowDatePicker('end')}
             >
-              <Filter size={16} color="#094327" />
+              <Filter size={14} color="#094327" />
               <Text style={styles.dateButtonText}>
                 {endDate ? endDate.toLocaleDateString('en-GB') : 'End Date'}
               </Text>
@@ -310,7 +310,7 @@ export default function TransactionsScreen() {
                 style={styles.clearDateButton}
                 onPress={handleClearDates}
               >
-                <X size={16} color="#EF4444" />
+                <X size={14} color="#EF4444" />
               </TouchableOpacity>
             )}
           </View>
@@ -481,18 +481,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingTop: 4,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: 40,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
+    marginTop: 10,
+    fontSize: 14,
     color: '#6B7280',
     fontFamily: 'Inter',
   },
@@ -500,28 +500,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   backButton: {
-    padding: 8,
+    padding: 6,
     borderRadius: 8,
-    width: 40,
+    width: 36,
   },
   titleContainer: {
     flex: 1,
     alignItems: 'center',
-    marginHorizontal: 16,
+    marginHorizontal: 12,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#031D11',
     fontFamily: 'Inter',
   },
   exportButton: {
-    padding: 8,
+    padding: 6,
     borderRadius: 8,
-    width: 40,
+    width: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -529,42 +529,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    gap: 12,
+    gap: 10,
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     color: '#111827',
     fontFamily: 'Inter',
   },
   filterContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   filterContent: {
-    paddingVertical: 8,
-    gap: 8,
+    paddingVertical: 4,
+    gap: 6,
   },
   filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    marginRight: 8,
+    marginRight: 6,
   },
   filterChipActive: {
     backgroundColor: '#094327',
     borderColor: '#094327',
   },
   filterText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     color: '#6B7280',
     fontFamily: 'Inter',
@@ -574,156 +574,156 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   dateFilterContainer: {
-    marginBottom: 20,
+    marginBottom: 12,
   },
   dateFilterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   dateButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
   dateButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     color: '#111827',
     fontFamily: 'Inter',
   },
   dateSeparator: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6B7280',
     fontFamily: 'Inter',
   },
   clearDateButton: {
-    padding: 8,
+    padding: 6,
   },
   transactionsList: {
-    gap: 12,
+    gap: 8,
   },
   transactionCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 2,
   },
   transactionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   transactionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     flex: 1,
   },
   typeBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   typeBadgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     fontFamily: 'Inter',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     fontFamily: 'Inter',
     textTransform: 'capitalize',
   },
   amountText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     fontFamily: 'Inter',
   },
   descriptionText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#111827',
-    marginBottom: 8,
+    marginBottom: 6,
     fontFamily: 'Inter',
   },
   transactionFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 2,
   },
   dateText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#6B7280',
     fontFamily: 'Inter',
   },
   orderIdText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#094327',
     fontFamily: 'Inter',
     fontWeight: '500',
   },
   referenceText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#9CA3AF',
     fontFamily: 'Inter',
-    marginTop: 4,
+    marginTop: 2,
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40,
+    paddingVertical: 40,
+    paddingHorizontal: 32,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 8,
+    marginBottom: 6,
     fontFamily: 'Inter',
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6B7280',
     textAlign: 'center',
     fontFamily: 'Inter',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   loadMoreButton: {
     backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 10,
+    paddingVertical: 12,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
   loadMoreText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#094327',
     fontFamily: 'Inter',
