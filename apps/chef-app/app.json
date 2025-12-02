@@ -96,9 +96,10 @@
     "owner": "cribnoshtest",
     "updates": {
       "url": "https://u.expo.dev/feb78485-4656-4f51-bf37-07f29e5cbc54",
-      "fallbackToCacheTimeout": 3000,
+      "fallbackToCacheTimeout": 0,
       "checkAutomatically": "NEVER",
-      "enabled": true
+      "enabled": true,
+      "requestHeaders": {}
     },
     "runtimeVersion": "1.0.0"
   }

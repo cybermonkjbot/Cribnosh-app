@@ -1,27 +1,27 @@
+import { CameraModalScreen } from '@/components/ui/CameraModalScreen';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { useToast } from '@/lib/ToastContext';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { useMutation, useQuery } from 'convex/react';
+import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import { Camera, HelpCircle, Upload as UploadIcon, X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { 
-  ActivityIndicator, 
-  Alert, 
-  Image, 
-  Modal, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View 
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-import { Camera, X, Upload as UploadIcon, HelpCircle } from 'lucide-react-native';
-import { CameraModalScreen } from '@/components/ui/CameraModalScreen';
 
 interface DocumentUploadSheetProps {
   isVisible: boolean;
@@ -484,7 +484,13 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
 
             {selectedImage ? (
               <View style={styles.imagePreviewContainer}>
-                <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
+                <Image 
+                  source={{ uri: selectedImage }} 
+                  style={styles.imagePreview}
+                  onError={() => {
+                    console.warn('Failed to load document image:', selectedImage);
+                  }}
+                />
                 <TouchableOpacity 
                   style={styles.removeImageButton}
                   onPress={handleRemoveImage}

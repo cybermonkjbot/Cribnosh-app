@@ -229,11 +229,19 @@ export function CameraModalScreen({
 
   React.useEffect(() => {
     (async () => {
-      // @ts-ignore - Dynamic imports are only supported with certain module settings
-      const { Camera } = await import('expo-camera');
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      if (isMountedRef.current) {
-        setHasPermission(status === 'granted');
+      try {
+        // @ts-ignore - Dynamic imports are only supported with certain module settings
+        const { Camera } = await import('expo-camera');
+        const { status } = await Camera.requestCameraPermissionsAsync();
+        if (isMountedRef.current) {
+          setHasPermission(status === 'granted');
+        }
+      } catch (error) {
+        console.warn('Failed to load camera module:', error);
+        // Set permission to false if camera module fails to load
+        if (isMountedRef.current) {
+          setHasPermission(false);
+        }
       }
     })();
 

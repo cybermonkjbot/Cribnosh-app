@@ -133,19 +133,29 @@ export default function EditRecipeScreen() {
 
       setIsUploadingImage(true);
 
+      // Validate assets array
+      if (!result.assets || result.assets.length === 0 || !result.assets[0]) {
+        throw new Error('No image selected');
+      }
+
+      const selectedAsset = result.assets[0];
+      if (!selectedAsset.uri) {
+        throw new Error('Selected image has no URI');
+      }
+
       // Generate upload URL
       const convex = getConvexClient();
       const uploadUrl = await convex.mutation(api.mutations.documents.generateUploadUrl);
 
       // Read file and convert to blob
-      const response = await fetch(result.assets[0].uri);
+      const response = await fetch(selectedAsset.uri);
       const blob = await response.blob();
 
       // Upload to Convex storage
       const uploadResponse = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': result.assets[0].mimeType || 'image/jpeg',
+          'Content-Type': selectedAsset.mimeType || 'image/jpeg',
         },
         body: blob,
       });
@@ -419,7 +429,15 @@ export default function EditRecipeScreen() {
           <Text style={styles.sectionTitle}>Featured Image</Text>
           {formData.featuredImage ? (
             <View style={styles.imageContainer}>
-              <Image source={{ uri: formData.featuredImage }} style={styles.image} />
+              <Image 
+                source={{ uri: formData.featuredImage }} 
+                style={styles.image}
+                onError={() => {
+                  console.warn('Failed to load featured image:', formData.featuredImage);
+                  // Clear invalid image URI
+                  setFormData({ ...formData, featuredImage: null });
+                }}
+              />
               <TouchableOpacity
                 onPress={() => setFormData({ ...formData, featuredImage: null })}
                 style={styles.removeImageButton}

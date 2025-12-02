@@ -151,26 +151,47 @@ export function useAgoraStream({
   const cleanup = async () => {
     try {
       if (agoraEngineRef.current) {
-        // Stop preview
-        await agoraEngineRef.current.stopPreview();
+        try {
+          // Stop preview - may fail if already stopped
+          await agoraEngineRef.current.stopPreview().catch(() => {});
+        } catch (e) {
+          // Ignore errors if preview already stopped
+        }
         
-        // Leave channel
-        await agoraEngineRef.current.leaveChannel();
+        try {
+          // Leave channel - may fail if already left
+          await agoraEngineRef.current.leaveChannel().catch(() => {});
+        } catch (e) {
+          // Ignore errors if already left
+        }
         
-        // Release engine
-        await agoraEngineRef.current.release();
+        try {
+          // Release engine - may fail if already released
+          await agoraEngineRef.current.release().catch(() => {});
+        } catch (e) {
+          // Ignore errors if already released
+        }
+        
         agoraEngineRef.current = null;
       }
 
       if (localVideoTrackRef.current) {
-        localVideoTrackRef.current.close();
+        try {
+          localVideoTrackRef.current.close();
+        } catch (e) {
+          // Ignore errors if track already closed
+        }
         localVideoTrackRef.current = null;
       }
 
       setIsConnected(false);
       setIsPublishing(false);
     } catch (err) {
+      // Final catch for any unexpected errors
       console.error('Error cleaning up Agora:', err);
+      // Ensure state is reset even if cleanup fails
+      setIsConnected(false);
+      setIsPublishing(false);
     }
   };
 

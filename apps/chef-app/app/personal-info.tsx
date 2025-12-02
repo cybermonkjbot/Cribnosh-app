@@ -1204,7 +1204,13 @@ export default function PersonalInfoScreen() {
                     <View style={styles.imagesContainer}>
                       {kitchenImages.map((imageUri, index) => (
                         <View key={index} style={styles.imageWrapper}>
-                          <Image source={{ uri: imageUri }} style={styles.image} />
+                          <Image 
+                            source={{ uri: imageUri }} 
+                            style={styles.image}
+                            onError={() => {
+                              console.warn('Failed to load kitchen image:', imageUri);
+                            }}
+                          />
                           <TouchableOpacity
                             style={styles.removeImageButton}
                             onPress={() => handleRemoveKitchenImage(index)}
@@ -1232,7 +1238,13 @@ export default function PersonalInfoScreen() {
                       <View style={styles.imagesContainer}>
                         {kitchenImages.map((imageUri, index) => (
                           <View key={index} style={styles.imageWrapper}>
-                            <Image source={{ uri: imageUri }} style={styles.image} />
+                            <Image 
+                              source={{ uri: imageUri }} 
+                              style={styles.image}
+                              onError={() => {
+                                console.warn('Failed to load kitchen image:', imageUri);
+                              }}
+                            />
                           </View>
                         ))}
                       </View>
@@ -1573,7 +1585,13 @@ export default function PersonalInfoScreen() {
                   >
                     <View style={styles.videoOptionContent}>
                       {video.thumbnailUrl && (
-                        <Image source={{ uri: video.thumbnailUrl }} style={styles.videoThumbnail} />
+                        <Image 
+                          source={{ uri: video.thumbnailUrl }} 
+                          style={styles.videoThumbnail}
+                          onError={() => {
+                            console.warn('Failed to load video thumbnail:', video.thumbnailUrl);
+                          }}
+                        />
                       )}
                       <View style={styles.videoOptionInfo}>
                         <Text style={styles.videoOptionTitle}>{video.title}</Text>

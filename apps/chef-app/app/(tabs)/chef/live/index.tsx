@@ -80,10 +80,16 @@ export default function LiveStreamScreen() {
   useEffect(() => {
     // Request camera permission
     (async () => {
-      // @ts-ignore - Dynamic imports are only supported with certain module settings
-      const { Camera } = await import('expo-camera');
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
+      try {
+        // @ts-ignore - Dynamic imports are only supported with certain module settings
+        const { Camera } = await import('expo-camera');
+        const { status } = await Camera.requestCameraPermissionsAsync();
+        setHasPermission(status === 'granted');
+      } catch (error) {
+        console.warn('Failed to load camera module:', error);
+        // Set permission to false if camera module fails to load
+        setHasPermission(false);
+      }
     })();
   }, []);
 

@@ -30,7 +30,8 @@ export function TopUpBalanceSheet({
 }: TopUpBalanceSheetProps) {
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
-  const { confirmPayment } = useStripe();
+  const stripe = useStripe();
+  const { confirmPayment } = stripe || {};
   const { topUpBalance, getPaymentMethods, getBalance } = usePayments();
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState<string>('');
@@ -155,6 +156,11 @@ export function TopUpBalanceSheet({
       const confirmOptions = paymentMethodToUse 
         ? undefined // Payment method already attached - confirm without options (SDK handles 3D Secure if needed)
         : { paymentMethodType: 'Card' as const }; // No payment method - collect card details
+
+      // Check if Stripe is initialized
+      if (!stripe || !confirmPayment) {
+        throw new Error('Stripe is not properly initialized. Please check your configuration.');
+      }
 
       // Confirm payment using Stripe SDK
       const { error: stripeError, paymentIntent: confirmedIntent } = await confirmPayment(

@@ -70,7 +70,7 @@ export default function VideoUploadScreen() {
         videoMaxDuration: 1800, // 30 minutes max
       });
 
-      if (!result.canceled && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         const asset = result.assets[0];
         setVideoUri(asset.uri);
 
@@ -289,7 +289,13 @@ export default function VideoUploadScreen() {
           {videoUri ? (
             <View style={styles.videoPreviewContainer}>
               {thumbnailUri ? (
-                <Image source={{ uri: thumbnailUri }} style={styles.videoPreview} />
+                <Image 
+                  source={{ uri: thumbnailUri }} 
+                  style={styles.videoPreview}
+                  onError={() => {
+                    console.warn('Failed to load video thumbnail:', thumbnailUri);
+                  }}
+                />
               ) : (
                 <View style={[styles.videoPreview, styles.videoPreviewPlaceholder]}>
                   <VideoIcon size={48} color="#9CA3AF" />

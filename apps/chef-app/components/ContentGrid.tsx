@@ -28,7 +28,14 @@ function ContentGridComponent({ items, onItemPress, numColumns = 3 }: ContentGri
       >
         <View style={styles.thumbnailContainer}>
           {item.thumbnail ? (
-            <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
+            <Image 
+              source={{ uri: item.thumbnail }} 
+              style={styles.thumbnail}
+              onError={() => {
+                // Silently handle image load errors - fallback to placeholder is handled by parent
+                console.warn('Failed to load thumbnail:', item.thumbnail);
+              }}
+            />
           ) : (
             <View style={styles.placeholderThumbnail}>
               <Text style={styles.placeholderText}>

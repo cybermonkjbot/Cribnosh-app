@@ -167,19 +167,29 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
 
       setIsUploadingImage(true);
 
+      // Validate assets array
+      if (!result.assets || result.assets.length === 0 || !result.assets[0]) {
+        throw new Error('No image selected');
+      }
+
+      const selectedAsset = result.assets[0];
+      if (!selectedAsset.uri) {
+        throw new Error('Selected image has no URI');
+      }
+
       // Generate upload URL
       const convex = getConvexClient();
       const uploadUrl = await convex.mutation(api.mutations.documents.generateUploadUrl);
 
       // Read file and convert to blob
-      const response = await fetch(result.assets[0].uri);
+      const response = await fetch(selectedAsset.uri);
       const blob = await response.blob();
 
       // Upload to Convex storage
       const uploadResponse = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': result.assets[0].mimeType || 'image/jpeg',
+          'Content-Type': selectedAsset.mimeType || 'image/jpeg',
         },
         body: blob,
       });
@@ -444,7 +454,15 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
           <View style={styles.stepContent}>
             {formData.featuredImage ? (
               <View style={styles.imageContainer}>
-                <Image source={{ uri: formData.featuredImage }} style={styles.image} />
+                <Image 
+                  source={{ uri: formData.featuredImage }} 
+                  style={styles.image}
+                  onError={() => {
+                    console.warn('Failed to load featured image:', formData.featuredImage);
+                    // Clear invalid image URI
+                    setFormData({ ...formData, featuredImage: null });
+                  }}
+                />
                 <TouchableOpacity
                   onPress={() => setFormData({ ...formData, featuredImage: null })}
                   style={styles.removeImageButton}
@@ -743,7 +761,13 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
                 >
                   <View style={styles.mealOptionContent}>
                     {meal.images && meal.images.length > 0 && (
-                      <Image source={{ uri: meal.images[0] }} style={styles.mealOptionImage} />
+                      <Image 
+                        source={{ uri: meal.images[0] }} 
+                        style={styles.mealOptionImage}
+                        onError={() => {
+                          console.warn('Failed to load meal image:', meal.images[0]);
+                        }}
+                      />
                     )}
                     <View style={styles.mealOptionInfo}>
                       <Text style={styles.mealOptionName}>{meal.name}</Text>
