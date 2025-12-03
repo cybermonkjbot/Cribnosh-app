@@ -13,27 +13,37 @@
         "key": "folly-fix-v1"
       },
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "resourceClass": "medium"
       },
       "ios": {
         "simulator": true,
-        "cocoapods": "1.14.3"
+        "cocoapods": "1.14.3",
+        "resourceClass": "m-medium"
       }
     },
     "preview": {
       "distribution": "internal",
       "channel": "preview",
       "bun": "1.2.20",
+      "android": {
+        "resourceClass": "medium"
+      },
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "resourceClass": "m-medium"
       }
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
       "bun": "1.2.20",
+      "android": {
+        "resourceClass": "medium"
+      },
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "resourceClass": "m-medium"
       },
       "env": {
         "NODE_ENV": "production"

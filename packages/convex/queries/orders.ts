@@ -15,16 +15,24 @@ export const listByChef = query({
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
     
-    // chef_id is actually a userId string - find the chef by userId
+    // chef_id can be either:
+    // 1. A userId string (legacy behavior from web API)
+    // 2. A chef document ID (from mobile chef app)
     let chef;
+    
+    // First, try to get chef by document ID (in case chef_id is a chef._id)
     try {
-      chef = await ctx.runQuery(api.queries.chefs.getByUserId, {
-        userId: args.chef_id,
-        sessionToken: args.sessionToken,
-      });
+      chef = await ctx.db.get(args.chef_id as Id<'chefs'>);
     } catch (error) {
-      // If query fails, chef doesn't exist or access denied
-      throw new Error('Access denied');
+      // Not a valid chef document ID, continue to try userId
+    }
+    
+    // If not found by document ID, try by userId
+    if (!chef) {
+      chef = await ctx.db
+        .query('chefs')
+        .filter(q => q.eq(q.field('userId'), args.chef_id))
+        .first();
     }
     
     // If chef not found, user doesn't have a chef profile

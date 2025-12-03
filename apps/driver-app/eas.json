@@ -11,7 +11,8 @@
         "resourceClass": "m-medium"
       },
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "resourceClass": "medium"
       },
       "env": {
         "EXPO_PUBLIC_PROJECT_ID": "com.cybermonkj.fuelfinderdriver"
@@ -24,7 +25,8 @@
         "resourceClass": "m-medium"
       },
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "resourceClass": "medium"
       },
       "env": {
         "EXPO_PUBLIC_PROJECT_ID": "com.cybermonkj.fuelfinderdriver"
@@ -38,7 +40,8 @@
       },
       "android": {
         "buildType": "app-bundle",
-        "autoIncrement": "versionCode"
+        "autoIncrement": "versionCode",
+        "resourceClass": "medium"
       },
       "env": {
         "NODE_ENV": "production",
