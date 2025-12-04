@@ -257,8 +257,10 @@ export const EmailButton = ({
     large: { padding: '16px 32px', fontSize: '18px' },
   };
 
-  const style = variants[variant];
-  const sizeStyle = sizes[size];
+  const safeVariant = variant || 'primary';
+  const safeSize = size || 'medium';
+  const style = variants[safeVariant] || variants.primary;
+  const sizeStyle = sizes[safeSize] || sizes.medium;
 
   return disabled ? (
     <span
@@ -567,7 +569,8 @@ export const Badge = ({
     error: { bg: colors.error, color: colors.background },
   };
 
-  const style = variants[variant];
+  const safeVariant = variant || 'primary';
+  const style = variants[safeVariant] || variants.primary;
 
   return (
     <span
@@ -604,7 +607,8 @@ export const Alert = ({
     error: { bg: '#fef2f2', border: colors.error, color: colors.text },
   };
 
-  const style = variants[variant];
+  const safeVariant = variant || 'info';
+  const style = variants[safeVariant] || variants.info;
 
   return (
     <Container
@@ -1286,8 +1290,10 @@ export const InteractiveButton = ({
     large: { padding: '16px 32px', fontSize: '18px' },
   };
 
-  const style = variants[variant];
-  const sizeStyle = sizes[size];
+  const safeVariant = variant || 'primary';
+  const safeSize = size || 'medium';
+  const style = variants[safeVariant] || variants.primary;
+  const sizeStyle = sizes[safeSize] || sizes.medium;
 
   return disabled ? (
     <span

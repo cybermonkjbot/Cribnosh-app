@@ -28,7 +28,9 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     }
   };
 
-  const variant = variants[status];
+  // Default to 'active' if status is undefined or invalid
+  const safeStatus = status || 'active';
+  const variant = variants[safeStatus] || variants.active;
   const Icon = variant.icon;
 
   return (
