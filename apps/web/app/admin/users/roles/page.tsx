@@ -50,9 +50,9 @@ export default function UserRolesPage() {
 
   // Fetch roles and users
   // Note: These queries may not exist yet - using type assertions for now
-  const roles = useQuery(api.queries.admin?.getUserRoles as typeof api.queries.admin.getUserRoles) as UserRole[] | undefined;
+  const roles = useQuery(api.queries.admin?.getUserRoles as typeof api.queries.admin.getUserRoles, sessionToken ? { sessionToken } : "skip") as UserRole[] | undefined;
   const users = useQuery(api.queries.users?.getUsersForAdmin as typeof api.queries.users.getAllStaff, sessionToken ? { sessionToken } : "skip") as Array<{ _id: Id<"users">; name?: string; email?: string }> | undefined;
-  const permissions = useQuery(api.queries.admin?.getAvailablePermissions as typeof api.queries.admin.getAvailablePermissions) as string[] | undefined;
+  const permissions = useQuery(api.queries.admin?.getAvailablePermissions as typeof api.queries.admin.getAvailablePermissions, sessionToken ? { sessionToken } : "skip") as string[] | undefined;
 
   // Mutations
   const createRole = useMutation(api.mutations.admin?.createUserRole as typeof api.mutations.admin.createUserRole);
