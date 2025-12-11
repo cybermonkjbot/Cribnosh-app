@@ -57,11 +57,12 @@ export function EnhancedActivity() {
   const { sessionToken } = useAdminUser();
 
   // Fetch real activity data from Convex
-  const activities = useQuery(api.queries.activityFeed.getActivityFeed, { 
+  const activities = useQuery(api.queries.activityFeed.getActivityFeed, sessionToken ? { 
     limit: 20,
     type: filter === 'all' ? undefined : filter as any,
-    timeRange: '24h'
-  });
+    timeRange: '24h',
+    sessionToken
+  } : 'skip');
   const users = useQuery(
     api.queries.users.getAllUsers,
     sessionToken ? { sessionToken } : "skip"

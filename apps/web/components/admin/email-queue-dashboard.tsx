@@ -1,17 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useQuery } from 'convex/react';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { api } from '@/convex/_generated/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { RefreshCw, Mail, Clock, CheckCircle, XCircle, AlertCircle, Filter, Search } from 'lucide-react';
+import { useQuery } from 'convex/react';
 import { format } from 'date-fns';
+import { AlertCircle, CheckCircle, Clock, Filter, Mail, RefreshCw, Search, XCircle } from 'lucide-react';
 
 interface EmailQueueItem {
   _id: string;
@@ -53,6 +47,7 @@ interface EmailHistoryItem {
 }
 
 export function EmailQueueDashboard() {
+  const { sessionToken } = useAdminUser();
   const [queueFilter, setQueueFilter] = useState<'all' | 'pending' | 'processing' | 'sent' | 'failed' | 'cancelled'>('all');
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'low' | 'medium' | 'high' | 'critical'>('all');
   const [historyFilter, setHistoryFilter] = useState<'all' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained' | 'unsubscribed'>('all');
@@ -60,29 +55,32 @@ export function EmailQueueDashboard() {
   const [dateRange, setDateRange] = useState<'24h' | '7d' | '30d' | 'all'>('24h');
 
   // Fetch queue data
-  const queueData = useQuery(api.queries.email.getEmailQueueAdmin, {
+  const queueData = useQuery(api.queries.email.getEmailQueueAdmin, sessionToken ? {
     status: queueFilter === 'all' ? undefined : queueFilter,
     priority: priorityFilter === 'all' ? undefined : priorityFilter,
-    limit: 100
-  });
+    limit: 100,
+    sessionToken,
+  } : 'skip');
 
   // Fetch queue stats
-  const queueStats = useQuery(api.queries.email.getEmailQueueStats);
+  const queueStats = useQuery(api.queries.email.getEmailQueueStats, sessionToken ? { sessionToken } : 'skip');
 
   // Fetch history data
-  const historyData = useQuery(api.queries.email.getEmailHistoryAdmin, {
+  const historyData = useQuery(api.queries.email.getEmailHistoryAdmin, sessionToken ? {
     eventType: historyFilter === 'all' ? undefined : historyFilter,
     recipientEmail: searchEmail || undefined,
     limit: 100,
     startDate: dateRange === 'all' ? undefined : getDateRangeStart(dateRange),
-    endDate: dateRange === 'all' ? undefined : Date.now()
-  });
+    endDate: dateRange === 'all' ? undefined : Date.now(),
+    sessionToken,
+  } : 'skip');
 
   // Fetch history stats
-  const historyStats = useQuery(api.queries.email.getEmailHistoryStats, {
+  const historyStats = useQuery(api.queries.email.getEmailHistoryStats, sessionToken ? {
     startDate: dateRange === 'all' ? undefined : getDateRangeStart(dateRange),
-    endDate: dateRange === 'all' ? undefined : Date.now()
-  });
+    endDate: dateRange === 'all' ? undefined : Date.now(),
+    sessionToken,
+  } : 'skip');
 
   function getDateRangeStart(range: string): number {
     const now = Date.now();

@@ -1,10 +1,11 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useAdminUser } from "@/app/admin/AdminUserProvider";
 import { api } from "@/convex/_generated/api";
-import { motion } from "motion/react";
-import { Clock, User, Settings, Shield } from "lucide-react";
+import { useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
+import { Clock, Settings, Shield, User } from "lucide-react";
+import { motion } from "motion/react";
 
 interface ActivityItem {
   _id: string;
@@ -31,8 +32,9 @@ const activityIcons: Record<string, any> = {
 };
 
 export function RecentActivity() {
+  const { sessionToken } = useAdminUser();
   // Get recent activities from Convex
-  const activities = useQuery(api.queries.admin.getRecentActivity, { limit: 10 }) || [];
+  const activities = useQuery(api.queries.admin.getRecentActivity, sessionToken ? { limit: 10, sessionToken } : 'skip') || [];
 
   return (
     <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">

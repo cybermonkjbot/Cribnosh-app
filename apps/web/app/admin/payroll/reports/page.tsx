@@ -7,26 +7,86 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery } from 'convex/react';
 import { format } from 'date-fns';
 import { BarChart as BarChartIcon, CalendarIcon, Clock, DollarSign, Download, FileText, List, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { DateRange } from 'react-day-picker';
-import { Bar, CartesianGrid, BarChart as RechartsBarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useAdminUser } from '../../AdminUserProvider';
 
-import { DataTable } from '@/components/admin/payroll/payroll-data-table';
-import { columns } from '@/components/admin/payroll/reports/columns';
-import { PayrollReportsChartSkeleton, PayrollReportsSummarySkeleton, PayrollReportsTableSkeleton } from '@/components/admin/skeletons';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+interface TimeTrackingReport {
+  _id: string;
+  name: string;
+  type: 'daily' | 'weekly' | 'monthly' | 'custom';
+  period: {
+    start: number;
+    end: number;
+  };
+  generatedAt: number;
+  generatedBy: string;
+  data: {
+    totalHours: number;
+    totalSessions: number;
+    averageSessionDuration: number;
+    productivityScore: number;
+    topUsers: {
+      userId: string;
+      userName: string;
+      totalHours: number;
+      sessions: number;
+    }[];
+    hourlyBreakdown: {
+      hour: number;
+      totalHours: number;
+      activeUsers: number;
+    }[];
+    dailyBreakdown: {
+      date: string;
+      totalHours: number;
+      sessions: number;
+      productivity: number;
+    }[];
+    projectBreakdown: {
+      projectId: string;
+      projectName: string;
+      totalHours: number;
+      percentage: number;
+    }[];
+    departmentBreakdown: {
+      department: string;
+      totalHours: number;
+      averageHours: number;
+      users: number;
+    }[];
+  };
+  filters: {
+    users?: string[];
+    departments?: string[];
+    projects?: string[];
+    dateRange?: {
+      start: number;
+      end: number;
+    };
+  };
+}
+
+interface TimeTrackingStats {
+  totalUsers: number;
+  activeUsers: number;
+  totalHours: number;
+  averageHoursPerUser: number;
+  productivityScore: number;
+  topPerformers: {
+    userId: string;
+    userName: string;
+    totalHours: number;
+    productivity: number;
+  }[];
+  recentActivity: {
+    userId: string;
+    userName: string;
+    action: string;
+    timestamp: number;
+  }[];
+}
 
 export default function PayrollReportsPage() {
+  const { sessionToken } = useAdminUser();
   const { toast } = useToast();
   const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(new Date().setMonth(new Date().getMonth() - 1)),
@@ -109,7 +169,7 @@ export default function PayrollReportsPage() {
   const isLoadingDetails = details === undefined;
   
   // Fetch departments from database
-  const departmentsQuery = useQuery(api.queries.timeTracking.getDepartments);
+  const departmentsQuery = useQuery(api.queries.timeTracking.getDepartments, sessionToken ? { sessionToken } : 'skip');
   
   useEffect(() => {
     if (departmentsQuery) {

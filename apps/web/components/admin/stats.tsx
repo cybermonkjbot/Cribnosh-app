@@ -1,9 +1,10 @@
 "use client";
 
-import { Users, Utensils, Clock, TrendingUp } from 'lucide-react';
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { AdminStatsGridSkeleton } from '@/components/admin/skeletons';
+import { api } from '@/convex/_generated/api';
+import { useQuery } from 'convex/react';
+import { Clock, TrendingUp, Users, Utensils } from 'lucide-react';
 
 interface AdminStat {
   _id: string;
@@ -15,7 +16,8 @@ interface AdminStat {
 }
 
 export function AdminStats({ onError }: { onError?: (err: string) => void }) {
-  const stats = useQuery(api.queries.admin.getAdminStats) as AdminStat[] | undefined;
+  const { sessionToken } = useAdminUser();
+  const stats = useQuery(api.queries.admin.getAdminStats, sessionToken ? { sessionToken } : 'skip') as AdminStat[] | undefined;
 
   const statIcons: Record<string, typeof Users> = {
     total_users: Users,

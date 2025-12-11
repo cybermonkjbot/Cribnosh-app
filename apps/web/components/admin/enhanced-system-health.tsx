@@ -1,10 +1,9 @@
 "use client";
 
+import { useAdminUser } from "@/app/admin/AdminUserProvider";
 import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Activity, Server, Database, Cloud, Wifi, Shield, AlertTriangle, CheckCircle } from "lucide-react";
-import { motion } from "motion/react";
-import { useState, useEffect } from 'react';
+import { Activity, AlertTriangle, CheckCircle, Cloud, Database, Server, Shield, Wifi } from "lucide-react";
+import { useEffect, useState } from 'react';
 
 interface SystemMetric {
   name: string;
@@ -21,11 +20,12 @@ interface SystemMetric {
 }
 
 export function EnhancedSystemHealth() {
+  const { sessionToken } = useAdminUser();
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [alerts, setAlerts] = useState<string[]>([]);
 
   // Fetch real system health data from Convex
-  const systemHealthData = useQuery(api.queries.systemHealth.getSystemHealth);
+  const systemHealthData = useQuery(api.queries.systemHealth.getSystemHealth, sessionToken ? { sessionToken } : 'skip');
 
   // Simulate real-time updates
   useEffect(() => {

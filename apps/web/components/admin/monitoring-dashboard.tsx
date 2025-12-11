@@ -5,9 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
 import { 
   Activity, 
   AlertTriangle, 
@@ -59,15 +58,17 @@ interface Alert {
 }
 
 export default function MonitoringDashboard() {
+  const { sessionToken } = useAdminUser();
   const [refreshing, setRefreshing] = useState(false);
 
   // Get monitoring data from Convex
-  const systemHealthData = useQuery(api.queries.systemHealth.getSystemHealth);
-  const performanceMetrics = useQuery(api.queries.analytics.getRealtimeMetrics);
-  const activeAlerts = useQuery(api.queries.activityFeed.getActivityFeed, { 
+  const systemHealthData = useQuery(api.queries.systemHealth.getSystemHealth, sessionToken ? { sessionToken } : 'skip');
+  const performanceMetrics = useQuery(api.queries.analytics.getRealtimeMetrics, sessionToken ? { sessionToken } : 'skip');
+  const activeAlerts = useQuery(api.queries.activityFeed.getActivityFeed, sessionToken ? { 
     type: "system", 
-    limit: 10 
-  });
+    limit: 10,
+    sessionToken
+  } : 'skip');
   
   const resolveAlert = useMutation(api.mutations.admin.logActivity);
 

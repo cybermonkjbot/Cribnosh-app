@@ -1,8 +1,9 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useAdminUser } from "@/app/admin/AdminUserProvider";
 import { api } from "@/convex/_generated/api";
-import { Activity, Server, Database, Cloud } from "lucide-react";
+import { useQuery } from "convex/react";
+import { Activity, Cloud, Database, Server } from "lucide-react";
 import { motion } from "motion/react";
 
 interface SystemMetric {
@@ -13,8 +14,9 @@ interface SystemMetric {
 }
 
 export function SystemHealth() {
+  const { sessionToken } = useAdminUser();
   // Get system health metrics from Convex
-  const metrics = useQuery(api.queries.systemHealth.getSystemHealth) as SystemMetric[] | undefined;
+  const metrics = useQuery(api.queries.systemHealth.getSystemHealth, sessionToken ? { sessionToken } : 'skip') as SystemMetric[] | undefined;
 
   // Default metrics if data is not available
   const defaultMetrics = [

@@ -48,9 +48,9 @@ export default function UserPermissionsPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   // Fetch data
-  const permissions = useQuery(api.queries.admin.getAvailablePermissions);
+  const permissions = useQuery(api.queries.admin.getAvailablePermissions, sessionToken ? { sessionToken } : 'skip');
   const users = useQuery(api.queries.users.getUsersForAdmin, sessionToken ? { sessionToken } : "skip");
-  const userPermissionsData = useQuery(api.queries.admin.getUserPermissions, {});
+  const userPermissionsData = useQuery(api.queries.admin.getUserPermissions, sessionToken ? { sessionToken } : 'skip');
 
   // Mutations
   const updateUserPermissions = useMutation(api.mutations.admin.updateUserPermissions);

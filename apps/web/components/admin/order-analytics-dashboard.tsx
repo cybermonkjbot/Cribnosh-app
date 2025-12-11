@@ -4,31 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { motion } from 'motion/react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  ShoppingCart, 
-  Users, 
-  Clock,
-  Download,
-  Filter
-} from 'lucide-react';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { api } from '@/convex/_generated/api';
+import { useQuery } from 'convex/react';
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface OrderAnalytics {
   summary: {
@@ -75,6 +54,7 @@ export default function OrderAnalyticsDashboard({
   status,
   groupBy = 'day'
 }: OrderAnalyticsDashboardProps) {
+  const { sessionToken } = useAdminUser();
   const [filters, setFilters] = useState({
     startDate: startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: endDate || new Date().toISOString().split('T')[0],
@@ -85,14 +65,15 @@ export default function OrderAnalyticsDashboard({
   });
 
   // Get order analytics from Convex
-  const analytics = useQuery(api.queries.analytics.getOrderAnalytics, {
+  const analytics = useQuery(api.queries.analytics.getOrderAnalytics, sessionToken ? {
     startDate: new Date(filters.startDate).getTime(),
     endDate: new Date(filters.endDate).getTime(),
     groupBy: filters.groupBy,
     chefId: filters.chefId ? filters.chefId as any : undefined,
     customerId: filters.customerId ? filters.customerId as any : undefined,
-    status: filters.status || undefined
-  });
+    status: filters.status || undefined,
+    sessionToken,
+  } : 'skip');
 
   const isLoading = !analytics;
   const error = null; // Convex handles errors internally

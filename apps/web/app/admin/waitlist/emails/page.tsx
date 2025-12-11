@@ -1,32 +1,18 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { EmptyState } from '@/components/admin/empty-state';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Mail, 
-  Search, 
-  Filter,
-  Plus,
-  Send,
-  Eye,
-  Edit,
-  Trash2,
-  Calendar,
-  Users,
-  BarChart2,
-  Clock,
-  CheckCircle,
-  AlertCircle
-} from 'lucide-react';
-import { EmptyState } from '@/components/admin/empty-state';
+import { useMutation, useQuery } from 'convex/react';
+import { AlertCircle, BarChart2, Calendar, CheckCircle, Clock, Edit, Eye, Filter, Mail, Plus, Search, Send, Trash2, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface EmailCampaign {
   _id: Id<"emailCampaigns">;
@@ -56,6 +42,7 @@ interface EmailTemplate {
 }
 
 export default function WaitlistEmailsPage() {
+  const { sessionToken } = useAdminUser();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -75,9 +62,9 @@ export default function WaitlistEmailsPage() {
   });
 
   // Fetch data
-  const campaigns = useQuery(api.queries.email.getEmailCampaigns, {});
-  const templates = useQuery(api.queries.email.getEmailTemplates, {});
-  const waitlistStats = useQuery(api.queries.analytics.getWaitlistStats, {});
+  const campaigns = useQuery(api.queries.email.getEmailCampaigns, sessionToken ? { sessionToken } : 'skip');
+  const templates = useQuery(api.queries.email.getEmailTemplates, sessionToken ? { sessionToken } : 'skip');
+  const waitlistStats = useQuery(api.queries.analytics.getWaitlistStats, sessionToken ? { sessionToken } : 'skip');
 
   // Mutations
   const createCampaign = useMutation(api.mutations.email.createEmailCampaign);
