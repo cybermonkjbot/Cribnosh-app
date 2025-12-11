@@ -1,3 +1,4 @@
+import { requireStaff } from '../utils/auth';
 import { v } from 'convex/values';
 import {
   withConvexQueryErrorHandling
@@ -6,8 +7,9 @@ import { Id } from '../_generated/dataModel';
 import { query, QueryCtx } from '../_generated/server';
 
 export const getAdminStats = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const users = await ctx.db.query("users").collect();
     const chefs = await ctx.db.query("chefs").collect();
 
@@ -78,8 +80,10 @@ export const getAdminStats = query({
 export const getRecentActivity = query({
   args: {
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
-  handler: async (ctx: QueryCtx, args: { limit?: number }) => {
+  handler: async (ctx: QueryCtx, args: { limit?: number, sessionToken?: string }) => {
+    await requireStaff(ctx, args.sessionToken);
     const limit = args.limit || 10;
     return await ctx.db
       .query('adminActivity')
@@ -89,8 +93,9 @@ export const getRecentActivity = query({
 });
 
 export const getSystemHealth = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     return await ctx.db.query('systemHealth').collect();
   },
 });
@@ -98,8 +103,10 @@ export const getSystemHealth = query({
 export const getAnalytics = query({
   args: {
     timeRange: v.union(v.literal("7d"), v.literal("30d"), v.literal("90d")),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const daysInRange = args.timeRange === "7d" ? 7 : args.timeRange === "30d" ? 30 : 90;
     const startTime = Date.now() - (daysInRange * 24 * 60 * 60 * 1000);
     
@@ -192,8 +199,9 @@ export const getAnalytics = query({
 });
 
 export const getSystemSettings = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const settings = await ctx.db
       .query("systemSettings")
       .collect();
@@ -219,8 +227,9 @@ export const getSystemSettings = query({
 
 // Regional Availability Configuration Queries
 export const getRegionalAvailabilityConfig = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const setting = await ctx.db
       .query("systemSettings")
       .withIndex("by_key", (q) => q.eq("key", "regional_availability_config"))
@@ -376,8 +385,9 @@ export const checkRegionAvailability = query({
 });
 
 export const getContentItems = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const content = await ctx.db
       .query("content")
       .order("desc" as const)
@@ -390,9 +400,11 @@ export const getContentItems = query({
 export const globalAdminSearch = query({
   args: { 
     query: v.string(),
-    limit: v.optional(v.number()) // Limit total results
+    limit: v.optional(v.number()), // Limit total results
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const q = args.query.toLowerCase();
     const resultLimit = args.limit || 50; // Default to 50 results max
     const perTableLimit = 500; // Limit records fetched per table to avoid memory issues
@@ -646,8 +658,10 @@ export const getUserFiles = query({
     fileType: v.optional(v.string()),
     status: v.optional(v.string()),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     try {
       let query = ctx.db
         .query("files")
@@ -689,8 +703,10 @@ export const files = query({
   args: {
     type: v.optional(v.string()),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     try {
       // Get files from the _storage system table
       const files = await ctx.db.system.query('_storage').collect();
@@ -732,9 +748,11 @@ export const getWaitlistEntries = query({
   args: {
     status: v.optional(v.string()),
     search: v.optional(v.string()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.array(v.any()),
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     let entries = await ctx.db.query("waitlist").collect();
     
     if (args.status) {
@@ -775,18 +793,20 @@ export const getCountries = query({
 });
 
 export const getWaitlistCount = query({
-  args: {},
+  args: { sessionToken: v.optional(v.string()) },
   returns: v.number(),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const entries = await ctx.db.query("waitlist").collect();
     return entries.length;
   },
 });
 
 export const getAvailablePermissions = query({
-  args: {},
+  args: { sessionToken: v.optional(v.string()) },
   returns: v.array(v.any()),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     // Get permissions from database
     const permissions = await ctx.db.query("permissions").collect();
     
@@ -803,9 +823,11 @@ export const getAvailablePermissions = query({
 export const getUserPermissions = query({
   args: {
     userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string())
   },
   returns: v.array(v.any()),
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     // Get user permissions from database
     if (args.userId) {
       const userPermissions = await ctx.db
@@ -828,9 +850,10 @@ export const getUserPermissions = query({
 });
 
 export const getUserRoles = query({
-  args: {},
+  args: { sessionToken: v.optional(v.string()) },
   returns: v.array(v.any()),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     // Get user roles from database
     const roles = await ctx.db.query("userRoles").collect();
     
@@ -863,8 +886,9 @@ export const getUserRoles = query({
 
 // Chef Management Queries
 export const getChefStats = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const chefs = await ctx.db.query("chefs").collect();
     const orders = await ctx.db.query("orders").collect();
     
@@ -897,9 +921,11 @@ export const getChefsWithPerformance = query({
   args: {
     limit: v.optional(v.number()),
     status: v.optional(v.string()),
-    verificationStatus: v.optional(v.string())
+    verificationStatus: v.optional(v.string()),
+    sessionToken: v.optional(v.string())
   },
-  handler: withConvexQueryErrorHandling(async (ctx: QueryCtx, args: { limit?: number; status?: string; verificationStatus?: string }) => {
+  handler: withConvexQueryErrorHandling(async (ctx: QueryCtx, args: { limit?: number; status?: string; verificationStatus?: string, sessionToken?: string }) => {
+    await requireStaff(ctx, args.sessionToken);
     let chefs = await ctx.db.query("chefs").collect();
     const orders = await ctx.db.query("orders").collect();
     
@@ -950,8 +976,9 @@ export const getChefsWithPerformance = query({
 
 // Order Management Queries
 export const getOrderStats = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const orders = await ctx.db.query("orders").collect();
     
     const totalOrders = orders.length;
@@ -990,9 +1017,11 @@ export const getAllOrdersWithDetails = query({
   args: {
     limit: v.optional(v.number()),
     status: v.optional(v.string()),
-    paymentStatus: v.optional(v.string())
+    paymentStatus: v.optional(v.string()),
+    sessionToken: v.optional(v.string())
   },
-  handler: withConvexQueryErrorHandling(async (ctx: QueryCtx, args: { limit?: number; status?: string; paymentStatus?: string }) => {
+  handler: withConvexQueryErrorHandling(async (ctx: QueryCtx, args: { limit?: number; status?: string; paymentStatus?: string, sessionToken?: string }) => {
+    await requireStaff(ctx, args.sessionToken);
     let orders = await ctx.db.query("orders").collect();
     
     // Apply filters

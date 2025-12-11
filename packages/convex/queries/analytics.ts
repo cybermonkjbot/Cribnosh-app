@@ -1,3 +1,4 @@
+import { requireStaff } from "../utils/auth";
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 
@@ -21,6 +22,7 @@ export const getDashboardMetrics = query({
       location: v.optional(v.string()),
       userType: v.optional(v.union(v.literal("all"), v.literal("customers"), v.literal("chefs"))),
     })),
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     totalUsers: v.number(),
@@ -50,6 +52,7 @@ export const getDashboardMetrics = query({
     })),
   }),
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const daysInRange = args.timeRange === "7d" ? 7 : 
                        args.timeRange === "30d" ? 30 : 
                        args.timeRange === "90d" ? 90 : 365;
@@ -215,7 +218,7 @@ export const getDashboardMetrics = query({
 });
 
 export const getRealtimeMetrics = query({
-  args: {},
+  args: { sessionToken: v.optional(v.string()) },
   returns: v.object({
     activeUsers: v.number(),
     activeSessions: v.number(),
@@ -226,7 +229,8 @@ export const getRealtimeMetrics = query({
       responseTime: v.number(),
     }),
   }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     // Get active users (users with sessions in last 15 minutes)
     const activeSessions = await ctx.db
       .query("sessions")
@@ -270,6 +274,7 @@ export const getChefAnalytics = query({
   args: {
     chefId: v.id("chefs"),
     timeRange: v.union(v.literal("7d"), v.literal("30d"), v.literal("90d")),
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     totalOrders: v.number(),
@@ -291,6 +296,7 @@ export const getChefAnalytics = query({
     })),
   }),
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const daysInRange = args.timeRange === "7d" ? 7 : args.timeRange === "30d" ? 30 : 90;
     const startTime = Date.now() - (daysInRange * 24 * 60 * 60 * 1000);
 
@@ -402,6 +408,7 @@ export const getChefAnalytics = query({
 export const getRevenueAnalytics = query({
   args: {
     timeRange: v.union(v.literal("7d"), v.literal("30d"), v.literal("90d"), v.literal("1y")),
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     totalRevenue: v.number(),
@@ -456,6 +463,7 @@ export const getRevenueAnalytics = query({
     })),
   }),
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const daysInRange = args.timeRange === "7d" ? 7 : 
                        args.timeRange === "30d" ? 30 : 
                        args.timeRange === "90d" ? 90 : 365;
@@ -670,8 +678,10 @@ export const getOrderAnalytics = query({
       v.literal('status')
     )),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const startDate = args.startDate || Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 days ago
     const endDate = args.endDate || Date.now();
     const limit = args.limit || 100;
@@ -745,8 +755,10 @@ export const generateOrderReport = query({
     endDate: v.number(),
     filters: v.optional(v.any()),
     includeDetails: v.optional(v.boolean()),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const { reportType, startDate, endDate, filters = {}, includeDetails = false } = args;
 
     // Get orders in date range
@@ -1143,8 +1155,9 @@ function generateDeliveryReport(orders: any[], includeDetails: boolean) {
 // Additional analytics functions
 
 export const getReports = query({
-  args: {},
-  handler: async (ctx: any) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: any, args) => {
+    await requireStaff(ctx, args.sessionToken);
     try {
       // Get real reports from adminActivity table
       const reports = await ctx.db
@@ -1177,8 +1190,9 @@ export const getReports = query({
 });
 
 export const getReportTemplates = query({
-  args: {},
-  handler: async (ctx: any) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: any, args) => {
+    await requireStaff(ctx, args.sessionToken);
     // Return empty array since there's no report templates table in the schema
     // If report templates are needed, they should be stored in a database table
     return [];
@@ -1188,8 +1202,10 @@ export const getReportTemplates = query({
 export const getUserAnalytics = query({
   args: {
     timeRange: v.optional(v.union(v.literal("7d"), v.literal("30d"), v.literal("90d"), v.literal("1y"))),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx: any, args: any) => {
+    await requireStaff(ctx, args.sessionToken);
     const timeRange = args.timeRange || "30d";
     
     try {
@@ -1385,8 +1401,9 @@ export const getUserAnalytics = query({
 });
 
 export const getWaitlistStats = query({
-  args: {},
-  handler: async (ctx: any) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: any, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const entries = await ctx.db.query("waitlist").collect();
     
     const total = entries.length;

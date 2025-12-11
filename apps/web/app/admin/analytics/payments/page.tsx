@@ -1,5 +1,6 @@
 "use client";
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,6 +21,7 @@ import {
 import { useState } from 'react';
 
 export default function PaymentAnalyticsPage() {
+  const { sessionToken, loading } = useAdminUser();
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   
   // Calculate date range
@@ -27,21 +29,24 @@ export default function PaymentAnalyticsPage() {
   const endDate: number = Date.now();
   const startDate: number = endDate - (days * 24 * 60 * 60 * 1000);
 
+  const queryArgs = loading || !sessionToken ? 'skip' : { startDate, endDate, sessionToken };
+  const queryArgsWithLimit = loading || !sessionToken ? 'skip' : { startDate, endDate, limit: 10, sessionToken };
+
   // Fetch payment analytics data from backend
   // @ts-ignore - Type instantiation depth issue with Convex useQuery (known TypeScript limitation)
-  const paymentStats = useQuery(api.queries.paymentAnalytics.getPaymentDashboardStats, { startDate, endDate });
+  const paymentStats = useQuery(api.queries.paymentAnalytics.getPaymentDashboardStats, queryArgs as any);
 
   // @ts-ignore - Type instantiation depth issue with Convex useQuery (known TypeScript limitation)
-  const paymentHealth = useQuery(api.queries.paymentAnalytics.getPaymentHealthMetrics, { startDate, endDate });
+  const paymentHealth = useQuery(api.queries.paymentAnalytics.getPaymentHealthMetrics, queryArgs as any);
 
   // @ts-ignore - Type instantiation depth issue with Convex useQuery (known TypeScript limitation)
-  const paymentMethods = useQuery(api.queries.paymentAnalytics.getPaymentMethodAnalytics, { startDate, endDate });
+  const paymentMethods = useQuery(api.queries.paymentAnalytics.getPaymentMethodAnalytics, queryArgs as any);
 
   // @ts-ignore - Type instantiation depth issue with Convex useQuery (known TypeScript limitation)
-  const failureReasons = useQuery(api.queries.paymentAnalytics.getPaymentFailureReasons, { startDate, endDate, limit: 10 });
+  const failureReasons = useQuery(api.queries.paymentAnalytics.getPaymentFailureReasons, queryArgsWithLimit as any);
 
   // @ts-ignore - Type instantiation depth issue with Convex useQuery (known TypeScript limitation)
-  const performanceMetrics = useQuery(api.queries.paymentAnalytics.getPaymentPerformanceMetrics, { startDate, endDate, groupBy: 'day' });
+  const performanceMetrics = useQuery(api.queries.paymentAnalytics.getPaymentPerformanceMetrics, queryArgs === 'skip' ? 'skip' : { ...queryArgs, groupBy: 'day' });
 
   const isLoading = paymentStats === undefined || paymentHealth === undefined;
 

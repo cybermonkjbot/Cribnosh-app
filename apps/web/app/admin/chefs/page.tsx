@@ -83,8 +83,7 @@ export default function ChefManagementPage() {
   const [showPerformanceModal, setShowPerformanceModal] = useState(false);
 
   // Fetch data - authentication is handled by layout, so user is guaranteed to be authenticated here
-  // These queries don't accept sessionToken, so we just pass an empty object when user is authenticated
-  const queryArgs = user ? {} : "skip";
+  const queryArgs = loading || !sessionToken ? "skip" : { sessionToken };
   const chefs = useQuery(api.queries.admin.getChefsWithPerformance, queryArgs) as Chef[] | undefined;
   const chefStats = useQuery(api.queries.admin.getChefStats, queryArgs);
 

@@ -97,7 +97,7 @@ export default function AdminWaitlistPage() {
   // Fetch data - authentication is handled by layout, so user is guaranteed to be authenticated here
   // Pass sessionToken if available (for development debug cookie), otherwise rely on httpOnly cookie
   // Using "skip" pattern to avoid type inference issues
-  const queryArgs = user ? (sessionToken ? { sessionToken } : {}) : "skip";
+  const queryArgs = loading || !sessionToken ? "skip" : { sessionToken };
   const waitlist = useQuery(
     api.queries.waitlist.getAll,
     queryArgs

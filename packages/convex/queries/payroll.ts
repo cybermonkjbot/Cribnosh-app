@@ -1,10 +1,12 @@
+import { requireStaff } from '../utils/auth';
 import { v } from 'convex/values';
 import { query } from '../_generated/server';
 import { Id } from '../_generated/dataModel';
 
 export const getTaxDocuments = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const documents = await ctx.db
       .query('taxDocuments')
       .order('desc')
@@ -25,8 +27,9 @@ export const getTaxDocuments = query({
 });
 
 export const getTaxDocumentTemplates = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     return [
       {
         id: 'w2',
@@ -65,8 +68,9 @@ export const getTaxDocumentTemplates = query({
 });
 
 export const getPayrollStats = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const documents = await ctx.db.query('taxDocuments').collect();
     const employees = await ctx.db.query('users').filter(q => q.eq(q.field('status'), 'active')).collect();
     

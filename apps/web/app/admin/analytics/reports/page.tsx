@@ -1,5 +1,7 @@
 "use client";
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+
 import { EmptyState } from '@/components/admin/empty-state';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -58,6 +60,7 @@ interface ReportParameters {
 }
 
 export default function AnalyticsReportsPage() {
+  const { sessionToken, loading } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -68,8 +71,9 @@ export default function AnalyticsReportsPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Fetch data
-  const reports = useQuery(api.queries.analytics.getReports);
-  const reportTemplates = useQuery(api.queries.analytics.getReportTemplates);
+  const queryArgs = loading || !sessionToken ? "skip" : { sessionToken };
+  const reports = useQuery(api.queries.analytics.getReports, queryArgs);
+  const reportTemplates = useQuery(api.queries.analytics.getReportTemplates, queryArgs);
 
   // Mutations
   const generateReport = useMutation(api.mutations.analytics.generateReport);

@@ -31,7 +31,9 @@ import {
   Radio,
   Settings,
   Shield,
+  ShoppingCart,
   TrendingUp,
+  Truck,
   UserCheck,
   Users,
   Utensils,
@@ -98,6 +100,12 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       badge: formatNumber(totalUsers),
       subItems: [
         {
+          name: 'All Users',
+          href: '/admin/users',
+          icon: Users,
+          description: 'View all users',
+        },
+        {
           name: 'User Roles',
           href: '/admin/users/roles',
           icon: UserCheck,
@@ -112,12 +120,36 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       ]
     },
     { 
+      name: 'Chefs', 
+      href: '/admin/chefs', 
+      icon: ChefHat,
+      description: 'Chef management'
+    },
+    { 
+      name: 'Orders', 
+      href: '/admin/orders', 
+      icon: ShoppingCart,
+      description: 'Order management'
+    },
+    { 
+      name: 'Delivery', 
+      href: '/admin/delivery', 
+      icon: Truck,
+      description: 'Delivery management'
+    },
+    { 
       name: 'Careers', 
       href: '/admin/careers', 
       icon: Briefcase,
       description: 'Job postings and applications',
       badge: newChefApplications && newChefApplications > 0 ? newChefApplications.toString() : undefined,
       subItems: [
+        {
+          name: 'All Postings',
+          href: '/admin/careers',
+          icon: Briefcase,
+          description: 'View all job postings',
+        },
         {
           name: 'Active Jobs',
           href: '/admin/careers/approved',
@@ -140,6 +172,12 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       badge: formatNumber(waitlistCount),
       subItems: [
         {
+          name: 'All Entries',
+          href: '/admin/waitlist',
+          icon: ClipboardList,
+          description: 'View all waitlist entries',
+        },
+        {
           name: 'Waitlist Details',
           href: '/admin/waitlist?tab=details',
           icon: Eye,
@@ -160,6 +198,12 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       description: 'Performance metrics',
       subItems: [
         {
+          name: 'Overview',
+          href: '/admin/analytics',
+          icon: BarChart2,
+          description: 'Analytics overview',
+        },
+        {
           name: 'User Analytics',
           href: '/admin/analytics/users',
           icon: Users,
@@ -170,6 +214,12 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
           href: '/admin/analytics/revenue',
           icon: DollarSign,
           description: 'Financial metrics',
+        },
+        {
+          name: 'Payment Analytics',
+          href: '/admin/analytics/payments',
+          icon: DollarSign,
+          description: 'Payment metrics',
         },
         {
           name: 'Reports',
@@ -185,6 +235,12 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       icon: FileText,
       description: 'Content management',
       subItems: [
+        {
+          name: 'All Content',
+          href: '/admin/content',
+          icon: FileText,
+          description: 'View all content',
+        },
         {
           name: 'Blog Posts',
           href: '/admin/content/blog',
@@ -248,6 +304,12 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       description: 'System settings and configuration',
       subItems: [
         {
+          name: 'All Settings',
+          href: '/admin/settings',
+          icon: Settings,
+          description: 'View all settings',
+        },
+        {
           name: 'Email Config',
           href: '/admin/email-config',
           icon: Mail,
@@ -280,6 +342,12 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       description: 'Compliance management',
       subItems: [
         {
+          name: 'Overview',
+          href: '/admin/compliance',
+          icon: Shield,
+          description: 'Compliance overview',
+        },
+        {
           name: 'GDPR',
           href: '/admin/compliance/gdpr',
           icon: AlertTriangle,
@@ -299,6 +367,12 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       icon: Users,
       description: 'Staff management',
       subItems: [
+        {
+          name: 'All Staff',
+          href: '/admin/staff',
+          icon: Users,
+          description: 'View all staff',
+        },
         {
           name: 'Staff Overview',
           href: '/admin/staff/overview',
@@ -338,6 +412,12 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       description: 'Time tracking management',
       subItems: [
         {
+          name: 'Overview',
+          href: '/admin/time-tracking',
+          icon: Clock,
+          description: 'Time tracking overview',
+        },
+        {
           name: 'Reports',
           href: '/admin/time-tracking/reports',
           icon: FileSpreadsheet,
@@ -351,6 +431,12 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       icon: TrendingUp,
       description: 'Payroll management',
       subItems: [
+        {
+          name: 'Overview',
+          href: '/admin/payroll',
+          icon: TrendingUp,
+          description: 'Payroll overview',
+        },
         {
           name: 'Reports',
           href: '/admin/payroll/reports',

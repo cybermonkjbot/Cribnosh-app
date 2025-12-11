@@ -82,7 +82,7 @@ interface TaxDocumentTemplate {
 }
 
 export default function TaxDocumentsPage() {
-  const { sessionToken: adminSessionToken } = useAdminUser();
+  const { sessionToken: adminSessionToken, loading } = useAdminUser();
   const cookieSessionToken = useSessionToken();
   // Use cookie sessionToken if available (works in dev), otherwise fall back to admin context
   const sessionToken = cookieSessionToken || adminSessionToken;
@@ -113,10 +113,11 @@ export default function TaxDocumentsPage() {
   });
 
   // Fetch data
-  const taxDocuments = useQuery((api as any).queries.payroll.getTaxDocuments);
-  const employees = useQuery((api as any).queries.users.getUsersForAdmin, sessionToken ? { sessionToken } : "skip");
-  const templates = useQuery((api as any).queries.payroll.getTaxDocumentTemplates);
-  const payrollStats = useQuery((api as any).queries.payroll.getPayrollStats);
+  const queryArgs = loading || !sessionToken ? "skip" : { sessionToken };
+  const taxDocuments = useQuery((api as any).queries.payroll.getTaxDocuments, queryArgs);
+  const employees = useQuery((api as any).queries.users.getUsersForAdmin, queryArgs);
+  const templates = useQuery((api as any).queries.payroll.getTaxDocumentTemplates, queryArgs);
+  const payrollStats = useQuery((api as any).queries.payroll.getPayrollStats, queryArgs);
 
   // Mutations
   const generateDocument = useMutation((api as any).mutations.payroll.generateTaxDocument);

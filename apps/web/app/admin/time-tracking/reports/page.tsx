@@ -106,7 +106,7 @@ interface TimeTrackingStats {
 }
 
 export default function TimeTrackingReportsPage() {
-  const { sessionToken } = useAdminUser();
+  const { sessionToken, loading } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
@@ -130,11 +130,12 @@ export default function TimeTrackingReportsPage() {
     projects: [] as string[]
   });
 
+  const queryArgs = loading || !sessionToken ? "skip" : { sessionToken };
   // Fetch data - all args are optional, so empty object is fine
-  const reports = useQuery(api.queries.timeTracking.getTimeTrackingReports, {});
-  const stats = useQuery(api.queries.timeTracking.getTimeTrackingStats, {});
-  const users = useQuery(api.queries.users.getUsersForAdmin, sessionToken ? { sessionToken } : "skip");
-  const departments = useQuery(api.queries.timeTracking.getDepartments, {});
+  const reports = useQuery(api.queries.timeTracking.getTimeTrackingReports, queryArgs);
+  const stats = useQuery(api.queries.timeTracking.getTimeTrackingStats, queryArgs);
+  const users = useQuery(api.queries.users.getUsersForAdmin, queryArgs);
+  const departments = useQuery(api.queries.timeTracking.getDepartments, queryArgs);
 
   // Mutations
   const generateReport = useMutation(api.mutations.timeTracking.generateTimeTrackingReport);

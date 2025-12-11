@@ -1,5 +1,7 @@
 "use client";
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -42,11 +44,13 @@ interface RevenueData {
 }
 
 export default function RevenueAnalyticsPage() {
+  const { sessionToken, loading } = useAdminUser();
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
   const [viewMode, setViewMode] = useState<'overview' | 'trends' | 'sources' | 'products'>('overview');
 
   // Fetch revenue analytics data
-  const revenueAnalytics = useQuery(api.queries.analytics.getRevenueAnalytics, { timeRange });
+  const queryArgs = loading || !sessionToken ? "skip" : { timeRange, sessionToken };
+  const revenueAnalytics = useQuery(api.queries.analytics.getRevenueAnalytics, queryArgs);
 
   const getGrowthIcon = (growth: number) => {
     if (growth > 0) return <ArrowUpRight className="w-4 h-4 text-green-500" />;

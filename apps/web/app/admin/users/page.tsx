@@ -60,11 +60,11 @@ export default function AdminUsers() {
   // Middleware (proxy.ts) validates session token server-side, no client-side checks needed
   const router = useRouter();
   const { toast } = useToast();
-  const { user, sessionToken } = useAdminUser();
+  const { user, sessionToken, loading } = useAdminUser();
 
   // Authentication is handled by layout, so user is guaranteed to be authenticated here
   // Pass sessionToken if available (for development debug cookie), otherwise rely on httpOnly cookie
-  const queryArgs = user ? (sessionToken ? { sessionToken } : {}) : "skip";
+  const queryArgs = loading || !sessionToken ? "skip" : { sessionToken };
   const usersQuery = useQuery(api.queries.users.getAllUsers, queryArgs);
   
   // Transform users data: map roles array to role string for display

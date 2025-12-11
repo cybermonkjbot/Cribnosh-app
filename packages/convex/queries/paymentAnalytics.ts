@@ -1,3 +1,4 @@
+import { requireStaff } from "../utils/auth";
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 
@@ -6,6 +7,7 @@ export const getPaymentDashboardStats = query({
   args: {
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     totalPayments: v.number(),
@@ -22,6 +24,7 @@ export const getPaymentDashboardStats = query({
     averagePaymentAmount: v.number(),
   }),
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const startDate = args.startDate || (Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to last 30 days
     const endDate = args.endDate || Date.now();
     
@@ -89,6 +92,7 @@ export const getPaymentPerformanceMetrics = query({
       v.literal("week"),
       v.literal("month")
     )),
+    sessionToken: v.optional(v.string())
   },
   returns: v.array(v.object({
     period: v.string(),
@@ -99,6 +103,7 @@ export const getPaymentPerformanceMetrics = query({
     successRate: v.number(),
   })),
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const startDate = args.startDate || (Date.now() - 30 * 24 * 60 * 60 * 1000);
     const endDate = args.endDate || Date.now();
     const groupBy = args.groupBy || "day";
@@ -180,6 +185,7 @@ export const getPaymentMethodAnalytics = query({
   args: {
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.array(v.object({
     method: v.string(),
@@ -189,6 +195,7 @@ export const getPaymentMethodAnalytics = query({
     percentage: v.number(),
   })),
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const startDate = args.startDate || (Date.now() - 30 * 24 * 60 * 60 * 1000);
     const endDate = args.endDate || Date.now();
     
@@ -252,6 +259,7 @@ export const getPaymentFailureReasons = query({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.array(v.object({
     failureCode: v.string(),
@@ -260,6 +268,7 @@ export const getPaymentFailureReasons = query({
     percentage: v.number(),
   })),
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const startDate = args.startDate || (Date.now() - 30 * 24 * 60 * 60 * 1000);
     const endDate = args.endDate || Date.now();
     const limit = args.limit || 10;
@@ -301,6 +310,7 @@ export const getPaymentHealthMetrics = query({
   args: {
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
   },
   returns: v.object({
     successRate: v.number(),
@@ -315,6 +325,52 @@ export const getPaymentHealthMetrics = query({
     reputationScore: v.number(),
   }),
   handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
+    const startDate = args.startDate || (Date.now() - 24 * 60 * 60 * 1000); // Last 24 hours
+    const endDate = args.endDate || Date.now();
+    
+    const analyticsData = await ctx.db
+      .query("paymentAnalyticsData")
+      .withIndex("by_timestamp", (q) => q.gte("timestamp", startDate).lte("timestamp", endDate))
+      .collect();
+    
+    const successfulPayments = analyticsData.filter(e => e.eventType === "payment_intent.succeeded").length;
+    const failedPayments = analyticsData.filter(e => e.eventType === "payment_intent.payment_failed").length;
+    const totalPayments = successfulPayments + failedPayments;
+    
+    const successfulEvents = analyticsData.filter(e => e.eventType === "payment_intent.succeeded");
+    const totalRevenue = successfulEvents.reduce((sum, e) => sum + e.amount, 0);
+    
+    const refundEvents = analyticsData.filter(e => 
+      e.eventType === "charge.refunded" || e.eventType === "refund.succeeded"
+    );
+    const totalRefunds = refundEvents.reduce((sum, e) => sum + e.amount, 0);
+    
+    const totalDisputes = analyticsData.filter(e => e.eventType === "charge.dispute.created").length;
+    
+    const successRate = totalPayments > 0 ? (successfulPayments / totalPayments) * 100 : 0;
+    const failureRate = totalPayments > 0 ? (failedPayments / totalPayments) * 100 : 0;
+    const refundRate = totalRevenue > 0 ? (totalRefunds / totalRevenue) * 100 : 0;
+    const disputeRate = successfulPayments > 0 ? (totalDisputes / successfulPayments) * 100 : 0;
+    
+    // Simple reputation score calculation
+    const reputationScore = 100 - (failureRate * 0.5) - (refundRate * 0.3) - (disputeRate * 2);
+    
+    return {
+      successRate: Math.round(successRate * 100) / 100,
+      failureRate: Math.round(failureRate * 100) / 100,
+      refundRate: Math.round(refundRate * 100) / 100,
+      disputeRate: Math.round(disputeRate * 100) / 100,
+      averageProcessingTime: 0, // Would need to track processing times
+      totalTransactions: totalPayments,
+      totalRevenue,
+      totalRefunds,
+      totalDisputes,
+      reputationScore: Math.max(0, Math.round(reputationScore * 100) / 100),
+    };
+  },
+});
+
     const startDate = args.startDate || (Date.now() - 24 * 60 * 60 * 1000); // Last 24 hours
     const endDate = args.endDate || Date.now();
     

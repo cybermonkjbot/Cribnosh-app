@@ -1,9 +1,12 @@
+import { requireStaff } from "../utils/auth";
 import { query } from "../_generated/server";
 import type { QueryCtx } from "../../../apps/web/types/convex-contexts";
+import { v } from "convex/values";
 
 export const getTimeTrackingReports = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     const limit = 50;
     
     // Get real time tracking reports from database
@@ -28,8 +31,9 @@ export const getTimeTrackingReports = query({
 });
 
 export const getTimeTrackingStats = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     // Get all users for stats
     const allUsers = await ctx.db.query("users").collect();
     const activeUsers = allUsers.filter((user) => {
@@ -136,8 +140,9 @@ export const getTimeTrackingStats = query({
 });
 
 export const getDepartments = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx: QueryCtx, args) => {
+    await requireStaff(ctx, args.sessionToken);
     // Extract unique departments from users table
     // Optimize: Only fetch users with departments, not all users
     const allUsers = await ctx.db.query("users").collect();

@@ -1,5 +1,7 @@
 "use client";
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -41,11 +43,13 @@ interface UserData {
 }
 
 export default function UserAnalyticsPage() {
+  const { sessionToken, loading } = useAdminUser();
   const [timeRange, setTimeRange] = useState('30d');
   const [viewMode, setViewMode] = useState<'overview' | 'growth' | 'segments' | 'locations'>('overview');
 
   // Fetch user analytics data
-  const userAnalytics = useQuery(api.queries.analytics.getUserAnalytics, { timeRange });
+  const queryArgs = loading || !sessionToken ? "skip" : { timeRange, sessionToken };
+  const userAnalytics = useQuery(api.queries.analytics.getUserAnalytics, queryArgs);
 
   const getGrowthIcon = (growth: number) => {
     if (growth > 0) return <TrendingUp className="w-4 h-4 text-green-500" />;
