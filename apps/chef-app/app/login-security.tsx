@@ -1,5 +1,8 @@
+import { useAccount } from '@/hooks/useAccount';
+import { useProfile } from '@/hooks/useProfile';
+import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -7,16 +10,12 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
-  Switch,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
-import { useAccount } from '@/hooks/useAccount';
-import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '../lib/ToastContext';
 
 // Back arrow SVG
@@ -55,10 +54,10 @@ export default function LoginSecurityScreen() {
     disable2FA,
     isLoading: accountLoading,
   } = useAccount();
-  
+
   // Use profile hook to get user's 2FA status
   const { getCustomerProfile } = useProfile();
-  
+
   // 2FA state
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
   const [showBackupCodesModal, setShowBackupCodesModal] = useState(false);
@@ -71,13 +70,13 @@ export default function LoginSecurityScreen() {
     const fetchData = async () => {
       try {
         setIsLoadingSessions(true);
-        
+
         // Fetch sessions
         const sessionsResult = await getSessions();
         if (sessionsResult.success && sessionsResult.data?.sessions) {
           setSessionsData({ data: { sessions: sessionsResult.data.sessions } });
         }
-        
+
         // Fetch profile to get 2FA status
         try {
           const profileResult = await getCustomerProfile();
@@ -139,7 +138,7 @@ export default function LoginSecurityScreen() {
       setTwoFactorEnabled(!value); // Revert on error
     }
   };
-  
+
   const handleQRCodeModalClose = () => {
     setShowQRCodeModal(false);
     // Show backup codes modal after QR code is dismissed
@@ -147,7 +146,7 @@ export default function LoginSecurityScreen() {
       setShowBackupCodesModal(true);
     }
   };
-  
+
   const handleBackupCodesModalClose = () => {
     setShowBackupCodesModal(false);
     setBackupCodes([]); // Clear backup codes after showing (one-time only)
@@ -165,7 +164,7 @@ export default function LoginSecurityScreen() {
           onPress: async () => {
             try {
               await revokeSession(sessionId);
-              
+
               // Refresh sessions after revoking
               const result = await getSessions();
               if (result.success && result.data?.sessions) {
@@ -269,7 +268,7 @@ export default function LoginSecurityScreen() {
                 <Text style={styles.placeholderText}>Loading sessions...</Text>
               </View>
             ) : sessionsData?.data?.sessions && sessionsData.data.sessions.length > 0 ? (
-              sessionsData.data.sessions.map((session) => (
+              sessionsData.data.sessions.map((session: any) => (
                 <View key={session.session_id} style={styles.sessionItem}>
                   <View style={styles.sessionInfo}>
                     <Text style={styles.sessionDevice}>{session.device}</Text>
@@ -296,7 +295,7 @@ export default function LoginSecurityScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-      
+
       {/* QR Code Modal */}
       <Modal
         visible={showQRCodeModal}
@@ -333,7 +332,7 @@ export default function LoginSecurityScreen() {
           </View>
         </View>
       </Modal>
-      
+
       {/* Backup Codes Modal */}
       <Modal
         visible={showBackupCodesModal}

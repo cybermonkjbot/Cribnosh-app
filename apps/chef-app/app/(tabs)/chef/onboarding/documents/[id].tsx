@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Modal, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
-import { useToast } from '@/lib/ToastContext';
-import { Camera, Upload, CheckCircle, XCircle, FileText } from 'lucide-react-native';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { CameraModalScreen } from '@/components/ui/CameraModalScreen';
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
+import { getConvexClient } from '@/lib/convexClient';
+import { useToast } from '@/lib/ToastContext';
+import { useMutation, useQuery } from 'convex/react';
 import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Camera, CheckCircle, FileText, Upload, XCircle } from 'lucide-react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Image, Modal, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 
 // Back arrow SVG
@@ -23,7 +23,7 @@ export default function DocumentUploadScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string; returnPath?: string }>();
   const { showSuccess, showError } = useToast();
-  
+
   const documentId = params.id;
   const returnPath = params.returnPath;
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export default function DocumentUploadScreen() {
       : 'skip'
   );
 
-  const document = documents?.find(d => d._id === documentId);
+  const document = documents?.find((d: any) => d._id === documentId);
 
   const uploadDocument = useMutation(api.mutations.uploadDocument);
 
@@ -54,7 +54,7 @@ export default function DocumentUploadScreen() {
   const handlePickFromGallery = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+
       if (status !== 'granted') {
         Alert.alert(
           'Permission Required',
@@ -201,19 +201,19 @@ export default function DocumentUploadScreen() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false,
           title: document.documentName || document.documentType
-        }} 
+        }}
       />
       <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-        
+
         {/* Header with back button */}
         <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton} 
+          <TouchableOpacity
+            style={styles.backButton}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -258,10 +258,10 @@ export default function DocumentUploadScreen() {
             )}
             {document.status === 'verified' && document.verifiedAt && (
               <Text style={styles.verifiedText}>
-                Verified on {new Date(document.verifiedAt).toLocaleDateString('en-GB', { 
-                  day: 'numeric', 
-                  month: 'long', 
-                  year: 'numeric' 
+                Verified on {new Date(document.verifiedAt).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
                 })}
               </Text>
             )}
@@ -361,26 +361,26 @@ export default function DocumentUploadScreen() {
           </View>
         </ScrollView>
 
-      {/* Camera Modal */}
-      {showCamera && (
-        <Modal
-          visible={showCamera}
-          animationType="slide"
-          presentationStyle="fullScreen"
-          onRequestClose={() => setShowCamera(false)}
-          statusBarTranslucent={true}
-          hardwareAccelerated={true}
-        >
-          <CameraModalScreen
-            onClose={() => setShowCamera(false)}
-            onPhotoCaptured={handlePhotoCaptured}
-            showGoLiveButton={false}
-            showVideoRecording={false}
-            showFilters={false}
-            mode="photo"
-          />
-        </Modal>
-      )}
+        {/* Camera Modal */}
+        {showCamera && (
+          <Modal
+            visible={showCamera}
+            animationType="slide"
+            presentationStyle="fullScreen"
+            onRequestClose={() => setShowCamera(false)}
+            statusBarTranslucent={true}
+            hardwareAccelerated={true}
+          >
+            <CameraModalScreen
+              onClose={() => setShowCamera(false)}
+              onPhotoCaptured={handlePhotoCaptured}
+              showGoLiveButton={false}
+              showVideoRecording={false}
+              showFilters={false}
+              mode="photo"
+            />
+          </Modal>
+        )}
       </SafeAreaView>
     </>
   );

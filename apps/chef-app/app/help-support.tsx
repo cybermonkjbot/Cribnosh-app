@@ -1,9 +1,9 @@
-import { useSupport } from '@/hooks/useSupport';
-import { Stack, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState, useCallback } from 'react';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
+import { useSupport } from '@/hooks/useSupport';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { Stack, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
@@ -68,7 +68,7 @@ export default function HelpSupportScreen() {
   // Fetch recent orders from Convex (limit to 1 most recent)
   const fetchRecentOrders = useCallback(async () => {
     if (!isAuthenticated) return;
-    
+
     try {
       setOrdersLoading(true);
       const convex = getConvexClient();
@@ -136,12 +136,12 @@ export default function HelpSupportScreen() {
     if (!recentOrder?.order_items || recentOrder.order_items.length === 0) {
       return 'Order';
     }
-    
+
     const items = recentOrder.order_items;
     const itemNames = items
       .map((item: any) => item.name)
       .filter((name: string) => name);
-    
+
     if (itemNames.length === 0) {
       return 'Order';
     } else if (itemNames.length === 1) {
@@ -190,7 +190,7 @@ export default function HelpSupportScreen() {
       // The order details page should allow creating a support case for this order
       // Use order_id (string) if available, otherwise fall back to _id
       const orderId = recentOrder.order_id || recentOrder._id;
-      router.push(`/order-details?id=${orderId}&support=true`);
+      router.push(`/order-details?id=${orderId}&support=true` as any);
     }
   };
 
@@ -329,15 +329,15 @@ export default function HelpSupportScreen() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false,
           title: 'Help & Support'
-        }} 
+        }}
       />
       <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-        
+
         {/* Header with back button */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -350,7 +350,7 @@ export default function HelpSupportScreen() {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Main Title */}
           <Text style={styles.mainTitle}>How can we help?</Text>
-          
+
           {/* Support Cases Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Support cases</Text>
@@ -390,7 +390,7 @@ export default function HelpSupportScreen() {
               </View>
             ) : recentOrder ? (
               <>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.orderCard}
                   onPress={handleRecentOrderPress}
                   activeOpacity={0.7}
@@ -413,7 +413,7 @@ export default function HelpSupportScreen() {
                   </Text>
                 </TouchableOpacity>
                 <View style={styles.separator} />
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.olderOrderLink}
                   onPress={handleSelectOlderOrder}
                 >
@@ -442,7 +442,7 @@ export default function HelpSupportScreen() {
           {/* Other Help Categories */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Get help with something else</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.helpCategoryItem}
               onPress={handleFoodSafetyPress}
             >
@@ -450,7 +450,7 @@ export default function HelpSupportScreen() {
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.helpCategoryItem}
               onPress={handleAppFeaturesPress}
             >
@@ -458,7 +458,7 @@ export default function HelpSupportScreen() {
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.helpCategoryItem}
               onPress={handleAccountDataPress}
             >
@@ -466,7 +466,7 @@ export default function HelpSupportScreen() {
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.helpCategoryItem}
               onPress={handlePaymentsPricingPress}
             >
@@ -474,7 +474,7 @@ export default function HelpSupportScreen() {
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.helpCategoryItem}
               onPress={handleUsingCribnoshPress}
             >
@@ -485,7 +485,7 @@ export default function HelpSupportScreen() {
         </ScrollView>
 
         {/* Floating Live Chat Icon */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.floatingChatButton}
           onPress={handleOpenLiveChat}
           activeOpacity={0.8}
@@ -494,7 +494,7 @@ export default function HelpSupportScreen() {
         </TouchableOpacity>
 
         {/* Live Chat Drawer */}
-        <LiveChatDrawer 
+        <LiveChatDrawer
           isVisible={isLiveChatVisible}
           onClose={handleCloseLiveChat}
           caseId={selectedChatCaseId || undefined}

@@ -3,9 +3,9 @@ import { GradientBackground } from '@/components/ui/GradientBackground';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
+import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
 import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
 import { ArrowLeft, Edit2, Eye, EyeOff, MoreVertical, Plus, Trash2, X } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -20,7 +20,7 @@ export default function MealsManagementScreen() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
-  
+
   const actionSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['35%'], []);
 
@@ -45,7 +45,7 @@ export default function MealsManagementScreen() {
     if (statusFilter === 'all') return meals;
     return meals.filter(meal => {
       const status = meal.status || 'unavailable';
-      return statusFilter === 'available' 
+      return statusFilter === 'available'
         ? status === 'available' || status === 'active'
         : status === 'unavailable';
     });
@@ -122,10 +122,10 @@ export default function MealsManagementScreen() {
 
   const handleToggleStatus = async (meal: any) => {
     const currentStatus = meal.status || 'unavailable';
-    const newStatus = currentStatus === 'available' || currentStatus === 'active' 
-      ? 'unavailable' 
+    const newStatus = currentStatus === 'available' || currentStatus === 'active'
+      ? 'unavailable'
       : 'available';
-    
+
     try {
       await updateMeal({
         mealId: meal._id,
@@ -230,8 +230,8 @@ export default function MealsManagementScreen() {
           {filteredMeals.length === 0 ? (
             <EmptyState
               title={statusFilter === 'all' ? 'No meals yet' : `No ${statusFilter} meals`}
-              subtitle={statusFilter === 'all' 
-                ? 'Create your first meal to get started!' 
+              subtitle={statusFilter === 'all'
+                ? 'Create your first meal to get started!'
                 : `You don't have any ${statusFilter} meals.`}
               icon="restaurant-outline"
               actionButton={statusFilter === 'all' ? {
@@ -244,8 +244,8 @@ export default function MealsManagementScreen() {
             filteredMeals.map((meal) => {
               const mealStatus = meal.status || 'unavailable';
               const isAvailable = mealStatus === 'available' || mealStatus === 'active';
-              const primaryImage = Array.isArray(meal.images) && meal.images.length > 0 
-                ? meal.images[0] 
+              const primaryImage = Array.isArray(meal.images) && meal.images.length > 0
+                ? meal.images[0]
                 : null;
 
               return (
@@ -305,7 +305,7 @@ export default function MealsManagementScreen() {
                       )}
                     </View>
                   </View>
-                  
+
                   {meal.description && (
                     <Text style={styles.mealDescription} numberOfLines={2}>
                       {meal.description}
@@ -340,7 +340,7 @@ export default function MealsManagementScreen() {
               if (!selectedMeal) return null;
               const mealStatus = selectedMeal.status || 'unavailable';
               const isMealAvailable = mealStatus === 'available' || mealStatus === 'active';
-              
+
               return (
                 <>
                   <View style={styles.actionSheetHeader}>
@@ -624,6 +624,9 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#E5E7EB',
     marginVertical: 4,
+  },
+  closeButton: {
+    padding: 4,
   },
 });
 

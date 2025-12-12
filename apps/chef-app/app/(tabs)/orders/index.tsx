@@ -1,24 +1,23 @@
 import { BurgerIcon } from "@/components/ui/BurgerIcon";
+import { CameraModalScreen } from "@/components/ui/CameraModalScreen";
+import { CreateMealModal } from "@/components/ui/CreateMealModal";
+import { CreateRecipeModal } from "@/components/ui/CreateRecipeModal";
+import { CreateStoryModal } from "@/components/ui/CreateStoryModal";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 import { GradientBackground } from "@/components/ui/GradientBackground";
 import { OrderCard } from "@/components/ui/OrderCard";
 import { OrderCardSkeleton } from "@/components/ui/OrderCardSkeleton";
 import { PremiumHeader } from "@/components/ui/PremiumHeader";
 import { PremiumTabs } from "@/components/ui/PremiumTabs";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
-import { CameraModalScreen } from "@/components/ui/CameraModalScreen";
-import { CreateRecipeModal } from "@/components/ui/CreateRecipeModal";
-import { CreateMealModal } from "@/components/ui/CreateMealModal";
-import { CreateStoryModal } from "@/components/ui/CreateStoryModal";
 import { useChefAuth } from "@/contexts/ChefAuthContext";
 import { api } from '@/convex/_generated/api';
-import { useQuery, useMutation } from "convex/react";
-import { useRouter } from "expo-router";
 import { useToast } from '@/lib/ToastContext';
+import { useMutation, useQuery } from "convex/react";
+import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { StyleSheet, Alert, Modal } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Alert, Modal, StyleSheet } from "react-native";
 import Animated, {
   Extrapolate,
   interpolate,
@@ -26,6 +25,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Define order status types
 export type OrderStatus =
@@ -107,7 +107,7 @@ export default function OrdersScreen() {
   // Transform orders data to match expected format
   const ordersData = useMemo(() => {
     if (!ordersDataRaw) return null;
-    return { 
+    return {
       data: {
         orders: ordersDataRaw,
         total: ordersDataRaw.length,
@@ -192,24 +192,24 @@ export default function OrdersScreen() {
     const items = apiOrder.order_items
       ? apiOrder.order_items.map((item: any) => item.name || item.dish_name || item.dishName)
       : apiOrder.items
-      ? apiOrder.items.map((item: any) => item.dish_name || item.name || item.dishName)
-      : [];
+        ? apiOrder.items.map((item: any) => item.dish_name || item.name || item.dishName)
+        : [];
 
     // Get order items with images for stacking
     const orderItemsWithImages = apiOrder.order_items
-        ? apiOrder.order_items.map((item: any) => ({
-            _id: item._id || item.id,
-            dish_id: item.dish_id || item.id,
-            name: item.name || item.dish_name || item.dishName,
-            image_url: item.image_url || item.imageUrl || item.image,
-          }))
+      ? apiOrder.order_items.map((item: any) => ({
+        _id: item._id || item.id,
+        dish_id: item.dish_id || item.id,
+        name: item.name || item.dish_name || item.dishName,
+        image_url: item.image_url || item.imageUrl || item.image,
+      }))
       : apiOrder.items
         ? apiOrder.items.map((item: any) => ({
-            _id: item._id || item.id,
-            dish_id: item.dish_id || item.id,
-            name: item.dish_name || item.name || item.dishName,
-            image_url: item.image_url || item.imageUrl || item.image,
-          }))
+          _id: item._id || item.id,
+          dish_id: item.dish_id || item.id,
+          name: item.dish_name || item.name || item.dishName,
+          image_url: item.image_url || item.imageUrl || item.image,
+        }))
         : [];
 
     // Get description
@@ -247,7 +247,7 @@ export default function OrdersScreen() {
       status:
         statusMap[apiOrder.order_status || apiOrder.status] || "preparing",
       estimatedTime,
-      kitchenName: null,
+      kitchenName: undefined,
       orderNumber,
       items,
       orderItems: orderItemsWithImages,
@@ -319,7 +319,7 @@ export default function OrdersScreen() {
   // Combine API orders
   // Ongoing orders: pending, confirmed, preparing, on-the-way
   const allOngoingOrders = apiOrdersAsOrders.filter(
-    (order) =>
+    (order: Order) =>
       order.status === "pending" ||
       order.status === "confirmed" ||
       order.status === "preparing" ||
@@ -328,7 +328,7 @@ export default function OrdersScreen() {
 
   // Past orders: cancelled, completed
   const allPastOrders = apiOrdersAsOrders.filter(
-    (order) => 
+    (order: Order) =>
       order.status === "cancelled" ||
       order.status === "completed"
   );
@@ -393,7 +393,7 @@ export default function OrdersScreen() {
     // Show skeleton loader while loading
     // Show skeleton if orders are loading OR if we haven't fetched any data yet
     const isLoading = ordersLoading || (ordersData === null && isAuthenticated);
-    
+
     if (isLoading) {
       return (
         <>
@@ -414,8 +414,8 @@ export default function OrdersScreen() {
       return (
         <EmptyState
           title="No orders found"
-          subtitle={activeTab === "ongoing" 
-            ? "You don't have any ongoing orders at the moment." 
+          subtitle={activeTab === "ongoing"
+            ? "You don't have any ongoing orders at the moment."
             : "You don't have any past orders yet."}
           icon="receipt-outline"
           titleColor="#094327"
@@ -525,7 +525,7 @@ export default function OrdersScreen() {
 
       {/* Floating Action Button */}
       {isAuthenticated && (
-        <FloatingActionButton 
+        <FloatingActionButton
           bottomPosition={2}
           onCameraPress={() => {
             setAutoShowLiveStreamSetup(false);
@@ -557,7 +557,7 @@ export default function OrdersScreen() {
           statusBarTranslucent={true}
           hardwareAccelerated={true}
         >
-          <CameraModalScreen 
+          <CameraModalScreen
             onClose={() => {
               setIsCameraVisible(false);
               setAutoShowLiveStreamSetup(false);

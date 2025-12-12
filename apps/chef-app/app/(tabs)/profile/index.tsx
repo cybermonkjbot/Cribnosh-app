@@ -1,21 +1,20 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl, Modal, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { ProfileHeader } from '@/components/ProfileHeader';
-import { ContentTabs, ContentTabType } from '@/components/ContentTabs';
 import { ContentGrid, ContentItem } from '@/components/ContentGrid';
+import { ContentTabs, ContentTabType } from '@/components/ContentTabs';
+import { ProfileHeader } from '@/components/ProfileHeader';
 import { ProfileMenu } from '@/components/ProfileMenu';
 import { CameraModalScreen } from '@/components/ui/CameraModalScreen';
-import { CreateRecipeModal } from '@/components/ui/CreateRecipeModal';
 import { CreateMealModal } from '@/components/ui/CreateMealModal';
-import { CreateStoryModal } from '@/components/ui/CreateStoryModal';
+import { CreateRecipeModal } from '@/components/ui/CreateRecipeModal';
 import { FloatingActionButton } from '@/components/ui/FloatingActionButton';
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
+import { useQuery } from 'convex/react';
+import { useRouter } from 'expo-router';
 import { CheckCircle, Circle } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChefProfileScreen() {
   const { chef, sessionToken } = useChefAuth();
@@ -35,10 +34,10 @@ export default function ChefProfileScreen() {
     api.queries.chefs.getAllChefContent,
     chef?._id && sessionToken
       ? {
-          chefId: chef._id,
-          sessionToken,
-          limit: 100,
-        }
+        chefId: chef._id,
+        sessionToken,
+        limit: 100,
+      }
       : 'skip'
   );
 
@@ -90,8 +89,8 @@ export default function ChefProfileScreen() {
     chef?._id && sessionToken
       ? { chefId: chef._id.toString(), sessionToken }
       : chef?._id
-      ? { chefId: chef._id.toString() }
-      : 'skip'
+        ? { chefId: chef._id.toString() }
+        : 'skip'
   );
 
   // Get the last livestream (most recent one)
@@ -111,7 +110,7 @@ export default function ChefProfileScreen() {
     const items: ContentItem[] = [];
 
     // Add recipes
-    contentData.recipes.forEach((recipe) => {
+    contentData.recipes.forEach((recipe: any) => {
       items.push({
         id: recipe.id,
         type: 'recipe',
@@ -136,7 +135,7 @@ export default function ChefProfileScreen() {
     }
 
     // Add videos
-    contentData.videos.forEach((video) => {
+    contentData.videos.forEach((video: any) => {
       items.push({
         id: video.id,
         type: 'video',
@@ -149,7 +148,7 @@ export default function ChefProfileScreen() {
     });
 
     // Add meals
-    contentData.meals.forEach((meal) => {
+    contentData.meals.forEach((meal: any) => {
       items.push({
         id: meal.id,
         type: 'meal',
@@ -197,10 +196,10 @@ export default function ChefProfileScreen() {
         setIsCameraVisible(true);
         break;
       case 'video':
-        router.push(`/(tabs)/chef/content/videos/${item.id}`);
+        router.push(`/(tabs)/chef/content/videos/${item.id}` as any);
         break;
       case 'meal':
-        router.push(`/(tabs)/chef/meals/${item.id}`);
+        router.push(`/(tabs)/chef/meals/${item.id}` as any);
         break;
     }
   };
@@ -250,11 +249,11 @@ export default function ChefProfileScreen() {
       location: !!chef.location?.city,
       profileImage: !!(chef.image || chef.profileImage),
     };
-    
+
     const completedCount = Object.values(fields).filter(Boolean).length;
     const totalFields = Object.keys(fields).length;
     const percentage = Math.round((completedCount / totalFields) * 100);
-    
+
     return {
       percentage,
       completedCount,
@@ -281,11 +280,11 @@ export default function ChefProfileScreen() {
               <Text style={styles.completionPercentage}>{profileCompletion.percentage}%</Text>
             </View>
             <View style={styles.completionBar}>
-              <View 
+              <View
                 style={[
-                  styles.completionBarFill, 
+                  styles.completionBarFill,
                   { width: `${profileCompletion.percentage}%` }
-                ]} 
+                ]}
               />
             </View>
             <View style={styles.completionFields}>
@@ -300,11 +299,11 @@ export default function ChefProfileScreen() {
                     styles.completionFieldText,
                     !completed && styles.completionFieldTextIncomplete
                   ]}>
-                    {key === 'name' ? 'Name' : 
-                     key === 'bio' ? 'Bio' :
-                     key === 'specialties' ? 'Specialties' :
-                     key === 'location' ? 'Location' :
-                     key === 'profileImage' ? 'Profile Image' : key}
+                    {key === 'name' ? 'Name' :
+                      key === 'bio' ? 'Bio' :
+                        key === 'specialties' ? 'Specialties' :
+                          key === 'location' ? 'Location' :
+                            key === 'profileImage' ? 'Profile Image' : key}
                   </Text>
                 </View>
               ))}
@@ -337,12 +336,12 @@ export default function ChefProfileScreen() {
           counts={
             contentData
               ? {
-                  all: allContentItems.length,
-                  recipes: contentData.stats.recipes,
-                  live: contentData.stats.liveSessions,
-                  videos: contentData.stats.videos,
-                  meals: contentData.stats.meals,
-                }
+                all: allContentItems.length,
+                recipes: contentData.stats.recipes,
+                live: contentData.stats.liveSessions,
+                videos: contentData.stats.videos,
+                meals: contentData.stats.meals,
+              }
               : undefined
           }
         />
@@ -445,7 +444,7 @@ export default function ChefProfileScreen() {
         statusBarTranslucent={true}
         hardwareAccelerated={true}
       >
-        <CameraModalScreen 
+        <CameraModalScreen
           onClose={() => {
             setIsCameraVisible(false);
             setAutoShowLiveStreamSetup(false);
@@ -472,7 +471,7 @@ export default function ChefProfileScreen() {
       />
 
       {/* Floating Action Button */}
-      <FloatingActionButton 
+      <FloatingActionButton
         bottomPosition={2}
         onCameraPress={() => {
           setAutoShowLiveStreamSetup(false);

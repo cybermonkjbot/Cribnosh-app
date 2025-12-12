@@ -37,7 +37,7 @@ export const ChefOnboardingLocationScreen: React.FC<ChefOnboardingLocationScreen
     try {
       setIsLoadingLocation(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
-      
+
       if (status !== 'granted') {
         Alert.alert(
           'Location Permission',
@@ -57,7 +57,7 @@ export const ChefOnboardingLocationScreen: React.FC<ChefOnboardingLocationScreen
         const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
         if (geocode && geocode.length > 0) {
           const address = geocode[0];
-          const cityName = address.city || address.subAdministrativeArea || address.administrativeArea || '';
+          const cityName = address.city || (address as any).subAdministrativeArea || (address as any).administrativeArea || '';
           if (cityName) {
             setCity(cityName);
           }
@@ -103,10 +103,10 @@ export const ChefOnboardingLocationScreen: React.FC<ChefOnboardingLocationScreen
         <View style={styles.logoContainer}>
           <CribNoshLogo size={172} variant="default" />
         </View>
-        
+
         {/* Onboarding Content Card */}
         <View style={[styles.cardContainer, { bottom: 0 }]}>
-          <ScrollView 
+          <ScrollView
             style={styles.contentCard}
             contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
             showsVerticalScrollIndicator={false}
@@ -120,22 +120,22 @@ export const ChefOnboardingLocationScreen: React.FC<ChefOnboardingLocationScreen
               <Ionicons name="arrow-back" size={20} color="#111827" />
               <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
-            
+
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.title}>Setup your Chef profile</Text>
             </View>
-            
+
             {/* Description */}
             <Text style={styles.description}>
               Tell us where you're located so customers can find you.
             </Text>
-            
+
             {/* Location Question */}
             <Text style={styles.locationQuestion}>
               Where are you located?
             </Text>
-            
+
             {/* City Input Section */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>City</Text>
@@ -147,7 +147,7 @@ export const ChefOnboardingLocationScreen: React.FC<ChefOnboardingLocationScreen
                 placeholderTextColor="#9CA3AF"
               />
             </View>
-            
+
             {/* Location Button */}
             <View style={styles.section}>
               <TouchableOpacity
@@ -155,10 +155,10 @@ export const ChefOnboardingLocationScreen: React.FC<ChefOnboardingLocationScreen
                 onPress={requestLocationPermission}
                 disabled={isLoadingLocation}
               >
-                <Ionicons 
-                  name="location" 
-                  size={20} 
-                  color={isLoadingLocation ? '#9CA3AF' : '#094327'} 
+                <Ionicons
+                  name="location"
+                  size={20}
+                  color={isLoadingLocation ? '#9CA3AF' : '#094327'}
                 />
                 <Text style={[styles.locationButtonText, isLoadingLocation && styles.locationButtonTextDisabled]}>
                   {isLoadingLocation ? 'Getting location...' : 'Use Current Location'}
@@ -166,11 +166,11 @@ export const ChefOnboardingLocationScreen: React.FC<ChefOnboardingLocationScreen
               </TouchableOpacity>
             </View>
           </ScrollView>
-          
+
           {/* Floating Continue Button */}
           <View style={[styles.floatingButtonContainer, { paddingBottom: insets.bottom }]}>
-            <TouchableOpacity 
-              style={[styles.continueButton, !canContinue && styles.continueButtonDisabled]} 
+            <TouchableOpacity
+              style={[styles.continueButton, !canContinue && styles.continueButtonDisabled]}
               onPress={handleNext}
               disabled={!canContinue}
             >

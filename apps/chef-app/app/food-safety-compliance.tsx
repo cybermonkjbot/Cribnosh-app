@@ -1,13 +1,13 @@
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { Stack, useRouter } from 'expo-router';
-import { useState, useEffect, useMemo } from 'react';
-import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { CheckCircle, FileText, Upload, XCircle } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 import { useToast } from '../lib/ToastContext';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { CheckCircle, XCircle, FileText, Upload } from 'lucide-react-native';
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -74,7 +74,7 @@ export default function FoodSafetyComplianceScreen() {
   const documentsByType = useMemo(() => {
     if (!documents) return {};
     const map: Record<string, typeof documents[0]> = {};
-    documents.forEach(doc => {
+    documents.forEach((doc: any) => {
       map[doc.documentType] = doc;
     });
     return map;
@@ -96,7 +96,7 @@ export default function FoodSafetyComplianceScreen() {
     if (kitchen) {
       setCertified(kitchen.certified || false);
       setInspectionDates(kitchen.inspectionDates || []);
-      
+
       // Determine compliance status
       if (kitchen.certified) {
         setComplianceStatus('compliant');
@@ -110,7 +110,7 @@ export default function FoodSafetyComplianceScreen() {
       if (kitchen.inspectionDates && kitchen.inspectionDates.length > 0) {
         const sortedDates = [...kitchen.inspectionDates].sort().reverse();
         setLastInspectionDate(sortedDates[0]);
-        
+
         // Calculate next inspection due (assuming annual inspections)
         const lastDate = new Date(sortedDates[0]);
         const nextDate = new Date(lastDate);
@@ -191,10 +191,10 @@ export default function FoodSafetyComplianceScreen() {
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-GB', { 
-        day: 'numeric', 
-        month: 'long', 
-        year: 'numeric' 
+      return date.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
       });
     } catch {
       return dateString;
@@ -229,15 +229,15 @@ export default function FoodSafetyComplianceScreen() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false,
           title: 'Food Safety Compliance'
-        }} 
+        }}
       />
       <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-        
+
         {/* Header with back button */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -250,7 +250,7 @@ export default function FoodSafetyComplianceScreen() {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Main Title */}
           <Text style={styles.mainTitle}>Food Safety Compliance</Text>
-          
+
           {isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#094327" />
@@ -302,7 +302,7 @@ export default function FoodSafetyComplianceScreen() {
                     </View>
                   </View>
                   {certified && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.actionButton}
                       onPress={handleViewCertifications}
                       activeOpacity={0.7}
@@ -343,7 +343,7 @@ export default function FoodSafetyComplianceScreen() {
                   ) : (
                     <View style={styles.emptyState}>
                       <Text style={styles.emptyStateText}>No inspections recorded</Text>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.scheduleButton}
                         onPress={handleScheduleInspection}
                         activeOpacity={0.7}
@@ -391,7 +391,7 @@ export default function FoodSafetyComplianceScreen() {
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Quick Actions</Text>
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.actionCard}
                   onPress={handleScheduleInspection}
                   activeOpacity={0.7}

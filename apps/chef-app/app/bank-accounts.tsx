@@ -1,13 +1,13 @@
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
+import { getSessionToken } from '@/lib/convexClient';
+import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
-import { Alert, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 import { useToast } from '../lib/ToastContext';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { getSessionToken } from '@/lib/convexClient';
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -245,7 +245,7 @@ export default function BankAccountsScreen() {
   return (
     <SafeAreaView style={styles.mainContainer}>
       <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -272,7 +272,7 @@ export default function BankAccountsScreen() {
         {isAddingAccount && (
           <View style={styles.addForm}>
             <Text style={styles.formTitle}>Add Bank Account</Text>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Account Holder Name</Text>
               <TextInput
@@ -360,7 +360,7 @@ export default function BankAccountsScreen() {
         {/* Bank Accounts List */}
         {bankAccounts && bankAccounts.length > 0 ? (
           <View style={styles.accountsList}>
-            {bankAccounts.map((account) => (
+            {bankAccounts.map((account: any) => (
               <View key={account.accountId} style={styles.accountCard}>
                 <View style={styles.accountHeader}>
                   <View style={styles.accountLeft}>

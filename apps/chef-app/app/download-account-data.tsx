@@ -1,14 +1,14 @@
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import * as FileSystem from 'expo-file-system';
 import { Stack, useRouter } from 'expo-router';
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { Alert, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
+import * as Sharing from 'expo-sharing';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { useToast } from '../lib/ToastContext';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -102,14 +102,14 @@ export default function DownloadAccountDataScreen() {
         setIsDownloading(true);
       }
       const result = await downloadAccountData();
-      
+
       if (!isMountedRef.current) return;
 
       if (result.data?.download_url) {
         // Download the file from the URL
         const downloadUrl = result.data.download_url;
         const fileName = `cribnosh-account-data-${Date.now()}.zip`;
-        const fileUri = `${(FileSystem as any).documentDirectory || FileSystem.cacheDirectory || ''}${fileName}`;
+        const fileUri = `${(FileSystem as any).documentDirectory || (FileSystem as any).cacheDirectory || ''}${fileName}`;
 
         // Download the file
         const downloadResult = await FileSystem.downloadAsync(
@@ -125,7 +125,7 @@ export default function DownloadAccountDataScreen() {
         if (downloadResult.status === 200) {
           // Check if sharing is available
           const isAvailable = await Sharing.isAvailableAsync();
-          
+
           if (!isMountedRef.current) return;
 
           if (isAvailable) {
@@ -134,7 +134,7 @@ export default function DownloadAccountDataScreen() {
               mimeType: 'application/zip',
               dialogTitle: 'Save Account Data',
             });
-            
+
             if (isMountedRef.current) {
               showToast({
                 type: "success",
@@ -170,7 +170,7 @@ export default function DownloadAccountDataScreen() {
     } catch (error: any) {
       console.error("Error downloading account data:", error);
       if (!isMountedRef.current) return;
-      const errorMessage = 
+      const errorMessage =
         error?.data?.error?.message ||
         error?.data?.message ||
         error?.message ||
@@ -192,15 +192,15 @@ export default function DownloadAccountDataScreen() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false,
           title: 'Download Account Data'
-        }} 
+        }}
       />
       <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-        
+
         {/* Header with back button */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -210,14 +210,14 @@ export default function DownloadAccountDataScreen() {
         </View>
 
         {/* Content */}
-        <ScrollView 
-          style={styles.content} 
+        <ScrollView
+          style={styles.content}
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
         >
           {/* Main Title */}
           <Text style={styles.mainTitle}>Download Account Data</Text>
-          
+
           {/* Download Section */}
           <View style={styles.downloadSection}>
             <Text style={styles.sectionDescription}>
