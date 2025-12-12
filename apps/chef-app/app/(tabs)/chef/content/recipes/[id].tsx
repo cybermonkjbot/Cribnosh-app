@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { useToast } from '@/lib/ToastContext';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, Plus, X, Image as ImageIcon, Archive } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { getConvexClient } from '@/lib/convexClient';
+import { Card } from '@/components/ui/Card';
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { getConvexClient } from '@/lib/convexClient';
+import { useToast } from '@/lib/ToastContext';
+import { useMutation, useQuery } from 'convex/react';
+import * as ImagePicker from 'expo-image-picker';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Archive, ArrowLeft, Image as ImageIcon, Plus, X } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Ingredient {
   name: string;
@@ -168,7 +168,7 @@ export default function EditRecipeScreen() {
       const storageId = uploadResult.storageId || uploadResult;
 
       // Get file URL
-      const fileUrl = await convex.storage.getUrl(storageId);
+      const fileUrl = await (convex as any).storage.getUrl(storageId);
 
       setFormData({ ...formData, featuredImage: fileUrl });
       showSuccess('Image Uploaded', 'Recipe image uploaded successfully.');
@@ -429,8 +429,8 @@ export default function EditRecipeScreen() {
           <Text style={styles.sectionTitle}>Featured Image</Text>
           {formData.featuredImage ? (
             <View style={styles.imageContainer}>
-              <Image 
-                source={{ uri: formData.featuredImage }} 
+              <Image
+                source={{ uri: formData.featuredImage }}
                 style={styles.image}
                 onError={() => {
                   console.warn('Failed to load featured image:', formData.featuredImage);
@@ -559,7 +559,7 @@ export default function EditRecipeScreen() {
             <Button
               onPress={() => handleSubmit(true)}
               disabled={isSubmitting}
-              isLoading={isSubmitting}
+              loading={isSubmitting}
               style={styles.submitButton}
             >
               Publish Recipe

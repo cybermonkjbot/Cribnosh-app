@@ -1,13 +1,13 @@
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
+import { getSessionToken } from '@/lib/convexClient';
+import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
-import { Alert, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 import { useToast } from '../lib/ToastContext';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { getSessionToken } from '@/lib/convexClient';
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -59,7 +59,7 @@ export default function RequestPayoutScreen() {
 
   useEffect(() => {
     if (bankAccounts && bankAccounts.length > 0 && !selectedBankAccount) {
-      const primary = bankAccounts.find(acc => acc.isPrimary) || bankAccounts[0];
+      const primary = bankAccounts.find((acc: any) => acc.isPrimary) || bankAccounts[0];
       setSelectedBankAccount(primary.accountId);
     }
   }, [bankAccounts, selectedBankAccount]);
@@ -96,7 +96,7 @@ export default function RequestPayoutScreen() {
     }
 
     const amountInPence = Math.round(parseFloat(amount) * 100);
-    
+
     if (earningsSummary && amountInPence > earningsSummary.availableBalance) {
       showToast({
         type: 'error',
@@ -162,7 +162,7 @@ export default function RequestPayoutScreen() {
   return (
     <SafeAreaView style={styles.mainContainer}>
       <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -187,7 +187,7 @@ export default function RequestPayoutScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Select Bank Account</Text>
           {bankAccounts && bankAccounts.length > 0 ? (
-            bankAccounts.map((account) => (
+            bankAccounts.map((account: any) => (
               <TouchableOpacity
                 key={account.accountId}
                 style={[

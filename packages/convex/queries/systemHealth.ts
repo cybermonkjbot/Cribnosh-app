@@ -8,12 +8,12 @@ async function getPaymentServiceStatus(ctx: QueryCtx): Promise<string> {
     const paymentHealth = await ctx.runQuery(api.queries.paymentAnalytics.getPaymentHealthMetrics, {
       startDate: Date.now() - (24 * 60 * 60 * 1000), // Last 24 hours
     });
-    
+
     // If there are no transactions, return healthy (no data doesn't mean unhealthy)
     if (paymentHealth.totalTransactions === 0) {
       return "healthy";
     }
-    
+
     if (paymentHealth.successRate >= 95 && paymentHealth.disputeRate < 1) {
       return "healthy";
     } else if (paymentHealth.successRate >= 90 && paymentHealth.disputeRate < 2) {
@@ -32,12 +32,12 @@ async function getPaymentUptime(ctx: QueryCtx): Promise<number> {
     const paymentHealth = await ctx.runQuery(api.queries.paymentAnalytics.getPaymentHealthMetrics, {
       startDate: Date.now() - (24 * 60 * 60 * 1000), // Last 24 hours
     });
-    
+
     // If there are no transactions, return 100% (no data doesn't mean downtime)
     if (paymentHealth.totalTransactions === 0) {
       return 100.0;
     }
-    
+
     // Calculate uptime based on success rate
     return paymentHealth.successRate;
   } catch (error) {
@@ -51,7 +51,7 @@ async function getPaymentServiceDetails(ctx: QueryCtx): Promise<string> {
     const paymentHealth = await ctx.runQuery(api.queries.paymentAnalytics.getPaymentHealthMetrics, {
       startDate: Date.now() - (24 * 60 * 60 * 1000), // Last 24 hours
     });
-    
+
     return `Success rate: ${paymentHealth.successRate.toFixed(1)}%, Failure rate: ${paymentHealth.failureRate.toFixed(1)}%, Disputes: ${paymentHealth.totalDisputes}`;
   } catch (error) {
     return "Payment metrics unavailable";
@@ -59,7 +59,9 @@ async function getPaymentServiceDetails(ctx: QueryCtx): Promise<string> {
 }
 
 export const getSystemHealth = query({
-  args: {},
+  args: {
+    sessionToken: v.optional(v.string()),
+  },
   returns: v.object({
     status: v.string(),
     services: v.array(v.object({
@@ -87,7 +89,7 @@ export const getSystemHealth = query({
   handler: async (ctx) => {
     // Get system health records
     const healthRecords = await ctx.db.query("systemHealth").collect();
-    
+
     // Get recent alerts
     const alerts = await ctx.db
       .query("systemAlerts")
@@ -112,7 +114,7 @@ export const getSystemHealth = query({
       },
       {
         name: "Database",
-        status: "healthy", 
+        status: "healthy",
         responseTime: 45,
         uptime: 99.95,
         lastChecked: Date.now(),
@@ -156,9 +158,9 @@ export const getSystemHealth = query({
     const healthyServices = services.filter(s => s.status === "healthy").length;
     const totalServices = services.length;
     const healthScore = (healthyServices / totalServices) * 100;
-    
-    const overallStatus = healthScore >= 95 ? "operational" : 
-                         healthScore >= 80 ? "degraded" : "critical";
+
+    const overallStatus = healthScore >= 95 ? "operational" :
+      healthScore >= 80 ? "degraded" : "critical";
 
     // Format alerts
     const formattedAlerts = alerts.map((alert) => ({
@@ -212,7 +214,7 @@ export const getSystemMetrics = query({
   handler: async (ctx, args) => {
     const hours = args.timeRange === "1h" ? 1 : args.timeRange === "24h" ? 24 : 168;
     const startTime = Date.now() - (hours * 60 * 60 * 1000);
-    
+
     // Get system metrics from database
     const metrics = await ctx.db
       .query("systemMetrics")
@@ -224,19 +226,19 @@ export const getSystemMetrics = query({
     const cpuUsage = metrics
       .filter(m => m.type === "cpu")
       .map(m => ({ timestamp: m.timestamp, value: m.value }));
-    
+
     const memoryUsage = metrics
       .filter(m => m.type === "memory")
       .map(m => ({ timestamp: m.timestamp, value: m.value }));
-    
+
     const responseTime = metrics
       .filter(m => m.type === "responseTime")
       .map(m => ({ timestamp: m.timestamp, value: m.value }));
-    
+
     const errorRate = metrics
       .filter(m => m.type === "errorRate")
       .map(m => ({ timestamp: m.timestamp, value: m.value }));
-    
+
     const throughput = metrics
       .filter(m => m.type === "throughput")
       .map(m => ({ timestamp: m.timestamp, value: m.value }));
@@ -280,15 +282,15 @@ export const getSystemAlerts = query({
   })),
   handler: async (ctx, args) => {
     let query = ctx.db.query("systemAlerts");
-    
+
     if (args.severity) {
       query = query.filter(q => q.eq(q.field("severity"), args.severity));
     }
-    
+
     if (args.resolved !== undefined) {
       query = query.filter(q => q.eq(q.field("resolved"), args.resolved));
     }
-    
+
     const alerts = await query
       .order("desc")
       .take(args.limit || 50);

@@ -1,12 +1,13 @@
 import { ProfileAvatar } from '@/components/ProfileAvatar';
-import { ProfileUpdateOTPModal } from '@/components/ui/ProfileUpdateOTPModal';
 import { AvailabilityCalendar } from '@/components/ui/AvailabilityCalendar';
+import { ProfileUpdateOTPModal } from '@/components/ui/ProfileUpdateOTPModal';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { api } from '@/convex/_generated/api';
 import { useProfile } from '@/hooks/useProfile';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { getAbsoluteImageUrl } from '@/utils/imageUrl';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMutation, useQuery } from 'convex/react';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -17,6 +18,7 @@ import {
   Alert,
   Image,
   Modal,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -24,11 +26,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useToast } from '../lib/ToastContext';
 
 // Back arrow SVG
@@ -151,7 +151,7 @@ export default function PersonalInfoScreen() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        
+
         // Get user profile
         const result = await getCustomerProfile();
         if (result.success && result.data?.user) {
@@ -164,7 +164,7 @@ export default function PersonalInfoScreen() {
           setPhone(userPhone);
           originalEmail.current = userEmail;
           originalPhone.current = userPhone;
-          
+
           const imageUrl = user.picture || user.avatar;
           const absoluteImageUrl = getAbsoluteImageUrl(imageUrl);
           setSelectedProfileImage(absoluteImageUrl);
@@ -202,7 +202,7 @@ export default function PersonalInfoScreen() {
           if (kitchenDoc.images) {
             const loadImageUrls = async () => {
               const imageUrls = await Promise.all(
-                kitchenDoc.images!.map(img => getImageUrl(img))
+                kitchenDoc.images!.map((img: string) => getImageUrl(img))
               );
               setKitchenImages(imageUrls);
             };
@@ -234,7 +234,7 @@ export default function PersonalInfoScreen() {
     }
     try {
       const convex = getConvexClient();
-      const url = await convex.storage.getUrl(imageIdOrUrl as any);
+      const url = await (convex as any).storage.getUrl(imageIdOrUrl as any);
       return url || imageIdOrUrl;
     } catch (error) {
       console.error('Error getting image URL:', error);
@@ -264,7 +264,7 @@ export default function PersonalInfoScreen() {
 
       const uploadResult = await uploadResponse.json();
       const storageId = uploadResult.storageId || uploadResult;
-      const fileUrl = await convex.storage.getUrl(storageId);
+      const fileUrl = await (convex as any).storage.getUrl(storageId);
       return fileUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -326,12 +326,12 @@ export default function PersonalInfoScreen() {
 
       // Check if selectedProfileImage is a local URI that needs to be uploaded
       const currentPicture = profileData?.data?.user?.picture || profileData?.data?.user?.avatar || chef.profileImage;
-      const isLocalUri = selectedProfileImage && 
+      const isLocalUri = selectedProfileImage &&
         selectedProfileImage !== currentPicture &&
-        (selectedProfileImage.startsWith('file://') || 
-         selectedProfileImage.startsWith('content://') ||
-         selectedProfileImage.startsWith('ph://') ||
-         selectedProfileImage.startsWith('assets-library://'));
+        (selectedProfileImage.startsWith('file://') ||
+          selectedProfileImage.startsWith('content://') ||
+          selectedProfileImage.startsWith('ph://') ||
+          selectedProfileImage.startsWith('assets-library://'));
 
       // If it's a local URI, upload it first
       if (isLocalUri) {
@@ -345,7 +345,7 @@ export default function PersonalInfoScreen() {
 
           const uploadResult = await uploadProfileImage(selectedProfileImage, imageType);
           imageUrl = uploadResult.data?.profile_image_url || uploadResult.data?.profile_image;
-          
+
           if (!imageUrl) {
             throw new Error('Failed to get image URL from upload response');
           }
@@ -579,7 +579,7 @@ export default function PersonalInfoScreen() {
 
       const location = await Location.getCurrentPositionAsync({});
       const [lat, lng] = [location.coords.latitude, location.coords.longitude];
-      
+
       const reverseGeocode = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
       if (reverseGeocode && reverseGeocode.length > 0) {
         const addr = reverseGeocode[0];
@@ -593,7 +593,7 @@ export default function PersonalInfoScreen() {
         ]
           .filter(Boolean)
           .join(', ');
-        
+
         if (fullAddress) {
           setKitchenAddress(fullAddress);
         }
@@ -758,18 +758,18 @@ export default function PersonalInfoScreen() {
     const hours = String(time.getHours()).padStart(2, '0');
     const minutes = String(time.getMinutes()).padStart(2, '0');
     const timeStr = `${hours}:${minutes}`;
-    
+
     const currentRanges = [...(availableHours[day] || [])];
     currentRanges[rangeIndex] = {
       ...currentRanges[rangeIndex],
       [field]: timeStr,
     };
-    
+
     setAvailableHours({
       ...availableHours,
       [day]: currentRanges,
     });
-    
+
     setTimePickerState({ visible: false, day: null, rangeIndex: null, field: null });
   };
 
@@ -832,11 +832,11 @@ export default function PersonalInfoScreen() {
       const location = await Location.getCurrentPositionAsync({});
       const [lat, lng] = [location.coords.latitude, location.coords.longitude];
       setCoordinates([lat, lng]);
-      
+
       const reverseGeocode = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
       if (reverseGeocode && reverseGeocode.length > 0) {
         const addr = reverseGeocode[0];
-        const cityName = addr.city || addr.subAdministrativeArea || addr.administrativeArea || '';
+        const cityName = addr.city || (addr as any).subAdministrativeArea || (addr as any).administrativeArea || '';
         if (cityName) {
           setCity(cityName);
         }
@@ -881,8 +881,8 @@ export default function PersonalInfoScreen() {
 
         {/* Tabs */}
         <View style={styles.tabsWrapper}>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.tabsContainer}
           >
@@ -917,8 +917,8 @@ export default function PersonalInfoScreen() {
         </View>
 
         {/* Content */}
-        <ScrollView 
-          style={styles.content} 
+        <ScrollView
+          style={styles.content}
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
         >
@@ -935,11 +935,11 @@ export default function PersonalInfoScreen() {
                       chef.status === 'suspended' && styles.statusTextSuspended,
                       chef.status === 'pending_verification' && styles.statusTextPending,
                     ]}>
-                      {chef.status === 'active' ? 'Active' : 
-                       chef.status === 'inactive' ? 'Inactive' :
-                       chef.status === 'suspended' ? 'Suspended' :
-                       chef.status === 'pending_verification' ? 'Pending Verification' : 
-                       'Unknown'}
+                      {chef.status === 'active' ? 'Active' :
+                        chef.status === 'inactive' ? 'Inactive' :
+                          chef.status === 'suspended' ? 'Suspended' :
+                            chef.status === 'pending_verification' ? 'Pending Verification' :
+                              'Unknown'}
                     </Text>
                     {chef.status === 'active' && (
                       <Ionicons name="checkmark-circle" size={20} color="#0B9E58" />
@@ -1090,7 +1090,7 @@ export default function PersonalInfoScreen() {
               </View>
             </>
           )}
-          
+
           {activeTab === 'kitchen' && (
             <>
               <Text style={styles.mainTitle}>Kitchen Settings</Text>
@@ -1204,8 +1204,8 @@ export default function PersonalInfoScreen() {
                     <View style={styles.imagesContainer}>
                       {kitchenImages.map((imageUri, index) => (
                         <View key={index} style={styles.imageWrapper}>
-                          <Image 
-                            source={{ uri: imageUri }} 
+                          <Image
+                            source={{ uri: imageUri }}
                             style={styles.image}
                             onError={() => {
                               console.warn('Failed to load kitchen image:', imageUri);
@@ -1219,7 +1219,7 @@ export default function PersonalInfoScreen() {
                           </TouchableOpacity>
                         </View>
                       ))}
-                      
+
                       {kitchenImages.length < 10 && (
                         <TouchableOpacity
                           style={styles.addImageButton}
@@ -1238,8 +1238,8 @@ export default function PersonalInfoScreen() {
                       <View style={styles.imagesContainer}>
                         {kitchenImages.map((imageUri, index) => (
                           <View key={index} style={styles.imageWrapper}>
-                            <Image 
-                              source={{ uri: imageUri }} 
+                            <Image
+                              source={{ uri: imageUri }}
                               style={styles.image}
                               onError={() => {
                                 console.warn('Failed to load kitchen image:', imageUri);
@@ -1271,7 +1271,7 @@ export default function PersonalInfoScreen() {
               </View>
             </>
           )}
-          
+
           {activeTab === 'availability' && (
             <>
               <Text style={styles.mainTitle}>Availability Settings</Text>
@@ -1523,13 +1523,13 @@ export default function PersonalInfoScreen() {
                       const hours = String(selectedTime.getHours()).padStart(2, '0');
                       const minutes = String(selectedTime.getMinutes()).padStart(2, '0');
                       const timeStr = `${hours}:${minutes}`;
-                      
+
                       const currentRanges = [...(availableHours[timePickerState.day] || [])];
                       currentRanges[timePickerState.rangeIndex] = {
                         ...currentRanges[timePickerState.rangeIndex],
                         [timePickerState.field]: timeStr,
                       };
-                      
+
                       setAvailableHours({
                         ...availableHours,
                         [timePickerState.day]: currentRanges,
@@ -1585,8 +1585,8 @@ export default function PersonalInfoScreen() {
                   >
                     <View style={styles.videoOptionContent}>
                       {video.thumbnailUrl && (
-                        <Image 
-                          source={{ uri: video.thumbnailUrl }} 
+                        <Image
+                          source={{ uri: video.thumbnailUrl }}
                           style={styles.videoThumbnail}
                           onError={() => {
                             console.warn('Failed to load video thumbnail:', video.thumbnailUrl);
@@ -1621,8 +1621,13 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'Inter',
   },
   header: {
     flexDirection: 'row',
@@ -2298,6 +2303,24 @@ const styles = StyleSheet.create({
   videoOptionMeta: {
     fontSize: 12,
     color: '#6B7280',
+    fontFamily: 'Inter',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 8,
+    fontFamily: 'Inter',
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
     fontFamily: 'Inter',
   },
 });

@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
 import { GradientBackground } from '@/components/ui/GradientBackground';
-import { ArrowLeft, Download, Calendar } from 'lucide-react-native';
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
+import { useQuery } from 'convex/react';
 import * as FileSystem from 'expo-file-system';
+import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
+import { ArrowLeft, Calendar, Download } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TaxesScreen() {
   const { chef, sessionToken } = useChefAuth();
@@ -68,8 +68,8 @@ export default function TaxesScreen() {
       content += `TOTAL PAYOUTS: ${formatAmount(taxYearSummary.totalPayouts)}\n\n`;
       content += `MONTHLY BREAKDOWN:\n`;
       content += `----------------------------------------\n`;
-      
-      taxYearSummary.monthlyBreakdown.forEach((month) => {
+
+      taxYearSummary.monthlyBreakdown.forEach((month: any) => {
         content += `${formatMonth(month.month)}:\n`;
         content += `  Earnings: ${formatAmount(month.earnings)}\n`;
         content += `  Fees: ${formatAmount(month.fees)}\n`;
@@ -78,10 +78,10 @@ export default function TaxesScreen() {
 
       // Save to file
       const fileName = `tax_summary_${taxYear}_${taxYear + 1}.txt`;
-      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
-      
+      const fileUri = `${(FileSystem as any).documentDirectory}${fileName}`;
+
       await FileSystem.writeAsStringAsync(fileUri, content, {
-        encoding: FileSystem.EncodingType.UTF8,
+        encoding: (FileSystem as any).EncodingType.UTF8,
       });
 
       // Share the file
@@ -143,7 +143,7 @@ export default function TaxesScreen() {
               style={styles.taxYearScroll}
               contentContainerStyle={styles.taxYearContent}
             >
-              {availableTaxYears.map((year) => (
+              {availableTaxYears.map((year: number) => (
                 <TouchableOpacity
                   key={year}
                   style={[
@@ -205,7 +205,7 @@ export default function TaxesScreen() {
             {/* Monthly Breakdown */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Monthly Breakdown</Text>
-              {taxYearSummary.monthlyBreakdown.map((month) => (
+              {taxYearSummary.monthlyBreakdown.map((month: any) => (
                 <View key={month.month} style={styles.monthCard}>
                   <Text style={styles.monthTitle}>{formatMonth(month.month)}</Text>
                   <View style={styles.monthDetails}>

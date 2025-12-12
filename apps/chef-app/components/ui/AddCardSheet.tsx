@@ -1,11 +1,11 @@
-import { useToast } from '@/lib/ToastContext';
+import { STRIPE_CONFIG } from '@/constants/api';
 import { usePayments } from '@/hooks/usePayments';
+import { useToast } from '@/lib/ToastContext';
 import { CardField, useStripe } from '@stripe/stripe-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { BottomSheetBase } from '../BottomSheetBase';
-import { STRIPE_CONFIG } from '@/constants/api';
 
 // Close icon SVG
 const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -26,7 +26,7 @@ export function AddCardSheet({
   const snapPoints = useMemo(() => ['90%'], []);
   const { showToast } = useToast();
   const stripe = useStripe();
-  const { confirmSetupIntent, isApplePaySupported, isGooglePaySupported } = stripe || {};
+  const { confirmSetupIntent, isApplePaySupported, isGooglePaySupported } = (stripe as any) || {};
   const [isProcessing, setIsProcessing] = useState(false);
   const [setAsDefault, setSetAsDefault] = useState(false);
   const [cardDetailsComplete, setCardDetailsComplete] = useState(false);
@@ -77,8 +77,8 @@ export function AddCardSheet({
         message: 'Stripe is not properly configured. Please check your environment variables and restart the app.',
         duration: 5000,
       });
-      console.error('Stripe not initialized:', { 
-        stripe, 
+      console.error('Stripe not initialized:', {
+        stripe,
         confirmSetupIntent,
         publishableKey: STRIPE_CONFIG.publishableKey ? `${STRIPE_CONFIG.publishableKey.substring(0, 20)}...` : 'MISSING',
         publishableKeyLength: STRIPE_CONFIG.publishableKey?.length || 0,
@@ -107,7 +107,7 @@ export function AddCardSheet({
       const setupIntentResult = await createSetupIntent();
 
       if (!setupIntentResult || !setupIntentResult.success || !setupIntentResult.data?.clientSecret) {
-        const errorMsg = setupIntentResult?.data?.error || 'Failed to create setup intent';
+        const errorMsg = (setupIntentResult?.data as any)?.error || 'Failed to create setup intent';
         console.error('Setup Intent Creation Failed:', {
           result: setupIntentResult,
           error: errorMsg,
@@ -124,7 +124,7 @@ export function AddCardSheet({
         // Extract account ID from client secret (format: seti_ACCOUNTID...)
         const clientSecretAccountId = clientSecret?.substring(5, 21) || 'N/A';
         const accountsMatch = publishableKeyAccountId === clientSecretAccountId;
-        
+
         console.log('Setup Intent Details:', {
           hasClientSecret: !!clientSecret,
           clientSecretPrefix: clientSecret?.substring(0, 30) || 'N/A',
@@ -135,7 +135,7 @@ export function AddCardSheet({
           clientSecretAccountId,
           accountsMatch,
         });
-        
+
         if (!accountsMatch) {
           console.error('⚠️ ACCOUNT MISMATCH: Publishable key and setup intent are from different Stripe accounts!');
           console.error('   This will cause "API key" errors. Ensure both keys are from the same account.');
@@ -156,7 +156,7 @@ export function AddCardSheet({
       if (!confirmSetupIntent) {
         throw new Error('Stripe confirmSetupIntent is not available. Please ensure StripeProvider is properly configured with a valid publishable key.');
       }
-      
+
       if (__DEV__) {
         console.log('Confirming Setup Intent:', {
           hasConfirmSetupIntent: !!confirmSetupIntent,
@@ -164,7 +164,7 @@ export function AddCardSheet({
           publishableKeySet: !!STRIPE_CONFIG.publishableKey,
         });
       }
-      
+
       const { error: stripeError, setupIntent } = await confirmSetupIntent(
         clientSecret,
         {
@@ -221,7 +221,7 @@ export function AddCardSheet({
       }, 1500);
     } catch (error: any) {
       console.error('Error adding card:', error);
-      const errorMessage = 
+      const errorMessage =
         error?.message ||
         'Failed to add card. Please try again.';
       showToast({

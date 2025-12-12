@@ -1,15 +1,15 @@
+import { CribNoshLogo } from '@/components/ui/CribNoshLogo';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
 import { useMutation, useQuery } from 'convex/react';
 import { ResizeMode, Video } from 'expo-av';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CheckCircle, ChevronRight, VideoOff, AlertCircle } from 'lucide-react-native';
+import { CheckCircle, ChevronRight, VideoOff } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
-import { CribNoshLogo } from '@/components/ui/CribNoshLogo';
 
 // Back arrow SVG - white color for dark background
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -61,7 +61,7 @@ export default function ModuleDetailScreen() {
   const params = useLocalSearchParams<{ id: string; moduleId: string }>();
   const { showSuccess, showError } = useToast();
   const insets = useSafeAreaInsets();
-  
+
   const courseId = params.id;
   const moduleId = params.moduleId;
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -71,12 +71,12 @@ export default function ModuleDetailScreen() {
   const [playingVideos, setPlayingVideos] = useState<Set<string>>(new Set());
   const [videoErrors, setVideoErrors] = useState<Set<string>>(new Set());
   const [loadedVideos, setLoadedVideos] = useState<Set<string>>(new Set());
-  const saveProgressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const videoLoadTimeoutsRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
+  const saveProgressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const videoLoadTimeoutsRef = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({});
 
   // Get course enrollment to find module progress
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
-   
+
   // @ts-ignore
   const enrollment = useQuery(
     // @ts-ignore
@@ -105,9 +105,9 @@ export default function ModuleDetailScreen() {
   // Extract videos from module content
   const moduleVideos = useMemo(() => {
     if (!moduleContent) return [];
-    
+
     const videos: ModuleVideo[] = [];
-    
+
     // Extract videos from videos array (primary source for vertical playback)
     if (moduleContent.videos && Array.isArray(moduleContent.videos)) {
       moduleContent.videos.forEach((video: any) => {
@@ -122,7 +122,7 @@ export default function ModuleDetailScreen() {
         }
       });
     }
-    
+
     // Also extract videos from content array (secondary source)
     if (moduleContent.content && Array.isArray(moduleContent.content)) {
       moduleContent.content.forEach((item: any, index: number) => {
@@ -137,7 +137,7 @@ export default function ModuleDetailScreen() {
         }
       });
     }
-    
+
     // Sort by order
     return videos.sort((a, b) => a.order - b.order);
   }, [moduleContent, moduleId]);
@@ -157,12 +157,12 @@ export default function ModuleDetailScreen() {
   // Save video progress when index changes
   const saveVideoProgress = useCallback(async (videoIndex: number) => {
     if (!chef?._id || !courseId || !moduleId || !sessionToken || !currentModule || !moduleContent) return;
-    
+
     // Clear existing timeout
     if (saveProgressTimeoutRef.current) {
       clearTimeout(saveProgressTimeoutRef.current);
     }
-    
+
     // Debounce saves - only save after 1 second of no changes
     saveProgressTimeoutRef.current = setTimeout(async () => {
       try {
@@ -198,7 +198,7 @@ export default function ModuleDetailScreen() {
         if (videoLoadTimeoutsRef.current[currentVideo.id]) {
           clearTimeout(videoLoadTimeoutsRef.current[currentVideo.id]);
         }
-        
+
         // Set new timeout (15 seconds)
         videoLoadTimeoutsRef.current[currentVideo.id] = setTimeout(() => {
           if (!loadedVideos.has(currentVideo.id)) {
@@ -207,7 +207,7 @@ export default function ModuleDetailScreen() {
           }
         }, 15000);
       }
-      
+
       // Cleanup timeout when video loads or index changes
       return () => {
         if (currentVideo && videoLoadTimeoutsRef.current[currentVideo.id]) {
@@ -229,7 +229,7 @@ export default function ModuleDetailScreen() {
     if (!currentModule || !sortedModules.length) return null;
     const currentIndex = sortedModules.findIndex((m: any) => m.moduleId === moduleId);
     if (currentIndex === -1) return null;
-    
+
     // Find next incomplete module after current
     for (let i = currentIndex + 1; i < sortedModules.length; i++) {
       if (!sortedModules[i].completed) {
@@ -273,7 +273,7 @@ export default function ModuleDetailScreen() {
   // Handle scroll to change videos
   const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
     if (!viewableItems || viewableItems.length === 0) return;
-    
+
     const newIndex = viewableItems[0].index;
     if (typeof newIndex === 'number' && newIndex >= 0 && newIndex !== currentIndex) {
       // Pause previous video
@@ -296,7 +296,7 @@ export default function ModuleDetailScreen() {
 
     try {
       const timeSpent = totalTimeSpentRef.current;
-      
+
       await updateProgress({
         chefId: chef._id,
         courseId,
@@ -307,7 +307,7 @@ export default function ModuleDetailScreen() {
         timeSpent,
         sessionToken,
       });
-      
+
       // If module has quiz and hasn't been passed, navigate to quiz
       if (moduleContent?.quiz && (!currentModule.quizScore || currentModule.quizScore < (moduleContent.quiz.passingScore || 80))) {
         router.push(`/(tabs)/chef/onboarding/course/${courseId}/module/${moduleId}/quiz`);
@@ -366,7 +366,7 @@ export default function ModuleDetailScreen() {
             setVideoErrors(prev => new Set([...prev, item.id]));
           }}
         />
-        
+
         {/* Video Error/Broken Icon - Show when video not playing or has error */}
         {showVideoError && isCurrentItem && (
           <View
@@ -422,7 +422,7 @@ export default function ModuleDetailScreen() {
             </View>
           </View>
         )}
-        
+
         {/* Video Overlay with Title and Description */}
         {/* Adjust bottom padding when action buttons are shown */}
         <View
@@ -447,11 +447,11 @@ export default function ModuleDetailScreen() {
               borderColor: 'rgba(255, 255, 255, 0.1)',
             }}
           >
-            <Text 
-              style={{ 
-                color: BRAND_COLORS.white, 
-                fontSize: 24, 
-                fontWeight: '700', 
+            <Text
+              style={{
+                color: BRAND_COLORS.white,
+                fontSize: 24,
+                fontWeight: '700',
                 marginBottom: 8,
                 letterSpacing: -0.5,
                 textShadowColor: 'transparent',
@@ -462,10 +462,10 @@ export default function ModuleDetailScreen() {
               {item.title}
             </Text>
             {item.description && (
-              <Text 
-                style={{ 
-                  color: BRAND_COLORS.textSecondary, 
-                  fontSize: 15, 
+              <Text
+                style={{
+                  color: BRAND_COLORS.textSecondary,
+                  fontSize: 15,
                   lineHeight: 22,
                 }}
               >
@@ -535,7 +535,7 @@ export default function ModuleDetailScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: BRAND_COLORS.black }}>
       <StatusBar hidden />
-      
+
       {/* Vertical Video List */}
       <FlatList
         ref={flatListRef}
@@ -621,10 +621,10 @@ export default function ModuleDetailScreen() {
                 elevation: 8,
               }}
             >
-              <Text 
-                style={{ 
-                  color: BRAND_COLORS.white, 
-                  fontSize: 17, 
+              <Text
+                style={{
+                  color: BRAND_COLORS.white,
+                  fontSize: 17,
                   fontWeight: '700',
                   letterSpacing: 0.3,
                 }}
@@ -634,7 +634,7 @@ export default function ModuleDetailScreen() {
               <ChevronRight size={20} color={BRAND_COLORS.white} strokeWidth={2.5} />
             </TouchableOpacity>
           )}
-          
+
           {/* Complete Button (if no quiz or quiz already passed) */}
           {(!moduleContent?.quiz || (currentModule.quizScore && currentModule.quizScore >= (moduleContent.quiz.passingScore || 80))) && (
             <TouchableOpacity
@@ -657,10 +657,10 @@ export default function ModuleDetailScreen() {
               }}
             >
               <CheckCircle size={22} color={BRAND_COLORS.white} strokeWidth={2.5} />
-              <Text 
-                style={{ 
-                  color: BRAND_COLORS.white, 
-                  fontSize: 17, 
+              <Text
+                style={{
+                  color: BRAND_COLORS.white,
+                  fontSize: 17,
                   fontWeight: '700',
                   letterSpacing: 0.3,
                 }}

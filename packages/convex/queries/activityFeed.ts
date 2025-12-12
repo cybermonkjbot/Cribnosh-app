@@ -1,6 +1,6 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
 import { Doc, Id } from "../_generated/dataModel";
+import { query } from "../_generated/server";
 
 // Activity type definition for internal use
 interface Activity {
@@ -40,6 +40,7 @@ export const getActivityFeed = query({
       v.literal("7d"),
       v.literal("30d")
     )),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.array(v.object({
     id: v.string(),
@@ -57,11 +58,11 @@ export const getActivityFeed = query({
     const limit = args.limit || 50;
     const timeRange = args.timeRange || "24h";
     const type = args.type || "all";
-    
-    const hours = timeRange === "1h" ? 1 : 
-                  timeRange === "24h" ? 24 : 
-                  timeRange === "7d" ? 168 : 720;
-    
+
+    const hours = timeRange === "1h" ? 1 :
+      timeRange === "24h" ? 24 :
+        timeRange === "7d" ? 168 : 720;
+
     const startTime = Date.now() - (hours * 60 * 60 * 1000);
 
     // Get activities from different sources
@@ -125,9 +126,9 @@ export const getActivityFeed = query({
 
       for (const order of recentOrders) {
         const chef = await ctx.db.get(order.chef_id);
-        
+
         const orderNumber = (order as Doc<"orders"> & { order_number?: string }).order_number;
-        
+
         activities.push({
           id: `order_${order._id}`,
           type: "order_created",
@@ -138,8 +139,8 @@ export const getActivityFeed = query({
           severity: "info",
           category: "orders",
           details: `Amount: £${order.total_amount || 0}${chef ? ` | Chef: ${chef.name || 'Unknown'}` : ''}`,
-          metadata: { 
-            orderId: order._id, 
+          metadata: {
+            orderId: order._id,
             orderNumber: orderNumber,
             amount: order.total_amount,
             status: order.order_status,
@@ -287,7 +288,7 @@ export const getActivityFeed = query({
         .filter(q => q.gte(q.field("lastModified"), startTime))
         .order("desc")
         .take(20);
-      
+
       for (const item of contentItems) {
         // Try to find user by author name
         let userId: string | undefined;
@@ -300,7 +301,7 @@ export const getActivityFeed = query({
             userId = user._id;
           }
         }
-        
+
         activities.push({
           id: `content_${item._id}`,
           type: "content_created",
@@ -336,6 +337,7 @@ export const getActivityStats = query({
       v.literal("7d"),
       v.literal("30d")
     )),
+    sessionToken: v.optional(v.string()),
   },
   returns: v.object({
     totalActivities: v.number(),
@@ -353,10 +355,10 @@ export const getActivityStats = query({
   }),
   handler: async (ctx, args) => {
     const timeRange = args.timeRange || "24h";
-    const hours = timeRange === "1h" ? 1 : 
-                  timeRange === "24h" ? 24 : 
-                  timeRange === "7d" ? 168 : 720;
-    
+    const hours = timeRange === "1h" ? 1 :
+      timeRange === "24h" ? 24 :
+        timeRange === "7d" ? 168 : 720;
+
     const startTime = Date.now() - (hours * 60 * 60 * 1000);
 
     // Get all activities in the time range (simplified approach)
@@ -370,7 +372,7 @@ export const getActivityStats = query({
     activities.forEach((activity: Activity) => {
       activitiesByType[activity.type] = (activitiesByType[activity.type] || 0) + 1;
       activitiesByCategory[activity.category] = (activitiesByCategory[activity.category] || 0) + 1;
-      
+
       if (activity.user) {
         userActivityCount[activity.user] = (userActivityCount[activity.user] || 0) + 1;
       }
@@ -388,7 +390,7 @@ export const getActivityStats = query({
           activityCount: count,
         };
       });
-    
+
     const topUsers = await Promise.all(topUsersPromises);
 
     // Generate recent trends (hourly buckets)
@@ -399,8 +401,8 @@ export const getActivityStats = query({
     for (let i = 0; i < numBuckets; i++) {
       const bucketStart = startTime + (i * bucketSize * 60 * 60 * 1000);
       const bucketEnd = bucketStart + (bucketSize * 60 * 60 * 1000);
-      
-      const bucketActivities = activities.filter((activity: Activity) => 
+
+      const bucketActivities = activities.filter((activity: Activity) =>
         activity.timestamp >= bucketStart && activity.timestamp < bucketEnd
       );
 
@@ -421,7 +423,9 @@ export const getActivityStats = query({
 });
 
 export const getActivityFilters = query({
-  args: {},
+  args: {
+    sessionToken: v.optional(v.string()),
+  },
   returns: v.object({
     types: v.array(v.object({
       value: v.string(),

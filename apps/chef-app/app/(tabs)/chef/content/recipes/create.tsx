@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { useToast } from '@/lib/ToastContext';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, Plus, X, Camera, Image as ImageIcon } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { Card } from '@/components/ui/Card';
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/convexClient';
+import { useToast } from '@/lib/ToastContext';
+import { useMutation } from 'convex/react';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import { ArrowLeft, Image as ImageIcon, Plus, X } from 'lucide-react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Ingredient {
   name: string;
@@ -128,7 +128,7 @@ export default function CreateRecipeScreen() {
       const storageId = uploadResult.storageId || uploadResult;
 
       // Get file URL
-      const fileUrl = await convex.storage.getUrl(storageId);
+      const fileUrl = await (convex as any).storage.getUrl(storageId);
 
       setFormData({ ...formData, featuredImage: fileUrl });
       showSuccess('Image Uploaded', 'Recipe image uploaded successfully.');
@@ -463,7 +463,7 @@ export default function CreateRecipeScreen() {
           <Button
             onPress={() => handleSubmit(true)}
             disabled={isSubmitting}
-            isLoading={isSubmitting}
+            loading={isSubmitting}
             style={styles.submitButton}
           >
             Publish Recipe

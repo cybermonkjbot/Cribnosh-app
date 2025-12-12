@@ -1,11 +1,11 @@
 import { ChefOnboardingFlow } from '@/components/ChefOnboardingFlow';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { api } from '@/convex/_generated/api';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { getConvexClient } from '@/lib/convexClient';
 import { useToast } from '@/lib/ToastContext';
+import { useMutation, useQuery } from 'convex/react';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { useMutation, useQuery } from 'convex/react';
 
 export default function ChefOnboardingSetupPage() {
   const router = useRouter();
@@ -59,7 +59,7 @@ export default function ChefOnboardingSetupPage() {
 
       const uploadResult = await uploadResponse.json();
       const storageId = uploadResult.storageId || uploadResult;
-      const fileUrl = await convex.storage.getUrl(storageId);
+      const fileUrl = await (convex as any).storage.getUrl(storageId);
       return fileUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -82,7 +82,7 @@ export default function ChefOnboardingSetupPage() {
     try {
       setIsUploading(true);
       console.log('Chef onboarding completed with data:', data);
-      
+
       if (!user?._id || !sessionToken) {
         showError('Error', 'Authentication required');
         router.replace('/sign-in');
@@ -155,7 +155,7 @@ export default function ChefOnboardingSetupPage() {
           }
         }
       }
-      
+
       // Clear draft after successful completion
       if (chef?._id && sessionToken) {
         try {
@@ -167,10 +167,10 @@ export default function ChefOnboardingSetupPage() {
           console.error('Error clearing draft:', error);
         }
       }
-      
+
       // Refresh chef context to update onboarding status
       await refreshChef();
-      
+
       // Use requestAnimationFrame to ensure navigation happens after render
       requestAnimationFrame(() => {
         // Navigate to compliance training
@@ -220,7 +220,7 @@ export default function ChefOnboardingSetupPage() {
         onSkip={handleOnboardingSkip}
         backgroundImage={require('../../../assets/images/signin-background.jpg')}
         chefId={chef?._id}
-        sessionToken={sessionToken}
+        sessionToken={sessionToken || undefined}
         initialDraft={initialDraft}
       />
     </>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { EmptyState } from './EmptyState';
-import { SkeletonWithTimeout } from './SkeletonWithTimeout';
+import { SkeletonWithTimeout } from './ui/SkeletonWithTimeout';
 
 interface QueryStateWrapperProps {
   isLoading: boolean;
@@ -47,9 +47,9 @@ export function QueryStateWrapper({
         actionButton={
           onRetry
             ? {
-                label: 'Retry',
-                onPress: onRetry,
-              }
+              label: 'Retry',
+              onPress: onRetry,
+            }
             : undefined
         }
       />

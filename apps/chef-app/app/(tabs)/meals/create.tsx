@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, Stack } from 'expo-router';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { useToast } from '@/lib/ToastContext';
-import { ArrowLeft, X } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { getConvexClient } from '@/lib/convexClient';
 import { GradientBackground } from '@/components/ui/GradientBackground';
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
+import { getConvexClient } from '@/lib/convexClient';
+import { useToast } from '@/lib/ToastContext';
+import { useMutation } from 'convex/react';
+import * as ImagePicker from 'expo-image-picker';
+import { Stack, useRouter } from 'expo-router';
+import { ArrowLeft, X } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const CUISINE_OPTIONS = [
   'Italian', 'Chinese', 'Indian', 'Mexican', 'Japanese', 'Thai', 'French', 'Mediterranean',
@@ -96,7 +96,7 @@ export default function CreateMealPage() {
           const storageId = uploadResult.storageId || uploadResult;
 
           // Get file URL
-          const fileUrl = await convex.storage.getUrl(storageId);
+          const fileUrl = await (convex as any).storage.getUrl(storageId);
           uploadedImages.push(fileUrl);
         }
 
@@ -188,11 +188,11 @@ export default function CreateMealPage() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false,
           title: 'Create Meal'
-        }} 
+        }}
       />
       <GradientBackground>
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -214,7 +214,7 @@ export default function CreateMealPage() {
             {/* Basic Information */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Basic Information</Text>
-              
+
               <View style={styles.fieldContainer}>
                 <Text style={styles.label}>Meal Name *</Text>
                 <TextInput
@@ -308,7 +308,7 @@ export default function CreateMealPage() {
             {/* Images */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Meal Images</Text>
-              
+
               {formData.images.length > 0 && (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScrollView}>
                   <View style={styles.imagesContainer}>
@@ -326,7 +326,7 @@ export default function CreateMealPage() {
                   </View>
                 </ScrollView>
               )}
-              
+
               <TouchableOpacity
                 onPress={handleImagePick}
                 disabled={isUploadingImage}

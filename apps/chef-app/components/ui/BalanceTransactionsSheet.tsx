@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SkeletonWithTimeout } from './SkeletonWithTimeout';
-import { SvgXml } from 'react-native-svg';
 import { usePayments } from '@/hooks/usePayments';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SvgXml } from 'react-native-svg';
+import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
 // Close icon SVG
 const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

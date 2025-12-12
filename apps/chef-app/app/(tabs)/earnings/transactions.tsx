@@ -1,14 +1,14 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, Alert , Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { ArrowLeft, Search, Download, Filter, X } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useQuery } from 'convex/react';
 import * as FileSystem from 'expo-file-system';
+import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
+import { ArrowLeft, Download, Filter, Search, X } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TransactionType = 'all' | 'earning' | 'payout' | 'fee' | 'refund';
 
@@ -29,14 +29,14 @@ export default function TransactionsScreen() {
     api.queries.chefTransactions.getByChefId,
     chef?._id && sessionToken
       ? {
-          chefId: chef._id,
-          sessionToken,
-          type: typeFilter === 'all' ? undefined : typeFilter,
-          startDate: startDate ? startDate.getTime() : undefined,
-          endDate: endDate ? endDate.getTime() : undefined,
-          limit,
-          offset,
-        }
+        chefId: chef._id,
+        sessionToken,
+        type: typeFilter === 'all' ? undefined : typeFilter,
+        startDate: startDate ? startDate.getTime() : undefined,
+        endDate: endDate ? endDate.getTime() : undefined,
+        limit,
+        offset,
+      }
       : 'skip'
   );
 
@@ -108,19 +108,19 @@ export default function TransactionsScreen() {
 
   const filteredTransactions = useMemo(() => {
     if (!transactionsData?.transactions) return [];
-    
+
     let filtered = transactionsData.transactions;
-    
+
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(tx =>
+      filtered = filtered.filter((tx: any) =>
         tx.description.toLowerCase().includes(query) ||
         tx.reference?.toLowerCase().includes(query) ||
         tx.order_id?.toString().toLowerCase().includes(query)
       );
     }
-    
+
     return filtered;
   }, [transactionsData?.transactions, searchQuery]);
 
@@ -138,7 +138,7 @@ export default function TransactionsScreen() {
     try {
       // Create CSV content
       const headers = ['Date', 'Type', 'Amount', 'Description', 'Status', 'Order ID', 'Reference'];
-      const rows = filteredTransactions.map(tx => [
+      const rows = filteredTransactions.map((tx: any) => [
         formatDate(tx.createdAt),
         getTypeLabel(tx.type),
         formatAmount(tx.amount),
@@ -150,15 +150,15 @@ export default function TransactionsScreen() {
 
       const csvContent = [
         headers.join(','),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ...rows.map((row: any[]) => row.map((cell: any) => `"${cell}"`).join(','))
       ].join('\n');
 
       // Save to file
       const fileName = `transactions_${Date.now()}.csv`;
-      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
-      
+      const fileUri = `${(FileSystem as any).documentDirectory}${fileName}`;
+
       await FileSystem.writeAsStringAsync(fileUri, csvContent, {
-        encoding: FileSystem.EncodingType.UTF8,
+        encoding: (FileSystem as any).EncodingType.UTF8,
       });
 
       // Share the file
@@ -332,7 +332,7 @@ export default function TransactionsScreen() {
           </View>
         ) : (
           <View style={styles.transactionsList}>
-            {filteredTransactions.map((transaction) => (
+            {filteredTransactions.map((transaction: any) => (
               <View key={transaction._id} style={styles.transactionCard}>
                 <View style={styles.transactionHeader}>
                   <View style={styles.transactionLeft}>

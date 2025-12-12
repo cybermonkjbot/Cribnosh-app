@@ -8,13 +8,13 @@ export default function SignInModal() {
   const router = useRouter();
   const { isAuthenticated, login, user } = useChefAuth();
   const { handleAppleSignIn: appleSignInApi, handleGoogleSignIn: googleSignInApi } = useAuth();
-  const params = useLocalSearchParams<{ 
-    returnPath?: string; 
+  const params = useLocalSearchParams<{
+    returnPath?: string;
     returnParams?: string;
     notDismissable?: string; // Passed as string in URL params
   }>();
   const hasNavigatedRef = useRef(false);
-  
+
   // Parse notDismissable from params (comes as string from URL)
   const notDismissable = params.notDismissable === 'true';
 
@@ -32,33 +32,33 @@ export default function SignInModal() {
   // Navigate after successful authentication
   const navigateAfterAuth = useCallback((userData?: any) => {
     if (hasNavigatedRef.current) return;
-      
-      // Check if user needs onboarding
+
+    // Check if user needs onboarding
     const needsOnboarding = userData?.isNewUser === true || user?.isNewUser === true;
-    
+
     hasNavigatedRef.current = true;
-      
-      // If there's a return path, navigate there with params (skip onboarding)
-      if (params.returnPath) {
-        try {
-          const returnParams = params.returnParams 
-            ? JSON.parse(decodeURIComponent(params.returnParams))
-            : {};
-          
-          router.replace({
-            pathname: params.returnPath as any,
-            params: returnParams,
-          });
-        } catch (error) {
-          console.error('Error parsing return params:', error);
-          // Fallback to just the return path
-          router.replace(params.returnPath as any);
-        }
-      } else if (needsOnboarding) {
-        // Navigate to onboarding for new users
+
+    // If there's a return path, navigate there with params (skip onboarding)
+    if (params.returnPath) {
+      try {
+        const returnParams = params.returnParams
+          ? JSON.parse(decodeURIComponent(params.returnParams))
+          : {};
+
+        router.replace({
+          pathname: params.returnPath as any,
+          params: returnParams,
+        });
+      } catch (error) {
+        console.error('Error parsing return params:', error);
+        // Fallback to just the return path
+        router.replace(params.returnPath as any);
+      }
+    } else if (needsOnboarding) {
+      // Navigate to onboarding for new users
       router.replace('/(tabs)/chef/onboarding');
-      } else {
-      router.replace('/(tabs)/chef');
+    } else {
+      router.replace('/(tabs)/chef' as any);
     }
   }, [user, router, params.returnPath, params.returnParams]);
 
@@ -74,29 +74,29 @@ export default function SignInModal() {
     if (notDismissable) {
       return;
     }
-    
+
     // When user cancels from sign-in, navigate to chef dashboard
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/(tabs)/chef');
+      router.replace('/(tabs)/chef' as any);
     }
   };
 
   const handleGoogleSignIn = async (accessToken: string) => {
     try {
       const result = await googleSignInApi(accessToken);
-      
+
       // Check if 2FA is required
       if (result.requires2FA && result.verificationToken) {
         // Navigate to 2FA verification screen
         router.push({
-          pathname: '/verify-2fa',
+          pathname: '/verify-2fa' as any,
           params: { verificationToken: result.verificationToken },
         });
-      return;
-    }
-    
+        return;
+      }
+
       if (result.token && result.user) {
         await login(result.token, result.user);
         // Navigate immediately after login
@@ -110,17 +110,17 @@ export default function SignInModal() {
   const handleAppleSignIn = async (identityToken: string) => {
     try {
       const result = await appleSignInApi(identityToken);
-      
+
       // Check if 2FA is required
       if (result.requires2FA && result.verificationToken) {
         // Navigate to 2FA verification screen
         router.push({
-          pathname: '/verify-2fa',
+          pathname: '/verify-2fa' as any,
           params: { verificationToken: result.verificationToken },
         });
         return;
       }
-      
+
       if (result.token && result.user) {
         await login(result.token, result.user);
         // Navigate immediately after login
@@ -143,8 +143,8 @@ export default function SignInModal() {
   return (
     <>
       <Stack.Screen options={screenOptions} />
-      <SignInScreen 
-        onClose={handleClose} 
+      <SignInScreen
+        onClose={handleClose}
         onAppleSignIn={handleAppleSignIn}
         onGoogleSignIn={handleGoogleSignIn}
         notDismissable={notDismissable}

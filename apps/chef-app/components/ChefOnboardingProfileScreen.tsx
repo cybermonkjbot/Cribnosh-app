@@ -1,4 +1,4 @@
-import { ChefHat, UtensilsCrossed, Fish, Beef, Sushi, Pizza, Hamburger, Grape, Apple, Cookie, Utensils } from 'lucide-react-native';
+import { Apple, Beef, ChefHat, Cookie, Fish, Grape, Hamburger, Utensils, UtensilsCrossed } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { ImageBackground, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,7 +31,7 @@ export const ChefOnboardingProfileScreen: React.FC<ChefOnboardingProfileScreenPr
     { id: 'Chinese', label: 'Chinese', icon: UtensilsCrossed },
     { id: 'Indian', label: 'Indian', icon: Grape },
     { id: 'Mexican', label: 'Mexican', icon: Beef },
-    { id: 'Japanese', label: 'Japanese', icon: Sushi },
+    { id: 'Japanese', label: 'Japanese', icon: Fish },
     { id: 'Thai', label: 'Thai', icon: Cookie },
     { id: 'American', label: 'American', icon: Hamburger },
     { id: 'Mediterranean', label: 'Mediterranean', icon: Apple },
@@ -42,7 +42,7 @@ export const ChefOnboardingProfileScreen: React.FC<ChefOnboardingProfileScreenPr
   ];
 
   const handleSpecialtyToggle = (specialtyId: string) => {
-    setSelectedSpecialties(prev => 
+    setSelectedSpecialties(prev =>
       prev.includes(specialtyId)
         ? prev.filter(id => id !== specialtyId)
         : [...prev, specialtyId]
@@ -68,10 +68,10 @@ export const ChefOnboardingProfileScreen: React.FC<ChefOnboardingProfileScreenPr
         <View style={styles.logoContainer}>
           <CribNoshLogo size={172} variant="default" />
         </View>
-        
+
         {/* Onboarding Content Card */}
         <View style={[styles.cardContainer, { bottom: 0 }]}>
-          <ScrollView 
+          <ScrollView
             style={styles.contentCard}
             contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
             showsVerticalScrollIndicator={false}
@@ -80,12 +80,12 @@ export const ChefOnboardingProfileScreen: React.FC<ChefOnboardingProfileScreenPr
             <View style={styles.header}>
               <Text style={styles.title}>Setup your Chef profile</Text>
             </View>
-            
+
             {/* Description */}
             <Text style={styles.description}>
               Tell us about yourself and your cooking style.
             </Text>
-            
+
             {/* Name Section */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Your Name</Text>
@@ -97,7 +97,7 @@ export const ChefOnboardingProfileScreen: React.FC<ChefOnboardingProfileScreenPr
                 placeholderTextColor="#9CA3AF"
               />
             </View>
-            
+
             {/* Bio Section */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>About You</Text>
@@ -111,7 +111,7 @@ export const ChefOnboardingProfileScreen: React.FC<ChefOnboardingProfileScreenPr
                 numberOfLines={4}
               />
             </View>
-            
+
             {/* Specialties Section */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>What cuisines do you specialize in?</Text>
@@ -130,9 +130,9 @@ export const ChefOnboardingProfileScreen: React.FC<ChefOnboardingProfileScreenPr
                       activeOpacity={0.7}
                     >
                       <View style={styles.chipIcon}>
-                        <IconComponent 
-                          color={isSelected ? '#FFFFFF' : '#6B7280'} 
-                          size={14} 
+                        <IconComponent
+                          color={isSelected ? '#FFFFFF' : '#6B7280'}
+                          size={14}
                         />
                       </View>
                       <Text style={[
@@ -147,11 +147,11 @@ export const ChefOnboardingProfileScreen: React.FC<ChefOnboardingProfileScreenPr
               </View>
             </View>
           </ScrollView>
-          
+
           {/* Floating Continue Button */}
           <View style={[styles.floatingButtonContainer, { paddingBottom: insets.bottom }]}>
-            <TouchableOpacity 
-              style={[styles.continueButton, !canContinue && styles.continueButtonDisabled]} 
+            <TouchableOpacity
+              style={[styles.continueButton, !canContinue && styles.continueButtonDisabled]}
               onPress={handleNext}
               disabled={!canContinue}
             >

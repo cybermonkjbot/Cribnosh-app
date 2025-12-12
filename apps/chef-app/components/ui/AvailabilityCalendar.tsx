@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
-import { Calendar } from 'react-native-calendars';
 import { X } from 'lucide-react-native';
+import { useState } from 'react';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Calendar } from 'react-native-calendars';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface AvailabilityCalendarProps {
@@ -36,7 +36,7 @@ export function AvailabilityCalendar({
   const handleDayPress = (day: any) => {
     const dateStr = day.dateString;
     const timestamp = new Date(dateStr).getTime();
-    
+
     const newSelectedDates = { ...selectedDates };
     if (newSelectedDates[dateStr]) {
       // Remove date
@@ -49,9 +49,9 @@ export function AvailabilityCalendar({
         marked: true,
       };
     }
-    
+
     setSelectedDates(newSelectedDates);
-    
+
     // Convert back to timestamps
     const timestamps = Object.keys(newSelectedDates).map((dateStr) => {
       return new Date(dateStr).getTime();
@@ -87,7 +87,7 @@ export function AvailabilityCalendar({
           <Calendar
             onDayPress={handleDayPress}
             markedDates={selectedDates}
-            markingType="simple"
+
             theme={{
               backgroundColor: '#FFFFFF',
               calendarBackground: '#FFFFFF',

@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { useToast } from '@/lib/ToastContext';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LiveChatDrawer } from '@/components/ui/LiveChatDrawer';
-import { MessageCircle, Plus, Clock, CheckCircle, XCircle, HelpCircle, Search, Filter, X, Star } from 'lucide-react-native';
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
+import { useToast } from '@/lib/ToastContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useMutation, useQuery } from 'convex/react';
+import { useRouter } from 'expo-router';
+import { CheckCircle, Clock, Filter, HelpCircle, MessageCircle, Plus, Search, Star, X, XCircle } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type SupportCategory = 'order' | 'payment' | 'account' | 'technical' | 'other';
 type SupportPriority = 'low' | 'medium' | 'high';
@@ -161,7 +161,7 @@ export default function SupportScreen() {
   // Filter cases for history tab
   const filteredHistoryCases = React.useMemo(() => {
     let filtered = resolvedCases;
-    
+
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -172,17 +172,17 @@ export default function SupportScreen() {
         c.support_reference?.toLowerCase().includes(query)
       );
     }
-    
+
     // Apply status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(c => c.status === statusFilter);
     }
-    
+
     // Apply category filter
     if (categoryFilter !== 'all') {
       filtered = filtered.filter(c => c.category === categoryFilter);
     }
-    
+
     // Apply date range filter
     if (dateFilterStart) {
       filtered = filtered.filter(c => c.created_at >= dateFilterStart.getTime());
@@ -191,7 +191,7 @@ export default function SupportScreen() {
       const endTime = dateFilterEnd.getTime() + 24 * 60 * 60 * 1000 - 1; // End of day
       filtered = filtered.filter(c => c.created_at <= endTime);
     }
-    
+
     return filtered;
   }, [resolvedCases, searchQuery, statusFilter, categoryFilter, dateFilterStart, dateFilterEnd]);
 
@@ -317,7 +317,7 @@ export default function SupportScreen() {
             <Button
               onPress={handleCreateCase}
               disabled={isCreating || !formData.subject.trim() || !formData.message.trim()}
-              isLoading={isCreating}
+              loading={isCreating}
               style={styles.submitButton}
             >
               Submit Support Case
@@ -327,15 +327,15 @@ export default function SupportScreen() {
 
         {/* Quick Help */}
         {!showCreateForm && (
-        <View style={styles.helpCard}>
-          <View style={styles.helpHeader}>
-            <HelpCircle size={24} color="#007AFF" />
-            <Text style={styles.helpTitle}>Quick Help</Text>
+          <View style={styles.helpCard}>
+            <View style={styles.helpHeader}>
+              <HelpCircle size={24} color="#007AFF" />
+              <Text style={styles.helpTitle}>Quick Help</Text>
+            </View>
+            <Text style={styles.helpText}>
+              Need help? Create a support case and our team will assist you. For urgent matters, select "High" priority.
+            </Text>
           </View>
-          <Text style={styles.helpText}>
-            Need help? Create a support case and our team will assist you. For urgent matters, select "High" priority.
-          </Text>
-        </View>
         )}
 
         {/* Tabs */}
@@ -510,7 +510,7 @@ export default function SupportScreen() {
         {!showCreateForm && activeTab === 'history' && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              History {filteredHistoryCases.length !== resolvedCases.length 
+              History {filteredHistoryCases.length !== resolvedCases.length
                 ? `(${filteredHistoryCases.length} of ${resolvedCases.length})`
                 : `(${resolvedCases.length})`}
             </Text>
@@ -524,80 +524,80 @@ export default function SupportScreen() {
               </View>
             ) : (
               filteredHistoryCases.map((supportCase: any) => (
-              <View key={supportCase._id} style={styles.caseCard}>
-                <View style={styles.caseHeader}>
-                  <View style={styles.caseTitleRow}>
-                    <Text style={styles.caseSubject}>{supportCase.subject}</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(supportCase.status) + '20' }]}>
-                      {getStatusIcon(supportCase.status)}
-                      <Text style={[styles.statusText, { color: getStatusColor(supportCase.status) }]}>
-                        {supportCase.status.charAt(0).toUpperCase() + supportCase.status.slice(1)}
+                <View key={supportCase._id} style={styles.caseCard}>
+                  <View style={styles.caseHeader}>
+                    <View style={styles.caseTitleRow}>
+                      <Text style={styles.caseSubject}>{supportCase.subject}</Text>
+                      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(supportCase.status) + '20' }]}>
+                        {getStatusIcon(supportCase.status)}
+                        <Text style={[styles.statusText, { color: getStatusColor(supportCase.status) }]}>
+                          {supportCase.status.charAt(0).toUpperCase() + supportCase.status.slice(1)}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.caseReference}>Ref: {supportCase.support_reference}</Text>
+                  </View>
+                  <Text style={styles.caseMessage} numberOfLines={2}>
+                    {supportCase.last_message || supportCase.message}
+                  </Text>
+                  <View style={styles.caseFooter}>
+                    <View style={styles.caseMeta}>
+                      <Text style={styles.caseCategory}>{getCategoryLabel(supportCase.category)}</Text>
+                      <Text style={styles.caseSeparator}>•</Text>
+                      <Text style={styles.casePriority}>{getPriorityLabel(supportCase.priority)} Priority</Text>
+                    </View>
+                    <Text style={styles.caseDate}>{formatDate(supportCase.created_at)}</Text>
+                  </View>
+                  {supportCase.resolved_at && (
+                    <View style={styles.resolutionInfo}>
+                      <CheckCircle size={14} color="#4CAF50" />
+                      <Text style={styles.resolutionText}>
+                        Resolved {formatDate(supportCase.resolved_at)}
                       </Text>
                     </View>
-                  </View>
-                  <Text style={styles.caseReference}>Ref: {supportCase.support_reference}</Text>
-                </View>
-                <Text style={styles.caseMessage} numberOfLines={2}>
-                  {supportCase.last_message || supportCase.message}
-                </Text>
-                <View style={styles.caseFooter}>
-                  <View style={styles.caseMeta}>
-                    <Text style={styles.caseCategory}>{getCategoryLabel(supportCase.category)}</Text>
-                    <Text style={styles.caseSeparator}>•</Text>
-                    <Text style={styles.casePriority}>{getPriorityLabel(supportCase.priority)} Priority</Text>
-                  </View>
-                  <Text style={styles.caseDate}>{formatDate(supportCase.created_at)}</Text>
-                </View>
-                {supportCase.resolved_at && (
-                  <View style={styles.resolutionInfo}>
-                    <CheckCircle size={14} color="#4CAF50" />
-                    <Text style={styles.resolutionText}>
-                      Resolved {formatDate(supportCase.resolved_at)}
-                    </Text>
-                  </View>
-                )}
-                {supportCase.rating ? (
-                  <View style={styles.ratingContainer}>
-                    <Text style={styles.ratingLabel}>Your Rating:</Text>
-                    <View style={styles.ratingStars}>
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          size={16}
-                          color={star <= supportCase.rating ? '#FFB800' : '#E5E7EB'}
-                          fill={star <= supportCase.rating ? '#FFB800' : 'transparent'}
-                        />
-                      ))}
+                  )}
+                  {supportCase.rating ? (
+                    <View style={styles.ratingContainer}>
+                      <Text style={styles.ratingLabel}>Your Rating:</Text>
+                      <View style={styles.ratingStars}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={16}
+                            color={star <= supportCase.rating ? '#FFB800' : '#E5E7EB'}
+                            fill={star <= supportCase.rating ? '#FFB800' : 'transparent'}
+                          />
+                        ))}
+                      </View>
                     </View>
-                  </View>
-                ) : (
-                  <View style={styles.actionButtons}>
-                    <Button
-                      variant="outline"
-                      onPress={() => {
-                        setSelectedCaseId(supportCase._id);
-                        setIsChatVisible(true);
-                      }}
-                      style={styles.chatButton}
-                    >
-                      <MessageCircle size={16} color="#007AFF" />
-                      <Text style={styles.chatButtonText}>View Chat</Text>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onPress={() => {
-                        setRatingCaseId(supportCase._id);
-                        setRatingValue(0);
-                        setRatingComment('');
-                      }}
-                      style={styles.rateButton}
-                    >
-                      <Star size={16} color="#FFB800" />
-                      <Text style={styles.rateButtonText}>Rate</Text>
-                    </Button>
-                  </View>
-                )}
-              </View>
+                  ) : (
+                    <View style={styles.actionButtons}>
+                      <Button
+                        variant="outline"
+                        onPress={() => {
+                          setSelectedCaseId(supportCase._id);
+                          setIsChatVisible(true);
+                        }}
+                        style={styles.chatButton}
+                      >
+                        <MessageCircle size={16} color="#007AFF" />
+                        <Text style={styles.chatButtonText}>View Chat</Text>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onPress={() => {
+                          setRatingCaseId(supportCase._id);
+                          setRatingValue(0);
+                          setRatingComment('');
+                        }}
+                        style={styles.rateButton}
+                      >
+                        <Star size={16} color="#FFB800" />
+                        <Text style={styles.rateButtonText}>Rate</Text>
+                      </Button>
+                    </View>
+                  )}
+                </View>
               ))
             )}
           </View>
@@ -696,8 +696,8 @@ export default function SupportScreen() {
       {/* Date Picker */}
       {showDatePicker && (
         <DateTimePicker
-          value={showDatePicker === 'start' 
-            ? (dateFilterStart || new Date()) 
+          value={showDatePicker === 'start'
+            ? (dateFilterStart || new Date())
             : (dateFilterEnd || new Date())}
           mode="date"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
@@ -743,8 +743,8 @@ export default function SupportScreen() {
               </TouchableOpacity>
             </View>
             <DateTimePicker
-              value={showDatePicker === 'start' 
-                ? (dateFilterStart || new Date()) 
+              value={showDatePicker === 'start'
+                ? (dateFilterStart || new Date())
                 : (dateFilterEnd || new Date())}
               mode="date"
               display="spinner"

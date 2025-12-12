@@ -8,7 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, ChefHat, Link2, Utensils, Video as VideoIcon, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function VideoUploadScreen() {
@@ -39,7 +39,7 @@ export default function VideoUploadScreen() {
 
   const generateUploadUrl = useMutation(api.mutations.videoPosts.generateVideoUploadUrl);
   const createVideoPost = useMutation(api.mutations.videoPosts.createVideoPostByUserId);
-  
+
   // Get recipes and meals for linking
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const recipes = useQuery(
@@ -48,7 +48,7 @@ export default function VideoUploadScreen() {
       ? { author: chef.name, sessionToken }
       : 'skip'
   ) as any[] | undefined;
-  
+
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const meals = useQuery(
     api.queries.meals.getByChefId,
@@ -82,7 +82,7 @@ export default function VideoUploadScreen() {
 
           // Get video metadata
           const metadata = await getVideoMetadata(asset.uri);
-          
+
           // Validate file size (max 500MB)
           const maxFileSize = 500 * 1024 * 1024; // 500MB in bytes
           if (metadata.fileSize > maxFileSize) {
@@ -96,7 +96,7 @@ export default function VideoUploadScreen() {
             setVideoMetadata(null);
             return;
           }
-          
+
           // Validate duration (max 30 minutes)
           const maxDuration = 30 * 60; // 30 minutes in seconds
           if (metadata.duration > maxDuration) {
@@ -110,7 +110,7 @@ export default function VideoUploadScreen() {
             setVideoMetadata(null);
             return;
           }
-          
+
           setVideoMetadata(metadata);
         } catch (error) {
           console.error('Error generating thumbnail:', error);
@@ -166,7 +166,7 @@ export default function VideoUploadScreen() {
       // Step 1: Upload video
       setUploadProgress(10);
       const videoUploadUrl = await generateUploadUrl();
-      
+
       const videoResponse = await fetch(videoUri);
       const videoBlob = await videoResponse.blob();
 
@@ -191,7 +191,7 @@ export default function VideoUploadScreen() {
       if (thumbnailUri) {
         setUploadProgress(70);
         const thumbnailUploadUrl = await convex.mutation(api.mutations.documents.generateUploadUrl);
-        
+
         const thumbnailResponse = await fetch(thumbnailUri);
         const thumbnailBlob = await thumbnailResponse.blob();
 
@@ -289,8 +289,8 @@ export default function VideoUploadScreen() {
           {videoUri ? (
             <View style={styles.videoPreviewContainer}>
               {thumbnailUri ? (
-                <Image 
-                  source={{ uri: thumbnailUri }} 
+                <Image
+                  source={{ uri: thumbnailUri }}
                   style={styles.videoPreview}
                   onError={() => {
                     console.warn('Failed to load video thumbnail:', thumbnailUri);
@@ -389,11 +389,11 @@ export default function VideoUploadScreen() {
             <View style={styles.linkedContentInfo}>
               <Link2 size={16} color="#10B981" />
               <Text style={styles.linkedContentText}>
-                {linkedRecipeId && linkedMealId 
+                {linkedRecipeId && linkedMealId
                   ? 'Linked to recipe and meal'
-                  : linkedRecipeId 
-                  ? 'Linked to recipe'
-                  : 'Linked to meal'}
+                  : linkedRecipeId
+                    ? 'Linked to recipe'
+                    : 'Linked to meal'}
               </Text>
               <TouchableOpacity
                 onPress={() => {

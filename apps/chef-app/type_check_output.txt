@@ -1,0 +1,85 @@
+
+> @cribnosh/chef-app@1.0.0 type-check
+> tsc --noEmit
+
+app/(tabs)/chef/content/recipes/[id].tsx(171,36): error TS2339: Property 'storage' does not exist on type 'ConvexHttpClient'.
+app/(tabs)/chef/content/recipes/[id].tsx(562,15): error TS2322: Type '{ children: string; onPress: () => Promise<void>; disabled: boolean; isLoading: boolean; style: { flex: number; }; }' is not assignable to type 'IntrinsicAttributes & ButtonProps'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps'. Did you mean 'loading'?
+app/(tabs)/chef/content/recipes/create.tsx(131,36): error TS2339: Property 'storage' does not exist on type 'ConvexHttpClient'.
+app/(tabs)/chef/content/recipes/create.tsx(466,13): error TS2322: Type '{ children: string; onPress: () => Promise<void>; disabled: boolean; isLoading: boolean; style: { flex: number; }; }' is not assignable to type 'IntrinsicAttributes & ButtonProps'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps'. Did you mean 'loading'?
+app/(tabs)/chef/content/videos/upload.tsx(465,8): error TS2304: Cannot find name 'Modal'.
+app/(tabs)/chef/content/videos/upload.tsx(505,9): error TS2304: Cannot find name 'Modal'.
+app/(tabs)/chef/content/videos/upload.tsx(508,8): error TS2304: Cannot find name 'Modal'.
+app/(tabs)/chef/content/videos/upload.tsx(548,9): error TS2304: Cannot find name 'Modal'.
+app/(tabs)/chef/live/[sessionId].tsx(25,43): error TS2339: Property 'requestCameraPermissionsAsync' does not exist on type 'typeof CameraView'.
+app/(tabs)/chef/onboarding-setup.tsx(62,36): error TS2339: Property 'storage' does not exist on type 'ConvexHttpClient'.
+app/(tabs)/chef/onboarding-setup.tsx(223,9): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+app/(tabs)/chef/onboarding/course/[id]/module/[moduleId].tsx(167,5): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+app/(tabs)/chef/onboarding/course/[id]/module/[moduleId].tsx(203,9): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+app/(tabs)/chef/onboarding/documents/[id].tsx(41,36): error TS7006: Parameter 'd' implicitly has an 'any' type.
+app/(tabs)/chef/support/index.tsx(320,15): error TS2322: Type '{ children: string; onPress: () => Promise<void>; disabled: boolean; isLoading: boolean; style: { marginTop: number; }; }' is not assignable to type 'IntrinsicAttributes & ButtonProps'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps'. Did you mean 'loading'?
+app/(tabs)/earnings/taxes.tsx(72,48): error TS7006: Parameter 'month' implicitly has an 'any' type.
+app/(tabs)/earnings/taxes.tsx(81,37): error TS2339: Property 'documentDirectory' does not exist on type 'typeof import("/Users/joshua/Documents/Cribnosh-app/node_modules/expo-file-system/build/index")'.
+app/(tabs)/earnings/taxes.tsx(84,30): error TS2339: Property 'EncodingType' does not exist on type 'typeof import("/Users/joshua/Documents/Cribnosh-app/node_modules/expo-file-system/build/index")'.
+app/(tabs)/earnings/taxes.tsx(146,39): error TS7006: Parameter 'year' implicitly has an 'any' type.
+app/(tabs)/earnings/taxes.tsx(208,53): error TS7006: Parameter 'month' implicitly has an 'any' type.
+app/(tabs)/earnings/transactions.tsx(117,34): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+app/(tabs)/earnings/transactions.tsx(141,45): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+app/(tabs)/earnings/transactions.tsx(153,21): error TS7006: Parameter 'row' implicitly has an 'any' type.
+app/(tabs)/earnings/transactions.tsx(153,36): error TS7006: Parameter 'cell' implicitly has an 'any' type.
+app/(tabs)/earnings/transactions.tsx(158,37): error TS2339: Property 'documentDirectory' does not exist on type 'typeof import("/Users/joshua/Documents/Cribnosh-app/node_modules/expo-file-system/build/index")'.
+app/(tabs)/earnings/transactions.tsx(161,30): error TS2339: Property 'EncodingType' does not exist on type 'typeof import("/Users/joshua/Documents/Cribnosh-app/node_modules/expo-file-system/build/index")'.
+app/(tabs)/earnings/transactions.tsx(335,40): error TS7006: Parameter 'transaction' implicitly has an 'any' type.
+app/(tabs)/meals/[id]/edit.tsx(123,40): error TS2339: Property 'storage' does not exist on type 'ConvexHttpClient'.
+app/(tabs)/meals/create.tsx(99,40): error TS2339: Property 'storage' does not exist on type 'ConvexHttpClient'.
+app/(tabs)/meals/index.tsx(348,85): error TS2339: Property 'closeButton' does not exist on type '{ container: { flex: number; }; loadingContainer: { flex: number; justifyContent: "center"; alignItems: "center"; }; loadingText: { marginTop: number; fontSize: number; color: string; }; header: { flexDirection: "row"; ... 4 more ...; backgroundColor: string; }; ... 35 more ...; actionMenuDivider: { ...; }; }'.
+app/(tabs)/orders/[id].tsx(222,15): error TS2322: Type '{ children: (string | false)[]; onPress: () => Promise<void>; disabled: false; isLoading: false; }' is not assignable to type 'IntrinsicAttributes & ButtonProps'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps'. Did you mean 'loading'?
+app/(tabs)/orders/index.tsx(250,7): error TS2322: Type 'null' is not assignable to type 'string | undefined'.
+app/(tabs)/orders/index.tsx(322,6): error TS7006: Parameter 'order' implicitly has an 'any' type.
+app/(tabs)/orders/index.tsx(331,6): error TS7006: Parameter 'order' implicitly has an 'any' type.
+app/(tabs)/profile/index.tsx(114,34): error TS7006: Parameter 'recipe' implicitly has an 'any' type.
+app/(tabs)/profile/index.tsx(139,33): error TS7006: Parameter 'video' implicitly has an 'any' type.
+app/(tabs)/profile/index.tsx(152,32): error TS7006: Parameter 'meal' implicitly has an 'any' type.
+app/(tabs)/profile/index.tsx(200,21): error TS2345: Argument of type '`/(tabs)/chef/content/videos/${string}`' is not assignable to parameter of type '"/sign-in" | RelativePathString | ExternalPathString | "/account-details" | `/account-details?${string}` | `/account-details#${string}` | "/bank-accounts" | `/bank-accounts?${string}` | `/bank-accounts#${string}` | ... 243 more ... | { ...; }'.
+app/(tabs)/profile/index.tsx(203,21): error TS2345: Argument of type '`/(tabs)/chef/meals/${string}`' is not assignable to parameter of type '"/sign-in" | RelativePathString | ExternalPathString | "/account-details" | `/account-details?${string}` | `/account-details#${string}` | "/bank-accounts" | `/bank-accounts?${string}` | `/bank-accounts#${string}` | ... 243 more ... | { ...; }'.
+app/bank-accounts.tsx(363,32): error TS7006: Parameter 'account' implicitly has an 'any' type.
+app/delete-account.tsx(68,19): error TS2345: Argument of type '"/delete-account-survey"' is not assignable to parameter of type '"/sign-in" | RelativePathString | ExternalPathString | "/account-details" | `/account-details?${string}` | `/account-details#${string}` | "/bank-accounts" | `/bank-accounts?${string}` | `/bank-accounts#${string}` | ... 243 more ... | { ...; }'.
+app/download-account-data.tsx(112,80): error TS2339: Property 'cacheDirectory' does not exist on type 'typeof import("/Users/joshua/Documents/Cribnosh-app/node_modules/expo-file-system/build/index")'.
+app/food-safety-compliance.tsx(77,23): error TS7006: Parameter 'doc' implicitly has an 'any' type.
+app/help-support.tsx(193,19): error TS2345: Argument of type '`/order-details?id=${any}&support=true`' is not assignable to parameter of type '"/sign-in" | RelativePathString | ExternalPathString | "/account-details" | `/account-details?${string}` | `/account-details#${string}` | "/bank-accounts" | `/bank-accounts?${string}` | `/bank-accounts#${string}` | ... 243 more ... | { ...; }'.
+app/login-security.tsx(272,47): error TS7006: Parameter 'session' implicitly has an 'any' type.
+app/payment-settings.tsx(11,32): error TS2307: Cannot find module '@/contexts/AuthContext' or its corresponding type declarations.
+app/payment-settings.tsx(110,17): error TS2345: Argument of type '"/family-profile/manage"' is not assignable to parameter of type '"/sign-in" | RelativePathString | ExternalPathString | "/account-details" | `/account-details?${string}` | `/account-details#${string}` | "/bank-accounts" | `/bank-accounts?${string}` | `/bank-accounts#${string}` | ... 243 more ... | { ...; }'.
+app/payment-settings.tsx(212,46): error TS7006: Parameter 'method' implicitly has an 'any' type.
+app/personal-info.tsx(205,40): error TS7006: Parameter 'img' implicitly has an 'any' type.
+app/personal-info.tsx(237,32): error TS2339: Property 'storage' does not exist on type 'ConvexHttpClient'.
+app/personal-info.tsx(267,36): error TS2339: Property 'storage' does not exist on type 'ConvexHttpClient'.
+app/personal-info.tsx(839,44): error TS2339: Property 'subAdministrativeArea' does not exist on type 'LocationGeocodedAddress'.
+app/personal-info.tsx(839,74): error TS2339: Property 'administrativeArea' does not exist on type 'LocationGeocodedAddress'.
+app/personal-info.tsx(1563,39): error TS2339: Property 'loadingText' does not exist on type '{ mainContainer: { flex: number; backgroundColor: string; }; loadingContainer: { flex: number; justifyContent: "center"; alignItems: "center"; }; header: { flexDirection: "row"; alignItems: "center"; ... 4 more ...; borderBottomColor: string; }; ... 97 more ...; videoOptionMeta: { ...; }; }'.
+app/personal-info.tsx(1566,37): error TS2339: Property 'emptyState' does not exist on type '{ mainContainer: { flex: number; backgroundColor: string; }; loadingContainer: { flex: number; justifyContent: "center"; alignItems: "center"; }; header: { flexDirection: "row"; alignItems: "center"; ... 4 more ...; borderBottomColor: string; }; ... 97 more ...; videoOptionMeta: { ...; }; }'.
+app/personal-info.tsx(1567,39): error TS2339: Property 'emptyStateTitle' does not exist on type '{ mainContainer: { flex: number; backgroundColor: string; }; loadingContainer: { flex: number; justifyContent: "center"; alignItems: "center"; }; header: { flexDirection: "row"; alignItems: "center"; ... 4 more ...; borderBottomColor: string; }; ... 97 more ...; videoOptionMeta: { ...; }; }'.
+app/personal-info.tsx(1568,39): error TS2339: Property 'emptyStateText' does not exist on type '{ mainContainer: { flex: number; backgroundColor: string; }; loadingContainer: { flex: number; justifyContent: "center"; alignItems: "center"; }; header: { flexDirection: "row"; alignItems: "center"; ... 4 more ...; borderBottomColor: string; }; ... 97 more ...; videoOptionMeta: { ...; }; }'.
+app/request-payout.tsx(62,41): error TS7006: Parameter 'acc' implicitly has an 'any' type.
+app/request-payout.tsx(190,31): error TS7006: Parameter 'account' implicitly has an 'any' type.
+app/sign-in.tsx(61,22): error TS2345: Argument of type '"/(tabs)/chef"' is not assignable to parameter of type '"/sign-in" | RelativePathString | ExternalPathString | "/account-details" | `/account-details?${string}` | `/account-details#${string}` | "/bank-accounts" | `/bank-accounts?${string}` | `/bank-accounts#${string}` | ... 243 more ... | { ...; }'.
+app/sign-in.tsx(82,22): error TS2345: Argument of type '"/(tabs)/chef"' is not assignable to parameter of type '"/sign-in" | RelativePathString | ExternalPathString | "/account-details" | `/account-details?${string}` | `/account-details#${string}` | "/bank-accounts" | `/bank-accounts?${string}` | `/bank-accounts#${string}` | ... 243 more ... | { ...; }'.
+app/sign-in.tsx(94,11): error TS2322: Type '"/verify-2fa"' is not assignable to type '"/sign-in" | RelativePathString | ExternalPathString | "/account-details" | "/bank-accounts" | "/certifications" | "/change-password" | ... 63 more ... | "/orders/[id]"'.
+app/sign-in.tsx(118,11): error TS2322: Type '"/verify-2fa"' is not assignable to type '"/sign-in" | RelativePathString | ExternalPathString | "/account-details" | "/bank-accounts" | "/certifications" | "/change-password" | ... 63 more ... | "/orders/[id]"'.
+components/AnimatedSplashScreen.tsx(37,7): error TS2353: Object literal may only specify known properties, and 'tension' does not exist in type 'SpringConfig'.
+components/ChefOnboardingLocationScreen.tsx(60,52): error TS2339: Property 'subAdministrativeArea' does not exist on type 'LocationGeocodedAddress'.
+components/ChefOnboardingLocationScreen.tsx(60,85): error TS2339: Property 'administrativeArea' does not exist on type 'LocationGeocodedAddress'.
+components/DocumentUploadSheet.tsx(195,23): error TS7006: Parameter 'doc' implicitly has an 'any' type.
+components/DocumentUploadSheet.tsx(607,11): error TS2322: Type '{ isVisible: true; onClose: () => void; onPhotoCaptured: (photoUri: string) => void; }' is not assignable to type 'IntrinsicAttributes & CameraModalScreenProps'.
+  Property 'isVisible' does not exist on type 'IntrinsicAttributes & CameraModalScreenProps'.
+npm error Lifecycle script `type-check` failed with error:
+npm error code 2
+npm error path /Users/joshua/Documents/Cribnosh-app/apps/chef-app
+npm error workspace @cribnosh/chef-app@1.0.0
+npm error location /Users/joshua/Documents/Cribnosh-app/apps/chef-app
+npm error command failed
+npm error command sh -c tsc --noEmit

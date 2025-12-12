@@ -1,6 +1,6 @@
+import { BlurEffect } from '@/utils/blurEffects';
 import type { FC, ReactNode } from 'react';
 import { StyleSheet, Text, View, ViewProps } from 'react-native';
-import { BlurEffect } from '@/utils/blurEffects';
 
 export interface BadgeProps extends ViewProps {
   variant?: 'default' | 'secondary';
@@ -24,7 +24,7 @@ export const Badge: FC<BadgeProps> = ({ variant = 'default', children, glass, el
           intensity={18}
           tint="light"
           useGradient={true}
-          style={StyleSheet.absoluteFill}
+          style={StyleSheet.absoluteFillObject}
         />
       )}
       <View

@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { useToast } from '@/lib/ToastContext';
-import { Id } from '@/convex/_generated/dataModel';
-import { ArrowLeft, X, Link2, BookOpen, Video } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { getConvexClient } from '@/lib/convexClient';
-import { GradientBackground } from '@/components/ui/GradientBackground';
 import { ContentLinkSelector } from '@/components/ui/ContentLinkSelector';
+import { GradientBackground } from '@/components/ui/GradientBackground';
+import { useChefAuth } from '@/contexts/ChefAuthContext';
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
+import { getConvexClient } from '@/lib/convexClient';
+import { useToast } from '@/lib/ToastContext';
+import { useMutation, useQuery } from 'convex/react';
+import * as ImagePicker from 'expo-image-picker';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { ArrowLeft, BookOpen, Link2, Video, X } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const CUISINE_OPTIONS = [
   'Italian', 'Chinese', 'Indian', 'Mexican', 'Japanese', 'Thai', 'French', 'Mediterranean',
@@ -46,7 +46,7 @@ export default function EditMealPage() {
   const [showContentSelector, setShowContentSelector] = useState(false);
 
   const updateMeal = useMutation(api.mutations.meals.updateMeal);
-  
+
   // Fetch meal data
   const meal = useQuery(
     api.queries.meals.getMealByIdForEdit,
@@ -120,7 +120,7 @@ export default function EditMealPage() {
           const storageId = uploadResult.storageId || uploadResult;
 
           // Get file URL
-          const fileUrl = await convex.storage.getUrl(storageId);
+          const fileUrl = await (convex as any).storage.getUrl(storageId);
           uploadedImages.push(fileUrl);
         }
 
@@ -216,11 +216,11 @@ export default function EditMealPage() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false,
           title: 'Edit Meal'
-        }} 
+        }}
       />
       <GradientBackground>
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -249,7 +249,7 @@ export default function EditMealPage() {
                 {/* Basic Information */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Basic Information</Text>
-                  
+
                   <View style={styles.fieldContainer}>
                     <Text style={styles.label}>Meal Name *</Text>
                     <TextInput
@@ -343,7 +343,7 @@ export default function EditMealPage() {
                 {/* Images */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Meal Images</Text>
-                  
+
                   {formData.images.length > 0 && (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScrollView}>
                       <View style={styles.imagesContainer}>
@@ -361,7 +361,7 @@ export default function EditMealPage() {
                       </View>
                     </ScrollView>
                   )}
-                  
+
                   <TouchableOpacity
                     onPress={handleImagePick}
                     disabled={isUploadingImage}
@@ -383,7 +383,7 @@ export default function EditMealPage() {
                   <Text style={styles.sectionDescription}>
                     Link recipes and videos to this meal to provide additional context and instructions
                   </Text>
-                  
+
                   {/* Linked Recipe */}
                   <View style={styles.fieldContainer}>
                     <Text style={styles.label}>Recipe</Text>

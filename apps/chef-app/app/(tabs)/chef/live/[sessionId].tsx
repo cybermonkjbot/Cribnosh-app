@@ -1,11 +1,11 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { View, StyleSheet, StatusBar, TouchableOpacity, Dimensions, SafeAreaView, Text } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { CameraView } from 'expo-camera';
-import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { LiveStreamDashboard } from '@/components/ui/LiveStreamDashboard';
+import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { Id } from '@/convex/_generated/dataModel';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { X } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Dimensions, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -15,17 +15,18 @@ export default function LiveStreamScreen() {
   const { chef } = useChefAuth();
   const cameraRef = useRef<any>(null);
   const [cameraType, setCameraType] = useState<'front' | 'back'>('back');
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [permission, requestPermission] = useCameraPermissions();
+  // const [hasPermission, setHasPermission] = useState<boolean | null>(null); // Removed locally managed state
 
   const sessionId = params.sessionId as Id<'liveSessions'> | undefined;
 
   useEffect(() => {
-    // Request camera permission
-    (async () => {
-      const { status } = await CameraView.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-    })();
-  }, []);
+    if (!permission) {
+      requestPermission();
+    }
+  }, [permission, requestPermission]);
+
+  const hasPermission = permission?.granted;
 
   const handleEndStream = () => {
     router.back();
@@ -94,7 +95,7 @@ export default function LiveStreamScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
-      
+
       {/* Camera View */}
       <CameraView
         ref={cameraRef}
@@ -106,7 +107,7 @@ export default function LiveStreamScreen() {
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
             <X size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.flipButton} onPress={handleFlipCamera}>
             <View style={styles.flipIcon}>
               <View style={styles.flipIconInner} />

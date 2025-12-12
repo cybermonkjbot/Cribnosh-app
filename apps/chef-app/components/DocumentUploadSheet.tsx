@@ -155,7 +155,7 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
   const { chef, sessionToken: authSessionToken } = useChefAuth();
   const { showSuccess, showError } = useToast();
   const [sessionToken, setSessionToken] = useState<string | null>(null);
-  
+
   // Upload state
   const [selectedDocument, setSelectedDocument] = useState<DocumentItem | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -192,7 +192,7 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
   const documentsByType = useMemo(() => {
     if (!documents) return {};
     const map: Record<string, typeof documents[0]> = {};
-    documents.forEach(doc => {
+    documents.forEach((doc: any) => {
       map[doc.documentType] = doc;
     });
     return map;
@@ -246,7 +246,7 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
 
   const handleItemPress = useCallback((item: DocumentItem) => {
     console.log('Document item pressed:', item);
-    
+
     // If document is rejected, navigate to detailed screen for resubmission
     if (item.status === 'rejected' && item.documentId) {
       onClose();
@@ -280,7 +280,7 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
   const handlePickFromGallery = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+
       if (status !== 'granted') {
         Alert.alert(
           'Permission Required',
@@ -375,7 +375,7 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
       });
 
       showSuccess('Document Uploaded', 'Your document has been submitted for verification.');
-      
+
       // Reset state and close modal
       setSelectedImage(null);
       setSelectedDocument(null);
@@ -452,7 +452,7 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
 
           {/* Floating Get Help Button */}
           {hasMinimumData && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.floatingHelpButton, { bottom: insets.bottom + 20 }]}
               onPress={handleGetHelp}
               activeOpacity={0.8}
@@ -463,140 +463,140 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
 
           {/* Upload Modal Overlay */}
           {showUploadModal && selectedDocument && (
-        <View style={styles.uploadModalOverlay}>
-          <TouchableOpacity 
-            style={styles.uploadModalBackdrop}
-            activeOpacity={1}
-            onPress={handleCloseUploadModal}
-            disabled={isUploading}
-          />
-          <View style={styles.uploadModalContent}>
-            <View style={styles.uploadModalHeader}>
-              <Text style={styles.uploadModalTitle}>{selectedDocument.name}</Text>
-              <TouchableOpacity 
-                onPress={handleCloseUploadModal} 
-                style={styles.uploadModalCloseButton}
-                disabled={isUploading}
-              >
-                <X size={24} color="#094327" />
-              </TouchableOpacity>
-            </View>
-
-            {selectedImage ? (
-              <View style={styles.imagePreviewContainer}>
-                <Image 
-                  source={{ uri: selectedImage }} 
-                  style={styles.imagePreview}
-                  onError={() => {
-                    console.warn('Failed to load document image:', selectedImage);
-                  }}
-                />
-                <TouchableOpacity 
-                  style={styles.removeImageButton}
-                  onPress={handleRemoveImage}
-                  disabled={isUploading}
-                >
-                  <X size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.uploadOptionsContainer}>
-                <TouchableOpacity 
-                  style={styles.uploadOption}
-                  onPress={handleTakePhoto}
-                  disabled={isUploading}
-                >
-                  <Camera size={32} color="#094327" />
-                  <Text style={styles.uploadOptionText}>Take Photo</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.uploadOption}
-                  onPress={handlePickFromGallery}
-                  disabled={isUploading}
-                >
-                  <UploadIcon size={32} color="#094327" />
-                  <Text style={styles.uploadOptionText}>Choose from Gallery</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {selectedImage && (
+            <View style={styles.uploadModalOverlay}>
               <TouchableOpacity
-                style={[styles.uploadButton, isUploading && styles.uploadButtonDisabled]}
-                onPress={handleUpload}
+                style={styles.uploadModalBackdrop}
+                activeOpacity={1}
+                onPress={handleCloseUploadModal}
                 disabled={isUploading}
-              >
-                {isUploading ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+              />
+              <View style={styles.uploadModalContent}>
+                <View style={styles.uploadModalHeader}>
+                  <Text style={styles.uploadModalTitle}>{selectedDocument.name}</Text>
+                  <TouchableOpacity
+                    onPress={handleCloseUploadModal}
+                    style={styles.uploadModalCloseButton}
+                    disabled={isUploading}
+                  >
+                    <X size={24} color="#094327" />
+                  </TouchableOpacity>
+                </View>
+
+                {selectedImage ? (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image
+                      source={{ uri: selectedImage }}
+                      style={styles.imagePreview}
+                      onError={() => {
+                        console.warn('Failed to load document image:', selectedImage);
+                      }}
+                    />
+                    <TouchableOpacity
+                      style={styles.removeImageButton}
+                      onPress={handleRemoveImage}
+                      disabled={isUploading}
+                    >
+                      <X size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
                 ) : (
-                  <Text style={styles.uploadButtonText}>Upload Document</Text>
+                  <View style={styles.uploadOptionsContainer}>
+                    <TouchableOpacity
+                      style={styles.uploadOption}
+                      onPress={handleTakePhoto}
+                      disabled={isUploading}
+                    >
+                      <Camera size={32} color="#094327" />
+                      <Text style={styles.uploadOptionText}>Take Photo</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.uploadOption}
+                      onPress={handlePickFromGallery}
+                      disabled={isUploading}
+                    >
+                      <UploadIcon size={32} color="#094327" />
+                      <Text style={styles.uploadOptionText}>Choose from Gallery</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
+
+                {selectedImage && (
+                  <TouchableOpacity
+                    style={[styles.uploadButton, isUploading && styles.uploadButtonDisabled]}
+                    onPress={handleUpload}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.uploadButtonText}>Upload Document</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
           )}
 
           {/* Help Modal Overlay */}
           {showHelpModal && (
-        <View style={styles.helpModalOverlay}>
-          <TouchableOpacity 
-            style={styles.helpModalBackdrop}
-            activeOpacity={1}
-            onPress={() => setShowHelpModal(false)}
-          />
-          <View style={styles.helpModalContent}>
-            <View style={styles.helpModalHeader}>
-              <Text style={styles.helpModalTitle}>Get Help with Documents</Text>
-              <TouchableOpacity 
-                onPress={() => setShowHelpModal(false)} 
-                style={styles.helpModalCloseButton}
-              >
-                <X size={24} color="#094327" />
-              </TouchableOpacity>
+            <View style={styles.helpModalOverlay}>
+              <TouchableOpacity
+                style={styles.helpModalBackdrop}
+                activeOpacity={1}
+                onPress={() => setShowHelpModal(false)}
+              />
+              <View style={styles.helpModalContent}>
+                <View style={styles.helpModalHeader}>
+                  <Text style={styles.helpModalTitle}>Get Help with Documents</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowHelpModal(false)}
+                    style={styles.helpModalCloseButton}
+                  >
+                    <X size={24} color="#094327" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView style={styles.helpModalScroll} showsVerticalScrollIndicator={false}>
+                  <View style={styles.helpModalSection}>
+                    <Text style={styles.helpSectionTitle}>Food Business Approval (FBA)</Text>
+                    <Text style={styles.helpSectionText}>
+                      Register your food business with your local council. This is free and required by law.
+                    </Text>
+                    <Text style={styles.helpLink}>Find your local council: food.gov.uk</Text>
+                  </View>
+
+                  <View style={styles.helpModalSection}>
+                    <Text style={styles.helpSectionTitle}>Health Permit</Text>
+                    <Text style={styles.helpSectionText}>
+                      Contact your local Environmental Health Department for inspections and permits.
+                    </Text>
+                    <Text style={styles.helpLink}>Visit: food.gov.uk/business</Text>
+                  </View>
+
+                  <View style={styles.helpModalSection}>
+                    <Text style={styles.helpSectionTitle}>Insurance Certificate</Text>
+                    <Text style={styles.helpSectionText}>
+                      Get public liability insurance for your food business. Compare quotes from providers like Simply Business, Hiscox, or Qdos.
+                    </Text>
+                    <Text style={styles.helpLink}>Compare quotes: simplybusiness.co.uk</Text>
+                  </View>
+
+                  <View style={styles.helpModalSection}>
+                    <Text style={styles.helpSectionTitle}>Kitchen Certification</Text>
+                    <Text style={styles.helpSectionText}>
+                      Your kitchen may need certification from your local authority or a private certification body like SALSA or BRC.
+                    </Text>
+                    <Text style={styles.helpLink}>Learn more: salsa.co.uk</Text>
+                  </View>
+
+                  <View style={styles.helpFooter}>
+                    <Text style={styles.helpFooterText}>
+                      Need more assistance? Contact our support team for guidance.
+                    </Text>
+                  </View>
+                </ScrollView>
+              </View>
             </View>
-
-            <ScrollView style={styles.helpModalScroll} showsVerticalScrollIndicator={false}>
-              <View style={styles.helpModalSection}>
-                <Text style={styles.helpSectionTitle}>Food Business Approval (FBA)</Text>
-                <Text style={styles.helpSectionText}>
-                  Register your food business with your local council. This is free and required by law.
-                </Text>
-                <Text style={styles.helpLink}>Find your local council: food.gov.uk</Text>
-              </View>
-
-              <View style={styles.helpModalSection}>
-                <Text style={styles.helpSectionTitle}>Health Permit</Text>
-                <Text style={styles.helpSectionText}>
-                  Contact your local Environmental Health Department for inspections and permits.
-                </Text>
-                <Text style={styles.helpLink}>Visit: food.gov.uk/business</Text>
-              </View>
-
-              <View style={styles.helpModalSection}>
-                <Text style={styles.helpSectionTitle}>Insurance Certificate</Text>
-                <Text style={styles.helpSectionText}>
-                  Get public liability insurance for your food business. Compare quotes from providers like Simply Business, Hiscox, or Qdos.
-                </Text>
-                <Text style={styles.helpLink}>Compare quotes: simplybusiness.co.uk</Text>
-              </View>
-
-              <View style={styles.helpModalSection}>
-                <Text style={styles.helpSectionTitle}>Kitchen Certification</Text>
-                <Text style={styles.helpSectionText}>
-                  Your kitchen may need certification from your local authority or a private certification body like SALSA or BRC.
-                </Text>
-                <Text style={styles.helpLink}>Learn more: salsa.co.uk</Text>
-              </View>
-
-              <View style={styles.helpFooter}>
-                <Text style={styles.helpFooterText}>
-                  Need more assistance? Contact our support team for guidance.
-                </Text>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
           )}
         </SafeAreaView>
       </Modal>
@@ -604,7 +604,7 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
       {/* Camera Modal */}
       {showCamera && (
         <CameraModalScreen
-          isVisible={showCamera}
+
           onClose={() => setShowCamera(false)}
           onPhotoCaptured={handlePhotoCaptured}
         />

@@ -34,8 +34,8 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
     // Parallel animations in reanimated are just concurrent updates
     logoOpacityAnim.value = withTiming(1, { duration: 600 });
     logoScaleAnim.value = withSpring(1, {
-      tension: 50,
-      friction: 7,
+      stiffness: 150,
+      damping: 15,
     });
 
     // Start background color cycling animation
