@@ -1,6 +1,6 @@
+import { BlurEffect } from '@/utils/blurEffects';
 import type { FC, ReactNode } from 'react';
 import { Modal as RNModal, StyleSheet, View } from 'react-native';
-import { BlurEffect } from '@/utils/blurEffects';
 
 export interface ModalProps {
   visible: boolean;
@@ -28,7 +28,7 @@ export const Modal: FC<ModalProps> = ({ visible, onRequestClose, children, glass
             intensity={30}
             tint="light"
             useGradient={true}
-            style={StyleSheet.absoluteFill}
+            style={StyleSheet.absoluteFillObject}
           />
         )}
         <View

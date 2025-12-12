@@ -1,7 +1,7 @@
+import { BlurEffect } from '@/utils/blurEffects';
 import type { FC, ReactNode } from 'react';
 import { useRef } from 'react';
 import { ActivityIndicator, Animated, StyleSheet, Text, TouchableOpacity, TouchableOpacityProps, View } from 'react-native';
-import { BlurEffect } from '@/utils/blurEffects';
 
 export interface ButtonProps extends TouchableOpacityProps {
   variant?: 'default' | 'outline' | 'ghost' | 'danger';
@@ -52,7 +52,7 @@ const sizeStyles = {
   },
 };
 
-const textStyles = {
+const textStyles: Record<string, { color: string; fontSize: number; fontWeight: any }> = {
   default: {
     color: '#FFFFFF', // text-white
     fontSize: 16, // text-base
@@ -101,27 +101,27 @@ export const Button: FC<ButtonProps> = ({
 
   const handlePressIn = (event: any) => {
     if (isDisabled) return;
-    
+
     Animated.spring(scaleAnim, {
       toValue: 0.95,
       useNativeDriver: true,
       tension: 300,
       friction: 10,
     }).start();
-    
+
     onPressIn?.(event);
   };
 
   const handlePressOut = (event: any) => {
     if (isDisabled) return;
-    
+
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
       tension: 300,
       friction: 10,
     }).start();
-    
+
     onPressOut?.(event);
   };
 
@@ -152,8 +152,8 @@ export const Button: FC<ButtonProps> = ({
           tint="light"
           useGradient={true}
           style={[
-            StyleSheet.absoluteFill,
-            { 
+            StyleSheet.absoluteFillObject,
+            {
               zIndex: 0,
               pointerEvents: 'none'
             }
@@ -164,9 +164,9 @@ export const Button: FC<ButtonProps> = ({
       {/* Button content - positioned above glass effect */}
       <View style={{ zIndex: 1, pointerEvents: 'none', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
         {loading ? (
-          <ActivityIndicator 
-            size="small" 
-            color={textColor || (variant === 'outline' || variant === 'ghost' ? '#000000' : '#FFFFFF')} 
+          <ActivityIndicator
+            size="small"
+            color={textColor || (variant === 'outline' || variant === 'ghost' ? '#000000' : '#FFFFFF')}
           />
         ) : (
           children !== undefined && children !== null ? (

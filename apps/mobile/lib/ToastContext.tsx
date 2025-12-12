@@ -1,8 +1,11 @@
 import React, { createContext, ReactNode, useCallback, useContext, useRef, useState } from 'react';
-import { ToastContainer, ToastProps } from '../app/components/Toast';
+import { ToastContainer, ToastProps, ToastType } from '../app/components/Toast';
 
 interface ToastContextType {
-  showToast: (toast: Omit<ToastProps, 'id'>) => void;
+  showToast: {
+    (toast: Omit<ToastProps, 'id'>): void;
+    (message: string, type?: ToastType): void;
+  };
   hideToast: (id: string) => void;
   showSuccess: (title: string, message?: string, duration?: number) => void;
   showError: (title: string, message?: string, duration?: number) => void;
@@ -21,14 +24,28 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastProps[]>([]);
   const idCounterRef = useRef(0);
 
-  const showToast = useCallback((toast: Omit<ToastProps, 'id'>) => {
+  const showToast = useCallback((arg1: Omit<ToastProps, 'id'> | string, arg2?: ToastType) => {
     idCounterRef.current += 1;
     const id = `${Date.now()}-${idCounterRef.current}`;
-    const newToast: ToastProps = {
-      ...toast,
-      id,
-    };
-    
+
+    let newToast: ToastProps;
+
+    if (typeof arg1 === 'string') {
+      // Handle overload: showToast(message, type)
+      newToast = {
+        id,
+        type: arg2 || 'info', // Default to info if type not provided
+        title: arg2 ? arg2.charAt(0).toUpperCase() + arg2.slice(1) : 'Info',
+        message: arg1,
+      };
+    } else {
+      // Handle default: showToast(toastObject)
+      newToast = {
+        ...arg1,
+        id,
+      };
+    }
+
     setToasts(prev => [...prev, newToast]);
   }, []);
 

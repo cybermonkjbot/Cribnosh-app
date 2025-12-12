@@ -1,19 +1,21 @@
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ImageStack } from "@/components/ui/ImageStack";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { api } from '@/convex/_generated/api';
+import { useOrders } from "@/hooks/useOrders";
+import { getSessionToken } from "@/lib/convexClient";
 import { Order as ApiOrder } from "@/types/customer";
+import { getAbsoluteImageUrl } from "@/utils/imageUrl";
+import Entypo from "@expo/vector-icons/Entypo";
+import { useQuery } from "convex/react";
 import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import Entypo from "@expo/vector-icons/Entypo";
 import {
-  Star,
-  Phone,
   FileText,
+  Phone,
+  Star,
 } from "lucide-react-native";
-import { useState, useEffect } from "react";
-import { useOrders } from "@/hooks/useOrders";
-import { useQuery } from "convex/react";
-import { api } from '@/convex/_generated/api';
-import { getSessionToken } from "@/lib/convexClient";
-import { useAuthContext } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,17 +26,15 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ImageStack } from "@/components/ui/ImageStack";
-import { getAbsoluteImageUrl } from "@/utils/imageUrl";
 
 // Helper function to check if order is active
 const isOrderActive = (status: string): boolean => {
   const activeStatuses = [
-    "pending", 
-    "confirmed", 
-    "preparing", 
+    "pending",
+    "confirmed",
+    "preparing",
     "ready",
-    "on-the-way", 
+    "on-the-way",
     "on_the_way",
     "out_for_delivery"
   ];
@@ -132,14 +132,14 @@ export default function OrderDetailsScreen() {
 
   const handleNavigateToRateOrder = () => {
     if (orderId) {
-      router.push(`/rate-order?id=${orderId}`);
+      router.push(`/rate-order?id=${orderId}` as any);
     }
   };
 
   const handleCallKitchen = async () => {
     // Get phone number from enriched order data
     const phoneNumber = order?.kitchen_phone;
-    
+
     if (!phoneNumber) {
       // Phone number not available
       Alert.alert(
@@ -148,7 +148,7 @@ export default function OrderDetailsScreen() {
       );
       return;
     }
-    
+
     try {
       const url = `tel:${phoneNumber.replace(/[^0-9+]/g, "")}`;
       const canOpen = await Linking.canOpenURL(url);
@@ -259,11 +259,11 @@ export default function OrderDetailsScreen() {
   if (apiLoading) {
     return (
       <>
-        <Stack.Screen 
-          options={{ 
+        <Stack.Screen
+          options={{
             headerShown: false,
             title: 'Order Details'
-          }} 
+          }}
         />
         <SafeAreaView style={styles.container}>
           <View style={styles.header}>
@@ -285,11 +285,11 @@ export default function OrderDetailsScreen() {
   if (!order) {
     return (
       <>
-        <Stack.Screen 
-          options={{ 
+        <Stack.Screen
+          options={{
             headerShown: false,
             title: 'Order Details'
-          }} 
+          }}
         />
         <SafeAreaView style={styles.container}>
           <View style={styles.header}>
@@ -313,11 +313,11 @@ export default function OrderDetailsScreen() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false,
           title: 'Order Details'
-        }} 
+        }}
       />
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView
@@ -369,7 +369,7 @@ export default function OrderDetailsScreen() {
             </View>
 
             {/* Order Note */}
-            {(order.special_instructions || order.specialInstructions) && (
+            {(order.special_instructions || (order as any).specialInstructions) && (
               <View style={styles.noteSection}>
                 <View style={styles.noteHeader}>
                   <View style={styles.iconBadge}>
@@ -378,7 +378,7 @@ export default function OrderDetailsScreen() {
                   <Text style={styles.sectionTitle}>Order Note</Text>
                 </View>
                 <Text style={styles.noteText}>
-                  {order.special_instructions || order.specialInstructions}
+                  {order.special_instructions || (order as any).specialInstructions}
                 </Text>
               </View>
             )}
@@ -392,7 +392,7 @@ export default function OrderDetailsScreen() {
                   // Get order items with images for stacking (same logic as OrderCard)
                   const orderItems = order.items || order.order_items || [];
                   const itemsWithImages: any[] = [];
-                  
+
                   if (orderItems.length > 0) {
                     orderItems.forEach((item: any) => {
                       // Get images from various possible fields (arrays or single)
@@ -416,7 +416,7 @@ export default function OrderDetailsScreen() {
                       }
                     });
                   }
-                  
+
                   if (itemsWithImages.length > 0) {
                     return (
                       <View style={styles.imageStackContainer}>
@@ -471,7 +471,7 @@ export default function OrderDetailsScreen() {
           <View style={styles.footer}>
             {(() => {
               const status = order.status?.toLowerCase();
-              
+
               // Pending: Show Cancel only (nothing to track yet)
               if (status === "pending") {
                 return (
@@ -486,7 +486,7 @@ export default function OrderDetailsScreen() {
                   </TouchableOpacity>
                 );
               }
-              
+
               // Confirmed: Show Track Order and Cancel options
               if (status === "confirmed") {
                 return (
@@ -509,7 +509,7 @@ export default function OrderDetailsScreen() {
                   </View>
                 );
               }
-              
+
               // Preparing, Ready: Show Track Order only (not cancellable at this stage)
               if (status === "preparing" || status === "ready") {
                 return (
@@ -521,7 +521,7 @@ export default function OrderDetailsScreen() {
                   </TouchableOpacity>
                 );
               }
-              
+
               // On the Way / Out for Delivery: Show Track Order only
               if (status === "on-the-way" || status === "on_the_way" || status === "out_for_delivery") {
                 return (
@@ -533,7 +533,7 @@ export default function OrderDetailsScreen() {
                   </TouchableOpacity>
                 );
               }
-              
+
               // Completed or Delivered: Show Rate Order
               if (status === "completed" || status === "delivered") {
                 return (
@@ -545,7 +545,7 @@ export default function OrderDetailsScreen() {
                   </TouchableOpacity>
                 );
               }
-              
+
               // Cancelled: Show message
               if (status === "cancelled") {
                 return (
@@ -554,7 +554,7 @@ export default function OrderDetailsScreen() {
                   </View>
                 );
               }
-              
+
               // Refunded: Show message
               if (status === "refunded") {
                 return (
@@ -563,7 +563,7 @@ export default function OrderDetailsScreen() {
                   </View>
                 );
               }
-              
+
               // Default: Show Track Order for any other status (fallback)
               return (
                 <TouchableOpacity

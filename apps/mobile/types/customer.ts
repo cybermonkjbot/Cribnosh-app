@@ -66,18 +66,18 @@ export interface Chef {
   is_live?: boolean;
   live_viewers?: number;
   sentiment:
-    | "bussing"
-    | "mid"
-    | "notIt"
-    | "fire"
-    | "slaps"
-    | "decent"
-    | "meh"
-    | "trash"
-    | "elite"
-    | "solid"
-    | "average"
-    | "skip";
+  | "bussing"
+  | "mid"
+  | "notIt"
+  | "fire"
+  | "slaps"
+  | "decent"
+  | "meh"
+  | "trash"
+  | "elite"
+  | "solid"
+  | "average"
+  | "skip";
   location?: {
     latitude: number;
     longitude: number;
@@ -126,15 +126,16 @@ export interface Order {
   customer_id: string;
   kitchen_id: string;
   kitchen_name?: string;
+  kitchen_phone?: string;
   restaurant_name?: string;
   status:
-    | "pending"
-    | "confirmed"
-    | "preparing"
-    | "on_the_way"
-    | "on-the-way"
-    | "cancelled"
-    | "completed";
+  | "pending"
+  | "confirmed"
+  | "preparing"
+  | "on_the_way"
+  | "on-the-way"
+  | "cancelled"
+  | "completed";
   order_status?: string;
   items: OrderItem[];
   order_items?: {
@@ -249,18 +250,18 @@ export interface Dish {
   rating?: number;
   review_count?: number;
   sentiment?:
-    | "bussing"
-    | "mid"
-    | "notIt"
-    | "fire"
-    | "slaps"
-    | "decent"
-    | "meh"
-    | "trash"
-    | "elite"
-    | "solid"
-    | "average"
-    | "skip";
+  | "bussing"
+  | "mid"
+  | "notIt"
+  | "fire"
+  | "slaps"
+  | "decent"
+  | "meh"
+  | "trash"
+  | "elite"
+  | "solid"
+  | "average"
+  | "skip";
   created_at: string;
   updated_at: string;
 }
@@ -302,12 +303,12 @@ export interface PaymentIntent {
   amount: number; // in cents
   currency: string;
   status:
-    | "requires_payment_method"
-    | "requires_confirmation"
-    | "requires_action"
-    | "processing"
-    | "succeeded"
-    | "canceled";
+  | "requires_payment_method"
+  | "requires_confirmation"
+  | "requires_action"
+  | "processing"
+  | "succeeded"
+  | "canceled";
   client_secret: string;
   created_at: string;
 }
@@ -856,16 +857,16 @@ export interface SendLiveCommentResponse {
 export interface SendLiveReactionRequest {
   sessionId: string;
   reactionType:
-    | "like"
-    | "love"
-    | "laugh"
-    | "wow"
-    | "sad"
-    | "angry"
-    | "fire"
-    | "clap"
-    | "heart"
-    | "star";
+  | "like"
+  | "love"
+  | "laugh"
+  | "wow"
+  | "sad"
+  | "angry"
+  | "fire"
+  | "clap"
+  | "heart"
+  | "star";
   intensity?: "light" | "medium" | "strong";
   metadata?: Record<string, string>;
 }
@@ -873,16 +874,16 @@ export interface SendLiveReactionRequest {
 export interface LiveReaction {
   id: string;
   reactionType:
-    | "like"
-    | "love"
-    | "laugh"
-    | "wow"
-    | "sad"
-    | "angry"
-    | "fire"
-    | "clap"
-    | "heart"
-    | "star";
+  | "like"
+  | "love"
+  | "laugh"
+  | "wow"
+  | "sad"
+  | "angry"
+  | "fire"
+  | "clap"
+  | "heart"
+  | "star";
   intensity: "light" | "medium" | "strong";
   sentBy: string;
   sentByRole: string;
@@ -1007,12 +1008,12 @@ export interface LiveStreamOrder {
   }[];
   totalAmount: number;
   status:
-    | "pending"
-    | "confirmed"
-    | "preparing"
-    | "ready"
-    | "delivered"
-    | "cancelled";
+  | "pending"
+  | "confirmed"
+  | "preparing"
+  | "ready"
+  | "delivered"
+  | "cancelled";
   placedAt: string;
   estimatedPrepTime?: number;
   deliveryAddress?: {
@@ -1067,14 +1068,14 @@ export interface CustomOrder {
   custom_order_id: string;
   order_id?: string;
   status:
-    | "pending"
-    | "processing"
-    | "completed"
-    | "cancelled"
-    | "accepted"
-    | "preparing"
-    | "ready"
-    | "delivered";
+  | "pending"
+  | "processing"
+  | "completed"
+  | "cancelled"
+  | "accepted"
+  | "preparing"
+  | "ready"
+  | "delivered";
   dietary_restrictions?: string;
   estimatedPrice?: number;
   deliveryDate?: string;
@@ -1139,14 +1140,14 @@ export interface GroupOrder {
   restaurant_name: string;
   title: string;
   status:
-    | "active"
-    | "closed"
-    | "confirmed"
-    | "preparing"
-    | "ready"
-    | "on_the_way"
-    | "delivered"
-    | "cancelled";
+  | "active"
+  | "closed"
+  | "confirmed"
+  | "preparing"
+  | "ready"
+  | "on_the_way"
+  | "delivered"
+  | "cancelled";
   // Budget tracking
   initial_budget: number;
   total_budget: number;
@@ -1796,13 +1797,13 @@ export interface UpdateAllergiesResponse {
 
 export interface DietaryPreference {
   type:
-    | "vegetarian"
-    | "vegan"
-    | "halal"
-    | "kosher"
-    | "gluten_free"
-    | "keto"
-    | "paleo";
+  | "vegetarian"
+  | "vegan"
+  | "halal"
+  | "kosher"
+  | "gluten_free"
+  | "keto"
+  | "paleo";
   strictness: "preferred" | "required";
   notes?: string;
 }

@@ -1,6 +1,8 @@
 import * as LiveActivity from 'expo-live-activity';
 import { Platform } from 'react-native';
 
+const LiveActivityModule = LiveActivity as any;
+
 export type OrderStatus =
   | 'pending'
   | 'confirmed'
@@ -8,7 +10,8 @@ export type OrderStatus =
   | 'out_for_delivery'
   | 'on_the_way'
   | 'cancelled'
-  | 'completed';
+  | 'completed'
+  | 'delivered';
 
 export interface OrderLiveActivityState {
   orderId: string;
@@ -35,7 +38,7 @@ export function isLiveActivitySupported(): boolean {
   // Live Activities require iOS 16.2+
   try {
     // Check if the module is available
-    return typeof LiveActivity !== 'undefined' && (LiveActivity.isSupported?.() ?? false);
+    return typeof LiveActivity !== 'undefined' && (LiveActivityModule.isSupported?.() ?? false);
   } catch {
     return false;
   }
@@ -84,7 +87,7 @@ export async function startOrderLiveActivity(
     }
 
     const statusText = getStatusText(order.status);
-    
+
     const activityState: OrderLiveActivityState = {
       orderId: order.orderId,
       orderNumber: order.orderNumber,
@@ -98,18 +101,18 @@ export async function startOrderLiveActivity(
     };
 
     // Map order data to expo-live-activity structure
-    const estimatedDeliveryDate = order.estimatedDeliveryTime 
+    const estimatedDeliveryDate = order.estimatedDeliveryTime
       ? new Date(order.estimatedDeliveryTime).getTime()
-      : order.estimatedMinutes 
+      : order.estimatedMinutes
         ? Date.now() + (order.estimatedMinutes * 60 * 1000)
         : undefined;
 
     // Format title and subtitle for Live Activity
     const title = order.statusText || getStatusText(order.status);
-    const subtitle = order.restaurantName 
+    const subtitle = order.restaurantName
       ? `Order #${order.orderNumber} • ${order.restaurantName}`
       : `Order #${order.orderNumber}`;
-    
+
     // Format total amount in pounds
     const totalInPounds = (order.totalAmount / 100).toFixed(2);
     const amountText = `£${totalInPounds}`;
@@ -136,18 +139,18 @@ export async function startOrderLiveActivity(
 
     // Try different API patterns based on expo-live-activity version
     let activityId: string | null = null;
-    
+
     try {
       // Try startActivityAsync pattern (most common)
-      if (typeof LiveActivity.startActivityAsync === 'function') {
-        activityId = await LiveActivity.startActivityAsync({
+      if (typeof LiveActivityModule.startActivityAsync === 'function') {
+        activityId = await LiveActivityModule.startActivityAsync({
           attributes: activityAttributes,
           contentState: contentState,
         });
-      } 
+      }
       // Try startActivity pattern
-      else if (typeof LiveActivity.startActivity === 'function') {
-        activityId = await LiveActivity.startActivity({
+      else if (typeof LiveActivityModule.startActivity === 'function') {
+        activityId = await LiveActivityModule.startActivity({
           attributes: activityAttributes,
           contentState: contentState,
         });
@@ -197,18 +200,18 @@ export async function updateOrderLiveActivity(
     }
 
     const statusText = order.status ? getStatusText(order.status) : undefined;
-    
+
     // Calculate estimated delivery date if provided
-    const estimatedDeliveryDate = order.estimatedDeliveryTime 
+    const estimatedDeliveryDate = order.estimatedDeliveryTime
       ? new Date(order.estimatedDeliveryTime).getTime()
-      : order.estimatedMinutes 
+      : order.estimatedMinutes
         ? Date.now() + (order.estimatedMinutes * 60 * 1000)
         : undefined;
 
     // Build updated content state
     const updatedContentState: any = {
       title: order.statusText || statusText || 'Order Update',
-      subtitle: order.restaurantName 
+      subtitle: order.restaurantName
         ? `Order #${order.orderNumber || orderId.substring(0, 8)} • ${order.restaurantName}`
         : `Order #${order.orderNumber || orderId.substring(0, 8)}`,
     };
@@ -223,12 +226,12 @@ export async function updateOrderLiveActivity(
 
     // Try different API patterns
     try {
-      if (typeof LiveActivity.updateActivityAsync === 'function') {
-        await LiveActivity.updateActivityAsync(activityId, {
+      if (typeof LiveActivityModule.updateActivityAsync === 'function') {
+        await LiveActivityModule.updateActivityAsync(activityId, {
           contentState: updatedContentState,
         });
-      } else if (typeof LiveActivity.updateActivity === 'function') {
-        await LiveActivity.updateActivity(activityId, {
+      } else if (typeof LiveActivityModule.updateActivity === 'function') {
+        await LiveActivityModule.updateActivity(activityId, {
           contentState: updatedContentState,
         });
       } else if (typeof (LiveActivity as any).update === 'function') {
@@ -281,19 +284,19 @@ export async function endOrderLiveActivity(
     // Try different API patterns
     try {
       const dismissalPolicy = finalStatus === 'delivered' ? 'immediate' : 'default';
-      
-      if (typeof LiveActivity.endActivityAsync === 'function') {
-        await LiveActivity.endActivityAsync(activityId, {
+
+      if (typeof LiveActivityModule.endActivityAsync === 'function') {
+        await LiveActivityModule.endActivityAsync(activityId, {
           dismissalPolicy,
         });
-      } else if (typeof LiveActivity.endActivity === 'function') {
-        await LiveActivity.endActivity(activityId, {
+      } else if (typeof LiveActivityModule.endActivity === 'function') {
+        await LiveActivityModule.endActivity(activityId, {
           dismissalPolicy,
         });
       } else if (typeof (LiveActivity as any).end === 'function') {
         await (LiveActivity as any).end(activityId);
-      } else if (typeof LiveActivity.removeActivity === 'function') {
-        await LiveActivity.removeActivity(activityId);
+      } else if (typeof LiveActivityModule.removeActivity === 'function') {
+        await LiveActivityModule.removeActivity(activityId);
       }
     } catch (apiError) {
       console.error('Error calling Live Activity end API:', apiError);

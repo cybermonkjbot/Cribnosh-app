@@ -1,11 +1,11 @@
+import { api } from '@/convex/_generated/api';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { Stack, useRouter } from 'expo-router';
-import { useState, useCallback } from 'react';
-import { Modal, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Modal, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 import { useToast } from '../lib/ToastContext';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
 
 // Back arrow icon SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -56,20 +56,20 @@ export default function DeleteAccountScreen() {
       setIsDeleting(true);
       await deleteAccount();
       setIsDeleting(false);
-      
+
       showToast({
         type: "success",
         title: "Account Deletion Requested",
         message: "Your account deletion request has been submitted.",
         duration: 3000,
       });
-      
+
       // Navigate to the survey screen
       router.push('/delete-account-survey');
     } catch (error: any) {
       setIsDeleting(false);
       console.error("Error deleting account:", error);
-      const errorMessage = 
+      const errorMessage =
         error?.message ||
         "Failed to delete account. Please try again.";
       showToast({
@@ -91,15 +91,15 @@ export default function DeleteAccountScreen() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false,
           title: 'Delete Account'
-        }} 
+        }}
       />
       <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-        
+
         {/* Custom Header */}
         <View style={styles.customHeader}>
           <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
@@ -114,11 +114,11 @@ export default function DeleteAccountScreen() {
           <Text style={styles.mainQuestion}>
             Are you sure you want to delete your account?
           </Text>
-          
+
           <Text style={styles.explanationText}>
             Once you delete your account, it cannot be undone. All your data will be permanently erased from this app includes your profile information, preferences, saved content, and any activity history.
           </Text>
-          
+
           <Text style={styles.explanationText}>
             We&apos;re sad to see you go, but we understand that sometimes it&apos;s necessary. Please take a moment to consider the consequences before proceeding.
           </Text>
@@ -126,8 +126,8 @@ export default function DeleteAccountScreen() {
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={[styles.deleteButton, isDeleting && styles.buttonDisabled]} 
+          <TouchableOpacity
+            style={[styles.deleteButton, isDeleting && styles.buttonDisabled]}
             onPress={handleDeleteAccount}
             activeOpacity={0.8}
             disabled={isDeleting}
@@ -138,9 +138,9 @@ export default function DeleteAccountScreen() {
               <Text style={styles.deleteButtonText}>Delete account</Text>
             )}
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.goBackButton} 
+
+          <TouchableOpacity
+            style={styles.goBackButton}
             onPress={handleGoBack}
             activeOpacity={0.8}
           >
@@ -161,22 +161,22 @@ export default function DeleteAccountScreen() {
             <Text style={styles.modalTitle}>
               Are you sure you want to continue?
             </Text>
-            
+
             <Text style={styles.modalWarningText}>
               This action cannot be undone. Are you sure you want to continue?
             </Text>
-            
+
             <View style={styles.modalButtonContainer}>
-              <TouchableOpacity 
-                style={styles.cancelButton} 
+              <TouchableOpacity
+                style={styles.cancelButton}
                 onPress={handleCancelDelete}
                 activeOpacity={0.8}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.confirmButton} 
+
+              <TouchableOpacity
+                style={styles.confirmButton}
                 onPress={handleConfirmDelete}
                 activeOpacity={0.8}
               >
@@ -380,5 +380,8 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     color: '#094327',
     textAlign: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
 });

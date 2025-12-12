@@ -6,7 +6,7 @@ interface QueryStateWrapperProps {
   isLoading: boolean;
   error: unknown;
   isEmpty?: boolean;
-  skeleton: React.ReactNode;
+  skeleton?: React.ReactNode;
   errorTitle?: string;
   errorSubtitle?: string;
   onRetry?: () => void;
@@ -21,7 +21,7 @@ export function QueryStateWrapper({
   isLoading,
   error,
   isEmpty = false,
-  skeleton,
+  skeleton = null,
   errorTitle = 'Unable to Load Data',
   errorSubtitle = 'Failed to load data. Please try again.',
   onRetry,
@@ -47,9 +47,9 @@ export function QueryStateWrapper({
         actionButton={
           onRetry
             ? {
-                label: 'Retry',
-                onPress: onRetry,
-              }
+              label: 'Retry',
+              onPress: onRetry,
+            }
             : undefined
         }
       />

@@ -1,18 +1,17 @@
-import * as ImagePicker from 'expo-image-picker';
-import { CameraView } from 'expo-camera';
-import { useRouter } from 'expo-router';
-import { Camera, Image as ImageIcon, Video as VideoIcon, X, FileVideo, ChefHat, Utensils } from 'lucide-react-native';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Image, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { showError, showSuccess } from '@/lib/GlobalToastManager';
+import { CameraView } from 'expo-camera';
 import * as FileSystem from 'expo-file-system';
-import { EncodingType } from 'expo-file-system';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
-import { Video, AVPlaybackStatus } from 'expo-av';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import { Camera, ChefHat, Image as ImageIcon, Utensils, Video as VideoIcon, X } from 'lucide-react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Dimensions, Image, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { AVPlaybackStatus } from 'expo-av';
 
 const { width } = Dimensions.get('window');
 
@@ -37,24 +36,24 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
   const insets = useSafeAreaInsets();
   const cameraRef = useRef<any>(null);
   const isMountedRef = useRef(true);
-  
+
   // Media state
   const [mediaFile, setMediaFile] = useState<MediaFile | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [cameraType, setCameraType] = useState<'front' | 'back'>('back');
   const [isRecording, setIsRecording] = useState(false);
-  
+
   // Post content state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [postType, setPostType] = useState<PostType>(null);
   const [tags, setTags] = useState<string[]>([]);
-  
+
   // Upload state
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  
+
   // Close handler
   const handleClose = useCallback(() => {
     setMediaFile(null);
@@ -67,7 +66,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
     setIsRecording(false);
     onClose();
   }, [onClose]);
-  
+
   // Camera handlers
   const handleOpenCamera = useCallback(async () => {
     try {
@@ -87,16 +86,16 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       showError('Failed to access camera', 'Please try again');
     }
   }, []);
-  
+
   const handleCapturePhoto = useCallback(async () => {
     if (!cameraRef.current) return;
-    
+
     try {
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
         base64: false,
       });
-      
+
       if (photo?.uri) {
         // Get image dimensions
         const imageInfo = await Image.getSize(photo.uri);
@@ -113,17 +112,17 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       showError('Failed to capture photo', 'Please try again');
     }
   }, []);
-  
+
   const handleStartRecording = useCallback(async () => {
     if (!cameraRef.current || isRecording) return;
-    
+
     try {
       setIsRecording(true);
       const recording = await cameraRef.current.recordAsync({
         quality: '720p',
         maxDuration: 60, // 60 seconds
       });
-      
+
       // Note: recordAsync returns a promise that resolves when recording stops
       // The actual video URI is available when stopRecording is called
     } catch (error) {
@@ -132,14 +131,14 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       showError('Failed to start recording', 'Please try again');
     }
   }, [isRecording]);
-  
+
   const handleStopRecording = useCallback(async () => {
     if (!cameraRef.current || !isRecording) return;
-    
+
     try {
       setIsRecording(false);
       const video = await cameraRef.current.stopRecordingAsync();
-      
+
       if (video?.uri) {
         // Get video dimensions (default to 720p)
         setMediaFile({
@@ -156,7 +155,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       showError('Failed to stop recording', 'Please try again');
     }
   }, [isRecording]);
-  
+
   // Media picker handlers
   const handleOpenGallery = useCallback(async () => {
     try {
@@ -168,19 +167,19 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
         );
         return;
       }
-      
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images', 'videos'],
         allowsEditing: true,
         quality: 0.8,
-        videoQuality: 'high',
+        videoQuality: ImagePicker.UIImagePickerControllerQualityType.High,
         allowsMultipleSelection: false,
       });
-      
+
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
         const isVideo = asset.type === 'video';
-        
+
         if (isVideo && asset.uri) {
           setMediaFile({
             uri: asset.uri,
@@ -203,7 +202,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       showError('Failed to select media', 'Please try again');
     }
   }, []);
-  
+
   // Get file info
   const getFileInfo = useCallback(async (uri: string): Promise<{ size: number; name: string; mimeType: string }> => {
     try {
@@ -211,11 +210,11 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       if (!fileInfo.exists) {
         throw new Error('File does not exist');
       }
-      
+
       const size = fileInfo.size || 0;
       const extension = uri.split('.').pop()?.toLowerCase() || 'mp4';
       const name = `post_${Date.now()}.${extension}`;
-      
+
       let mimeType = 'video/mp4';
       if (extension === 'jpg' || extension === 'jpeg') {
         mimeType = 'image/jpeg';
@@ -224,24 +223,24 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       } else if (extension === 'mov') {
         mimeType = 'video/quicktime';
       }
-      
+
       return { size, name, mimeType };
     } catch (error) {
       console.error('Error getting file info:', error);
       throw error;
     }
   }, []);
-  
+
   // Upload media to Convex storage
   const uploadMediaToStorage = useCallback(async (mediaUri: string, isVideo: boolean): Promise<string> => {
     try {
       const fileInfo = await getFileInfo(mediaUri);
-      
+
       // Validate file exists
       if (!fileInfo.size || fileInfo.size === 0) {
         throw new Error('File is empty or cannot be read');
       }
-      
+
       // Get Convex upload URL with timeout
       const convex = getConvexClient();
       const sessionToken = await getSessionToken();
@@ -256,30 +255,30 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Request timeout: Failed to get upload URL')), 30000);
       });
-      
+
       const uploadUrlResult = await Promise.race([uploadUrlPromise, timeoutPromise]) as { success: boolean; uploadUrl?: string; error?: string };
-      
+
       if (!uploadUrlResult.success || !uploadUrlResult.uploadUrl) {
         throw new Error(uploadUrlResult.error || 'Failed to get upload URL from server');
       }
-      
+
       // Read file as base64 with error handling
       let fileContent: string;
       try {
         fileContent = await FileSystem.readAsStringAsync(mediaUri, {
-          encoding: EncodingType.Base64,
+          encoding: 'base64',
         });
       } catch (readError) {
         throw new Error('Failed to read file. Please try selecting a different file.');
       }
-      
+
       // Convert base64 to buffer/blob
       const binaryString = atob(fileContent);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      
+
       // Upload to Convex storage (POST method, not PUT) with timeout
       const uploadPromise = fetch(uploadUrlResult.uploadUrl!, {
         method: 'POST',
@@ -288,13 +287,13 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
         },
         body: bytes,
       });
-      
+
       const uploadTimeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Upload timeout: File upload took too long')), 300000); // 5 minutes
       });
-      
+
       const uploadResponse = await Promise.race([uploadPromise, uploadTimeoutPromise]) as Response;
-      
+
       if (!uploadResponse.ok) {
         let errorText = '';
         try {
@@ -302,7 +301,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
         } catch {
           errorText = uploadResponse.statusText;
         }
-        
+
         if (uploadResponse.status === 413) {
           throw new Error('File too large. Please select a smaller file.');
         } else if (uploadResponse.status === 401 || uploadResponse.status === 403) {
@@ -311,7 +310,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
           throw new Error(`Upload failed: ${uploadResponse.statusText}`);
         }
       }
-      
+
       // Extract storageId from Convex response
       let result: { storageId?: string };
       try {
@@ -319,16 +318,16 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       } catch (parseError) {
         throw new Error('Invalid response from server. Please try again.');
       }
-      
+
       if (!result.storageId) {
         throw new Error('Server did not return a storage ID. Please try again.');
       }
-      
+
       // Return Convex storage ID
       return result.storageId;
     } catch (error: any) {
       console.error('Error uploading media:', error);
-      
+
       // Re-throw with user-friendly message
       if (error.message) {
         throw error;
@@ -337,16 +336,16 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       }
     }
   }, [getFileInfo]);
-  
+
   // Get video duration
   const getVideoDuration = useCallback(async (videoUri: string): Promise<number> => {
     try {
       const { Video: VideoComponent } = await import('expo-av');
-      const video = new VideoComponent({ uri: videoUri });
-      
+      const video = new VideoComponent({ source: { uri: videoUri } });
+
       return new Promise((resolve, reject) => {
         let resolved = false;
-        
+
         const cleanup = async () => {
           try {
             await video.unloadAsync();
@@ -354,7 +353,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
             // Ignore cleanup errors
           }
         };
-        
+
         video.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
           if (status.isLoaded && status.durationMillis && !resolved) {
             resolved = true;
@@ -362,12 +361,12 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
             resolve(status.durationMillis / 1000); // Convert to seconds
           }
         });
-        
-        video.loadAsync().catch((error) => {
+
+        video.loadAsync({ uri: videoUri }, {}, false).catch((error) => {
           cleanup();
           reject(error);
         });
-        
+
         // Timeout after 10 seconds
         setTimeout(() => {
           if (!resolved) {
@@ -389,11 +388,11 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
     try {
       // Use expo-av to extract first frame
       const { Video: VideoComponent } = await import('expo-av');
-      const video = new VideoComponent({ uri: videoUri });
-      
+      const video = new VideoComponent({ source: { uri: videoUri } });
+
       return new Promise((resolve, reject) => {
         let thumbnailUri: string | null = null;
-        
+
         const checkStatus = (status: AVPlaybackStatus) => {
           if (status.isLoaded) {
             // Seek to beginning and capture frame
@@ -410,13 +409,13 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
             }).catch(reject);
           }
         };
-        
+
         video.setOnPlaybackStatusUpdate(checkStatus);
-        
-        video.loadAsync().then(() => {
+
+        video.loadAsync({ uri: videoUri }, {}, false).then(() => {
           video.playAsync().catch(reject);
         }).catch(reject);
-        
+
         // Timeout after 10 seconds
         setTimeout(() => {
           video.unloadAsync();
@@ -429,39 +428,42 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       return null;
     }
   }, []);
-  
+
   // Handle post submission
   const handlePost = useCallback(async () => {
     if (!isAuthenticated) {
       Alert.alert('Sign In Required', 'Please sign in to post to Nosh Heaven.');
       return;
     }
-    
+
     if (!mediaFile) {
       showError('Media Required', 'Please add a photo or video to your post.');
       return;
     }
-    
+
     if (!title.trim()) {
       showError('Title Required', 'Please add a title to your post.');
       return;
     }
-    
+
     if (!postType) {
       showError('Post Type Required', 'Please select a post type (Recipe or Meal).');
       return;
     }
-    
+
+    const convex = getConvexClient();
+    const sessionToken = await getSessionToken();
+
     try {
       if (!isMountedRef.current) return;
       setIsUploading(true);
       setUploadProgress(0);
-      
+
       // Get file info
       const fileInfo = await getFileInfo(mediaFile.uri);
-      
+
       if (!isMountedRef.current) return;
-      
+
       // Validate file size (max 100MB for videos, 10MB for photos)
       const maxSize = mediaFile.type === 'video' ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
       if (fileInfo.size > maxSize) {
@@ -475,7 +477,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
         }
         return;
       }
-      
+
       // Get video duration if it's a video
       let duration = 1; // Default for photos
       if (mediaFile.type === 'video') {
@@ -490,18 +492,18 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
           duration = 1;
         }
       }
-      
+
       if (!isMountedRef.current) return;
-      
+
       // Upload video/photo to storage
       setUploadProgress(0.2);
       const videoStorageId = await uploadMediaToStorage(
         mediaFile.uri,
         mediaFile.type === 'video'
       );
-      
+
       if (!isMountedRef.current) return;
-      
+
       // Generate thumbnail
       setUploadProgress(0.5);
       let thumbnailStorageId: string | undefined;
@@ -516,9 +518,9 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
         }
         // If thumbnail generation fails, we'll pass undefined and let backend generate it
       }
-      
+
       if (!isMountedRef.current) return;
-      
+
       // Prepare tags
       const postTags = [...tags];
       if (postType === 'recipe') {
@@ -526,7 +528,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       } else if (postType === 'meal') {
         postTags.push('meal');
       }
-      
+
       // Create video post
       setUploadProgress(0.8);
       const result = await convex.action(api.actions.users.customerCreateVideoPost, {
@@ -544,13 +546,13 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
         tags: postTags,
         isLive: false,
       });
-      
+
       if (!isMountedRef.current) return;
-      
+
       if (result.success === false) {
         throw new Error(result.error || 'Failed to create video post');
       }
-      
+
       setUploadProgress(1);
       showSuccess('Post Created!', 'Your post has been shared to Nosh Heaven.');
       handleClose();
@@ -570,19 +572,19 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       }
     }
   }, [isAuthenticated, mediaFile, title, description, postType, tags, uploadMediaToStorage, getFileInfo, generateThumbnail, getVideoDuration, handleClose]);
-  
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
     };
   }, []);
-  
+
   // Handle post type selection
   const handlePostTypeSelect = useCallback((type: PostType) => {
     setPostType(type);
   }, []);
-  
+
   // Handle tag input
   const handleTagInput = useCallback((text: string) => {
     if (text.includes(',')) {
@@ -590,7 +592,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       setTags(prev => [...prev, ...newTags]);
     }
   }, []);
-  
+
   // Render camera view
   const renderCameraView = () => {
     return (
@@ -612,7 +614,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
             >
               <X size={24} color="#fff" />
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.flipButton}
               onPress={() => setCameraType(prev => prev === 'back' ? 'front' : 'back')}
@@ -620,7 +622,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
               <Camera size={24} color="#fff" />
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.cameraBottomControls}>
             <TouchableOpacity
               style={styles.captureButton}
@@ -630,7 +632,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
             >
               <View style={[styles.captureButtonInner, isRecording && styles.captureButtonRecording]} />
             </TouchableOpacity>
-            
+
             <Text style={styles.cameraHint}>
               {isRecording ? 'Tap to stop recording' : 'Tap for photo, hold for video'}
             </Text>
@@ -639,7 +641,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       </View>
     );
   };
-  
+
   // Render media picker
   const renderMediaPicker = () => {
     return (
@@ -650,7 +652,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
             <X size={24} color="#333" />
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.mediaPickerOptions}>
           <TouchableOpacity
             style={styles.mediaPickerOption}
@@ -659,7 +661,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
             <Camera size={32} color="#F23E2E" />
             <Text style={styles.mediaPickerOptionText}>Camera</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.mediaPickerOption}
             onPress={handleOpenGallery}
@@ -671,7 +673,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       </View>
     );
   };
-  
+
   // Render post form
   const renderPostForm = () => {
     return (
@@ -697,7 +699,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
             )}
           </TouchableOpacity>
         </View>
-        
+
         {/* Upload Progress */}
         {isUploading && (
           <View style={styles.progressContainer}>
@@ -709,7 +711,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
             </Text>
           </View>
         )}
-        
+
         {/* Media Preview */}
         {mediaFile && (
           <View style={styles.mediaPreview}>
@@ -733,7 +735,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
             )}
           </View>
         )}
-        
+
         {/* Media Selection */}
         {!mediaFile && (
           <TouchableOpacity
@@ -748,7 +750,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
             <Text style={styles.addMediaSubtext}>Tap to select from camera or gallery</Text>
           </TouchableOpacity>
         )}
-        
+
         {/* Title Input */}
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Title *</Text>
@@ -763,7 +765,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
             multiline={false}
           />
         </View>
-        
+
         {/* Description Input */}
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Description</Text>
@@ -779,7 +781,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
             numberOfLines={4}
           />
         </View>
-        
+
         {/* Post Type Selection */}
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Post Type *</Text>
@@ -800,7 +802,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
                 Recipe
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={[
                 styles.postTypeButton,
@@ -817,10 +819,10 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
                 Meal
               </Text>
             </TouchableOpacity>
-            
+
           </View>
         </View>
-        
+
         {/* Tags Input */}
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Tags (comma-separated)</Text>
@@ -850,7 +852,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       </ScrollView>
     );
   };
-  
+
   return (
     <Modal
       visible={isVisible}

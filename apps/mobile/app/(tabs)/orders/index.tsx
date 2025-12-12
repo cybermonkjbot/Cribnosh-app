@@ -84,7 +84,7 @@ export default function OrdersScreen() {
 
   // Get session token for reactive queries
   const [sessionToken, setSessionToken] = useState<string | null>(null);
-  
+
   useEffect(() => {
     const loadToken = async () => {
       if (isAuthenticated) {
@@ -118,7 +118,7 @@ export default function OrdersScreen() {
   // Transform orders data to match expected format
   const ordersData = useMemo(() => {
     if (!ordersDataRaw) return null;
-    return { 
+    return {
       data: {
         orders: ordersDataRaw,
         total: ordersDataRaw.length,
@@ -221,28 +221,28 @@ export default function OrdersScreen() {
     // Get items
     const items = apiOrder.order_items
       ? apiOrder.order_items.map((item: any) => item.name || item.dish_name)
-      : apiOrder.items.map((item) => item.dish_name);
+      : apiOrder.items.map((item: any) => item.dish_name);
 
     // Get order items with images for stacking
     const orderItemsWithImages = apiOrder.order_items
-        ? apiOrder.order_items.map((item: any) => ({
-            _id: item._id || item.id,
-            dish_id: item.dish_id || item.id,
-            name: item.name || item.dish_name,
-            image_url: item.image_url || item.imageUrl || item.image,
-          }))
+      ? apiOrder.order_items.map((item: any) => ({
+        _id: item._id || item.id,
+        dish_id: item.dish_id || item.id,
+        name: item.name || item.dish_name,
+        image_url: item.image_url || item.imageUrl || item.image,
+      }))
       : apiOrder.items
         ? apiOrder.items.map((item: any) => ({
-            _id: item._id || item.id,
-            dish_id: item.dish_id || item.id,
-            name: item.dish_name || item.name,
-            image_url: item.image_url || item.imageUrl || item.image,
-          }))
+          _id: item._id || item.id,
+          dish_id: item.dish_id || item.id,
+          name: item.dish_name || item.name,
+          image_url: item.image_url || item.imageUrl || item.image,
+        }))
         : [];
 
     // Get description
     const kitchenName =
-      apiOrder.kitchen_name || apiOrder.restaurant_name || null;
+      apiOrder.kitchen_name || apiOrder.restaurant_name || undefined;
     const description =
       items.length > 0
         ? kitchenName
@@ -356,7 +356,7 @@ export default function OrdersScreen() {
       // Store unique identifier for key generation
       _uniqueKey: `custom-${uniqueId}`,
       // Store original ID for navigation
-      _originalId: customOrder._id || customOrder.custom_order_id || String(customOrder.id),
+      _originalId: customOrder._id || customOrder.custom_order_id || String((customOrder as any).id),
     };
   };
 
@@ -417,14 +417,14 @@ export default function OrdersScreen() {
   // Ongoing orders: pending, confirmed, preparing, on-the-way
   const allOngoingOrders = [
     ...apiOrdersAsOrders.filter(
-      (order) =>
+      (order: Order) =>
         order.status === "pending" ||
         order.status === "confirmed" ||
         order.status === "preparing" ||
         order.status === "on-the-way"
     ),
     ...customOrdersAsOrders.filter(
-      (order) =>
+      (order: Order) =>
         order.status === "pending" ||
         order.status === "confirmed" ||
         order.status === "preparing" ||
@@ -435,12 +435,12 @@ export default function OrdersScreen() {
   // Past orders: cancelled, completed
   const allPastOrders = [
     ...apiOrdersAsOrders.filter(
-      (order) => 
+      (order: Order) =>
         order.status === "cancelled" ||
         order.status === "completed"
     ),
     ...customOrdersAsOrders.filter(
-      (order) => 
+      (order: Order) =>
         order.status === "cancelled" ||
         order.status === "completed"
     ),
@@ -455,7 +455,7 @@ export default function OrdersScreen() {
   ) => {
     // Use original ID for navigation if available, otherwise fall back to numeric ID
     const orderId = order._originalId || String(order.id);
-    
+
     if (isCustomOrder) {
       // Navigate to custom order details
       router.push(`/custom-order-details?id=${orderId}`);
@@ -469,7 +469,7 @@ export default function OrdersScreen() {
     // Show skeleton loader while loading
     // Show skeleton if orders are loading OR if we haven't fetched any data yet
     const isLoading = ordersLoading || (ordersData === null && isAuthenticated);
-    
+
     if (isLoading) {
       return (
         <>

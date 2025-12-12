@@ -1,6 +1,6 @@
+import { BlurEffect } from '@/utils/blurEffects';
 import type { FC, ReactNode } from 'react';
 import { StyleSheet, View, ViewProps } from 'react-native';
-import { BlurEffect } from '@/utils/blurEffects';
 
 export interface CardProps extends ViewProps {
   children: ReactNode;
@@ -21,7 +21,7 @@ export const Card: FC<CardProps> = ({ children, glass, elevated, style, ...props
           intensity={24}
           tint="light"
           useGradient={true}
-          style={StyleSheet.absoluteFill}
+          style={StyleSheet.absoluteFillObject}
         />
       )}
       <View
