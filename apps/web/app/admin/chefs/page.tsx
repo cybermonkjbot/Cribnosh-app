@@ -7,6 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/convex/_generated/api';
@@ -16,6 +24,7 @@ import { useMutation, useQuery } from 'convex/react';
 import {
   AlertTriangle,
   Award,
+  Ban,
   BarChart3,
   Calendar,
   CheckCircle,
@@ -23,12 +32,15 @@ import {
   Clock,
   Download,
   Eye,
+  FileText,
+  Mail,
   MapPin,
   MessageSquare,
   MoreHorizontal,
   Plus,
   PoundSterling,
   Shield,
+  ShoppingBag,
   Star,
   TrendingUp,
   Users,
@@ -472,12 +484,67 @@ export default function ChefManagementPage() {
                             >
                               <BarChart3 className="w-4 h-4" />
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Chef Actions</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => {
+                                  setSelectedChef(chef);
+                                  setShowVerificationModal(true);
+                                }}>
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  View Full Profile
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                  toast({
+                                    title: "Send Message",
+                                    description: "Message feature coming soon",
+                                  });
+                                }}>
+                                  <Mail className="w-4 h-4 mr-2" />
+                                  Send Message
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                  toast({
+                                    title: "View Orders",
+                                    description: `Viewing orders for ${chef.bio.substring(0, 30)}...`,
+                                  });
+                                }}>
+                                  <ShoppingBag className="w-4 h-4 mr-2" />
+                                  View Orders History
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => {
+                                  toast({
+                                    title: "Export Data",
+                                    description: "Exporting chef data...",
+                                  });
+                                }}>
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  Export Chef Data
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  onClick={() => {
+                                    if (confirm(`Are you sure you want to suspend ${chef.bio.substring(0, 30)}?`)) {
+                                      handleStatusUpdate(chef._id, 'suspended');
+                                    }
+                                  }}
+                                >
+                                  <Ban className="w-4 h-4 mr-2" />
+                                  Suspend Account
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </CardContent>
                       </Card>

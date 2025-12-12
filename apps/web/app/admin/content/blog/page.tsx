@@ -6,6 +6,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
@@ -14,6 +22,7 @@ import { useSessionToken } from '@/hooks/useSessionToken';
 import { sanitizeContent, validateContent } from '@/lib/utils/content-sanitizer';
 import { useMutation, useQuery } from 'convex/react';
 import {
+  BarChart3,
   Calendar,
   CheckCircle,
   Clock,
@@ -21,7 +30,9 @@ import {
   Eye,
   FileText,
   Globe,
+  MoreHorizontal,
   Plus,
+  Rocket,
   Tag,
   Trash2,
   User
@@ -74,19 +85,19 @@ export default function BlogManagementPage() {
   });
 
   const sessionToken = useSessionToken();
-  
+
   // Queries
   const blogPosts = useQuery(
-    api.queries.blog.getBlogPosts, 
+    api.queries.blog.getBlogPosts,
     sessionToken ? { status: 'all', sessionToken } as { search?: string; status?: string; category?: string; limit?: number; sessionToken?: string } : "skip"
   );
-  
+
   // Mutations
   const createPost = useMutation(api.mutations.blogPosts.createBlogPost);
   const updatePost = useMutation(api.mutations.blogPosts.updateBlogPost);
   const deletePost = useMutation(api.mutations.blogPosts.deleteBlogPost);
   const publishPost = useMutation(api.mutations.blogPosts.publishBlogPost);
-  
+
   const handleSavePost = async () => {
     if (!newPost.title.trim() || !newPost.content.trim()) {
       setError('Title and content are required');
@@ -106,7 +117,7 @@ export default function BlogManagementPage() {
     // Validate content for encoding issues
     const titleValidation = validateContent(sanitizedPost.title);
     const contentValidation = validateContent(sanitizedPost.content);
-    
+
     if (!titleValidation.isValid || !contentValidation.isValid) {
       const allIssues = [...titleValidation.issues, ...contentValidation.issues];
       setError(`Content validation failed: ${allIssues.join(', ')}`);
@@ -114,12 +125,13 @@ export default function BlogManagementPage() {
     }
 
     try {
-      await createPost({...sanitizedPost,
+      await createPost({
+        ...sanitizedPost,
         slug: sanitizedPost.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         readTime: Math.ceil(sanitizedPost.content.split(' ').length / 200),
         sessionToken: sessionToken || undefined
       });
-      
+
       setNewPost({
         title: '',
         content: '',
@@ -141,9 +153,10 @@ export default function BlogManagementPage() {
 
   const handleUpdatePost = async (postId: Id<"blogPosts">, updates: Partial<BlogPost>) => {
     try {
-      await updatePost({postId, ...updates,
-    sessionToken: sessionToken || undefined
-  });
+      await updatePost({
+        postId, ...updates,
+        sessionToken: sessionToken || undefined
+      });
       setSuccess('Blog post updated successfully');
       setError(null);
       setIsEditing(null);
@@ -155,9 +168,10 @@ export default function BlogManagementPage() {
   const handleDeletePost = async (postId: Id<"blogPosts">) => {
     if (confirm('Are you sure you want to delete this blog post?')) {
       try {
-        await deletePost({postId,
-    sessionToken: sessionToken || undefined
-  });
+        await deletePost({
+          postId,
+          sessionToken: sessionToken || undefined
+        });
         setSuccess('Blog post deleted successfully');
         setError(null);
       } catch (err) {
@@ -168,9 +182,10 @@ export default function BlogManagementPage() {
 
   const handlePublishPost = async (postId: Id<"blogPosts">) => {
     try {
-      await publishPost({postId,
-    sessionToken: sessionToken || undefined
-  });
+      await publishPost({
+        postId,
+        sessionToken: sessionToken || undefined
+      });
       setSuccess('Blog post published successfully');
       setError(null);
     } catch (err) {
@@ -179,16 +194,16 @@ export default function BlogManagementPage() {
   };
 
   const filteredPosts = blogPosts?.filter((post: any) => {
-    const matchesSearch = 
+    const matchesSearch =
       post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.tags?.some((tag: any) => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+
     const matchesStatus = statusFilter === 'all' || post.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || 
+    const matchesCategory = categoryFilter === 'all' ||
       (post.categories && Array.isArray(post.categories) && post.categories.includes(categoryFilter)) ||
       (post.category === categoryFilter);
-    
+
     return matchesSearch && matchesStatus && matchesCategory;
   }).sort((a: any, b: any) => {
     switch (sortBy) {
@@ -219,11 +234,11 @@ export default function BlogManagementPage() {
   };
 
   const uniqueCategories = Array.from(new Set(
-    blogPosts?.flatMap((post: any) => 
-      post.categories && Array.isArray(post.categories) 
-        ? post.categories 
-        : post.category 
-          ? [post.category] 
+    blogPosts?.flatMap((post: any) =>
+      post.categories && Array.isArray(post.categories)
+        ? post.categories
+        : post.category
+          ? [post.category]
           : []
     ) || []
   ));
@@ -260,7 +275,7 @@ export default function BlogManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -276,7 +291,7 @@ export default function BlogManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -292,7 +307,7 @@ export default function BlogManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -381,8 +396,8 @@ export default function BlogManagementPage() {
                 <label className="text-sm font-medium text-gray-700">Tags (comma-separated)</label>
                 <Input
                   value={newPost.tags.join(', ')}
-                  onChange={(e) => setNewPost(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setNewPost(prev => ({
+                    ...prev,
                     tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean)
                   }))}
                   placeholder="Enter tags"
@@ -531,41 +546,61 @@ export default function BlogManagementPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {/* View post */}}
+                    onClick={() => {/* View post */ }}
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setIsEditing(post._id)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  {post.status === 'draft' && (
-                    <Button
-                      size="sm"
-                      onClick={() => handlePublishPost(post._id)}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      Publish
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDeletePost(post._id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Post Actions</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setIsEditing(post._id)}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit Post
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        alert('Analytics feature coming soon');
+                      }}>
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        View Analytics
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        window.open(`/blog/${post.slug}`, '_blank');
+                      }}>
+                        <Globe className="w-4 h-4 mr-2" />
+                        Preview Post
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {post.status === 'draft' && (
+                        <DropdownMenuItem onClick={() => handlePublishPost(post._id)}>
+                          <Rocket className="w-4 h-4 mr-2" />
+                          Publish Post
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeletePost(post._id)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Post
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
               {/* Tags */}
               {post.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-4">
-                    {post.tags.map((tag: any) => (
+                  {post.tags.map((tag: any) => (
                     <Badge key={tag} variant="secondary" className="text-xs">
                       <Tag className="w-3 h-3 mr-1" />
                       {tag}
@@ -608,8 +643,8 @@ export default function BlogManagementPage() {
         <EmptyState
           icon={FileText}
           title={searchTerm || statusFilter !== 'all' ? "No blog posts found" : "No blog posts yet"}
-          description={searchTerm || statusFilter !== 'all' 
-            ? "Try adjusting your search or filter criteria" 
+          description={searchTerm || statusFilter !== 'all'
+            ? "Try adjusting your search or filter criteria"
             : "Create your first blog post to get started"}
           action={searchTerm || statusFilter !== 'all' ? {
             label: "Clear filters",

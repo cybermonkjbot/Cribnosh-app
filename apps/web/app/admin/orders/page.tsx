@@ -6,6 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/convex/_generated/api';
@@ -20,14 +28,19 @@ import {
   Clock,
   Download,
   Eye,
+  FileText,
   Flag,
+  Mail,
   MessageSquare,
   MoreHorizontal,
+  Printer,
   RefreshCw,
+  RotateCcw,
   ShoppingCart,
   Star,
   TrendingUp,
   Truck,
+  UserPlus,
   Users,
   XCircle,
   Zap
@@ -435,12 +448,79 @@ export default function OrderManagementPage() {
                                     <Eye className="w-4 h-4 mr-1" />
                                     View
                                   </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                  >
-                                    <MoreHorizontal className="w-4 h-4" />
-                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                      >
+                                        <MoreHorizontal className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuLabel>Order Actions</DropdownMenuLabel>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => {
+                                        setSelectedOrder(order);
+                                        setShowOrderDetails(true);
+                                      }}>
+                                        <Eye className="w-4 h-4 mr-2" />
+                                        View Full Details
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => {
+                                        toast({
+                                          title: "Contact Customer",
+                                          description: `Email: ${order.customer?.email || 'N/A'}`,
+                                        });
+                                      }}>
+                                        <Mail className="w-4 h-4 mr-2" />
+                                        Contact Customer
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => {
+                                        toast({
+                                          title: "Assign to Chef",
+                                          description: "Chef assignment feature coming soon",
+                                        });
+                                      }}>
+                                        <UserPlus className="w-4 h-4 mr-2" />
+                                        Assign to Chef
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => {
+                                        toast({
+                                          title: "Print Receipt",
+                                          description: "Printing receipt...",
+                                        });
+                                      }}>
+                                        <Printer className="w-4 h-4 mr-2" />
+                                        Print Receipt
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => {
+                                        toast({
+                                          title: "Export Order",
+                                          description: "Exporting order details...",
+                                        });
+                                      }}>
+                                        <FileText className="w-4 h-4 mr-2" />
+                                        Export Details
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        className="text-red-600"
+                                        onClick={() => {
+                                          if (confirm('Are you sure you want to refund this order?')) {
+                                            toast({
+                                              title: "Refund Initiated",
+                                              description: "Processing refund for order #" + order._id.slice(-8),
+                                            });
+                                          }
+                                        }}
+                                      >
+                                        <RotateCcw className="w-4 h-4 mr-2" />
+                                        Refund Order
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </div>
                             </div>

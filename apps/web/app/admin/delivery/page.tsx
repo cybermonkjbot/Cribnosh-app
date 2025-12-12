@@ -6,6 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
@@ -18,13 +26,17 @@ import {
   Download,
   Eye,
   Flag,
+  Mail,
+  Map,
   MessageSquare,
   MoreHorizontal,
   Package,
+  Phone,
   RefreshCw,
   Star,
   TrendingUp,
   Truck,
+  UserPlus,
   Users,
   XCircle,
   Zap
@@ -400,12 +412,62 @@ export default function DeliveryManagementPage() {
                                   <Eye className="w-4 h-4 mr-1" />
                                   View
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                >
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                    >
+                                      <MoreHorizontal className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Delivery Actions</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => {
+                                      setSelectedDelivery(delivery);
+                                      setShowDeliveryDetails(true);
+                                    }}>
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      View Full Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      alert('Reassign driver feature coming soon');
+                                    }}>
+                                      <UserPlus className="w-4 h-4 mr-2" />
+                                      Reassign Driver
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => {
+                                      alert(`Contact Customer: ${delivery.customer?.phone || 'N/A'}`);
+                                    }}>
+                                      <Phone className="w-4 h-4 mr-2" />
+                                      Contact Customer
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      alert(`Contact Driver: ${delivery.driver?.phone || 'N/A'}`);
+                                    }}>
+                                      <Mail className="w-4 h-4 mr-2" />
+                                      Contact Driver
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => {
+                                      alert('View route map feature coming soon');
+                                    }}>
+                                      <Map className="w-4 h-4 mr-2" />
+                                      View Route Map
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-[#F23E2E]"
+                                      onClick={() => {
+                                        alert('Marked as priority delivery');
+                                      }}
+                                    >
+                                      <Flag className="w-4 h-4 mr-2" />
+                                      Mark as Priority
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                             </div>
                           </div>

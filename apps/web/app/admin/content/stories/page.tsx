@@ -1,38 +1,51 @@
 "use client";
 
-import { EmptyState } from '@/components/admin/empty-state';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { AdminFilterBar, FilterOption } from '@/components/admin/admin-filter-bar';
 import { StatusBadge } from '@/components/admin/content/StatusBadge';
+import { EmptyState } from '@/components/admin/empty-state';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { useMutation, useQuery } from 'convex/react';
-import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQuery } from 'convex/react';
 import {
-  Image,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
+  Archive,
+  BarChart3,
   BookOpen,
+  CheckCircle,
   Clock,
+  Edit,
+  Eye,
+  Globe,
+  Image,
+  MoreHorizontal,
+  Plus,
+  Rocket,
+  Trash2,
   User,
   X,
-  CheckCircle,
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import ImageNext from 'next/image';
-import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { useMemo, useState } from 'react';
 
 interface Story {
   _id: Id<"content">;
@@ -54,7 +67,7 @@ interface Story {
 export default function StoriesManagementPage() {
   const { user: adminUser, sessionToken } = useAdminUser();
   const { toast } = useToast();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('recent');
@@ -99,7 +112,7 @@ export default function StoriesManagementPage() {
     api.queries.admin.getContentItems,
     sessionToken ? { sessionToken } : "skip"
   ) as Story[] | undefined;
-  
+
   const allStories = useMemo(() => {
     return (contentItems || []).filter(item => item.type === 'story') as Story[];
   }, [contentItems]);
@@ -395,7 +408,7 @@ export default function StoriesManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -409,7 +422,7 @@ export default function StoriesManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -423,7 +436,7 @@ export default function StoriesManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -511,7 +524,7 @@ export default function StoriesManagementPage() {
                 {story.metadata?.description && (
                   <p className="text-sm text-gray-600 mb-2 line-clamp-2">{story.metadata.description}</p>
                 )}
-                
+
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
                   <Badge variant="outline" className="text-xs">
                     <User className="w-3 h-3 mr-1" />
@@ -541,44 +554,65 @@ export default function StoriesManagementPage() {
                 )}
 
                 {/* Actions */}
-                <div className="flex items-center gap-2">
+                <div className="flex gap-2">
                   <Button
-                    variant="outline"
                     size="sm"
-                    onClick={() => handleEdit(story)}
-                    className="flex-1"
-                  >
-                    <Edit className="w-3 h-3 mr-1" />
-                    Edit
-                  </Button>
-                  {story.status !== 'published' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePublish(story._id)}
-                      className="flex-1"
-                    >
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Publish
-                    </Button>
-                  )}
-                  {story.status !== 'archived' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleArchive(story._id)}
-                    >
-                      Archive
-                    </Button>
-                  )}
-                  <Button
                     variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(story._id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => {/* View story */ }}
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Eye className="w-3 h-3 mr-1" />
+                    View
                   </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                      >
+                        <MoreHorizontal className="w-3 h-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Story Actions</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleEdit(story)}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit Story
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        alert('Analytics feature coming soon');
+                      }}>
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        View Analytics
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        window.open(`/stories/${story._id}`, '_blank');
+                      }}>
+                        <Globe className="w-4 h-4 mr-2" />
+                        Preview Story
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {story.status === 'draft' && (
+                        <DropdownMenuItem onClick={() => handlePublish(story._id)}>
+                          <Rocket className="w-4 h-4 mr-2" />
+                          Publish Story
+                        </DropdownMenuItem>
+                      )}
+                      {story.status === 'published' && (
+                        <DropdownMenuItem onClick={() => handleArchive(story._id)}>
+                          <Archive className="w-4 h-4 mr-2" />
+                          Archive Story
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDelete(story._id)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Story
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </motion.div>
@@ -601,7 +635,7 @@ export default function StoriesManagementPage() {
               {isEditing ? 'Update story content' : 'Create a new food story'}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="title">Title *</Label>

@@ -1,44 +1,52 @@
 "use client";
 
-import { EmptyState } from '@/components/admin/empty-state';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { AdminFilterBar, FilterOption } from '@/components/admin/admin-filter-bar';
 import { StatusBadge } from '@/components/admin/content/StatusBadge';
+import { EmptyState } from '@/components/admin/empty-state';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { useMutation, useQuery } from 'convex/react';
-import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQuery } from 'convex/react';
 import {
-  Video,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  Play,
-  Flag,
+  BarChart3,
   CheckCircle,
   Clock,
-  Users,
+  Edit,
+  Eye,
+  Flag,
+  Globe,
   Heart,
   MessageCircle,
+  MoreHorizontal,
+  Plus,
+  Rocket,
   Share2,
-  Search,
-  Filter,
-  X,
+  Trash2,
+  Video,
+  X
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
-import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { useMemo, useState } from 'react';
 
 interface VideoPost {
   _id: Id<"videoPosts">;
@@ -78,7 +86,7 @@ interface VideoPost {
 export default function VideosManagementPage() {
   const { user: adminUser, sessionToken } = useAdminUser();
   const { toast } = useToast();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [visibilityFilter, setVisibilityFilter] = useState<string>('all');
@@ -117,7 +125,7 @@ export default function VideosManagementPage() {
     api.queries.videoPosts.getAllVideosForAdmin,
     sessionToken ? { limit: 1000 } : "skip"
   );
-  
+
   const allVideos = videoData?.videos || [];
 
   // Mutations
@@ -442,7 +450,7 @@ export default function VideosManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -456,7 +464,7 @@ export default function VideosManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -470,7 +478,7 @@ export default function VideosManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -563,7 +571,7 @@ export default function VideosManagementPage() {
                 {video.description && (
                   <p className="text-sm text-gray-600 mb-2 line-clamp-2">{video.description}</p>
                 )}
-                
+
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
                   <Badge variant="outline" className="text-xs">
                     {video.creator.name}
@@ -601,44 +609,63 @@ export default function VideosManagementPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2">
+                <div className="flex gap-2">
                   <Button
-                    variant="outline"
                     size="sm"
-                    onClick={() => handleEdit(video)}
-                    className="flex-1"
-                  >
-                    <Edit className="w-3 h-3 mr-1" />
-                    Edit
-                  </Button>
-                  {video.status !== 'published' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePublish(video._id)}
-                      className="flex-1"
-                    >
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Publish
-                    </Button>
-                  )}
-                  {video.status !== 'flagged' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleFlag(video._id)}
-                    >
-                      <Flag className="w-3 h-3" />
-                    </Button>
-                  )}
-                  <Button
                     variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(video._id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => {/* View video */ }}
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Eye className="w-3 h-3 mr-1" />
+                    View
                   </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                      >
+                        <MoreHorizontal className="w-3 h-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Video Actions</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleEdit(video)}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit Video
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        alert('Analytics feature coming soon');
+                      }}>
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        View Analytics
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        window.open(video.videoUrl, '_blank');
+                      }}>
+                        <Globe className="w-4 h-4 mr-2" />
+                        Watch Video
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {video.status === 'draft' && (
+                        <DropdownMenuItem onClick={() => handlePublish(video._id)}>
+                          <Rocket className="w-4 h-4 mr-2" />
+                          Publish Video
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => handleFlag(video._id)}>
+                        <Flag className="w-4 h-4 mr-2" />
+                        Flag Video
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDelete(video._id)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Video
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </motion.div>
@@ -661,7 +688,7 @@ export default function VideosManagementPage() {
               {isEditing ? 'Update video details' : 'Add a new video post to Nosh Heaven'}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="title">Title *</Label>

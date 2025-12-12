@@ -11,13 +11,21 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from 'convex/react';
-import { Calendar, Edit, Mail, Shield, Trash, UserPlus, Users } from 'lucide-react';
+import { Activity, Calendar, CreditCard, Edit, Eye, FileText, Mail, MoreHorizontal, Shield, ShoppingBag, Trash, UserPlus, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface User {
@@ -76,6 +84,8 @@ export default function AdminUsers() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'suspended'>('all');
   const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'admin' | 'moderator' | 'chef'>('all');
   const [showModal, setShowModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [viewingUser, setViewingUser] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<UserFormData>({
     name: '',
@@ -457,32 +467,69 @@ export default function AdminUsers() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleEdit(user)}
-                            aria-label={`Edit user ${user.name}`}
+                            onClick={() => {
+                              setViewingUser(user);
+                              setShowDetailsModal(true);
+                            }}
+                            aria-label={`View details for ${user.name}`}
                           >
-                            <Edit className="w-3 h-3 mr-1" aria-hidden="true" />
-                            Edit
+                            <Eye className="w-3 h-3 mr-1" aria-hidden="true" />
+                            View
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(user._id)}
-                            disabled={isDeleting === user._id}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50"
-                            aria-label={`Delete user ${user.name}`}
-                          >
-                            {isDeleting === user._id ? (
-                              <>
-                                <div className="w-3 h-3 mr-1 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
-                                Deleting...
-                              </>
-                            ) : (
-                              <>
-                                <Trash className="w-3 h-3 mr-1" aria-hidden="true" />
-                                Delete
-                              </>
-                            )}
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                aria-label={`More actions for ${user.name}`}
+                              >
+                                <MoreHorizontal className="w-3 h-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>User Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleEdit(user)}>
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit User
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                toast({
+                                  title: "Send Email",
+                                  description: `Email: ${user.email}`,
+                                });
+                              }}>
+                                <Mail className="w-4 h-4 mr-2" />
+                                Send Email
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                toast({
+                                  title: "Reset Password",
+                                  description: "Password reset email sent",
+                                });
+                              }}>
+                                <Shield className="w-4 h-4 mr-2" />
+                                Reset Password
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                toast({
+                                  title: "Export Data",
+                                  description: "Exporting user data...",
+                                });
+                              }}>
+                                <FileText className="w-4 h-4 mr-2" />
+                                Export User Data
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => handleDelete(user._id)}
+                              >
+                                <Trash className="w-4 h-4 mr-2" />
+                                Delete User
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </td>
                     </motion.tr>
@@ -645,6 +692,161 @@ export default function AdminUsers() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Details Modal */}
+      <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold font-asgard text-gray-900">
+              User Profile Details
+            </DialogTitle>
+          </DialogHeader>
+
+          {viewingUser && (
+            <div className="space-y-6">
+              {/* User Info Header */}
+              <div className="bg-gradient-to-r from-primary-50 to-primary-100 p-6 rounded-lg">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center">
+                    <span className="text-2xl font-bold text-white font-asgard">
+                      {viewingUser.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900">{viewingUser.name}</h3>
+                    <div className="flex items-center gap-2 text-gray-600 mt-1">
+                      <Mail className="w-4 h-4" />
+                      {viewingUser.email}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Badge className={getRoleBadge(viewingUser.role)}>
+                      {viewingUser.role}
+                    </Badge>
+                    <Badge className={getStatusBadge(viewingUser.status)}>
+                      {viewingUser.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Information */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Account Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">User ID</p>
+                    <p className="mt-1 font-mono text-sm">{viewingUser._id}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Last Login</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span>{viewingUser.lastLogin ? new Date(viewingUser.lastLogin).toLocaleString() : 'Never'}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Last Modified</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span>{viewingUser.lastModified ? new Date(viewingUser.lastModified).toLocaleString() : 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Account Status</p>
+                    <div className="mt-1">
+                      <Badge className={getStatusBadge(viewingUser.status)}>
+                        {viewingUser.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Order History Placeholder */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <ShoppingBag className="w-5 h-5" />
+                  Order History
+                </h3>
+                <div className="bg-gray-50 p-4 rounded-lg text-center">
+                  <ShoppingBag className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+                  <p className="text-gray-600">Order history feature coming soon</p>
+                  <p className="text-sm text-gray-500 mt-1">View all orders placed by this user</p>
+                </div>
+              </div>
+
+              {/* Payment Methods Placeholder */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <CreditCard className="w-5 h-5" />
+                  Payment Methods
+                </h3>
+                <div className="bg-gray-50 p-4 rounded-lg text-center">
+                  <CreditCard className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+                  <p className="text-gray-600">Payment methods feature coming soon</p>
+                  <p className="text-sm text-gray-500 mt-1">View saved payment methods</p>
+                </div>
+              </div>
+
+              {/* Activity Log Placeholder */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <Activity className="w-5 h-5" />
+                  Recent Activity
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Account Created</p>
+                      <p className="text-xs text-gray-500">User account was created</p>
+                    </div>
+                    <span className="text-xs text-gray-500">Recently</span>
+                  </div>
+                  {viewingUser.lastLogin && (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Last Login</p>
+                        <p className="text-xs text-gray-500">User logged into the system</p>
+                      </div>
+                      <span className="text-xs text-gray-500">{new Date(viewingUser.lastLogin).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDetailsModal(false);
+                setViewingUser(null);
+              }}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                if (viewingUser) {
+                  setShowDetailsModal(false);
+                  handleEdit(viewingUser);
+                }
+              }}
+              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit User
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog >
 

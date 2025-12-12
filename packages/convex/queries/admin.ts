@@ -733,8 +733,9 @@ export const getDeliveryStats = query({
     let deliveryCount = 0;
 
     for (const order of recentDeliveries) {
-      if (order.actual_delivery_time && order.createdAt) {
-        totalDeliveryTime += (order.actual_delivery_time - order.createdAt);
+      const orderAny = order as any;
+      if (orderAny.actual_delivery_time && order.createdAt) {
+        totalDeliveryTime += (orderAny.actual_delivery_time - order.createdAt);
         deliveryCount++;
       }
     }
@@ -828,7 +829,7 @@ export const files = query({
         contentType: file.contentType,
         sha256: file.sha256,
         size: file.size,
-        url: `/api/storage/${file._id}`,
+        url: `/ api / storage / ${file._id} `,
         type: file.contentType?.split('/')[0] || 'unknown',
         extension: file.contentType?.split('/')[1] || '',
         uploadedAt: file._creationTime
