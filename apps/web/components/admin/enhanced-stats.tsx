@@ -16,6 +16,7 @@ import {
   ArrowDownRight
 } from 'lucide-react';
 import { GlassCard, GlassCardGrid } from './glass-card';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { formatCurrency } from '@/lib/utils/number-format';
@@ -81,15 +82,17 @@ interface EnhancedStatsProps {
 
 export function EnhancedStats({ onError }: EnhancedStatsProps) {
   const [loading, setLoading] = useState(false);
+  const { sessionToken } = useAdminUser();
 
   // Fetch real analytics data from Convex
   const analyticsData = useQuery(
     api.queries.analytics.getDashboardMetrics,
-    { timeRange: "30d" }
+    sessionToken ? { timeRange: "30d", sessionToken } : 'skip'
   );
 
   const realtimeMetrics = useQuery(
-    api.queries.analytics.getRealtimeMetrics
+    api.queries.analytics.getRealtimeMetrics,
+    sessionToken ? { sessionToken } : 'skip'
   );
 
   // Calculate derived stats from real data

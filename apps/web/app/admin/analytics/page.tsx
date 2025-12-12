@@ -41,22 +41,27 @@ interface AnalyticsData {
 
 export default function AdminAnalyticsPage() {
   // Auth is handled by layout, no client-side checks needed
-  const { user } = useAdminUser();
+  const { user, sessionToken } = useAdminUser();
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
   const convex = useConvex();
 
   const { data: analyticsData, isLoading } = useQuery({
-    queryKey: ['admin-analytics', timeRange],
+    queryKey: ['admin-analytics', timeRange, sessionToken],
     queryFn: () => convex.query(api.queries.analytics.getDashboardMetrics, { 
-      timeRange 
+      timeRange,
+      sessionToken: sessionToken!,
     }) as Promise<AnalyticsData>,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!sessionToken,
   });
 
   const { data: realtimeMetrics } = useQuery({
-    queryKey: ['realtime-metrics'],
-    queryFn: () => convex.query(api.queries.analytics.getRealtimeMetrics),
+    queryKey: ['realtime-metrics', sessionToken],
+    queryFn: () => convex.query(api.queries.analytics.getRealtimeMetrics, {
+      sessionToken: sessionToken!,
+    }),
     refetchInterval: 30000, // Refresh every 30 seconds
+    enabled: !!sessionToken,
   });
 
   const currentData = analyticsData || {

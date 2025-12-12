@@ -15,6 +15,7 @@ import {
   Activity
 } from "lucide-react";
 import { useState } from "react";
+import { useAdminUser } from "@/app/admin/AdminUserProvider";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { formatCurrency } from "@/lib/utils/number-format";
@@ -37,6 +38,7 @@ interface AnalyticsData {
 
 export function AnalyticsOverview() {
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
+  const { sessionToken } = useAdminUser();
 
   const periods = [
     { key: '7d' as const, label: '7 Days' },
@@ -46,12 +48,15 @@ export function AnalyticsOverview() {
   ];
 
   // Real analytics data using Convex useQuery
-  const analyticsData = useQuery(api.queries.analytics.getDashboardMetrics, { 
-    timeRange: selectedPeriod 
-  });
+  const analyticsData = useQuery(api.queries.analytics.getDashboardMetrics, sessionToken ? { 
+    timeRange: selectedPeriod,
+    sessionToken,
+  } : 'skip');
 
   // Real-time metrics using Convex useQuery
-  const realtimeMetrics = useQuery(api.queries.analytics.getRealtimeMetrics);
+  const realtimeMetrics = useQuery(api.queries.analytics.getRealtimeMetrics, sessionToken ? {
+    sessionToken
+  } : 'skip');
 
   const isLoading = analyticsData === undefined;
 
