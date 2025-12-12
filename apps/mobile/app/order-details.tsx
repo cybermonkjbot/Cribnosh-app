@@ -309,7 +309,7 @@ export default function OrderDetailsScreen() {
     );
   }
 
-  const isActive = isOrderActive(order.status);
+
 
   return (
     <>
