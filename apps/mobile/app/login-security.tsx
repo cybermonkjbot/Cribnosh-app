@@ -363,7 +363,7 @@ export default function LoginSecurityScreen() {
               style={styles.modalButton}
               onPress={handleBackupCodesModalClose}
             >
-              <Text style={styles.modalButtonText}>I've Saved These Codes</Text>
+              <Text style={styles.modalButtonText}>I&apos;ve Saved These Codes</Text>
             </TouchableOpacity>
           </View>
         </View>

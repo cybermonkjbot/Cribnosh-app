@@ -18,6 +18,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SvgXml } from 'react-native-svg';
 
 interface FamilyMemberForm {
   name: string;
@@ -407,7 +408,7 @@ export default function FamilyProfileSetupScreen() {
     <View style={styles.stepContainer}>
       <Text style={styles.mainTitle}>Add Family Members</Text>
       <Text style={styles.stepDescription}>
-        Add the family members you'd like to share your account with. They'll receive an invitation to join.
+        Add the family members you&apos;d like to share your account with. They&apos;ll receive an invitation to join.
       </Text>
 
       {members.map((member, index) => (
@@ -488,7 +489,7 @@ export default function FamilyProfileSetupScreen() {
             if (validation?.exists) {
               return (
                 <Text style={styles.validationSuccessMessage}>
-                  This member has a Cribnosh account. They'll receive an invitation to join.
+                  This member has a Cribnosh account. They&apos;ll receive an invitation to join.
                 </Text>
               );
             }

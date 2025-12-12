@@ -10,6 +10,7 @@ import { api } from '@/convex/_generated/api';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { showError, showSuccess } from '@/lib/GlobalToastManager';
 import * as FileSystem from 'expo-file-system';
+import { EncodingType } from 'expo-file-system';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { Video, AVPlaybackStatus } from 'expo-av';
 
@@ -266,7 +267,7 @@ export function NoshHeavenPostModal({ isVisible, onClose }: NoshHeavenPostModalP
       let fileContent: string;
       try {
         fileContent = await FileSystem.readAsStringAsync(mediaUri, {
-          encoding: FileSystem.EncodingType.Base64,
+          encoding: EncodingType.Base64,
         });
       } catch (readError) {
         throw new Error('Failed to read file. Please try selecting a different file.');

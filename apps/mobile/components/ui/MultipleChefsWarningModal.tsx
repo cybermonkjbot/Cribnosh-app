@@ -53,7 +53,7 @@ export function MultipleChefsWarningModal({
             </View>
 
             <Text style={[styles.message, { color: colors.icon }]}>
-              You're ordering from multiple food creators at the same time. Each food creator will prepare and deliver your order separately, which may result in different arrival times.
+              You&apos;re ordering from multiple food creators at the same time. Each food creator will prepare and deliver your order separately, which may result in different arrival times.
             </Text>
           </View>
 

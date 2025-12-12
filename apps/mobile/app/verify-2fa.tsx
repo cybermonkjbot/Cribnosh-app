@@ -264,7 +264,7 @@ export default function Verify2FAScreen() {
           
           {/* Help Text */}
           <Text style={styles.helpText}>
-            Can't access your authenticator app?{'\n'}
+            Can&apos;t access your authenticator app?{'\n'}
             Use one of your backup codes or contact support.
           </Text>
         </View>

@@ -277,8 +277,8 @@ export function ProfileUpdateOTPModal({
               </Text>
               <Text style={styles.subtitle}>
                 {type === 'phone' 
-                  ? 'Enter your new phone number and we\'ll send you a verification code'
-                  : 'Enter your new email address and we\'ll send you a verification code'}
+                  ? 'Enter your new phone number and we&apos;ll send you a verification code'
+                  : 'Enter your new email address and we&apos;ll send you a verification code'}
               </Text>
 
               {type === 'phone' ? (

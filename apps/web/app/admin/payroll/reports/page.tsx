@@ -1,5 +1,18 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { DateRange } from 'react-day-picker';
+
+import { DataTable } from "@/components/admin/payroll/data-table";
+import { columns } from "@/components/admin/payroll/reports/columns";
+import { PayrollReportsChartSkeleton, PayrollReportsSummarySkeleton, PayrollReportsTableSkeleton } from "@/components/admin/skeletons";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Bar, CartesianGrid, BarChart as RechartsBarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+
 import { Calendar } from '@/components/ui/calendar';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
@@ -92,7 +105,7 @@ export default function PayrollReportsPage() {
     from: new Date(new Date().setMonth(new Date().getMonth() - 1)),
     to: new Date(),
   });
-  
+
   // Type-safe handler for date range selection
   const handleDateRangeSelect = (range: DateRange | undefined) => {
     if (range) {
@@ -102,16 +115,16 @@ export default function PayrollReportsPage() {
       });
     }
   };
-  
+
   // Get the selected date range for the Calendar component
   const selectedDateRange = {
     from: dateRange?.from,
     to: dateRange?.to
   };
-  
+
   const [department, setDepartment] = useState<string>('all');
-  const [departments, setDepartments] = useState<{value: string; label: string}[]>([]);
-  
+  const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
+
   // Define types for the API responses
   interface PayrollSummary {
     totalPayroll?: number;
@@ -144,13 +157,13 @@ export default function PayrollReportsPage() {
   }
 
   // Fetch summary report data with proper typing
-  const summary = useQuery(api.payroll.reports.getPayrollSummary, 
-    dateRange?.from && dateRange.to 
+  const summary = useQuery(api.payroll.reports.getPayrollSummary,
+    dateRange?.from && dateRange.to
       ? {
-          startDate: dateRange.from.getTime(),
-          endDate: dateRange.to.getTime(),
-          department: department !== 'all' ? department : undefined,
-        }
+        startDate: dateRange.from.getTime(),
+        endDate: dateRange.to.getTime(),
+        department: department !== 'all' ? department : undefined,
+      }
       : 'skip'
   ) as PayrollSummary | null;
 
@@ -158,24 +171,24 @@ export default function PayrollReportsPage() {
   const details = useQuery(api.payroll.reports.getPayrollDetails,
     dateRange?.from && dateRange.to
       ? {
-          startDate: dateRange.from.getTime(),
-          endDate: dateRange.to.getTime(),
-          department: department !== 'all' ? department : undefined,
-        }
+        startDate: dateRange.from.getTime(),
+        endDate: dateRange.to.getTime(),
+        department: department !== 'all' ? department : undefined,
+      }
       : 'skip'
   ) as unknown as PayrollDetails[] | null;
 
   const isLoadingSummary = summary === undefined;
   const isLoadingDetails = details === undefined;
-  
+
   // Fetch departments from database
   const departmentsQuery = useQuery(api.queries.timeTracking.getDepartments, sessionToken ? { sessionToken } : 'skip');
-  
+
   useEffect(() => {
     if (departmentsQuery) {
-          const depts = [
-            { value: 'all', label: 'All Departments' },
-            ...departmentsQuery.map((dept: { id: string; name: string }) => ({
+      const depts = [
+        { value: 'all', label: 'All Departments' },
+        ...departmentsQuery.map((dept: { id: string; name: string }) => ({
           value: dept.id,
           label: dept.name
         }))
@@ -183,7 +196,7 @@ export default function PayrollReportsPage() {
       setDepartments(depts);
     }
   }, [departmentsQuery]);
-  
+
   // Format data for charts with proper typing
   interface DepartmentData {
     name: string;
@@ -195,14 +208,14 @@ export default function PayrollReportsPage() {
 
   const departmentData: DepartmentData[] = summary && 'byDepartment' in summary && summary.byDepartment
     ? Object.entries(summary.byDepartment).map(([dept, data]: [string, any]) => ({
-        name: dept,
-        payroll: data.payroll || 0,
-        employees: data.employees || 0,
-        hours: data.hours || 0,
-        overtime: data.overtime || 0,
-      }))
+      name: dept,
+      payroll: data.payroll || 0,
+      employees: data.employees || 0,
+      hours: data.hours || 0,
+      overtime: data.overtime || 0,
+    }))
     : [];
-    
+
   interface PeriodData {
     name: string;
     payroll: number;
@@ -211,14 +224,14 @@ export default function PayrollReportsPage() {
 
   const periodData: PeriodData[] = summary && 'byPayPeriod' in summary && summary.byPayPeriod
     ? Object.entries(summary.byPayPeriod)
-        .map(([_, data]: [string, any]) => ({
-          name: `${format(new Date(data.startDate), 'MMM d')} - ${format(new Date(data.endDate), 'MMM d, yyyy')}`,
-          payroll: data.payroll || 0,
-          employees: data.employees || 0,
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name))
+      .map(([_, data]: [string, any]) => ({
+        name: `${format(new Date(data.startDate), 'MMM d')} - ${format(new Date(data.endDate), 'MMM d, yyyy')}`,
+        payroll: data.payroll || 0,
+        employees: data.employees || 0,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
     : [];
-  
+
   // Handle export
   const handleExport = async (format: 'csv' | 'pdf') => {
     if (!dateRange?.from || !dateRange?.to) {
@@ -273,7 +286,7 @@ export default function PayrollReportsPage() {
             Generate and analyze payroll reports
           </p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="min-w-[250px]">
             <Popover>
@@ -305,7 +318,7 @@ export default function PayrollReportsPage() {
               </PopoverContent>
             </Popover>
           </div>
-          
+
           <Select value={department} onValueChange={setDepartment}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select department" />
@@ -318,7 +331,7 @@ export default function PayrollReportsPage() {
               ))}
             </SelectContent>
           </Select>
-          
+
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => handleExport('csv')}>
               <Download className="mr-2 h-4 w-4" /> CSV
@@ -329,7 +342,7 @@ export default function PayrollReportsPage() {
           </div>
         </div>
       </div>
-      
+
       <Tabs defaultValue="summary" className="space-y-4">
         <TabsList>
           <TabsTrigger value="summary">
@@ -341,7 +354,7 @@ export default function PayrollReportsPage() {
             Detailed Report
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="summary" className="space-y-4">
           {isLoadingSummary ? (
             <PayrollReportsSummarySkeleton />
@@ -365,7 +378,7 @@ export default function PayrollReportsPage() {
                   </p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -382,7 +395,7 @@ export default function PayrollReportsPage() {
                   </p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -395,13 +408,13 @@ export default function PayrollReportsPage() {
                     {summary?.totalOvertime?.toFixed(1) || '0'} hours
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {summary?.totalOvertime ? 
-                      `$${(summary.totalOvertime * 22.5).toFixed(2)}` : 
+                    {summary?.totalOvertime ?
+                      `$${(summary.totalOvertime * 22.5).toFixed(2)}` :
                       '$0.00'} total overtime pay
                   </p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -412,10 +425,10 @@ export default function PayrollReportsPage() {
                 <CardContent>
                   <div className="text-2xl font-bold">
                     ${summary?.totalEmployees && summary?.totalPayroll !== undefined
-                      ? (summary.totalPayroll / summary.totalEmployees).toLocaleString('en-US', { 
-                          minimumFractionDigits: 2, 
-                          maximumFractionDigits: 2 
-                        })
+                      ? (summary.totalPayroll / summary.totalEmployees).toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })
                       : '0.00'}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -425,7 +438,7 @@ export default function PayrollReportsPage() {
               </Card>
             </div>
           )}
-          
+
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
@@ -447,7 +460,7 @@ export default function PayrollReportsPage() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" />
                       <YAxis dataKey="name" type="category" width={100} />
-                      <Tooltip 
+                      <Tooltip
                         formatter={(value) => [`$${value.toLocaleString()}`, 'Payroll']}
                         labelFormatter={(label) => `Department: ${label}`}
                       />
@@ -461,7 +474,7 @@ export default function PayrollReportsPage() {
                 )}
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Payroll Over Time</CardTitle>
@@ -481,7 +494,7 @@ export default function PayrollReportsPage() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" />
                       <YAxis />
-                      <Tooltip 
+                      <Tooltip
                         formatter={(value) => [`$${value.toLocaleString()}`, 'Payroll']}
                         labelFormatter={(label) => `Period: ${label}`}
                       />
@@ -497,7 +510,7 @@ export default function PayrollReportsPage() {
             </Card>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="details" className="space-y-4">
           <Card>
             <CardHeader>
@@ -510,9 +523,9 @@ export default function PayrollReportsPage() {
               {isLoadingDetails ? (
                 <PayrollReportsTableSkeleton rowCount={5} />
               ) : details && details.length > 0 ? (
-                <DataTable 
-                  columns={columns} 
-                  data={details} 
+                <DataTable
+                  columns={columns}
+                  data={details}
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">

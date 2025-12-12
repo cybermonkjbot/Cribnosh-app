@@ -346,7 +346,7 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
                     style={styles.activatedBadge}
                   >
                     <Text style={styles.activatedText}>
-                      ✓ Offer Active! You're saving {formatPrice(discountAmount)}
+                      ✓ Offer Active! You&apos;re saving {formatPrice(discountAmount)}
                     </Text>
                   </LinearGradient>
                 </View>

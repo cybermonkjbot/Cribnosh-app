@@ -157,7 +157,7 @@ export function AddFamilyMemberSheet({
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <Text style={styles.description}>
-            Invite a new family member to join your family profile. They'll receive an invitation email.
+            Invite a new family member to join your family profile. They&apos;ll receive an invitation email.
           </Text>
 
           <TextInput

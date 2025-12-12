@@ -43,8 +43,8 @@ const OnTheWay: React.FC<OnTheWayDrawerProps> = ({ isVisible, onClose }) => {
               </Text>
               
               <Text style={styles.description}>
-                We've received your order and our kitchen is preparing it now. 
-                You'll receive updates as your food makes its way to you.
+                We&apos;ve received your order and our kitchen is preparing it now. 
+                You&apos;ll receive updates as your food makes its way to you.
               </Text>
 
               <View style={styles.deliveryCard}>

@@ -109,7 +109,7 @@ export default function DownloadAccountDataScreen() {
         // Download the file from the URL
         const downloadUrl = result.data.download_url;
         const fileName = `cribnosh-account-data-${Date.now()}.zip`;
-        const fileUri = `${(FileSystem as any).documentDirectory || FileSystem.cacheDirectory || ''}${fileName}`;
+        const fileUri = `${FileSystem.documentDirectory || FileSystem.cacheDirectory || ''}${fileName}`;
 
         // Download the file
         const downloadResult = await FileSystem.downloadAsync(

@@ -120,7 +120,7 @@ export default function DeleteAccountScreen() {
           </Text>
           
           <Text style={styles.explanationText}>
-            We're sad to see you go, but we understand that sometimes it's necessary. Please take a moment to consider the consequences before proceeding.
+            We&apos;re sad to see you go, but we understand that sometimes it&apos;s necessary. Please take a moment to consider the consequences before proceeding.
           </Text>
         </View>
 

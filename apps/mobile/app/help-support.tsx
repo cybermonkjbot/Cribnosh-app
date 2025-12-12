@@ -201,7 +201,7 @@ export default function HelpSupportScreen() {
   const handleFoodSafetyPress = () => {
     setSelectedHelpCategory({
       title: 'Food safety on Cribnosh',
-      content: 'We take food safety seriously. All our chefs are certified and follow strict hygiene standards. Here\'s what you need to know about food safety on Cribnosh.',
+      content: 'We take food safety seriously. All our chefs are certified and follow strict hygiene standards. Here&apos;s what you need to know about food safety on Cribnosh.',
       sections: [
         {
           title: 'Chef Certification',
