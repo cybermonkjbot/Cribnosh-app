@@ -10,6 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,16 +27,21 @@ import { Id } from '@/convex/_generated/dataModel';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from 'convex/react';
 import {
-    CheckCircle,
-    ChefHat,
-    Edit,
-    Image as ImageIcon,
-    Plus,
-    PoundSterling,
-    Star,
-    Trash2,
-    Utensils,
-    X
+  BarChart3,
+  CheckCircle,
+  ChefHat,
+  Edit,
+  Eye,
+  Image as ImageIcon,
+  MessageSquare,
+  MoreHorizontal,
+  Plus,
+  PoundSterling,
+  Star,
+  Trash2,
+  Utensils,
+  X,
+  XCircle
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
@@ -67,7 +80,7 @@ interface Meal {
 export default function MealsManagementPage() {
   const { user: adminUser, sessionToken } = useAdminUser();
   const { toast } = useToast();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [cuisineFilter, setCuisineFilter] = useState<string>('all');
@@ -111,7 +124,7 @@ export default function MealsManagementPage() {
     api.queries.meals.getAll,
     sessionToken ? { limit: 1000 } : "skip"
   );
-  
+
   const allMeals = (mealsData || []) as Meal[];
 
   // Mutations
@@ -149,7 +162,7 @@ export default function MealsManagementPage() {
 
     // Cuisine filter
     if (cuisineFilter !== 'all') {
-      filtered = filtered.filter((meal: Meal) => 
+      filtered = filtered.filter((meal: Meal) =>
         meal.cuisine?.includes(cuisineFilter)
       );
     }
@@ -306,7 +319,7 @@ export default function MealsManagementPage() {
   const confirmDelete = async () => {
     if (!deleteConfirm.mealId) return;
     try {
-      await deleteMeal({ 
+      await deleteMeal({
         mealId: deleteConfirm.mealId,
         sessionToken,
       });
@@ -404,7 +417,7 @@ export default function MealsManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -418,7 +431,7 @@ export default function MealsManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -432,7 +445,7 @@ export default function MealsManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -519,7 +532,7 @@ export default function MealsManagementPage() {
               <div className="p-4">
                 <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">{meal.name}</h3>
                 <p className="text-sm text-gray-600 mb-2 line-clamp-2">{meal.description}</p>
-                
+
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1">
                     <PoundSterling className="w-4 h-4 text-gray-600" />
@@ -551,24 +564,73 @@ export default function MealsManagementPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2">
+                <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEdit(meal)}
-                    className="flex-1"
                   >
-                    <Edit className="w-3 h-3 mr-1" />
-                    Edit
+                    <Eye className="w-3 h-3 mr-1" />
+                    View
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(meal._id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                      >
+                        <MoreHorizontal className="w-3 h-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Meal Actions</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleEdit(meal)}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit Meal
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        alert('Reviews feature coming soon');
+                      }}>
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        View Reviews
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        alert('Analytics feature coming soon');
+                      }}>
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        View Analytics
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={async () => {
+                        await updateMeal({
+                          mealId: meal._id,
+                          updates: {
+                            ...meal,
+                            status: meal.status === 'available' ? 'unavailable' : 'available'
+                          },
+                          sessionToken
+                        });
+                        toast({
+                          title: 'Success',
+                          description: `Meal ${meal.status === 'available' ? 'disabled' : 'enabled'}`,
+                        });
+                      }}>
+                        {meal.status === 'available' ? (
+                          <><XCircle className="w-4 h-4 mr-2" />Mark Unavailable</>
+                        ) : (
+                          <><CheckCircle className="w-4 h-4 mr-2" />Mark Available</>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDelete(meal._id)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Meal
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </motion.div>
@@ -591,7 +653,7 @@ export default function MealsManagementPage() {
               {isEditing ? 'Update meal details' : 'Add a new meal to the platform'}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="name">Name *</Label>

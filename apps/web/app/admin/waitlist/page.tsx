@@ -19,13 +19,16 @@ import {
   Download,
   Edit,
   Eye,
+  FileText,
   List,
   Mail,
   MapPin,
+  MoreHorizontal,
   Phone,
   Table2,
   Trash2,
-  Users
+  Users,
+  XCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -35,6 +38,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { PriorityBadge, StatusBadge } from "@/components/ui/glass-badges";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -799,49 +810,88 @@ export default function AdminWaitlistPage() {
                           </Button>
                         </div>
 
-                        <div className="flex gap-2">
-                          {(entry.status === 'active' || !entry.status) && (
-                            <>
-                              <Button
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setApproveConfirm({ isOpen: true, entryId: entry._id as Id<"waitlist"> });
-                                }}
-                                disabled={isApproving === entry._id as Id<"waitlist">}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                <CheckCircle className="w-4 h-4 mr-1" />
-                                {isApproving === entry._id as Id<"waitlist"> ? 'Approving...' : 'Approve'}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setRejectConfirm({ isOpen: true, entryId: entry._id as Id<"waitlist"> });
-                                }}
-                                disabled={isRejecting === entry._id as Id<"waitlist">}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                {isRejecting === entry._id as Id<"waitlist"> ? 'Rejecting...' : 'Reject'}
-                              </Button>
-                            </>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Entry Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();
-                              setDeleteConfirm({ isOpen: true, entryId: entry._id as Id<"waitlist"> });
-                            }}
-                            disabled={isDeleting === entry._id as Id<"waitlist">}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            {isDeleting === entry._id as Id<"waitlist"> ? 'Deleting...' : ''}
-                          </Button>
-                        </div>
+                              router.push(`/admin/waitlist/${entry._id}`);
+                            }}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/admin/waitlist/${entry._id}?edit=true`);
+                            }}>
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit Entry
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = `mailto:${entry.email}`;
+                            }}>
+                              <Mail className="w-4 h-4 mr-2" />
+                              Send Email
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              toast({
+                                title: 'Export',
+                                description: 'Exporting entry data...',
+                              });
+                            }}>
+                              <FileText className="w-4 h-4 mr-2" />
+                              Export Entry
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {(entry.status === 'active' || !entry.status) && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setApproveConfirm({ isOpen: true, entryId: entry._id as Id<"waitlist"> });
+                                  }}
+                                  disabled={isApproving === entry._id as Id<"waitlist">}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  {isApproving === entry._id as Id<"waitlist"> ? 'Approving...' : 'Approve Entry'}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setRejectConfirm({ isOpen: true, entryId: entry._id as Id<"waitlist"> });
+                                  }}
+                                  disabled={isRejecting === entry._id as Id<"waitlist">}
+                                >
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  {isRejecting === entry._id as Id<"waitlist"> ? 'Rejecting...' : 'Reject Entry'}
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirm({ isOpen: true, entryId: entry._id as Id<"waitlist"> });
+                              }}
+                              disabled={isDeleting === entry._id as Id<"waitlist">}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              {isDeleting === entry._id as Id<"waitlist"> ? 'Deleting...' : 'Delete Entry'}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </CardContent>
                   </Card>

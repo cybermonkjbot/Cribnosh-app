@@ -6,12 +6,21 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useMutation, useQuery } from 'convex/react';
 import {
+  BarChart3,
   ChefHat,
   ChefHat as ChefIcon,
   Clock,
@@ -19,6 +28,7 @@ import {
   Eye,
   Filter,
   Flame,
+  MoreHorizontal,
   Plus,
   Search,
   Star,
@@ -102,7 +112,7 @@ export default function RecipeManagementPage() {
   // Mutations
   const createRecipe = useMutation(api.mutations.content.createRecipe);
   const updateRecipe = useMutation(api.mutations.content.updateRecipe);
-  const deleteRecipe = useMutation(api.mutations.content.deleteRecipe);
+  const handleDelete = useMutation(api.mutations.content.deleteRecipe);
   const publishRecipe = useMutation(api.mutations.content.publishRecipe);
 
   const handleCreateRecipe = async () => {
@@ -156,7 +166,7 @@ export default function RecipeManagementPage() {
   const handleDeleteRecipe = async (recipeId: Id<"recipes">) => {
     if (confirm('Are you sure you want to delete this recipe?')) {
       try {
-        await deleteRecipe({ recipeId });
+        await handleDelete({ recipeId });
         setSuccess('Recipe deleted successfully');
         setError(null);
       } catch (err) {
@@ -698,59 +708,75 @@ export default function RecipeManagementPage() {
                   <Eye className="w-4 h-4 mr-1" />
                   View
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setIsEditing(recipe._id)}
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-                {recipe.status === 'draft' && (
-                  <Button
-                    size="sm"
-                    onClick={() => handlePublishRecipe(recipe._id)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    Publish
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleDeleteRecipe(recipe._id)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Recipe Actions</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setIsEditing(recipe._id)}>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Recipe
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      alert('Analytics feature coming soon');
+                    }}>
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      View Analytics
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {recipe.status === 'draft' && (
+                      <DropdownMenuItem onClick={() => handlePublishRecipe(recipe._id)}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        Publish Recipe
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      className="text-red-600"
+                      onClick={() => handleDeleteRecipe(recipe._id)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Recipe
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {filteredRecipes.length === 0 && (
-        <EmptyState
-          icon={ChefHat}
-          title={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' ? "No recipes found" : "No recipes yet"}
-          description={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all'
-            ? "Try adjusting your search or filter criteria"
-            : "Create your first recipe to get started"}
-          action={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' ? {
-            label: "Clear filters",
-            onClick: () => {
-              setSearchTerm('');
-              setCategoryFilter('all');
-              setStatusFilter('all');
-            },
-            variant: "secondary"
-          } : {
-            label: "Create Recipe",
-            onClick: () => setIsCreating(true),
-            variant: "primary"
-          }}
-          variant={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' ? "filtered" : "no-data"}
-        />
-      )}
-    </div>
+      {
+        filteredRecipes.length === 0 && (
+          <EmptyState
+            icon={ChefHat}
+            title={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' ? "No recipes found" : "No recipes yet"}
+            description={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all'
+              ? "Try adjusting your search or filter criteria"
+              : "Create your first recipe to get started"}
+            action={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' ? {
+              label: "Clear filters",
+              onClick: () => {
+                setSearchTerm('');
+                setCategoryFilter('all');
+                setStatusFilter('all');
+              },
+              variant: "secondary"
+            } : {
+              label: "Create Recipe",
+              onClick: () => setIsCreating(true),
+              variant: "primary"
+            }}
+            variant={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' ? "filtered" : "no-data"}
+          />
+        )
+      }
+    </div >
   );
 }
