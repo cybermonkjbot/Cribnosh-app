@@ -149,11 +149,7 @@ export default function MemberPreferencesScreen() {
     setAllergies(prev => prev.filter((_, i) => i !== index));
   };
 
-  const updateAllergy = (index: number, field: keyof Allergy, value: any) => {
-    setAllergies(prev => prev.map((allergy, i) => 
-      i === index ? { ...allergy, [field]: value } : allergy
-    ));
-  };
+
 
   const toggleDietaryOption = (value: string, category: 'preferences' | 'religious_requirements' | 'health_driven') => {
     setDietaryPrefs(prev => {
