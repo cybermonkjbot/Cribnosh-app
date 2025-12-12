@@ -109,7 +109,7 @@ export default function DeliveryManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [driverFilter, setDriverFilter] = useState<string>('all');
-  const [timeFilter, setTimeFilter] = useState<string>('today');
+  const [timeFilter, setTimeFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('recent');
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
@@ -144,24 +144,28 @@ export default function DeliveryManagementPage() {
       const matchesDriver = driverFilter === 'all' || delivery.driverId === driverFilter;
 
       // Time filter
-      const now = Date.now();
-      const oneDay = 24 * 60 * 60 * 1000;
-      const oneWeek = 7 * oneDay;
-      const oneMonth = 30 * oneDay;
-
       let matchesTime = true;
-      if (timeFilter === 'today') {
-        matchesTime = delivery.createdAt >= now - oneDay;
+      if (timeFilter === 'all') {
+        matchesTime = true;
+      } else if (timeFilter === 'today') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        matchesTime = delivery.createdAt >= today.getTime();
       } else if (timeFilter === 'week') {
-        matchesTime = delivery.createdAt >= now - oneWeek;
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        matchesTime = delivery.createdAt >= weekAgo.getTime();
       } else if (timeFilter === 'month') {
-        matchesTime = delivery.createdAt >= now - oneMonth;
+        const monthAgo = new Date();
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        matchesTime = delivery.createdAt >= monthAgo.getTime();
       }
+
 
       return matchesSearch && matchesStatus && matchesDriver && matchesTime;
     });
 
-    // Sort
+    // Sort deliveries
     return filtered.sort((a, b) => {
       switch (sortBy) {
         case 'distance':
