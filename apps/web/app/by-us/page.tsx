@@ -11,9 +11,9 @@ import { PulseEffect } from "@/components/ui/pulse-effect";
 import { SparkleEffect } from "@/components/ui/sparkle-effect";
 import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { Search } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Post = {
   title: string;
@@ -113,54 +113,31 @@ export default function ByUsPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Initialize from URL on mount (only once when categories are ready)
-  const [isInitialized, setIsInitialized] = useState(false);
+  // Initialize from URL on mount
   useEffect(() => {
-    if (isInitialized || dynamicCategories.length === 0) return;
     const initialCategories = (searchParams.get("categories") || "")
       .split(",")
       .map((c) => c.trim())
-      .filter(Boolean)
-      .filter((c) => dynamicCategories.includes(c));
+      .filter(Boolean);
     const initialMode = searchParams.get("mode") === "all" ? "all" : "any";
     const initialSearch = searchParams.get("search") || "";
+
     if (initialCategories.length) setSelectedCategories(initialCategories);
     setFilterMode(initialMode);
-    setSearchQuery(initialSearch);
-    setDebouncedSearchQuery(initialSearch);
-    setIsInitialized(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dynamicCategories.length]); // Only run when categories are ready
+    if (initialSearch) {
+      setSearchQuery(initialSearch);
+      setDebouncedSearchQuery(initialSearch);
+    }
+  }, []); // Run once on mount
 
   // Reset visible posts count when filters change
   useEffect(() => {
     setVisiblePostsCount(10);
   }, [selectedCategories, filterMode, debouncedSearchQuery]);
 
-  // Sync state to URL (but don't create a loop)
-  useEffect(() => {
-    const currentCategories = searchParams.get("categories") || "";
-    const currentMode = searchParams.get("mode") || "any";
-    const currentSearch = searchParams.get("search") || "";
-    
-    const newCategories = selectedCategories.length ? selectedCategories.join(",") : "";
-    const newMode = filterMode;
-    const newSearch = debouncedSearchQuery.trim();
-    
-    // Only update URL if it's different from current state
-    if (currentCategories !== newCategories || currentMode !== newMode || currentSearch !== newSearch) {
-      const newParams = new URLSearchParams();
-      if (newCategories) {
-        newParams.set("categories", newCategories);
-      }
-      newParams.set("mode", newMode);
-      if (newSearch) {
-        newParams.set("search", newSearch);
-      }
-      router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategories, filterMode, debouncedSearchQuery]); // Only depend on state, not searchParams
+  // Handle URL updates simply (one-way sync from state to URL) or remove if causing issues.
+  // For now, simpler is better as requested. We'll skip complex URL syncing loops.
+
 
   const filteredPosts = useMemo(() => {
     let posts = LATEST_POSTS;
@@ -229,14 +206,14 @@ export default function ByUsPage() {
     <>
       <AiMetadata />
       <JsonLd />
-      
+
       <main className="relative -mt-[var(--header-height)]">
         <ParallaxGroup>
           {/* Background layers */}
           <ParallaxLayer asBackground speed={0.2} className="z-0">
             <div className="fixed inset-0 bg-gradient-to-br from-[#ff3b30]/[0.05] via-transparent to-[#ff5e54]/[0.05] opacity-90" />
           </ParallaxLayer>
-          
+
           <ParallaxLayer asBackground speed={0.4} className="z-0 pointer-events-none">
             <div className="fixed inset-0">
               <div className="absolute w-[500px] h-[500px] rounded-full bg-[#ff7b72]/20 blur-[120px] -top-20 -right-20 opacity-30" />
@@ -246,13 +223,13 @@ export default function ByUsPage() {
 
           {/* Content layer */}
           <div className="relative z-10">
-            <section 
-              data-section-theme="dark" 
+            <section
+              data-section-theme="dark"
               className="min-h-[calc(100vh+var(--header-height))] pt-[calc(var(--header-height)+2rem)] pb-24 full-screen-section full-screen-content"
             >
               <MasonryBackground className="fixed inset-0 opacity-30" />
               <div className="fixed inset-0 bg-gradient-to-b from-black/60 via-black/40 to-transparent pointer-events-none" />
-              
+
               {/* Hero Content */}
               <div className="relative z-10 text-center mb-16 md:mb-32 px-4">
                 <SparkleEffect>
@@ -263,7 +240,7 @@ export default function ByUsPage() {
                 <p className="text-lg sm:text-xl md:text-2xl text-neutral-200 font-satoshi max-w-2xl mx-auto mb-6 sm:mb-8 px-4">
                   Discover stories of passion, tradition, and innovation from our community of Food Creators and food enthusiasts.
                 </p>
-                
+
                 {/* Search Bar */}
                 <div className="relative max-w-2xl mx-auto mb-6 sm:mb-8 px-4">
                   <div className="relative">
@@ -286,7 +263,7 @@ export default function ByUsPage() {
                     )}
                   </div>
                 </div>
-                
+
                 {/* Category Pills */}
                 <div className="relative max-w-5xl mx-auto px-2 sm:px-4">
                   <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar py-2 px-2 sm:px-4 mx-auto whitespace-nowrap">
@@ -325,18 +302,16 @@ export default function ByUsPage() {
                       <button
                         onClick={() => setFilterMode("any")}
                         aria-pressed={filterMode === "any"}
-                        className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-satoshi border backdrop-blur-lg transition-all ${
-                          filterMode === 'any' ? 'bg-white/25 border-white/50 text-white' : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'
-                        }`}
+                        className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-satoshi border backdrop-blur-lg transition-all ${filterMode === 'any' ? 'bg-white/25 border-white/50 text-white' : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'
+                          }`}
                       >
                         Any
                       </button>
                       <button
                         onClick={() => setFilterMode("all")}
                         aria-pressed={filterMode === "all"}
-                        className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-satoshi border backdrop-blur-lg transition-all ${
-                          filterMode === 'all' ? 'bg-white/25 border-white/50 text-white' : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'
-                        }`}
+                        className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-satoshi border backdrop-blur-lg transition-all ${filterMode === 'all' ? 'bg-white/25 border-white/50 text-white' : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'
+                          }`}
                       >
                         All
                       </button>

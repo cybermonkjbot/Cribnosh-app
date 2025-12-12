@@ -7,7 +7,6 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
-  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -34,16 +33,12 @@ const deviceIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="non
   <path d="M8 1V3M12 1V3M10 13H10.01" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-const shieldIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M10 2L2 7L10 12L18 7L10 2Z" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M2 17L10 22L18 17" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M2 12L10 17L18 12" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
+
 
 export default function LoginSecurityScreen() {
   const router = useRouter();
-  const { showToast } = useToast();
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const { } = useToast();
+
   const [sessionsData, setSessionsData] = useState<any>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
 
@@ -64,7 +59,7 @@ export default function LoginSecurityScreen() {
   const [showBackupCodesModal, setShowBackupCodesModal] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string>('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
-  const [isSettingUp2FA, setIsSettingUp2FA] = useState(false);
+
 
   // Fetch sessions and 2FA status on mount
   useEffect(() => {
@@ -105,40 +100,7 @@ export default function LoginSecurityScreen() {
   };
 
 
-  const handleToggleTwoFactor = async (value: boolean) => {
-    try {
-      if (value) {
-        // Enable 2FA - setup flow
-        setIsSettingUp2FA(true);
-        try {
-          const result = await setup2FA();
-          if (result.success && result.data) {
-            setQrCodeData(result.data.qrCode);
-            setBackupCodes(result.data.backupCodes);
-            setTwoFactorEnabled(true);
-            setShowQRCodeModal(true);
-          }
-        } catch (error: any) {
-          console.error('Error setting up 2FA:', error);
-          setTwoFactorEnabled(false);
-        } finally {
-          setIsSettingUp2FA(false);
-        }
-      } else {
-        // Disable 2FA
-        try {
-          await disable2FA();
-          setTwoFactorEnabled(false);
-        } catch (error: any) {
-          console.error('Error disabling 2FA:', error);
-          setTwoFactorEnabled(true); // Revert on error
-        }
-      }
-    } catch (error) {
-      console.error('Error toggling 2FA:', error);
-      setTwoFactorEnabled(!value); // Revert on error
-    }
-  };
+
   
   const handleQRCodeModalClose = () => {
     setShowQRCodeModal(false);

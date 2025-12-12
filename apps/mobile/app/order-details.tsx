@@ -4,7 +4,6 @@ import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import Entypo from "@expo/vector-icons/Entypo";
 import {
-  Package,
   Star,
   Phone,
   FileText,
@@ -19,7 +18,6 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -44,10 +42,7 @@ const isOrderActive = (status: string): boolean => {
 };
 
 // Helper function to check if order is completed
-const isOrderCompleted = (status: string): boolean => {
-  const completedStatuses = ["completed", "delivered"];
-  return completedStatuses.includes(status.toLowerCase());
-};
+
 
 export default function OrderDetailsScreen() {
   const router = useRouter();
@@ -178,14 +173,7 @@ export default function OrderDetailsScreen() {
     return `£${(priceInCents / 100).toFixed(2)}`;
   };
 
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      day: "numeric",
-      month: "long",
-    });
-  };
+
 
   // Format order ID to show last 6 characters (same as orders list screen)
   const formatOrderId = (orderId: string | undefined): string => {

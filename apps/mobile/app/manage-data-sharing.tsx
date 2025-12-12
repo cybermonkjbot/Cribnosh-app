@@ -12,11 +12,7 @@ const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none
 </svg>`;
 
 // Data sharing icons
-const dataIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M10 2L2 7L10 12L18 7L10 2Z" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M2 17L10 22L18 17" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M2 12L10 17L18 12" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
+
 
 const analyticsIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
   <path d="M3 3V17H17" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -34,19 +30,17 @@ const marketingIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="
   <path d="M2 12L10 17L18 12" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-const chevronRightIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M7 4L13 10L7 16" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
+
 
 export default function ManageDataSharingScreen() {
   const router = useRouter();
-  const { showToast } = useToast();
+  const { } = useToast();
   const { getDataSharingPreferences, updateDataSharingPreferences } = usePreferences();
 
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
   const [personalizationEnabled, setPersonalizationEnabled] = useState(true);
   const [marketingEnabled, setMarketingEnabled] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+
 
   // Load data sharing preferences on mount
   useEffect(() => {
@@ -62,8 +56,7 @@ export default function ManageDataSharingScreen() {
         setPersonalizationEnabled(result.data.personalization_enabled ?? true);
         setMarketingEnabled(result.data.marketing_enabled ?? false);
       }
-    } catch (error) {
-      // Error already handled in hook
+    } catch (_error) {
     } finally {
       setIsLoading(false);
     }
@@ -122,7 +115,7 @@ export default function ManageDataSharingScreen() {
                       personalization_enabled: personalizationEnabled,
                       marketing_enabled: marketingEnabled,
                     });
-                  } catch (error) {
+                  } catch (_error) {
                     setAnalyticsEnabled(!value); // Revert on error
                     // Error already handled in hook
                   }
@@ -153,7 +146,7 @@ export default function ManageDataSharingScreen() {
                       personalization_enabled: value,
                       marketing_enabled: marketingEnabled,
                     });
-                  } catch (error) {
+                  } catch (_error) {
                     setPersonalizationEnabled(!value); // Revert on error
                     // Error already handled in hook
                   }
@@ -184,7 +177,7 @@ export default function ManageDataSharingScreen() {
                       personalization_enabled: personalizationEnabled,
                       marketing_enabled: value,
                     });
-                  } catch (error) {
+                  } catch (_error) {
                     setMarketingEnabled(!value); // Revert on error
                     // Error already handled in hook
                   }

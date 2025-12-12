@@ -60,7 +60,7 @@ export default function HelpSupportScreen() {
       if (result.success) {
         setSupportCasesData(result);
       }
-    } catch (error) {
+    } catch (_error) {
       // Error already handled in hook
     }
   };
