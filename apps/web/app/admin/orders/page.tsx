@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/admin/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/convex/_generated/api';
@@ -27,6 +28,7 @@ import {
   Star,
   TrendingUp,
   Truck,
+  Users,
   XCircle,
   Zap
 } from 'lucide-react';
@@ -702,6 +704,199 @@ export default function OrderManagementPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Order Details Modal */}
+      <Dialog open={showOrderDetails} onOpenChange={setShowOrderDetails}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold font-asgard text-gray-900">
+              Order Details #{selectedOrder?._id.slice(-8)}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedOrder && (
+            <div className="space-y-6">
+              {/* Order Status and Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Order Status</p>
+                  <div className="mt-1">{getStatusBadge(selectedOrder.order_status)}</div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Payment Status</p>
+                  <div className="mt-1">{getPaymentBadge(selectedOrder.payment_status)}</div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Order Date</p>
+                  <p className="mt-1">{new Date(selectedOrder.createdAt).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Amount</p>
+                  <p className="mt-1 text-lg font-bold">£{selectedOrder.total_amount.toLocaleString()}</p>
+                </div>
+              </div>
+
+              {/* Customer Information */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Customer Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Name</p>
+                    <p className="mt-1">{selectedOrder.customer?.name || 'Unknown'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Email</p>
+                    <p className="mt-1">{selectedOrder.customer?.email || 'N/A'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm font-medium text-gray-600">Phone</p>
+                    <p className="mt-1">{selectedOrder.customer?.phone || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Chef Information */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <ChefHat className="w-5 h-5" />
+                  Chef Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Bio</p>
+                    <p className="mt-1">{selectedOrder.chef?.bio || 'Unknown'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Location</p>
+                    <p className="mt-1">{selectedOrder.chef?.location?.city || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Rating</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Star className="w-4 h-4 text-yellow-500" />
+                      <span>{selectedOrder.chef?.rating?.toFixed(1) || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Order Items */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <ShoppingCart className="w-5 h-5" />
+                  Order Items
+                </h3>
+                <div className="space-y-3">
+                  {selectedOrder.items.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                      <div>
+                        <p className="font-medium">{selectedOrder.meals?.[idx]?.name || `Item ${idx + 1}`}</p>
+                        <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                        {item.special_instructions && (
+                          <p className="text-sm text-gray-500 italic mt-1">{item.special_instructions}</p>
+                        )}
+                      </div>
+                      <p className="font-semibold">£{item.price.toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Delivery Address */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <Truck className="w-5 h-5" />
+                  Delivery Address
+                </h3>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p>{selectedOrder.delivery_address.street}</p>
+                  <p>{selectedOrder.delivery_address.city}, {selectedOrder.delivery_address.state} {selectedOrder.delivery_address.zipCode}</p>
+                </div>
+                {selectedOrder.special_instructions && (
+                  <div className="mt-3">
+                    <p className="text-sm font-medium text-gray-600">Special Instructions</p>
+                    <p className="mt-1 text-sm italic">{selectedOrder.special_instructions}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Payment Breakdown */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3">Payment Breakdown</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Subtotal</span>
+                    <span>£{(selectedOrder.total_amount - selectedOrder.delivery_fee - selectedOrder.service_fee - selectedOrder.tax - selectedOrder.tip).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Delivery Fee</span>
+                    <span>£{selectedOrder.delivery_fee.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Service Fee</span>
+                    <span>£{selectedOrder.service_fee.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Tax</span>
+                    <span>£{selectedOrder.tax.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Tip</span>
+                    <span>£{selectedOrder.tip.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-lg border-t pt-2">
+                    <span>Total</span>
+                    <span>£{selectedOrder.total_amount.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery Times */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <Clock className="w-5 h-5" />
+                  Delivery Times
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Estimated Delivery</p>
+                    <p className="mt-1">{new Date(selectedOrder.estimated_delivery_time).toLocaleString()}</p>
+                  </div>
+                  {selectedOrder.actual_delivery_time && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Actual Delivery</p>
+                      <p className="mt-1">{new Date(selectedOrder.actual_delivery_time).toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowOrderDetails(false)}
+            >
+              Close
+            </Button>
+            {selectedOrder && selectedOrder.order_status !== 'delivered' && selectedOrder.order_status !== 'cancelled' && (
+              <Button
+                className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
+                onClick={() => {
+                  // Add status update logic here
+                  setShowOrderDetails(false);
+                }}
+              >
+                Update Status
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
@@ -634,6 +635,199 @@ export default function DeliveryManagementPage() {
           <AlertDescription className="text-green-800">{success}</AlertDescription>
         </Alert>
       )}
+
+      {/* Delivery Details Modal */}
+      <Dialog open={showDeliveryDetails} onOpenChange={setShowDeliveryDetails}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold font-asgard text-gray-900">
+              Delivery Details #{selectedDelivery?._id.slice(-8)}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedDelivery && (
+            <div className="space-y-6">
+              {/* Delivery Status and Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Delivery Status</p>
+                  <div className="mt-1">{getStatusBadge(selectedDelivery.status)}</div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Urgency</p>
+                  <div className="mt-1">{getUrgencyBadge(getUrgencyLevel(selectedDelivery))}</div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Created</p>
+                  <p className="mt-1">{new Date(selectedDelivery.createdAt).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Distance</p>
+                  <p className="mt-1 text-lg font-bold">{selectedDelivery.distance.toFixed(1)} km</p>
+                </div>
+              </div>
+
+              {/* Driver Information */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <Truck className="w-5 h-5" />
+                  Driver Information
+                </h3>
+                {selectedDelivery.driver ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Name</p>
+                      <p className="mt-1">{selectedDelivery.driver.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Phone</p>
+                      <p className="mt-1">{selectedDelivery.driver.phone}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Vehicle</p>
+                      <p className="mt-1">{selectedDelivery.driver.vehicle.type.toUpperCase()} - {selectedDelivery.driver.vehicle.make} {selectedDelivery.driver.vehicle.model}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Rating</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Star className="w-4 h-4 text-yellow-500" />
+                        <span>{selectedDelivery.driver.rating.toFixed(1)}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Status</p>
+                      <div className="mt-1">{getDriverStatusBadge(selectedDelivery.driver.status)}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 italic">No driver assigned yet</p>
+                )}
+              </div>
+
+              {/* Customer Information */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Customer Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Name</p>
+                    <p className="mt-1">{selectedDelivery.customer?.name || 'Unknown'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Phone</p>
+                    <p className="mt-1">{selectedDelivery.customer?.phone || 'N/A'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm font-medium text-gray-600">Email</p>
+                    <p className="mt-1">{selectedDelivery.customer?.email || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Addresses */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Pickup & Delivery Addresses
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-2">Pickup Address</p>
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <p>{selectedDelivery.pickupAddress.street}</p>
+                      <p>{selectedDelivery.pickupAddress.city}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-2">Delivery Address</p>
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <p>{selectedDelivery.deliveryAddress.street}</p>
+                      <p>{selectedDelivery.deliveryAddress.city}</p>
+                    </div>
+                  </div>
+                </div>
+                {selectedDelivery.specialInstructions && (
+                  <div className="mt-3">
+                    <p className="text-sm font-medium text-gray-600">Special Instructions</p>
+                    <p className="mt-1 text-sm italic bg-yellow-50 p-2 rounded">{selectedDelivery.specialInstructions}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Fees */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3">Fees</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Delivery Fee</span>
+                    <span>£{selectedDelivery.deliveryFee.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Tip</span>
+                    <span>£{selectedDelivery.tip.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-lg border-t pt-2">
+                    <span>Total</span>
+                    <span>£{(selectedDelivery.deliveryFee + selectedDelivery.tip).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Times */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <Clock className="w-5 h-5" />
+                  Timeline
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Estimated Pickup</p>
+                    <p className="mt-1">{new Date(selectedDelivery.estimatedPickupTime).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Estimated Delivery</p>
+                    <p className="mt-1">{new Date(selectedDelivery.estimatedDeliveryTime).toLocaleString()}</p>
+                  </div>
+                  {selectedDelivery.actualPickupTime && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Actual Pickup</p>
+                      <p className="mt-1 text-green-600">{new Date(selectedDelivery.actualPickupTime).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {selectedDelivery.actualDeliveryTime && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Actual Delivery</p>
+                      <p className="mt-1 text-green-600">{new Date(selectedDelivery.actualDeliveryTime).toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeliveryDetails(false)}
+            >
+              Close
+            </Button>
+            {selectedDelivery && selectedDelivery.status !== 'delivered' && selectedDelivery.status !== 'cancelled' && (
+              <Button
+                className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
+                onClick={() => {
+                  // Add status update logic here
+                  setShowDeliveryDetails(false);
+                }}
+              >
+                Update Status
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

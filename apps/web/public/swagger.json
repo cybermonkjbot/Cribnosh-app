@@ -4729,7 +4729,7 @@
                             },
                             "currency": {
                               "type": "string",
-                              "example": "usd"
+                              "example": "gbp"
                             },
                             "status": {
                               "type": "string",
@@ -5238,7 +5238,7 @@
                               "currency": {
                                 "type": "string",
                                 "description": "Currency code",
-                                "example": "usd"
+                                "example": "gbp"
                               },
                               "status": {
                                 "type": "string",
