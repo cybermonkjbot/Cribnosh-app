@@ -1,19 +1,18 @@
+import { api } from '@/convex/_generated/api';
+import { useToast } from '@/lib/ToastContext';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { useQuery } from 'convex/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useToast } from '@/lib/ToastContext';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
-import { BottomSheetBase } from '../BottomSheetBase';
 import { SvgXml } from 'react-native-svg';
-import { useQuery } from 'convex/react';
+import { BottomSheetBase } from '../BottomSheetBase';
 import { Mascot } from '../Mascot';
 
 // Close icon SVG
@@ -76,7 +75,6 @@ export function NoshPassModal({
   );
 
   const availablePoints = pointsData?.available_points || 0;
-  const maxDiscountFromPoints = availablePoints * POINTS_TO_POUNDS_RATE;
   const maxPointsToApply = Math.min(availablePoints, Math.floor(cartSubtotal / POINTS_TO_POUNDS_RATE));
 
   // Random messages the mascot can say
@@ -92,13 +90,13 @@ export function NoshPassModal({
     'Greetings!',
     'Welcome!',
   ];
-  
+
   // Randomly choose a message
   const [mascotMessage] = useState(() => {
     const randomIndex = Math.floor(Math.random() * mascotMessages.length);
     return mascotMessages[randomIndex];
   });
-  
+
   // Determine bubble position based on text length
   const bubblePosition = mascotMessage.length <= 5 ? 'right' : 'left';
 
@@ -106,7 +104,7 @@ export function NoshPassModal({
     if (activeTab === 'nosh_pass') {
       // Apply Nosh Points
       const pointsToUse = pointsOverride ?? pointsToApply;
-      
+
       if (pointsToUse <= 0) {
         showToast({
           type: 'error',
@@ -130,7 +128,7 @@ export function NoshPassModal({
       setIsApplying(true);
       try {
         const discountAmount = pointsToUse * POINTS_TO_POUNDS_RATE;
-        
+
         if (onApplyCode) {
           await onApplyCode(
             `NOSH_POINTS_${pointsToUse}`,
@@ -178,7 +176,7 @@ export function NoshPassModal({
         }
 
         const convex = getConvexClient();
-        
+
         // Validate coupon via backend
         const result = await convex.action(api.actions.coupons.validateAndApplyCoupon, {
           code: code.trim().toUpperCase(),
@@ -204,7 +202,6 @@ export function NoshPassModal({
           message: `Discount code "${code.trim().toUpperCase()}" applied successfully`,
           duration: 2000,
         });
-        setCode('');
         onClose();
       } catch (error: any) {
         showToast({
@@ -235,8 +232,7 @@ export function NoshPassModal({
     setPointsToApply(0);
   };
 
-  // Calculate discount from points
-  const discountFromPoints = pointsToApply * POINTS_TO_POUNDS_RATE;
+
 
   const snapPoints = useMemo(() => ['60%'], []);
 
@@ -389,7 +385,7 @@ export function NoshPassModal({
                   </View>
                   <Pressable
                     style={[styles.applyButton, isApplying && styles.applyButtonDisabled]}
-                    onPress={handleApply}
+                    onPress={() => handleApply()}
                     disabled={isApplying}
                   >
                     <Text style={styles.applyButtonText}>
@@ -607,6 +603,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#094327',
     marginRight: 12,
+  },
+  description: {
+    fontFamily: 'Inter',
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
   },
 });
 

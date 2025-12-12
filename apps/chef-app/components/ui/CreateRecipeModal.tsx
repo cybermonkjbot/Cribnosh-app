@@ -65,7 +65,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
 
   const createRecipe = useMutation(api.mutations.recipes.createRecipe);
   const updateMeal = useMutation(api.mutations.meals.updateMeal);
-  
+
   // Get meals for linking
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const meals = useQuery(
@@ -223,10 +223,10 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
       case 'image':
         return true; // Optional
       case 'ingredients':
-        return formData.ingredients.length > 0 && 
+        return formData.ingredients.length > 0 &&
           formData.ingredients.some(ing => ing.name.trim() && ing.amount.trim() && ing.unit.trim());
       case 'instructions':
-        return formData.instructions.length > 0 && 
+        return formData.instructions.length > 0 &&
           formData.instructions.some(inst => inst.trim());
       case 'link':
         return true; // Optional
@@ -331,7 +331,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
           // Don't fail the recipe creation if linking fails
         }
       }
-      
+
       setIsSubmitted(true);
       showSuccess(
         publish ? 'Recipe Published' : 'Recipe Saved',
@@ -454,8 +454,8 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
           <View style={styles.stepContent}>
             {formData.featuredImage ? (
               <View style={styles.imageContainer}>
-                <Image 
-                  source={{ uri: formData.featuredImage }} 
+                <Image
+                  source={{ uri: formData.featuredImage }}
                   style={styles.image}
                   onError={() => {
                     console.warn('Failed to load featured image:', formData.featuredImage);
@@ -538,7 +538,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
             ))}
 
             {formData.ingredients.length === 0 && (
-              <Text style={styles.emptyText}>No ingredients added yet. Tap "Add" to get started.</Text>
+              <Text style={styles.emptyText}>No ingredients added yet. Tap &quot;Add&quot; to get started.</Text>
             )}
             <Text style={styles.hintText}>List all the ingredients needed for this recipe</Text>
           </View>
@@ -608,7 +608,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
             ))}
 
             {formData.instructions.length === 0 && (
-              <Text style={styles.emptyText}>No instructions added yet. Tap "Add Step" to get started.</Text>
+              <Text style={styles.emptyText}>No instructions added yet. Tap &quot;Add Step&quot; to get started.</Text>
             )}
             <Text style={styles.hintText}>Break down the cooking process into clear steps</Text>
           </View>
@@ -650,7 +650,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
               <View style={styles.successIconContainer} />
               <Text style={styles.successTitle}>Recipe {formData.status === 'published' ? 'Published' : 'Saved'}!</Text>
               <Text style={styles.successMessage}>
-                {formData.status === 'published' 
+                {formData.status === 'published'
                   ? 'Your recipe has been published successfully and is now visible to customers.'
                   : 'Your recipe has been saved as a draft. You can publish it anytime from your content library.'}
               </Text>
@@ -761,8 +761,8 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
                 >
                   <View style={styles.mealOptionContent}>
                     {meal.images && meal.images.length > 0 && (
-                      <Image 
-                        source={{ uri: meal.images[0] }} 
+                      <Image
+                        source={{ uri: meal.images[0] }}
                         style={styles.mealOptionImage}
                         onError={() => {
                           console.warn('Failed to load meal image:', meal.images[0]);

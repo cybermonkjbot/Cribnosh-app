@@ -1,7 +1,7 @@
 // components/ui/ToastDemo.tsx
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useCustomerToast } from '../../hooks/useCustomerToast';
+import { useToast } from '../../lib/ToastContext';
 
 export const ToastDemo: React.FC = () => {
   const {
@@ -9,27 +9,28 @@ export const ToastDemo: React.FC = () => {
     showError,
     showInfo,
     showWarning,
-    showApiError,
-    showApiSuccess,
-    showCartItemAdded,
-    showAuthRequired,
-    showNetworkError,
-  } = useCustomerToast();
+  } = useToast();
+
+  const showApiError = (title: string, message: string) => showError(title, message);
+  const showApiSuccess = (title: string, message: string) => showSuccess(title, message);
+  const showCartItemAdded = (item: string) => showSuccess('Added to Cart', item);
+  const showAuthRequired = (action: string) => showWarning('Authentication Required', `Please login to ${action}`);
+  const showNetworkError = () => showError('Network Error', 'Please check your internet connection');
 
   const handleSuccessToast = () => {
-    showSuccess('Success!', 'This is a success message', 3000, 'gradient');
+    showSuccess('Success!', 'This is a success message', 3000);
   };
 
   const handleErrorToast = () => {
-    showError('Error!', 'This is an error message', 4000, 'glass');
+    showError('Error!', 'This is an error message', 4000);
   };
 
   const handleInfoToast = () => {
-    showInfo('Info', 'This is an info message', 3000, 'default');
+    showInfo('Info', 'This is an info message', 3000);
   };
 
   const handleWarningToast = () => {
-    showWarning('Warning!', 'This is a warning message', 4000, 'gradient');
+    showWarning('Warning!', 'This is a warning message', 4000);
   };
 
   const handleApiErrorToast = () => {
@@ -55,7 +56,7 @@ export const ToastDemo: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Toast Notification Demo</Text>
-      
+
       <View style={styles.buttonGrid}>
         <TouchableOpacity style={[styles.button, styles.successButton]} onPress={handleSuccessToast}>
           <Text style={styles.buttonText}>Success Toast</Text>

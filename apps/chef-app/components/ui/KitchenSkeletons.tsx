@@ -1,14 +1,14 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { SkeletonBox } from '../MealItemDetails/Skeletons/ShimmerBox';
+import { SkeletonBox } from './ShimmerBox';
 
 /**
  * Skeleton loader for category items
  */
 export const CategoriesSkeleton: React.FC = () => {
   return (
-    <ScrollView 
-      horizontal 
+    <ScrollView
+      horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.categoriesContainer}
     >
@@ -27,8 +27,8 @@ export const CategoriesSkeleton: React.FC = () => {
  */
 export const MealsSkeleton: React.FC = () => {
   return (
-    <ScrollView 
-      horizontal 
+    <ScrollView
+      horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.mealsContainer}
     >

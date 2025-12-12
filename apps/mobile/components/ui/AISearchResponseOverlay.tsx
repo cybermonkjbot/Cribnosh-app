@@ -146,7 +146,6 @@ const SelectableProductCard: React.FC<SelectableProductCardProps> = ({
       activeOpacity={0.8}
       style={{
         width: 140,
-        backgroundColor: COLORS.white,
         borderRadius: 16,
         padding: 12,
         marginRight: 12,

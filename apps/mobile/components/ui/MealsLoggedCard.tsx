@@ -165,6 +165,8 @@ const MemoizedMealsLoggedCard: React.FC<MealsLoggedCardProps> = React.memo(({
   );
 });
 
+MemoizedMealsLoggedCard.displayName = 'MealsLoggedCard';
+
 // Export the memoized component
 export const MealsLoggedCard = MemoizedMealsLoggedCard;
 

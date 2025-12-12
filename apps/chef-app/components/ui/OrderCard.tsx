@@ -1,17 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, ViewStyle, Image } from 'react-native';
+import { CheckCircle, CheckCircle2, Clock, Package } from 'lucide-react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withDelay,
-    withTiming,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
 } from 'react-native-reanimated';
-import { CheckCircle, Clock, Package, CheckCircle2 } from 'lucide-react-native';
 import { ImageStack } from './ImageStack';
 
 // Import the OrderStatus type from the orders page
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'on-the-way' | 'cancelled' | 'completed';
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'on-the-way' | 'cancelled' | 'completed';
 export type OrderType = 'individual' | 'group';
 
 // User interface for group orders
@@ -122,6 +122,13 @@ const getStatusStyle = (status: OrderStatus) => {
         text: 'Preparing',
         icon: 'time-outline' as keyof typeof Ionicons.glyphMap,
       };
+    case 'ready':
+      return {
+        backgroundColor: 'rgba(76, 175, 80, 0.12)',
+        textColor: '#2E7D32',
+        text: 'Ready',
+        icon: 'restaurant-outline' as keyof typeof Ionicons.glyphMap,
+      };
     case 'on-the-way':
       return {
         backgroundColor: 'rgba(33, 150, 243, 0.12)',
@@ -180,11 +187,11 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
   useEffect(() => {
     const delay = index * 100; // Stagger animation for each card
-    
+
     fadeAnim.value = withDelay(delay, withTiming(1, { duration: 600 }));
     slideAnim.value = withDelay(delay, withTiming(0, { duration: 600 }));
     scaleAnim.value = withDelay(delay, withTiming(1, { duration: 600 }));
-  }, []);
+  }, [index, fadeAnim, slideAnim, scaleAnim]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -240,14 +247,14 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         // Filter out invalid/empty URLs
         const validImages = images.filter(url => url && typeof url === 'string' && url.trim().length > 0);
         if (validImages.length > 0) {
-        // Create one entry per image for stacking
+          // Create one entry per image for stacking
           validImages.forEach((imageUrl, idx) => {
-          itemsWithImages.push({
-            ...item,
-            _id: `${item._id || item.dish_id || idx}_${idx}`,
-            image_url: imageUrl,
+            itemsWithImages.push({
+              ...item,
+              _id: `${item._id || item.dish_id || idx}_${idx}`,
+              image_url: imageUrl,
+            });
           });
-        });
         }
       }
     });
@@ -271,9 +278,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   };
 
   const CardContent = (
-    <Animated.View 
+    <Animated.View
       style={[
-        styles.orderItem, 
+        styles.orderItem,
         style,
         animatedStyle,
       ]}
@@ -299,10 +306,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             )}
             {statusStyle && (
               <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
-                <Ionicons 
-                  name={statusStyle.icon} 
-                  size={13} 
-                  color={statusStyle.textColor} 
+                <Ionicons
+                  name={statusStyle.icon}
+                  size={13}
+                  color={statusStyle.textColor}
                   style={styles.statusIcon}
                 />
                 <Text style={[styles.statusText, { color: statusStyle.textColor }]}>
@@ -313,7 +320,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           </View>
         </View>
         <Text style={styles.orderDescription}>{description}</Text>
-        
+
         {/* Show items for ongoing orders */}
         {isOngoingOrder && items && items.length > 0 && (
           <View style={styles.itemsContainer}>
@@ -335,7 +342,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             )}
           </View>
         )}
-        
+
         <View style={styles.orderFooter}>
           <View style={styles.priceContainer}>
             <View>
@@ -349,10 +356,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           </View>
           {estimatedTime && (
             <View style={styles.estimatedTimeContainer}>
-              <Ionicons 
-                name="time-outline" 
-                size={11} 
-                color="#687076" 
+              <Ionicons
+                name="time-outline"
+                size={11}
+                color="#687076"
                 style={styles.timeIcon}
               />
               <Text style={styles.estimatedTime}>{estimatedTime}</Text>
@@ -411,7 +418,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
   if (onPress) {
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={onPress}
         activeOpacity={0.7}
         style={styles.touchableContainer}

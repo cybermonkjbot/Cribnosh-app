@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-    runOnJS,
-    useAnimatedStyle,
-    useDerivedValue,
-    useSharedValue,
-    withDelay,
-    withSequence,
-    withSpring,
-    withTiming
+  runOnJS,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming
 } from 'react-native-reanimated';
 
 interface CuisineScoreCardProps {
@@ -63,14 +62,14 @@ const MemoizedCuisineScoreCard: React.FC<CuisineScoreCardProps> = React.memo(({
     // Card entrance
     cardOpacity.value = withTiming(1, { duration: 600 });
     cardTranslateY.value = withSpring(0, { damping: 15, stiffness: 150 });
-    
+
     // Score animation
     scoreScale.value = withDelay(400, withSpring(1, { damping: 15, stiffness: 200 }));
-    
+
     // Tags animation
     tagsProgress.value = withDelay(600, withTiming(1, { duration: 800 }));
-    
-  }, []);
+
+  }, [cardOpacity, cardTranslateY, scoreScale, tagsProgress]);
 
   const handlePressIn = () => {
     cardScale.value = withSpring(0.98, { damping: 15, stiffness: 300 });
@@ -88,20 +87,20 @@ const MemoizedCuisineScoreCard: React.FC<CuisineScoreCardProps> = React.memo(({
 
   return (
     <Animated.View style={cardAnimatedStyle}>
-      <Pressable 
-        style={styles.container} 
+      <Pressable
+        style={styles.container}
         onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
       >
         {/* Header */}
         <View style={styles.header}>
-            <Text style={styles.title}>Cuisine Score</Text>
+          <Text style={styles.title}>Cuisine Score</Text>
         </View>
 
         {/* Summary Text */}
         <Text style={styles.summaryText}>
-          {cuisineCount > 0 
+          {cuisineCount > 0
             ? `You tried ${cuisineCount} unique ${cuisineCount === 1 ? 'cuisine' : 'cuisines'} this week.`
             : 'Start exploring different cuisines to build your score!'}
         </Text>
@@ -120,15 +119,15 @@ const MemoizedCuisineScoreCard: React.FC<CuisineScoreCardProps> = React.memo(({
           {/* Cuisine Tags */}
           <View style={styles.cuisineTags}>
             {uniqueCuisines.slice(0, 3).map((cuisine, index) => (
-              <Animated.View 
-                key={index} 
+              <Animated.View
+                key={index}
                 style={[
                   styles.cuisineTag,
                   {
                     opacity: tagsOpacityState,
                     transform: [
-                      { 
-                        translateX: tagsTranslateXState * (index + 1) 
+                      {
+                        translateX: tagsTranslateXState * (index + 1)
                       }
                     ]
                   }
@@ -138,14 +137,14 @@ const MemoizedCuisineScoreCard: React.FC<CuisineScoreCardProps> = React.memo(({
               </Animated.View>
             ))}
             {uniqueCuisines.length > 3 && (
-              <Animated.View 
+              <Animated.View
                 style={[
                   styles.moreTag,
                   {
                     opacity: tagsOpacityState,
                     transform: [
-                      { 
-                        translateX: tagsTranslateXState * 4 
+                      {
+                        translateX: tagsTranslateXState * 4
                       }
                     ]
                   }
@@ -161,6 +160,8 @@ const MemoizedCuisineScoreCard: React.FC<CuisineScoreCardProps> = React.memo(({
     </Animated.View>
   );
 });
+
+MemoizedCuisineScoreCard.displayName = 'CuisineScoreCard';
 
 // Export the memoized component
 export const CuisineScoreCard = MemoizedCuisineScoreCard;

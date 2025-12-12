@@ -739,11 +739,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
   }
 
   // Check if livestream has ended
-  const isEnded = useMemo(() => {
-    if (isMockId) return false;
-    if (!sessionData?.data?.session) return false;
-    return sessionData.data.session.status === "ended" || sessionData.data.session.ended_at;
-  }, [sessionData, isMockId]);
+  const isEnded = isMockId ? false : (!sessionData?.data?.session ? false : (sessionData.data.session.status === "ended" || sessionData.data.session.ended_at));
 
   // Show ended view if livestream has ended
   if (isEnded && !isMockId) {

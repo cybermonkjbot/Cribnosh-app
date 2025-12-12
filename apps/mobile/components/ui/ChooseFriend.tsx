@@ -114,8 +114,7 @@ export default function ChooseFriend({ isOpen, onClick }: ChooseFriendModal) {
     }
     return generatedRows;
   }, [defaultItems]);
-  
-  if (!isOpen) return null;
+
 
   const handleScroll = (event: any) => {
     const scrollY = event.nativeEvent.contentOffset.y;

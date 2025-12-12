@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ChefMarker } from '@/types/maps';
-import { getDirections, getNearbyChefs, searchChefsByLocation } from '../utils/appleMapsService';
+import * as AppleMapsService from '../../utils/appleMapsService';
 
 export function AppleMapsTestComponent() {
   const [chefs, setChefs] = useState<ChefMarker[]>([]);
