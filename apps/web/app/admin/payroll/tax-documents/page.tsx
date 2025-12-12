@@ -636,25 +636,25 @@ export default function TaxDocumentsPage() {
               {/* Document Summary */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(document.data.grossPay)}</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(document.data?.grossPay || 0)}</p>
                   <p className="text-sm text-gray-600">Gross Pay</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(document.data.taxPaid)}</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(document.data?.taxPaid || 0)}</p>
                   <p className="text-sm text-gray-600">Tax Paid</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(document.data.nationalInsurance)}</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(document.data?.nationalInsurance || 0)}</p>
                   <p className="text-sm text-gray-600">National Insurance</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(document.data.netPay)}</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(document.data?.netPay || 0)}</p>
                   <p className="text-sm text-gray-600">Net Pay</p>
                 </div>
               </div>
 
               {/* Benefits */}
-              {document.data.benefits.length > 0 && (
+              {document.data?.benefits?.length > 0 && (
                 <div className="space-y-2">
                   <h5 className="font-medium text-gray-900">Benefits</h5>
                   <div className="space-y-1">

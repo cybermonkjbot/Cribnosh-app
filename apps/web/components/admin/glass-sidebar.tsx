@@ -397,12 +397,6 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
           icon: Mail,
           description: 'Email setup',
         },
-        {
-          name: 'Email Campaigns',
-          href: '/admin/staff/emails',
-          icon: Mail,
-          description: 'External email campaigns',
-        },
       ]
     },
     {
@@ -521,8 +515,8 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
                     <button
                       onClick={() => toggleExpanded(item.name)}
                       className={`flex-1 group flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all duration-200 min-h-[44px] min-w-0 overflow-hidden ${isActive || hasActiveSubItem
-                          ? 'bg-[#F23E2E]/10 text-[#F23E2E] border border-[#F23E2E]/20'
-                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                        ? 'bg-[#F23E2E]/10 text-[#F23E2E] border border-[#F23E2E]/20'
+                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                         }`}
                     >
                       <div className={`p-2 rounded-lg transition-colors ${isActive || hasActiveSubItem ? 'bg-[#F23E2E]/20' : 'bg-gray-100 group-hover:bg-gray-200'
@@ -540,8 +534,8 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
                           <div className="flex items-center gap-2 shrink-0">
                             {item.badge && (
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.badge === 'New'
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-gray-100 text-gray-800'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
                                 }`}>
                                 {item.badge}
                               </span>
@@ -572,8 +566,8 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
                         }
                       }}
                       className={`flex-1 group flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all duration-200 min-h-[44px] min-w-0 overflow-hidden ${isActive || hasActiveSubItem
-                          ? 'bg-[#F23E2E]/10 text-[#F23E2E] border border-[#F23E2E]/20'
-                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                        ? 'bg-[#F23E2E]/10 text-[#F23E2E] border border-[#F23E2E]/20'
+                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                         }`}
                     >
                       <div className={`p-2 rounded-lg transition-colors ${isActive || hasActiveSubItem ? 'bg-[#F23E2E]/20' : 'bg-gray-100 group-hover:bg-gray-200'
@@ -591,8 +585,8 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
                           <div className="flex items-center gap-2 shrink-0">
                             {item.badge && (
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.badge === 'New'
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-gray-100 text-gray-800'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
                                 }`}>
                                 {item.badge}
                               </span>
@@ -637,8 +631,8 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
                                 }
                               }}
                               className={`w-full group flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all duration-200 min-h-[40px] min-w-0 overflow-hidden ${isSubActive
-                                  ? 'bg-[#F23E2E]/10 text-[#F23E2E] border border-[#F23E2E]/20'
-                                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-700'
+                                ? 'bg-[#F23E2E]/10 text-[#F23E2E] border border-[#F23E2E]/20'
+                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-700'
                                 }`}
                             >
                               <SubIcon className={`w-4 h-4 ${isSubActive ? 'text-[#F23E2E]' : 'text-gray-500 group-hover:text-gray-600'

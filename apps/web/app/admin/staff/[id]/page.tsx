@@ -16,14 +16,15 @@ type Session = {
   notes?: string;
 };
 
-function startOfDay(ts: number) { const d = new Date(ts); d.setHours(0,0,0,0); return d.getTime(); }
-function endOfDay(ts: number) { const d = new Date(ts); d.setHours(23,59,59,999); return d.getTime(); }
+function startOfDay(ts: number) { const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime(); }
+function endOfDay(ts: number) { const d = new Date(ts); d.setHours(23, 59, 59, 999); return d.getTime(); }
 
 export default function AdminStaffDetailPage() {
   const params = useParams();
   const { sessionToken } = useAdminUser();
   const staffId = (params?.id as string) as Id<'users'>;
   const [monthOffset, setMonthOffset] = useState(0);
+  const [activeTab, setActiveTab] = useState<'profile' | 'documents' | 'time'>('profile');
 
   const now = new Date();
   const monthDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
@@ -62,50 +63,94 @@ export default function AdminStaffDetailPage() {
       <h1 className="text-2xl font-asgard">Staff Details</h1>
       <div className="border-b">
         <nav className="flex gap-4 text-sm">
-          <a className="px-3 py-2 border-b-2 border-transparent hover:border-gray-300" href="#profile">Profile</a>
-          <a className="px-3 py-2 border-b-2 border-transparent hover:border-gray-300" href="#documents">Documents</a>
-          <a className="px-3 py-2 border-b-2 border-primary-600 text-primary-700" href="#time">Time Tracking</a>
+          <button
+            className={`px-3 py-2 border-b-2 transition-colors ${activeTab === 'profile'
+                ? 'border-primary-600 text-primary-700'
+                : 'border-transparent hover:border-gray-300'
+              }`}
+            onClick={() => setActiveTab('profile')}
+          >
+            Profile
+          </button>
+          <button
+            className={`px-3 py-2 border-b-2 transition-colors ${activeTab === 'documents'
+                ? 'border-primary-600 text-primary-700'
+                : 'border-transparent hover:border-gray-300'
+              }`}
+            onClick={() => setActiveTab('documents')}
+          >
+            Documents
+          </button>
+          <button
+            className={`px-3 py-2 border-b-2 transition-colors ${activeTab === 'time'
+                ? 'border-primary-600 text-primary-700'
+                : 'border-transparent hover:border-gray-300'
+              }`}
+            onClick={() => setActiveTab('time')}
+          >
+            Time Tracking
+          </button>
         </nav>
       </div>
 
-      <section id="time" className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-asgard">Active Sessions Calendar</h2>
-          <div className="flex items-center gap-2">
-            <button className="px-3 py-1 border rounded" onClick={() => setMonthOffset((m) => m - 1)}>Prev</button>
-            <span className="text-sm text-gray-600">{monthDate.toLocaleString(undefined, { month: 'long', year: 'numeric' })}</span>
-            <button className="px-3 py-1 border rounded" onClick={() => setMonthOffset((m) => m + 1)}>Next</button>
+      {activeTab === 'profile' && (
+        <section className="space-y-4">
+          <h2 className="text-xl font-asgard">Profile Information</h2>
+          <div className="border rounded-lg p-6 bg-white">
+            <p className="text-gray-600">Profile information will be displayed here.</p>
           </div>
-        </div>
+        </section>
+      )}
 
-        <div className="grid grid-cols-7 gap-2">
-          {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (
-            <div key={d} className="text-xs text-gray-600 text-center py-1">{d}</div>
-          ))}
-          {days.map((d, idx) => {
-            const date = new Date(d.date);
-            return (
-              <div key={idx} className="border rounded p-2 min-h-[90px] bg-white">
-                <div className="text-xs text-gray-500 mb-1">{date.getDate()}</div>
-                <div className="space-y-1">
-                  {d.sessions.length === 0 ? (
-                    <div className="text-[10px] text-gray-400">—</div>
-                  ) : (
-                    d.sessions.map((s) => (
-                      <div key={s._id} className="text-[10px] px-1 py-0.5 rounded border flex items-center justify-between">
-                        <span>{new Date(s.clockInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}{s.clockOutTime ? `–${new Date(s.clockOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}</span>
-                        <span className={
-                          s.status === 'active' ? 'text-yellow-600' : s.status === 'completed' ? 'text-green-600' : 'text-gray-600'
-                        }>{s.status}</span>
-                      </div>
-                    ))
-                  )}
+      {activeTab === 'documents' && (
+        <section className="space-y-4">
+          <h2 className="text-xl font-asgard">Documents</h2>
+          <div className="border rounded-lg p-6 bg-white">
+            <p className="text-gray-600">Staff documents will be displayed here.</p>
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'time' && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-asgard">Active Sessions Calendar</h2>
+            <div className="flex items-center gap-2">
+              <button className="px-3 py-1 border rounded" onClick={() => setMonthOffset((m) => m - 1)}>Prev</button>
+              <span className="text-sm text-gray-600">{monthDate.toLocaleString(undefined, { month: 'long', year: 'numeric' })}</span>
+              <button className="px-3 py-1 border rounded" onClick={() => setMonthOffset((m) => m + 1)}>Next</button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-7 gap-2">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+              <div key={d} className="text-xs text-gray-600 text-center py-1">{d}</div>
+            ))}
+            {days.map((d, idx) => {
+              const date = new Date(d.date);
+              return (
+                <div key={idx} className="border rounded p-2 min-h-[90px] bg-white">
+                  <div className="text-xs text-gray-500 mb-1">{date.getDate()}</div>
+                  <div className="space-y-1">
+                    {d.sessions.length === 0 ? (
+                      <div className="text-[10px] text-gray-400">—</div>
+                    ) : (
+                      d.sessions.map((s) => (
+                        <div key={s._id} className="text-[10px] px-1 py-0.5 rounded border flex items-center justify-between">
+                          <span>{new Date(s.clockInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}{s.clockOutTime ? `–${new Date(s.clockOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}</span>
+                          <span className={
+                            s.status === 'active' ? 'text-yellow-600' : s.status === 'completed' ? 'text-green-600' : 'text-gray-600'
+                          }>{s.status}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
