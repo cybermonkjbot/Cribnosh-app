@@ -167,6 +167,8 @@ const MemoizedCalorieCompareCard: React.FC<CalorieCompareCardProps> = React.memo
   );
 });
 
+MemoizedCalorieCompareCard.displayName = 'CalorieCompareCard';
+
 // Export the memoized component
 export const CalorieCompareCard = MemoizedCalorieCompareCard;
 

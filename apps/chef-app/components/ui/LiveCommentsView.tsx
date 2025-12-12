@@ -1,7 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, FlatList, StyleSheet, View } from 'react-native';
-import { Text } from 'react-native';
+import { Animated, FlatList, StyleSheet, View , Text } from 'react-native';
 
 interface LiveComment {
   name: string;

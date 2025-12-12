@@ -14,10 +14,10 @@ interface HelpCategorySheetProps {
   category: {
     title: string;
     content: string;
-    sections?: Array<{
+    sections?: {
       title: string;
       content: string;
-    }>;
+    }[];
   } | null;
 }
 

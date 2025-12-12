@@ -53,79 +53,79 @@ export function SupportCasesSheet({
       onRequestClose={onClose}
     >
       <SafeAreaView style={styles.modalContainer}>
-      <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top - 8, 0) }]}>
-          <Text style={styles.title}>Support Cases</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <SvgXml xml={closeIconSVG} width={24} height={24} />
-          </TouchableOpacity>
-        </View>
-
-        {isLoading ? (
-          <SkeletonWithTimeout isLoading={isLoading}>
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#094327" />
-              <Text style={styles.loadingText}>Loading support cases...</Text>
-            </View>
-          </SkeletonWithTimeout>
-        ) : cases.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <SvgXml xml={emptyIconSVG} width={64} height={64} />
-            <Text style={styles.emptyTitle}>No open support cases</Text>
-            <Text style={styles.emptySubtitle}>
-              You don&apos;t have any open support cases at the moment. Start a new chat to get help.
-            </Text>
+        <View style={styles.container}>
+          <View style={[styles.header, { paddingTop: Math.max(insets.top - 8, 0) }]}>
+            <Text style={styles.title}>Support Cases</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <SvgXml xml={closeIconSVG} width={24} height={24} />
+            </TouchableOpacity>
           </View>
-        ) : (
-          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-            {cases.map((supportCase) => {
-              const createdAt = new Date(supportCase.created_at);
-              const formattedDate = formatOrderDate(createdAt.getTime());
 
-              return (
-                <TouchableOpacity
-                  key={supportCase.id}
-                  style={styles.caseItem}
-                  onPress={() => handleCasePress(supportCase.id)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.caseLeft}>
-                    <View style={styles.messageIconContainer}>
-                      <SvgXml xml={messageIconSVG} width={20} height={20} />
-                    </View>
-                    <View style={styles.caseContent}>
-                      <Text style={styles.caseSubject} numberOfLines={1}>
-                        {supportCase.subject}
-                      </Text>
-                      {supportCase.last_message ? (
-                        <Text style={styles.caseMessage} numberOfLines={2}>
-                          {supportCase.last_message}
+          {isLoading ? (
+            <SkeletonWithTimeout isLoading={isLoading}>
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#094327" />
+                <Text style={styles.loadingText}>Loading support cases...</Text>
+              </View>
+            </SkeletonWithTimeout>
+          ) : cases.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <SvgXml xml={emptyIconSVG} width={64} height={64} />
+              <Text style={styles.emptyTitle}>No open support cases</Text>
+              <Text style={styles.emptySubtitle}>
+                You don&apos;t have any open support cases at the moment. Start a new chat to get help.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+              {cases.map((supportCase) => {
+                const createdAt = new Date(supportCase.created_at);
+                const formattedDate = formatOrderDate(createdAt.getTime());
+
+                return (
+                  <TouchableOpacity
+                    key={supportCase.id}
+                    style={styles.caseItem}
+                    onPress={() => handleCasePress(supportCase.id)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.caseLeft}>
+                      <View style={styles.messageIconContainer}>
+                        <SvgXml xml={messageIconSVG} width={20} height={20} />
+                      </View>
+                      <View style={styles.caseContent}>
+                        <Text style={styles.caseSubject} numberOfLines={1}>
+                          {supportCase.subject}
                         </Text>
-                      ) : (
-                        <Text style={styles.caseMessage} numberOfLines={2}>
-                          {supportCase.category}
-                        </Text>
-                      )}
-                      <Text style={styles.caseDate}>{formattedDate}</Text>
+                        {supportCase.last_message ? (
+                          <Text style={styles.caseMessage} numberOfLines={2}>
+                            {supportCase.last_message}
+                          </Text>
+                        ) : (
+                          <Text style={styles.caseMessage} numberOfLines={2}>
+                            {supportCase.category}
+                          </Text>
+                        )}
+                        <Text style={styles.caseDate}>{formattedDate}</Text>
+                      </View>
                     </View>
-                  </View>
-                  <View style={styles.caseStatus}>
-                    <View style={[
-                      styles.statusBadge,
-                      supportCase.status === 'open' && styles.statusBadgeOpen,
-                      supportCase.status === 'in_progress' && styles.statusBadgeInProgress,
-                      supportCase.status === 'resolved' && styles.statusBadgeResolved,
-                      supportCase.status === 'closed' && styles.statusBadgeClosed,
-                    ]}>
-                      <Text style={styles.statusText}>{supportCase.status}</Text>
+                    <View style={styles.caseStatus}>
+                      <View style={[
+                        styles.statusBadge,
+                        supportCase.status === 'open' && styles.statusBadgeOpen,
+                        supportCase.status === 'in_progress' && styles.statusBadgeInProgress,
+                        supportCase.status === 'resolved' && styles.statusBadgeResolved,
+                        supportCase.status === 'closed' && styles.statusBadgeClosed,
+                      ]}>
+                        <Text style={styles.statusText}>{supportCase.status}</Text>
+                      </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        )}
-      </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
       </SafeAreaView>
     </Modal>
   );
@@ -149,7 +149,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     backgroundColor: '#FAFFFA',
     marginHorizontal: -16,
-    paddingBottom: 20,
   },
   title: {
     fontFamily: 'Archivo',

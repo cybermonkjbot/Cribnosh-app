@@ -75,6 +75,8 @@ const MemoizedKPICards: React.FC<KPICardsProps> = React.memo(({
   );
 });
 
+MemoizedKPICards.displayName = 'KPICards';
+
 // Export the memoized component
 export const KPICards = MemoizedKPICards;
 

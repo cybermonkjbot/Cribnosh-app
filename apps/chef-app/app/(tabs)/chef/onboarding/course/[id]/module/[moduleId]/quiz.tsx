@@ -61,7 +61,7 @@ export default function ModuleQuizScreen() {
 
   // Get module content to access quiz
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+   
   // @ts-ignore
   const moduleContent = useQuery(
     // @ts-ignore

@@ -59,6 +59,8 @@ const MemoizedAvatar: React.FC<AvatarProps> = React.memo(({ size = 'md', glass, 
   );
 });
 
+MemoizedAvatar.displayName = 'Avatar';
+
 // Export the memoized component
 export const Avatar = MemoizedAvatar;
 

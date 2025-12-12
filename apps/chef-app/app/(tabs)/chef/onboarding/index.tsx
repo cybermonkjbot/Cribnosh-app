@@ -15,7 +15,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { showSuccess, showError } = useToast();
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+   
   // @ts-ignore
   const skipTraining = useMutation(api.mutations.chefs.skipComplianceTraining);
 
@@ -36,7 +36,7 @@ export default function OnboardingScreen() {
 
   // Get course enrollment with modules
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+   
   // @ts-ignore
   const enrollment: any = useQuery(
     // @ts-ignore

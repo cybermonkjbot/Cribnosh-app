@@ -46,12 +46,12 @@ interface ModuleContent {
   moduleName: string;
   moduleNumber: number;
   videos: ModuleVideo[];
-  content: Array<{
+  content: {
     type: 'video' | 'text' | 'interactive';
     title: string;
     data?: any;
     order: number;
-  }>;
+  }[];
   quiz: any;
 }
 
@@ -76,7 +76,7 @@ export default function ModuleDetailScreen() {
 
   // Get course enrollment to find module progress
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+   
   // @ts-ignore
   const enrollment = useQuery(
     // @ts-ignore

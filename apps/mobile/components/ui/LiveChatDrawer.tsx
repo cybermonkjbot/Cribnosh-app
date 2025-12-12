@@ -97,6 +97,8 @@ const UserMessage: React.FC<UserMessageProps> = React.memo(({ message }) => {
   );
 });
 
+UserMessage.displayName = 'UserMessage';
+
 // Support Agent Message Component (memoized)
 interface SupportMessageProps {
   message: string;
@@ -178,6 +180,8 @@ const SupportMessage: React.FC<SupportMessageProps> = React.memo(({ message, age
   );
 });
 
+SupportMessage.displayName = 'SupportMessage';
+
 // Quick Response Buttons Component (memoized)
 interface QuickResponseProps {
   responses: string[];
@@ -226,6 +230,8 @@ const QuickResponse: React.FC<QuickResponseProps> = React.memo(({ responses, onS
     </View>
   );
 });
+
+QuickResponse.displayName = 'QuickResponse';
 
 // Chat Input Component (memoized)
 const ChatInput: React.FC<{ onSend: (message: string) => void; isSending?: boolean }> = React.memo(({ onSend, isSending = false }) => {
@@ -317,6 +323,8 @@ const ChatInput: React.FC<{ onSend: (message: string) => void; isSending?: boole
     </View>
   );
 });
+
+ChatInput.displayName = 'ChatInput';
 
 interface LiveChatDrawerProps {
   isVisible: boolean;

@@ -170,7 +170,7 @@ export function CameraModalScreen({
   const [previewStickers, setPreviewStickers] = useState<StickerItemData[]>([]);
   const [showStickerLibrary, setShowStickerLibrary] = useState<boolean>(false);
   const [showTextInput, setShowTextInput] = useState<boolean>(false);
-  const [textOverlays, setTextOverlays] = useState<Array<{ id: string; text: string; x: number; y: number; color: string; fontSize: number }>>([]);
+  const [textOverlays, setTextOverlays] = useState<{ id: string; text: string; x: number; y: number; color: string; fontSize: number }[]>([]);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [imageLayout, setImageLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const photoPreviewRef = useRef<View>(null);
@@ -1918,7 +1918,7 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
   // Get chef's meals using Convex query
   // Note: TypeScript has type instantiation depth issues with complex Convex queries
   // This is a known limitation but the query works correctly at runtime
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+   
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const meals = useQuery(
     api.queries.meals.getByChefId,

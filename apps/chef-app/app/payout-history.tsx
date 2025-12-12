@@ -54,7 +54,7 @@ export default function PayoutHistoryScreen() {
   }, [authSessionToken]);
 
   // Get payout history
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+   
   // @ts-ignore - Type instantiation depth issue with Convex conditional types
   const payoutHistory = useQuery(
     api.queries.chefPayouts.getHistory,
@@ -69,7 +69,7 @@ export default function PayoutHistoryScreen() {
   );
 
   // Get earnings transactions
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+   
   // @ts-ignore - Type instantiation depth issue with Convex conditional types
   const earningsTransactions = useQuery(
     api.queries.chefEarnings.getTransactions,

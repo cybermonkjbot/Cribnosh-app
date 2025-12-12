@@ -6,8 +6,8 @@ import Svg, { Path } from 'react-native-svg';
 import { useChefAuth } from '../../contexts/ChefAuthContext';
 import { useSupportChat } from '../../hooks/useSupportChat';
 import { useToast } from '../../lib/ToastContext';
-import { useTopPosition } from '../../utils/positioning';
 import { SupportMessage as SupportMessageType } from '../../types/customer';
+import { useTopPosition } from '../../utils/positioning';
 import { Avatar } from './Avatar';
 import { CribNoshLogo } from './CribNoshLogo';
 
@@ -86,9 +86,9 @@ const UserMessage: React.FC<UserMessageProps> = React.memo(({ message }) => {
           {message}
         </Text>
       </View>
-      
-      <Avatar 
-        source={require('../../assets/images/adaptive-icon.png')} 
+
+      <Avatar
+        source={require('../../assets/images/adaptive-icon.png')}
         size="sm"
         glass={true}
         elevated={true}
@@ -96,6 +96,8 @@ const UserMessage: React.FC<UserMessageProps> = React.memo(({ message }) => {
     </View>
   );
 });
+
+UserMessage.displayName = 'UserMessage';
 
 // Support Agent Message Component (memoized)
 interface SupportMessageProps {
@@ -114,8 +116,8 @@ const SupportMessage: React.FC<SupportMessageProps> = React.memo(({ message, age
         alignItems: 'center',
         marginBottom: 16,
       }}>
-        <Avatar 
-          source={require('../../assets/images/adaptive-icon.png')} 
+        <Avatar
+          source={require('../../assets/images/adaptive-icon.png')}
           size="md"
           glass={true}
           elevated={true}
@@ -150,7 +152,7 @@ const SupportMessage: React.FC<SupportMessageProps> = React.memo(({ message, age
           </View>
         </View>
       </View>
-      
+
       <View style={{
         backgroundColor: COLORS.gradient.chatBubble,
         borderRadius: 20,
@@ -177,6 +179,8 @@ const SupportMessage: React.FC<SupportMessageProps> = React.memo(({ message, age
     </View>
   );
 });
+
+SupportMessage.displayName = 'SupportMessage';
 
 // Quick Response Buttons Component (memoized)
 interface QuickResponseProps {
@@ -226,6 +230,8 @@ const QuickResponse: React.FC<QuickResponseProps> = React.memo(({ responses, onS
     </View>
   );
 });
+
+QuickResponse.displayName = 'QuickResponse';
 
 // Chat Input Component (memoized)
 const ChatInput: React.FC<{ onSend: (message: string) => void; isSending?: boolean }> = React.memo(({ onSend, isSending = false }) => {
@@ -281,7 +287,7 @@ const ChatInput: React.FC<{ onSend: (message: string) => void; isSending?: boole
           multiline
         />
       </View>
-      
+
       <TouchableOpacity
         onPress={handleSend}
         disabled={isSending || !message.trim()}
@@ -318,6 +324,8 @@ const ChatInput: React.FC<{ onSend: (message: string) => void; isSending?: boole
   );
 });
 
+ChatInput.displayName = 'ChatInput';
+
 interface LiveChatDrawerProps {
   isVisible: boolean;
   onClose: () => void;
@@ -329,7 +337,7 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
   const { user } = useChefAuth();
   const scrollViewRef = useRef<ScrollView>(null);
   const topPosition = useTopPosition(0);
-  
+
   // Use support chat hook
   const {
     messages,
@@ -359,7 +367,7 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
     // User messages have senderId matching current user ID
     const currentUserId = user?._id || user?.id;
     const isUserMessage = currentUserId && msg.senderId === currentUserId;
-    
+
     return {
       id: msg._id || `msg-${index}`,
       type: isUserMessage ? 'user' as const : 'support' as const,
@@ -463,142 +471,142 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
             zIndex: 99999,
           }}
         >
-        <Animated.View style={[animatedContainerStyle, { flex: 1 }]}>
-          {/* Header */}
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: 20,
-            paddingVertical: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: COLORS.gray[200],
-            backgroundColor: COLORS.white,
-            shadowColor: COLORS.black,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 12,
-            elevation: 8,
-          }}>
-            <TouchableOpacity 
-              style={{
+          <Animated.View style={[animatedContainerStyle, { flex: 1 }]}>
+            {/* Header */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: 20,
+              paddingVertical: 16,
+              borderBottomWidth: 1,
+              borderBottomColor: COLORS.gray[200],
+              backgroundColor: COLORS.white,
+              shadowColor: COLORS.black,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 12,
+              elevation: 8,
+            }}>
+              <TouchableOpacity
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: COLORS.gray[100],
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  shadowColor: COLORS.black,
+                  shadowOffset: {
+                    width: 0,
+                    height: 2,
+                  },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 3,
+                }}
+                onPress={handleCloseWithAnimation}
+                activeOpacity={0.8}
+              >
+                <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+                  <Path
+                    d="M15 5L5 15M5 5L15 15"
+                    stroke={COLORS.darkGray}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              </TouchableOpacity>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <CribNoshLogo size={120} variant="default" />
+              </View>
+
+              <View style={{
                 width: 50,
                 height: 50,
-                borderRadius: 25,
-                backgroundColor: COLORS.gray[100],
                 justifyContent: 'center',
                 alignItems: 'center',
-                shadowColor: COLORS.black,
-                shadowOffset: {
-                  width: 0,
-                  height: 2,
-                },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 3,
-              }} 
-              onPress={handleCloseWithAnimation} 
-              activeOpacity={0.8}
-            >
-              <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
-                <Path
-                  d="M15 5L5 15M5 5L15 15"
-                  stroke={COLORS.darkGray}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            </TouchableOpacity>
-            
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <CribNoshLogo size={120} variant="default" />
-            </View>
-            
-            <View style={{
-              width: 50,
-              height: 50,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
-              {agent ? (
-                <View style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: 6,
-                  backgroundColor: agent.isOnline ? COLORS.secondary : COLORS.gray[400],
-                }} />
-              ) : isLoading ? (
-                <ActivityIndicator size="small" color={COLORS.secondary} />
-              ) : (
-                <View style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: 6,
-                  backgroundColor: COLORS.gray[400],
-                }} />
-              )}
-            </View>
-          </View>
-
-          {/* Messages */}
-          <ScrollView
-            ref={scrollViewRef}
-            style={{ flex: 1 }}
-            contentContainerStyle={{ paddingVertical: 20 }}
-            showsVerticalScrollIndicator={false}
-            automaticallyAdjustKeyboardInsets={true}
-          >
-            {isLoadingMessages && uiMessages.length === 0 ? (
-              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
-                <ActivityIndicator size="large" color={COLORS.secondary} />
-                <Text style={{ marginTop: 16, color: COLORS.gray[500], fontSize: 14 }}>
-                  Loading messages...
-                </Text>
-              </View>
-            ) : uiMessages.length === 0 ? (
-              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
-                <Text style={{ color: COLORS.gray[500], fontSize: 16, textAlign: 'center' }}>
-                  {agent 
-                    ? agent.name === 'CribNosh AI' || agent.id === 'ai'
-                      ? 'Hi! CribNosh AI is here to help. Send a message to get started.'
-                      : `Hi! A member of our support team is here to help. Send a message to get started.`
-                    : 'Starting a new conversation...'
-                  }
-                </Text>
-              </View>
-            ) : (
-              <>
-                {uiMessages.map((message) => (
-                  <View key={message.id}>
-                    {message.type === 'user' ? (
-                      <UserMessage
-                        message={message.content}
-                      />
-                    ) : (
-                      <SupportMessage
-                        message={message.content}
-                        agentName={message.agentName || agent?.name || 'Support Agent'}
-                      />
-                    )}
-                  </View>
-                ))}
-                
-                {/* Quick Response Buttons */}
-                {quickReplies.length > 0 && (
-                  <QuickResponse
-                    responses={quickReplies}
-                    onSelect={handleQuickResponse}
-                  />
+              }}>
+                {agent ? (
+                  <View style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 6,
+                    backgroundColor: agent.isOnline ? COLORS.secondary : COLORS.gray[400],
+                  }} />
+                ) : isLoading ? (
+                  <ActivityIndicator size="small" color={COLORS.secondary} />
+                ) : (
+                  <View style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 6,
+                    backgroundColor: COLORS.gray[400],
+                  }} />
                 )}
-              </>
-            )}
-          </ScrollView>
+              </View>
+            </View>
 
-          {/* Chat Input */}
-          <ChatInput onSend={handleSendMessage} isSending={isSendingMessage} />
-        </Animated.View>
-      </LinearGradient>
+            {/* Messages */}
+            <ScrollView
+              ref={scrollViewRef}
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingVertical: 20 }}
+              showsVerticalScrollIndicator={false}
+              automaticallyAdjustKeyboardInsets={true}
+            >
+              {isLoadingMessages && uiMessages.length === 0 ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
+                  <ActivityIndicator size="large" color={COLORS.secondary} />
+                  <Text style={{ marginTop: 16, color: COLORS.gray[500], fontSize: 14 }}>
+                    Loading messages...
+                  </Text>
+                </View>
+              ) : uiMessages.length === 0 ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
+                  <Text style={{ color: COLORS.gray[500], fontSize: 16, textAlign: 'center' }}>
+                    {agent
+                      ? agent.name === 'CribNosh AI' || agent.id === 'ai'
+                        ? 'Hi! CribNosh AI is here to help. Send a message to get started.'
+                        : `Hi! A member of our support team is here to help. Send a message to get started.`
+                      : 'Starting a new conversation...'
+                    }
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  {uiMessages.map((message) => (
+                    <View key={message.id}>
+                      {message.type === 'user' ? (
+                        <UserMessage
+                          message={message.content}
+                        />
+                      ) : (
+                        <SupportMessage
+                          message={message.content}
+                          agentName={message.agentName || agent?.name || 'Support Agent'}
+                        />
+                      )}
+                    </View>
+                  ))}
+
+                  {/* Quick Response Buttons */}
+                  {quickReplies.length > 0 && (
+                    <QuickResponse
+                      responses={quickReplies}
+                      onSelect={handleQuickResponse}
+                    />
+                  )}
+                </>
+              )}
+            </ScrollView>
+
+            {/* Chat Input */}
+            <ChatInput onSend={handleSendMessage} isSending={isSendingMessage} />
+          </Animated.View>
+        </LinearGradient>
       </KeyboardAvoidingView>
     </Modal>
   );

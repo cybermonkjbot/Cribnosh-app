@@ -162,6 +162,8 @@ const MemoizedCuisineScoreCard: React.FC<CuisineScoreCardProps> = React.memo(({
   );
 });
 
+MemoizedCuisineScoreCard.displayName = 'CuisineScoreCard';
+
 // Export the memoized component
 export const CuisineScoreCard = MemoizedCuisineScoreCard;
 

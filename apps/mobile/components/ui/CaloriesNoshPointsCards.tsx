@@ -211,6 +211,8 @@ const MemoizedCaloriesNoshPointsCards: React.FC<CaloriesNoshPointsCardsProps> = 
   );
 });
 
+MemoizedCaloriesNoshPointsCards.displayName = 'CaloriesNoshPointsCards';
+
 // Export the memoized component
 export const CaloriesNoshPointsCards = MemoizedCaloriesNoshPointsCards;
 

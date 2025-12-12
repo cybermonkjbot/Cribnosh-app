@@ -51,7 +51,7 @@ export default function CourseModuleViewer() {
     : 'skip';
   
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+   
   // @ts-ignore
   const enrollment: any = useQuery(
     // @ts-ignore

@@ -72,7 +72,7 @@ export default function PersonalInfoScreen() {
   // Availability Settings state
   const [isAvailable, setIsAvailable] = useState(false);
   const [availableDays, setAvailableDays] = useState<string[]>([]);
-  const [availableHours, setAvailableHours] = useState<Record<string, Array<{ start: string; end: string }>>>({});
+  const [availableHours, setAvailableHours] = useState<Record<string, { start: string; end: string }[]>>({});
   const [unavailableDates, setUnavailableDates] = useState<number[]>([]);
   const [maxOrdersPerDay, setMaxOrdersPerDay] = useState(10);
   const [advanceBookingDays, setAdvanceBookingDays] = useState(7);

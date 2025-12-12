@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRef, useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Modal,
   ScrollView,
@@ -7,14 +7,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  ActivityIndicator,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useToast } from "../../lib/ToastContext";
 import { Button } from "./Button";
-import { Input } from "./Input";
 import { CountryCodePicker } from "./CountryCodePicker";
+import { Input } from "./Input";
 
 interface ProfileUpdateOTPModalProps {
   isVisible: boolean;
@@ -39,7 +38,7 @@ export function ProfileUpdateOTPModal({
   const { showError, showSuccess } = useToast();
   const scrollViewRef = useRef<ScrollView>(null);
   const inputRefs = useRef<(TextInput | null)[]>([]);
-  
+
   const [step, setStep] = useState<"input" | "verification">("input");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
@@ -89,14 +88,14 @@ export function ProfileUpdateOTPModal({
 
     try {
       let valueToVerify: string;
-      
+
       if (type === 'phone') {
         const cleanPhoneNumber = phoneNumber.replace(/\D/g, "");
         const countryCodeClean = countryCode.startsWith("+")
           ? countryCode.slice(1)
           : countryCode;
         valueToVerify = `+${countryCodeClean}${cleanPhoneNumber}`;
-        
+
         if (cleanPhoneNumber.length < 10) {
           showError("Invalid Phone Number", "Please enter a valid phone number");
           setIsSendingOTP(false);
@@ -113,7 +112,7 @@ export function ProfileUpdateOTPModal({
       }
 
       const result = await onSendOTP(valueToVerify);
-      
+
       if (result.success) {
         if (result.testOtp) {
           setTestOtp(result.testOtp);
@@ -125,7 +124,7 @@ export function ProfileUpdateOTPModal({
         setTimeLeft(300); // Reset timer
       }
     } catch (error: any) {
-      const errorMessage = 
+      const errorMessage =
         error?.data?.error?.message ||
         error?.data?.message ||
         error?.message ||
@@ -138,7 +137,7 @@ export function ProfileUpdateOTPModal({
 
   const handleVerificationCodeChange = (index: number, value: string) => {
     const digit = value.replace(/\D/g, "").slice(0, 1);
-    
+
     if (digit) {
       const newCode = [...verificationCode];
       newCode[index] = digit;
@@ -169,7 +168,7 @@ export function ProfileUpdateOTPModal({
 
   const handleVerifyOTP = async () => {
     if (isVerifying) return;
-    
+
     const otpString = verificationCode.join('');
     if (otpString.length !== 6) {
       showError("Invalid Code", "Please enter the complete 6-digit code");
@@ -182,7 +181,7 @@ export function ProfileUpdateOTPModal({
       showSuccess("Verification Successful", `Your ${type === 'phone' ? 'phone number' : 'email'} has been updated`);
       handleClose();
     } catch (error: any) {
-      const errorMessage = 
+      const errorMessage =
         error?.data?.error?.message ||
         error?.data?.message ||
         error?.message ||
@@ -277,7 +276,7 @@ export function ProfileUpdateOTPModal({
                 Update {type === 'phone' ? 'Phone Number' : 'Email'}
               </Text>
               <Text style={styles.subtitle}>
-                {type === 'phone' 
+                {type === 'phone'
                   ? 'Enter your new phone number and we\'ll send you a verification code'
                   : 'Enter your new email address and we\'ll send you a verification code'}
               </Text>
@@ -349,7 +348,7 @@ export function ProfileUpdateOTPModal({
             <View style={styles.contentWrapper}>
               <Text style={styles.title}>Verify {type === 'phone' ? 'Phone Number' : 'Email'}</Text>
               <Text style={styles.subtitle}>
-                We've sent a 6-digit code to {type === 'phone' ? phoneNumber : email}. Enter it below to verify.
+                We&apos;ve sent a 6-digit code to {type === 'phone' ? phoneNumber : email}. Enter it below to verify.
               </Text>
 
               {testOtp && (
@@ -400,7 +399,7 @@ export function ProfileUpdateOTPModal({
                 activeOpacity={0.7}
               >
                 <Text style={styles.resendText}>
-                  Didn't get the code? Tap to resend
+                  Didn&apos;t get the code? Tap to resend
                 </Text>
               </TouchableOpacity>
             </View>

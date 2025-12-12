@@ -210,7 +210,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const chefEarningsDisplay = chefEarnings ? `£${(chefEarnings / 100).toFixed(2)}` : null;
 
   // Get available quick actions based on status
-  const getAvailableActions = (): Array<'accept' | 'preparing' | 'ready' | 'complete'> => {
+  const getAvailableActions = (): ('accept' | 'preparing' | 'ready' | 'complete')[] => {
     if (!status) return [];
     switch (status) {
       case 'pending':

@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import BottomSheet from '@gorhom/bottom-sheet';
-import { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
 import { User, Settings, CreditCard, TrendingUp, X } from 'lucide-react-native';
 
 interface ProfileMenuProps {
