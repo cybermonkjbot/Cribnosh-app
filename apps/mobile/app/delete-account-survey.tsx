@@ -127,7 +127,7 @@ export default function DeleteAccountSurveyScreen() {
           {/* Confirmation Message */}
           <View style={styles.confirmationContainer}>
             <Text style={styles.confirmationText}>
-              We're sending an email to ***email@hotmail.com confirming when your account is deleted.
+              We&apos;re sending an email to ***email@hotmail.com confirming when your account is deleted.
             </Text>
           </View>
 
