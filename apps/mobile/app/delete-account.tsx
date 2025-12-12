@@ -127,11 +127,16 @@ export default function DeleteAccountScreen() {
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
-            style={styles.deleteButton} 
+            style={[styles.deleteButton, isDeleting && styles.buttonDisabled]} 
             onPress={handleDeleteAccount}
             activeOpacity={0.8}
+            disabled={isDeleting}
           >
-            <Text style={styles.deleteButtonText}>Delete account</Text>
+            {isDeleting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.deleteButtonText}>Delete account</Text>
+            )}
           </TouchableOpacity>
           
           <TouchableOpacity 

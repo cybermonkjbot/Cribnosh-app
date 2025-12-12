@@ -7,7 +7,6 @@ import {
   View,
   StatusBar,
   TextInput,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -107,8 +106,6 @@ export default function MemberPreferencesScreen() {
   useEffect(() => {
     if (member) {
       // Load existing preferences from member data
-      const existingAllergies = member.allergy_preferences || [];
-      // Note: We'll need to fetch full allergy details from the API
       // For now, we'll initialize with empty array
       
       // Load parent controlled setting

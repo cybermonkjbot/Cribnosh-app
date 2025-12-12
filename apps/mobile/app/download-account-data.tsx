@@ -21,40 +21,14 @@ const downloadIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="n
   <path d="M3 17V18C3 18.5523 3.44772 19 4 19H16C16.5523 19 17 18.5523 17 18V17" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-const dataIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M10 2L2 7L10 12L18 7L10 2Z" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M2 17L10 22L18 17" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M2 12L10 17L18 12" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
 
-// Profile icon
-const profileIconSVG = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M8 8C10.2091 8 12 6.20914 12 4C12 1.79086 10.2091 0 8 0C5.79086 0 4 1.79086 4 4C4 6.20914 5.79086 8 8 8Z" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M16 16C16 12.6863 12.4183 10 8 10C3.58172 10 0 12.6863 0 16" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
-
-// Order history icon
-const orderIconSVG = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M2 4H14M2 8H14M2 12H10" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <rect x="2" y="2" width="12" height="12" rx="1" stroke="#6B7280" stroke-width="1.5"/>
-</svg>`;
-
-// App activity icon
-const activityIconSVG = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M2 14L6 10L10 12L14 6" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="6" cy="6" r="1" fill="#6B7280"/>
-</svg>`;
-
-const chevronRightIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M7 4L13 10L7 16" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
 
 export default function DownloadAccountDataScreen() {
   const router = useRouter();
   const { showToast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
   const insets = useSafeAreaInsets();
-  const { token, isAuthenticated } = useAuthContext();
+  const { token } = useAuthContext();
   const isMountedRef = useRef(true);
 
   useEffect(() => {

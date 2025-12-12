@@ -61,7 +61,7 @@ export default function SelectMealScreen() {
       if (result.success) {
         setGroupOrderData({ success: true, data: result });
       }
-    } catch (error) {
+    } catch (_error) {
       // Error already handled in hook
     } finally {
       setIsLoadingOrder(false);
@@ -75,7 +75,7 @@ export default function SelectMealScreen() {
       if (result.success && result.data?.selections) {
         setSelectionsData({ success: true, data: { selections: result.data.selections } });
       }
-    } catch (error) {
+    } catch (_error) {
       // Error already handled in hook
     } finally {
       setIsLoadingSelections(false);
@@ -98,7 +98,7 @@ export default function SelectMealScreen() {
           if (result?.success) {
             setChefMenusData({ data: result.data });
           }
-        } catch (error) {
+        } catch (_error) {
           // Error already handled in hook
         } finally {
           setIsLoadingMenus(false);
@@ -177,7 +177,7 @@ export default function SelectMealScreen() {
           },
         ]);
       }
-    } catch (error: any) {
+    } catch (_error: any) {
       // Error already handled in hook
     } finally {
       setIsSubmitting(false);

@@ -121,7 +121,7 @@ export default function ProfileScreen() {
     };
   }, [profileDataRaw]);
 
-  const profileLoading = user === undefined || (user && profileDataRaw === undefined);
+
 
   // Get ForkPrint score (reactive query)
   const forkPrintDataRaw = useQuery(
@@ -170,9 +170,8 @@ export default function ProfileScreen() {
     getNutritionProgress, 
     getMonthlyOverview, 
     getWeeklySummary,
-    isLoading: analyticsLoading 
-  } = useAnalytics();
-
+        isLoading: _analyticsLoading
+      } = useAnalytics();
   const [noshPointsData, setNoshPointsData] = useState<any>(null);
   const [caloriesProgressData, setCaloriesProgressData] = useState<any>(null);
   const [monthlyOverviewData, setMonthlyOverviewData] = useState<any>(null);
@@ -360,10 +359,7 @@ export default function ProfileScreen() {
     transform: [{ translateY: cardsTranslateY.value }],
   }));
 
-  const braggingCardsAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: braggingCardsOpacity.value,
-    transform: [{ translateY: braggingCardsTranslateY.value }],
-  }));
+
   
   // Sheet animated styles - height-based like BottomSearchDrawer
   const sheetAnimatedStyle = useAnimatedStyle(() => {
@@ -390,9 +386,7 @@ export default function ProfileScreen() {
   });
 
   // Determine if sheet is collapsed (for conditional rendering)
-  const isCollapsed = useDerivedValue(() => {
-    return sheetHeight.value <= SHEET_COLLAPSED_HEIGHT + 20;
-  });
+
 
   // Handlebar style - always visible
   const handlebarStyle = useAnimatedStyle(() => {
@@ -563,25 +557,7 @@ export default function ProfileScreen() {
     };
   }, [weeklySummaryData]);
 
-  const refreshBraggingData = useCallback(() => {
-    if (isAnimating.current) return;
-    
-    isAnimating.current = true;
-    
-    // Refetch weekly summary data
-    refetchWeeklySummary();
-    
-    // Animate the refresh
-    braggingCardsOpacity.value = withTiming(0, { duration: 200 });
-    braggingCardsTranslateY.value = withTiming(20, { duration: 200 }, () => {
-      braggingCardsOpacity.value = withTiming(1, { duration: 300 });
-      braggingCardsTranslateY.value = withSpring(0, { damping: 15, stiffness: 150 });
-    });
-    
-    setTimeout(() => {
-      isAnimating.current = false;
-    }, 500);
-  }, [braggingCardsOpacity, braggingCardsTranslateY, refetchWeeklySummary]);
+
 
   // Memoized scroll view props to prevent re-creation
   const scrollViewProps = useMemo(() => ({

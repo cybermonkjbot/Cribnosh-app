@@ -145,7 +145,7 @@ export default function OrdersScreen() {
     };
   }, [offersDataRaw]);
 
-  const isLoadingOffers = user === undefined || (user && offersDataRaw === undefined);
+
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {

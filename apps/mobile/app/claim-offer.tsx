@@ -1,8 +1,7 @@
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { ClaimOfferModal } from '@/components/ui/ClaimOfferModal';
 import { useEffect, useState } from 'react';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
+
 import { useOffersAndTreats } from '@/hooks/useOffersAndTreats';
 
 export default function ClaimOfferScreen() {

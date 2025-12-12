@@ -5,10 +5,7 @@ import { setRouteContext } from "@/utils/authErrorHandler";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
-import { useEffect, useState, useCallback } from "react";
-import { getSessionToken } from "@/lib/convexClient";
-import { useQuery } from "convex/react";
-import { useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { api } from '@/convex/_generated/api';
 import { useAuthContext } from "@/contexts/AuthContext";
 import {

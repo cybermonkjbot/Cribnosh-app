@@ -38,7 +38,7 @@ export default function ParticipantSelectionsScreen() {
       if (orderResult.success) {
         setGroupOrderData({ success: true, data: orderResult });
       }
-    } catch (error) {
+    } catch (_error) {
       // Error already handled in hook
     } finally {
       setIsLoadingSelections(false);

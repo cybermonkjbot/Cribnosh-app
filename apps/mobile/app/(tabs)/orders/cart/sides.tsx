@@ -30,12 +30,12 @@ interface CartItem {
   price: number;
   quantity: number;
   image_url?: string;
-  sides?: Array<{
+  sides?: {
     id: string;
     name: string;
     price: number;
     quantity: number;
-  }>;
+  }[];
 }
 
 interface AvailableSide {
@@ -54,7 +54,7 @@ export default function SidesScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddCardSheetVisible, setIsAddCardSheetVisible] = useState(false);
   const { getCart } = useCart();
-  const { getSidesForCart, addSideToCartItem, updateSideQuantity, removeSideFromCartItem, isLoading: sidesLoading } = useSides();
+  const { getSidesForCart, addSideToCartItem, updateSideQuantity, removeSideFromCartItem } = useSides();
   const { getPaymentMethods } = usePayments();
   const shakeAnimation = useRef(new Animated.Value(0)).current;
 

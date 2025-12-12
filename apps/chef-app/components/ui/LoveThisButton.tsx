@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
+// @ts-ignore
+// eslint-disable-next-line import/no-unresolved
 import HearEmoteIcon from './HearEmoteIcon';
 
 interface LoveThisButtonProps {
@@ -9,9 +11,9 @@ interface LoveThisButtonProps {
   style?: ViewStyle;
 }
 
-const LoveThisButton: React.FC<LoveThisButtonProps> = ({ 
-  liked, 
-  onLikeChange, 
+const LoveThisButton: React.FC<LoveThisButtonProps> = ({
+  liked,
+  onLikeChange,
   style
 }) => {
   return (

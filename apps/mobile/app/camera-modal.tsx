@@ -4,7 +4,7 @@ import React, { useRef, useState } from 'react';
 import { Dimensions, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
-const { width, height } = Dimensions.get('window');
+const { } = Dimensions.get('window');
 
 // Camera control icons
 const flipCameraIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

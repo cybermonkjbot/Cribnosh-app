@@ -1,17 +1,17 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator, Modal, Alert } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import { getConvexClient } from '@/lib/convexClient';
 import { useToast } from '@/lib/ToastContext';
+import { useMutation } from 'convex/react';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { X } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { getConvexClient } from '@/lib/convexClient';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SvgXml } from 'react-native-svg';
 import { CameraModalScreen } from './CameraModalScreen';
 import { RichTextEditor } from './RichTextEditor';
-import { SvgXml } from 'react-native-svg';
 
 // Close icon SVG
 const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -42,7 +42,7 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
   const [showCamera, setShowCamera] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  
+
   const createStory = useMutation(api.mutations.stories.createStory);
 
   const [formData, setFormData] = useState({
@@ -108,7 +108,7 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
         mediaTypes: ImagePicker.MediaTypeOptions.All,
         allowsEditing: true,
         quality: 0.8,
-        videoQuality: 'high',
+        videoQuality: ImagePicker.UIImagePickerControllerQualityType.High,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
@@ -215,8 +215,8 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
       setIsUploadingMedia(false);
 
       // Create story
-      const publishedAt = formData.scheduledDate 
-        ? formData.scheduledDate.getTime() 
+      const publishedAt = formData.scheduledDate
+        ? formData.scheduledDate.getTime()
         : (publish ? Date.now() : undefined);
 
       await createStory({
@@ -306,8 +306,8 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
                 style={{ flex: 1 }}
               />
             </View>
-            <Text style={styles.hintText}>Give your story a title and describe what it's about. Use the formatting toolbar to style your text.</Text>
-            
+            <Text style={styles.hintText}>Give your story a title and describe what it&apos;s about. Use the formatting toolbar to style your text.</Text>
+
             {/* Schedule Publish Date */}
             <View style={styles.scheduleContainer}>
               <TouchableOpacity
@@ -319,19 +319,21 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
                     'Would you like to schedule this story for later?',
                     [
                       { text: 'Cancel', style: 'cancel' },
-                      { text: 'Schedule', onPress: () => {
-                        // In a real implementation, show a date picker
-                        // For now, set to tomorrow
-                        const tomorrow = new Date();
-                        tomorrow.setDate(tomorrow.getDate() + 1);
-                        setFormData({ ...formData, scheduledDate: tomorrow });
-                      }},
+                      {
+                        text: 'Schedule', onPress: () => {
+                          // In a real implementation, show a date picker
+                          // For now, set to tomorrow
+                          const tomorrow = new Date();
+                          tomorrow.setDate(tomorrow.getDate() + 1);
+                          setFormData({ ...formData, scheduledDate: tomorrow });
+                        }
+                      },
                     ]
                   );
                 }}
               >
                 <Text style={styles.scheduleButtonText}>
-                  {formData.scheduledDate 
+                  {formData.scheduledDate
                     ? `Scheduled for ${formData.scheduledDate.toLocaleDateString('en-GB')}`
                     : 'Schedule for later (optional)'}
                 </Text>
@@ -402,84 +404,84 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
             </TouchableOpacity>
           </View>
 
-              {isSubmitted ? (
-                /* Success State */
-                <ScrollView
-                  style={styles.scrollView}
-                  contentContainerStyle={styles.successContainer}
-                  showsVerticalScrollIndicator={false}
-                >
-                  <View style={styles.successIconContainer} />
-                  <Text style={styles.successTitle}>Story {formData.status === 'published' ? 'Published' : 'Saved'}!</Text>
-                  <Text style={styles.successMessage}>
-                    {formData.status === 'published' 
-                      ? 'Your story has been published successfully and is now visible to customers.'
-                      : 'Your story has been saved as a draft. You can publish it anytime from your content library.'}
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.doneButton}
-                    onPress={handleClose}
-                  >
-                    <Text style={styles.doneButtonText}>Done</Text>
-                  </TouchableOpacity>
-                </ScrollView>
-              ) : (
-                /* Step-by-step Wizard */
-                <View style={styles.wizardContainer}>
-                  {/* Progress Bar */}
-                  <View style={styles.progressContainer}>
-                    <View style={styles.progressBar}>
-                      <View style={[styles.progressFill, { width: `${progress}%` }]} />
-                    </View>
-                    <Text style={styles.progressText}>
-                      Step {currentStep + 1} of {STEPS.length}
-                    </Text>
-                  </View>
-
-                  {/* Step Question */}
-                  <View style={styles.questionContainer}>
-                    <Text style={styles.questionText}>{currentStepData.question}</Text>
-                  </View>
-
-                  {/* Step Content */}
-                  <ScrollView
-                    style={styles.stepScrollView}
-                    contentContainerStyle={styles.stepScrollContent}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                  >
-                    {renderStepContent()}
-                  </ScrollView>
-
-                  {/* Navigation Buttons */}
-                  <View style={styles.navigationContainer}>
-                    {currentStep > 0 && (
-                      <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={handleBack}
-                      >
-                        <Text style={styles.backButtonText}>Back</Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                      style={[
-                        styles.nextButton,
-                        !canProceed && styles.nextButtonDisabled,
-                      ]}
-                      onPress={handleNext}
-                      disabled={!canProceed || isSubmitting || isUploadingMedia}
-                    >
-                      {(isSubmitting || isUploadingMedia) ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                      ) : (
-                        <Text style={styles.nextButtonText}>
-                          {currentStep === STEPS.length - 1 ? 'Publish' : 'Next'}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
+          {isSubmitted ? (
+            /* Success State */
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.successContainer}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.successIconContainer} />
+              <Text style={styles.successTitle}>Story {formData.status === 'published' ? 'Published' : 'Saved'}!</Text>
+              <Text style={styles.successMessage}>
+                {formData.status === 'published'
+                  ? 'Your story has been published successfully and is now visible to customers.'
+                  : 'Your story has been saved as a draft. You can publish it anytime from your content library.'}
+              </Text>
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={handleClose}
+              >
+                <Text style={styles.doneButtonText}>Done</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          ) : (
+            /* Step-by-step Wizard */
+            <View style={styles.wizardContainer}>
+              {/* Progress Bar */}
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: `${progress}%` }]} />
                 </View>
-              )}
+                <Text style={styles.progressText}>
+                  Step {currentStep + 1} of {STEPS.length}
+                </Text>
+              </View>
+
+              {/* Step Question */}
+              <View style={styles.questionContainer}>
+                <Text style={styles.questionText}>{currentStepData.question}</Text>
+              </View>
+
+              {/* Step Content */}
+              <ScrollView
+                style={styles.stepScrollView}
+                contentContainerStyle={styles.stepScrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {renderStepContent()}
+              </ScrollView>
+
+              {/* Navigation Buttons */}
+              <View style={styles.navigationContainer}>
+                {currentStep > 0 && (
+                  <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={handleBack}
+                  >
+                    <Text style={styles.backButtonText}>Back</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={[
+                    styles.nextButton,
+                    !canProceed && styles.nextButtonDisabled,
+                  ]}
+                  onPress={handleNext}
+                  disabled={!canProceed || isSubmitting || isUploadingMedia}
+                >
+                  {(isSubmitting || isUploadingMedia) ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.nextButtonText}>
+                      {currentStep === STEPS.length - 1 ? 'Publish' : 'Next'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </View>
       </SafeAreaView>
 
@@ -781,5 +783,35 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'Inter',
     textAlign: 'center',
+  },
+  scheduleContainer: {
+    marginTop: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  scheduleButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  scheduleButtonText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+    fontFamily: 'Inter',
+  },
+  removeScheduleButton: {
+    padding: 12,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

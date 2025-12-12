@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 export default function GroupOrderDetails() {
   const router = useRouter()
   const params = useLocalSearchParams<{ group_order_id?: string }>()
-  const { user } = useAuthState()
+  const { } = useAuthState()
   const groupOrderId = params.group_order_id || ''
   
   const [amount, setAmount] = useState('')

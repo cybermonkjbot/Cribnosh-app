@@ -166,11 +166,16 @@ export default function DeleteAccountSurveyScreen() {
         {/* Done Button - Floating */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
-            style={styles.doneButton} 
+            style={[styles.doneButton, isSubmitting && styles.doneButtonDisabled]} 
             onPress={handleDone}
             activeOpacity={0.8}
+            disabled={isSubmitting}
           >
-            <Text style={styles.doneButtonText}>Done</Text>
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.doneButtonText}>Done</Text>
+            )}
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -312,5 +317,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: '#FFFFFF',
+  },
+  doneButtonDisabled: {
+    opacity: 0.5,
   },
 });

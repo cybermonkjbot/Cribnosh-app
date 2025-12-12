@@ -39,7 +39,7 @@ export default function ChangePasswordScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Use account hook for Convex actions
-  const { changePassword, isLoading: accountLoading } = useAccount();
+  const { changePassword } = useAccount();
 
   const handleBack = () => {
     router.back();

@@ -1,8 +1,10 @@
 "use client";
 
 import { useAdminUser } from "@/app/admin/AdminUserProvider";
+import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
 import { Activity, AlertTriangle, CheckCircle, Cloud, Database, Server, Shield, Wifi } from "lucide-react";
+import { motion } from "motion/react";
 import { useEffect, useState } from 'react';
 
 interface SystemMetric {
@@ -50,26 +52,26 @@ export function EnhancedSystemHealth() {
     };
 
     return systemHealthData.services.map((service: any) => {
-      const status = service.status === 'healthy' ? 'healthy' : 
-                    service.status === 'warning' ? 'warning' : 'critical';
-      
+      const status = service.status === 'healthy' ? 'healthy' :
+        service.status === 'warning' ? 'warning' : 'critical';
+
       return {
         name: service.name,
         value: service.responseTime,
         status: status as "healthy" | "warning" | "critical",
         icon: iconMap[service.name] || Activity,
         description: service.details || `${service.name} status`,
-        threshold: { 
-          warning: service.name === 'API Gateway' ? 200 : 
-                   service.name === 'Database' ? 100 : 
-                   service.name === 'Authentication' ? 150 : 200, 
-          critical: service.name === 'API Gateway' ? 500 : 
-                    service.name === 'Database' ? 200 : 
-                    service.name === 'Authentication' ? 300 : 500 
+        threshold: {
+          warning: service.name === 'API Gateway' ? 200 :
+            service.name === 'Database' ? 100 :
+              service.name === 'Authentication' ? 150 : 200,
+          critical: service.name === 'API Gateway' ? 500 :
+            service.name === 'Database' ? 200 :
+              service.name === 'Authentication' ? 300 : 500
         },
         unit: service.name.includes('Usage') || service.name.includes('Load') ? '%' : 'ms',
-        trend: service.responseTime < 100 ? 'down' : 
-               service.responseTime > 300 ? 'up' : 'stable'
+        trend: service.responseTime < 100 ? 'down' :
+          service.responseTime > 300 ? 'up' : 'stable'
       };
     });
   };
@@ -149,7 +151,7 @@ export function EnhancedSystemHealth() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              whileHover={{ 
+              whileHover={{
                 scale: 1.02,
                 boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
               }}

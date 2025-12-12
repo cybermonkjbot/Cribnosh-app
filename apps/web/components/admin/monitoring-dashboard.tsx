@@ -1,23 +1,24 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { AlertDescription, AlertTitle, Alert as UIAlert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { useAdminUser } from '@/app/admin/AdminUserProvider';
-import { useQuery, useMutation } from 'convex/react';
-import { 
-  Activity, 
-  AlertTriangle, 
-  CheckCircle, 
-  Database, 
-  Gauge, 
-  Heart, 
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { api } from "@/convex/_generated/api";
+import { useMutation, useQuery } from 'convex/react';
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  Database,
+  Gauge,
+  Heart,
   TrendingUp,
   User,
   XCircle
 } from 'lucide-react';
+import { useState } from 'react';
 
 interface SystemHealth {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -44,7 +45,7 @@ interface PerformanceMetrics {
   request_rate: number;
 }
 
-interface Alert {
+interface SystemAlert {
   id: string;
   ruleId: string;
   metric: string;
@@ -64,12 +65,12 @@ export default function MonitoringDashboard() {
   // Get monitoring data from Convex
   const systemHealthData = useQuery(api.queries.systemHealth.getSystemHealth, sessionToken ? { sessionToken } : 'skip');
   const performanceMetrics = useQuery(api.queries.analytics.getRealtimeMetrics, sessionToken ? { sessionToken } : 'skip');
-  const activeAlerts = useQuery(api.queries.activityFeed.getActivityFeed, sessionToken ? { 
-    type: "system", 
+  const activeAlerts = useQuery(api.queries.activityFeed.getActivityFeed, sessionToken ? {
+    type: "system",
     limit: 10,
     sessionToken
   } : 'skip');
-  
+
   const resolveAlert = useMutation(api.mutations.admin.logActivity);
 
   const handleRefresh = async () => {
@@ -80,7 +81,7 @@ export default function MonitoringDashboard() {
 
   const handleResolveAlert = async (alertId: string) => {
     try {
-      await resolveAlert({ 
+      await resolveAlert({
         description: `Alert ${alertId} resolved by admin`,
         type: "alert_resolution"
       });
@@ -121,7 +122,7 @@ export default function MonitoringDashboard() {
     const days = Math.floor(uptime / (1000 * 60 * 60 * 24));
     const hours = Math.floor((uptime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (days > 0) return `${days}d ${hours}h ${minutes}m`;
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
@@ -144,8 +145,8 @@ export default function MonitoringDashboard() {
             Real-time system health and performance metrics
           </p>
         </div>
-        <Button 
-          onClick={handleRefresh} 
+        <Button
+          onClick={handleRefresh}
           disabled={refreshing}
           variant="outline"
         >
@@ -278,7 +279,7 @@ export default function MonitoringDashboard() {
           ) : (
             <div className="space-y-2">
               {activeAlerts.map((alert: any) => (
-                <Alert key={alert.id}>
+                <UIAlert key={alert.id}>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle className="flex items-center justify-between">
                     <span>{alert.description || alert.title || 'System Alert'}</span>
@@ -298,7 +299,7 @@ export default function MonitoringDashboard() {
                   <AlertDescription>
                     {new Date(alert.timestamp).toLocaleString()}
                   </AlertDescription>
-                </Alert>
+                </UIAlert>
               ))}
             </div>
           )}

@@ -35,7 +35,7 @@ export default function FamilyProfileManageScreen() {
   const [familyProfileData, setFamilyProfileData] = useState<any>(null);
   const [spendingData, setSpendingData] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(false);
-  const [spendingLoading, setSpendingLoading] = useState(false);
+
   const [profileError, setProfileError] = useState<any>(null);
 
   useEffect(() => {
@@ -67,7 +67,7 @@ export default function FamilyProfileManageScreen() {
     loadFamilyData();
   };
   
-  const { isAuthenticated } = useAuthContext();
+  const { } = useAuthContext();
   const [isRemovingMember, setIsRemovingMember] = useState(false);
 
   // Remove family member function

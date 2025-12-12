@@ -1,7 +1,6 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { useRef } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
-import { Bold, Italic, List, Link, Image as ImageIcon, AlignLeft, AlignCenter, Heading1, Heading2 } from 'lucide-react-native';
 
 interface RichTextEditorProps {
   value: string;
@@ -12,7 +11,6 @@ interface RichTextEditorProps {
 
 export function RichTextEditor({ value, onChange, placeholder, style }: RichTextEditorProps) {
   const richText = useRef<RichEditor>(null);
-  const [selectedColor, setSelectedColor] = useState('#000000');
 
   const handleCursorPosition = (scrollY: number) => {
     // Handle cursor position if needed
@@ -27,7 +25,8 @@ export function RichTextEditor({ value, onChange, placeholder, style }: RichText
           actions.setItalic,
           actions.insertBulletsList,
           actions.insertOrderedList,
-          actions.setHeading,
+          actions.heading1,
+          actions.heading2,
           actions.insertLink,
           actions.insertImage,
           actions.setStrikethrough,

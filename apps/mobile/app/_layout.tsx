@@ -45,7 +45,8 @@ if (!isExpoGo) {
   try {
     const stripeModule = require('@stripe/stripe-react-native');
     StripeProvider = stripeModule.StripeProvider;
-    initStripe = stripeModule.initStripe;
+    // initStripe = stripeModule.initStripe; // Removed as it's not used
+
   } catch (error) {
     console.warn('StripeProvider not available:', error);
   }

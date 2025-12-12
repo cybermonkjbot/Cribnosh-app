@@ -37,7 +37,7 @@ export default function CreateGroupOrderScreen() {
     chef_id?: string; 
     restaurant_name?: string;
   }>();
-  const { user } = useAuthState();
+  const { } = useAuthState();
   const { location: userLocation } = useUserLocation();
   
   // Chef selection state
@@ -52,7 +52,7 @@ export default function CreateGroupOrderScreen() {
   const [initialBudget, setInitialBudget] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [title, setTitle] = useState('');
-  const [deliveryAddress, setDeliveryAddress] = useState<CustomerAddress | undefined>(undefined);
+  const [deliveryAddress] = useState<CustomerAddress | undefined>(undefined);
   const [deliveryTime, setDeliveryTime] = useState('');
   const [expiresInHours, setExpiresInHours] = useState('24');
   

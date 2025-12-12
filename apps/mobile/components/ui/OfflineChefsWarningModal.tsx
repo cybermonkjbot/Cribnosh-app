@@ -12,11 +12,11 @@ import { useColorScheme } from '../../hooks/useColorScheme';
 
 export interface OfflineChefsWarningModalProps {
   isVisible: boolean;
-  offlineChefs: Array<{
+  offlineChefs: {
     chefId: string;
     chefName: string;
     itemNames: string[];
-  }>;
+  }[];
   onConfirm: () => void;
   onCancel: () => void;
 }

@@ -26,9 +26,7 @@ interface StickerItemProps {
 }
 
 const MIN_SIZE = 60;
-const MAX_SIZE = 300;
-const MIN_ROTATION = -180;
-const MAX_ROTATION = 180;
+const MIN_SIZE = 60;
 
 export function StickerItem({
   stickerData,
@@ -127,55 +125,55 @@ export function StickerItem({
         onPress={handleSingleTap}
         style={StyleSheet.absoluteFill}
       >
-            <View
-              style={[
-                styles.stickerContent,
-                {
-                  backgroundColor: stickerData.sticker.backgroundColor || '#FF3B30',
-                  minWidth: currentWidth,
-                  minHeight: currentHeight,
-                  borderWidth: isSelected ? 3 : 2,
-                  borderColor: isSelected ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)',
-                },
-              ]}
-            >
-              {isSelected && (
-                <>
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={onDelete}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <X size={18} color="#FFFFFF" />
-                  </TouchableOpacity>
-                  <View style={styles.rotationHandle}>
-                    <RotateCw size={16} color="#FFFFFF" />
-                  </View>
-                  {/* Corner handles for resize */}
-                  <View style={[styles.resizeHandle, styles.topLeftHandle]} />
-                  <View style={[styles.resizeHandle, styles.topRightHandle]} />
-                  <View style={[styles.resizeHandle, styles.bottomLeftHandle]} />
-                  <View style={[styles.resizeHandle, styles.bottomRightHandle]} />
-                </>
-              )}
-              <View style={styles.stickerTextContainer}>
-                {stickerData.sticker.emoji && (
-                  <Text style={styles.emoji}>{stickerData.sticker.emoji}</Text>
-                )}
-                <Text
-                  style={[
-                    styles.stickerText,
-                    { color: stickerData.sticker.color || '#FFFFFF' },
-                  ]}
-                  numberOfLines={2}
-                  adjustsFontSizeToFit
-                >
-                  {stickerData.sticker.text}
-                </Text>
+        <View
+          style={[
+            styles.stickerContent,
+            {
+              backgroundColor: stickerData.sticker.backgroundColor || '#FF3B30',
+              minWidth: currentWidth,
+              minHeight: currentHeight,
+              borderWidth: isSelected ? 3 : 2,
+              borderColor: isSelected ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)',
+            },
+          ]}
+        >
+          {isSelected && (
+            <>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={onDelete}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <X size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+              <View style={styles.rotationHandle}>
+                <RotateCw size={16} color="#FFFFFF" />
               </View>
-            </View>
-          </TouchableOpacity>
+              {/* Corner handles for resize */}
+              <View style={[styles.resizeHandle, styles.topLeftHandle]} />
+              <View style={[styles.resizeHandle, styles.topRightHandle]} />
+              <View style={[styles.resizeHandle, styles.bottomLeftHandle]} />
+              <View style={[styles.resizeHandle, styles.bottomRightHandle]} />
+            </>
+          )}
+          <View style={styles.stickerTextContainer}>
+            {stickerData.sticker.emoji && (
+              <Text style={styles.emoji}>{stickerData.sticker.emoji}</Text>
+            )}
+            <Text
+              style={[
+                styles.stickerText,
+                { color: stickerData.sticker.color || '#FFFFFF' },
+              ]}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+            >
+              {stickerData.sticker.text}
+            </Text>
+          </View>
         </View>
+      </TouchableOpacity>
+    </View>
   );
 }
 

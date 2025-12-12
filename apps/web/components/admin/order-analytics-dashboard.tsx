@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { motion } from 'motion/react';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { api } from '@/convex/_generated/api';
 import { useQuery } from 'convex/react';
-import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { DollarSign, Download, Filter, ShoppingCart, TrendingUp, Users } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useState } from 'react';
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface OrderAnalytics {
   summary: {
@@ -138,7 +137,7 @@ export default function OrderAnalyticsDashboard({
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-lg shadow-sm p-6"
@@ -220,7 +219,7 @@ export default function OrderAnalyticsDashboard({
       </motion.div>
 
       {/* Summary Cards */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
@@ -269,7 +268,7 @@ export default function OrderAnalyticsDashboard({
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Chart */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="bg-white rounded-lg shadow-sm p-6"
@@ -288,7 +287,7 @@ export default function OrderAnalyticsDashboard({
         </motion.div>
 
         {/* Status Distribution */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           className="bg-white rounded-lg shadow-sm p-6"
@@ -317,7 +316,7 @@ export default function OrderAnalyticsDashboard({
       </div>
 
       {/* Detailed Table */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-lg shadow-sm overflow-hidden"
@@ -330,9 +329,9 @@ export default function OrderAnalyticsDashboard({
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {filters.groupBy === 'day' ? 'Date' : 
-                   filters.groupBy === 'chef' ? 'Chef ID' : 
-                   filters.groupBy === 'status' ? 'Status' : 'Period'}
+                  {filters.groupBy === 'day' ? 'Date' :
+                    filters.groupBy === 'chef' ? 'Chef ID' :
+                      filters.groupBy === 'status' ? 'Status' : 'Period'}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Orders
