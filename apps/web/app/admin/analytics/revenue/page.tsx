@@ -14,8 +14,8 @@ import {
   ArrowUpRight,
   BarChart2,
   CreditCard,
-  DollarSign,
   PieChart,
+  PoundSterling,
   Receipt,
   Target,
   TrendingUp,
@@ -131,7 +131,7 @@ export default function RevenueAnalyticsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-green-100 rounded-lg">
-                    <DollarSign className="w-5 h-5 text-green-600" />
+                    <PoundSterling className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Total Revenue</p>
@@ -142,7 +142,7 @@ export default function RevenueAnalyticsPage() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
@@ -164,7 +164,7 @@ export default function RevenueAnalyticsPage() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
@@ -184,7 +184,7 @@ export default function RevenueAnalyticsPage() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
@@ -285,11 +285,10 @@ export default function RevenueAnalyticsPage() {
                   {revenueAnalytics?.paymentMethods?.map((method: { method: string; amount: number; percentage: number }, index: number) => (
                     <div key={method.method} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${
-                          index === 0 ? 'bg-blue-500' :
-                          index === 1 ? 'bg-green-500' :
-                          index === 2 ? 'bg-purple-500' : 'bg-orange-500'
-                        }`} />
+                        <div className={`w-3 h-3 rounded-full ${index === 0 ? 'bg-blue-500' :
+                            index === 1 ? 'bg-green-500' :
+                              index === 2 ? 'bg-purple-500' : 'bg-orange-500'
+                          }`} />
                         <span className="text-sm text-gray-600">{method.method}</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -315,7 +314,7 @@ export default function RevenueAnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                  {revenueAnalytics?.monthlyRevenueData?.map((month: { month: string; revenue: number; growth: number }, index: number) => (
+                {revenueAnalytics?.monthlyRevenueData?.map((month: { month: string; revenue: number; growth: number }, index: number) => (
                   <div key={month.month} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900">{month.month}</p>
@@ -367,15 +366,14 @@ export default function RevenueAnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                  {revenueAnalytics?.revenueBySource?.map((source: { source: string; amount: number; percentage: number }, index: number) => (
+                {revenueAnalytics?.revenueBySource?.map((source: { source: string; amount: number; percentage: number }, index: number) => (
                   <div key={source.source} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${
-                        index === 0 ? 'bg-blue-500' :
-                        index === 1 ? 'bg-green-500' :
-                        index === 2 ? 'bg-purple-500' :
-                        index === 3 ? 'bg-orange-500' : 'bg-gray-500'
-                      }`} />
+                      <div className={`w-3 h-3 rounded-full ${index === 0 ? 'bg-blue-500' :
+                          index === 1 ? 'bg-green-500' :
+                            index === 2 ? 'bg-purple-500' :
+                              index === 3 ? 'bg-orange-500' : 'bg-gray-500'
+                        }`} />
                       <span className="text-sm text-gray-600">{source.source}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -397,15 +395,14 @@ export default function RevenueAnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                  {revenueAnalytics?.revenueByLocation?.map((location: any, index: number) => (
+                {revenueAnalytics?.revenueByLocation?.map((location: any, index: number) => (
                   <div key={location.location} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${
-                        index === 0 ? 'bg-blue-500' :
-                        index === 1 ? 'bg-green-500' :
-                        index === 2 ? 'bg-purple-500' :
-                        index === 3 ? 'bg-orange-500' : 'bg-gray-500'
-                      }`} />
+                      <div className={`w-3 h-3 rounded-full ${index === 0 ? 'bg-blue-500' :
+                          index === 1 ? 'bg-green-500' :
+                            index === 2 ? 'bg-purple-500' :
+                              index === 3 ? 'bg-orange-500' : 'bg-gray-500'
+                        }`} />
                       <span className="text-sm text-gray-600">{location.location}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -432,7 +429,7 @@ export default function RevenueAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-                  {revenueAnalytics?.topProducts?.map((product: any, index: number) => (
+              {revenueAnalytics?.topProducts?.map((product: any, index: number) => (
                 <div key={product.name} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-[#F23E2E]/10 rounded-full flex items-center justify-center">

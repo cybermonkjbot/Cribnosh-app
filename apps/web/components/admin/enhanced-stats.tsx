@@ -1,25 +1,24 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { 
-  Users, 
-  TrendingUp, 
-  ChefHat, 
-  MapPin, 
-  Activity, 
-  DollarSign,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  ArrowUpRight,
-  ArrowDownRight
-} from 'lucide-react';
-import { GlassCard, GlassCardGrid } from './glass-card';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
-import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { formatCurrency } from '@/lib/utils/number-format';
+import { useQuery } from 'convex/react';
+import {
+  Activity,
+  ArrowDownRight,
+  ArrowUpRight,
+  CheckCircle,
+  ChefHat,
+  Clock,
+  MapPin,
+  PoundSterling,
+  TrendingUp,
+  Users
+} from 'lucide-react';
+import { motion } from 'motion/react';
+import { useEffect, useState } from 'react';
+import { GlassCard, GlassCardGrid } from './glass-card';
 
 interface StatCardProps {
   title: string;
@@ -103,10 +102,10 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
     monthlyGrowth: `${analyticsData.userGrowth >= 0 ? '+' : ''}${analyticsData.userGrowth.toFixed(1)}%`,
     chefApplications: analyticsData.activeChefs.toLocaleString(),
     citiesCovered: analyticsData.citiesServed.toString(),
-    orderCompletion: analyticsData.totalOrders > 0 
+    orderCompletion: analyticsData.totalOrders > 0
       ? `${((analyticsData.totalOrders - (analyticsData.totalOrders * 0.013)) / analyticsData.totalOrders * 100).toFixed(1)}%`
       : '0%',
-    avgResponseTime: realtimeMetrics?.systemHealth?.responseTime 
+    avgResponseTime: realtimeMetrics?.systemHealth?.responseTime
       ? `${(realtimeMetrics.systemHealth.responseTime / 1000).toFixed(1)}s`
       : '0s'
   } : {
@@ -165,7 +164,7 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
       value: stats.totalRevenue,
       change: analyticsData ? `${analyticsData.revenueGrowth >= 0 ? '+' : ''}${analyticsData.revenueGrowth.toFixed(1)}%` : '0%',
       changeType: analyticsData && analyticsData.revenueGrowth >= 0 ? 'positive' as const : 'negative' as const,
-      icon: <DollarSign className="w-6 h-6" />,
+      icon: <PoundSterling className="w-6 h-6" />,
       color: 'text-gray-600',
       description: 'Revenue generated this month'
     },
@@ -252,22 +251,19 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           <div className="text-center">
-            <div className={`w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 rounded-full flex items-center justify-center ${
-              realtimeMetrics?.systemHealth?.status === 'operational' ? 'bg-green-100' : 'bg-red-100'
-            }`}>
-              <CheckCircle className={`w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 ${
-                realtimeMetrics?.systemHealth?.status === 'operational' ? 'text-green-600' : 'text-red-600'
-              }`} />
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 rounded-full flex items-center justify-center ${realtimeMetrics?.systemHealth?.status === 'operational' ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+              <CheckCircle className={`w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 ${realtimeMetrics?.systemHealth?.status === 'operational' ? 'text-green-600' : 'text-red-600'
+                }`} />
             </div>
             <h4 className="text-sm sm:text-base md:text-lg font-bold font-asgard text-gray-900 mb-0.5 sm:mb-1 break-words">System Status</h4>
-            <p className={`text-base sm:text-lg md:text-2xl font-bold font-satoshi break-words ${
-              realtimeMetrics?.systemHealth?.status === 'operational' ? 'text-green-600' : 'text-red-600'
-            }`}>
+            <p className={`text-base sm:text-lg md:text-2xl font-bold font-satoshi break-words ${realtimeMetrics?.systemHealth?.status === 'operational' ? 'text-green-600' : 'text-red-600'
+              }`}>
               {realtimeMetrics?.systemHealth?.status || 'Unknown'}
             </p>
             <p className="text-xs sm:text-sm text-gray-500 font-satoshi break-words">Current status</p>
           </div>
-          
+
           <div className="text-center">
             <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 bg-gray-100 rounded-full flex items-center justify-center">
               <Clock className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-gray-600" />
@@ -278,7 +274,7 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
             </p>
             <p className="text-xs sm:text-sm text-gray-500 font-satoshi break-words">Average API response</p>
           </div>
-          
+
           <div className="text-center">
             <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 bg-gray-100 rounded-full flex items-center justify-center">
               <Activity className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-gray-600" />

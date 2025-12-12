@@ -16,13 +16,13 @@ import {
   Calendar,
   CheckCircle,
   Clock,
-  DollarSign,
   Download,
   Eye,
   FileSpreadsheet,
   FileText,
   Filter,
   Plus,
+  PoundSterling,
   Receipt,
   Search,
   Trash2,
@@ -370,7 +370,7 @@ export default function TaxDocumentsPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-gray-100 rounded-lg">
-                <DollarSign className="w-5 h-5 text-gray-900" />
+                <PoundSterling className="w-5 h-5 text-gray-900" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Value</p>

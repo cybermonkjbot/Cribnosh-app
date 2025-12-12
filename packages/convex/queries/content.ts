@@ -176,6 +176,7 @@ export const getRecipes = query({
   args: {
     search: v.optional(v.string()),
     status: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     let recipes = await ctx.db.query("content")
@@ -338,7 +339,9 @@ export const getBlogCategories = query({
 });
 
 export const getCuisines = query({
-  args: {},
+  args: {
+    sessionToken: v.optional(v.string()),
+  },
   handler: async (ctx: any) => {
     return [
       'Italian', 'Mexican', 'Chinese', 'Indian', 'Japanese', 'Thai', 'French', 'Mediterranean',
@@ -348,7 +351,9 @@ export const getCuisines = query({
 });
 
 export const getRecipeCategories = query({
-  args: {},
+  args: {
+    sessionToken: v.optional(v.string()),
+  },
   handler: async (ctx: any) => {
     return [
       'Appetizers', 'Main Courses', 'Desserts', 'Beverages', 'Soups', 'Salads', 'Breakfast',

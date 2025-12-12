@@ -1,5 +1,5 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
+import { query } from "../_generated/server";
 
 // Job Postings
 export const getJobPostings = query({
@@ -7,22 +7,23 @@ export const getJobPostings = query({
     status: v.optional(v.string()),
     department: v.optional(v.string()),
     type: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     let jobs = await ctx.db.query("jobPosting").collect();
-    
+
     if (args.status) {
       jobs = jobs.filter((job: any) => job.status === args.status);
     }
-    
+
     if (args.department) {
       jobs = jobs.filter((job: any) => job.department === args.department);
     }
-    
+
     if (args.type) {
       jobs = jobs.filter((job: any) => job.type === args.type);
     }
-    
+
     // Get applicant counts for all jobs
     const jobsWithApplicantCounts = await Promise.all(
       jobs.map(async (job: any) => {
@@ -63,18 +64,19 @@ export const getJobApplications = query({
   args: {
     status: v.optional(v.string()),
     jobId: v.optional(v.id("jobPosting")),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     let applications = await ctx.db.query("jobApplication").collect();
-    
+
     if (args.status) {
       applications = applications.filter((app: any) => app.status === args.status);
     }
-    
+
     if (args.jobId) {
       applications = applications.filter((app: any) => app.jobId === args.jobId);
     }
-    
+
     return applications.map((app: any) => ({
       _id: app._id,
       jobId: app.jobId,
@@ -99,7 +101,9 @@ export const getJobApplications = query({
 });
 
 export const getApplicationStats = query({
-  args: {},
+  args: {
+    sessionToken: v.optional(v.string()),
+  },
   handler: async (ctx: any) => {
     const applications = await ctx.db.query("jobApplication").collect();
     const pending = applications.filter((app: any) => app.status === 'pending').length;
@@ -107,7 +111,7 @@ export const getApplicationStats = query({
     const interviewed = applications.filter((app: any) => app.status === 'interviewed').length;
     const accepted = applications.filter((app: any) => app.status === 'accepted').length;
     const rejected = applications.filter((app: any) => app.status === 'rejected').length;
-    
+
     return {
       total: applications.length,
       pending,
@@ -154,11 +158,11 @@ export const getJobBySlug = query({
       .query("jobPosting")
       .filter((q: any) => q.eq(q.field("slug"), args.slug))
       .first();
-    
+
     if (!job) {
       return null;
     }
-    
+
     return {
       ...job,
       applications: await ctx.db
@@ -175,35 +179,37 @@ export const listActiveJobs = query({
   },
   handler: async (ctx: any, args: any) => {
     const limit = args.limit || 20;
-    
+
     const jobs = await ctx.db
       .query("jobPosting")
       .filter((q: any) => q.eq(q.field("status"), "published"))
       .order("desc")
       .take(limit);
-    
+
     return jobs;
   },
 });
 
 export const getJobStats = query({
-  args: {},
+  args: {
+    sessionToken: v.optional(v.string()),
+  },
   handler: async (ctx: any) => {
     const jobs = await ctx.db.query("jobPosting").collect();
     const applications = await ctx.db.query("jobApplication").collect();
-    
+
     const totalJobs = jobs.length;
     const publishedJobs = jobs.filter((job: any) => job.status === 'published').length;
     const draftJobs = jobs.filter((job: any) => job.status === 'draft').length;
     const archivedJobs = jobs.filter((job: any) => job.status === 'archived').length;
-    
+
     const totalApplications = applications.length;
     const pendingApplications = applications.filter((app: any) => app.status === 'pending').length;
     const reviewingApplications = applications.filter((app: any) => app.status === 'reviewing').length;
     const interviewedApplications = applications.filter((app: any) => app.status === 'interviewed').length;
     const acceptedApplications = applications.filter((app: any) => app.status === 'accepted').length;
     const rejectedApplications = applications.filter((app: any) => app.status === 'rejected').length;
-    
+
     return {
       totalJobs,
       publishedJobs,

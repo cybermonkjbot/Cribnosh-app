@@ -23,7 +23,6 @@ import {
   CheckCircle,
   Clock,
   CreditCard,
-  DollarSign,
   Download,
   Eye,
   FileText,
@@ -31,6 +30,7 @@ import {
   Info,
   Mail,
   PieChart,
+  PoundSterling,
   Receipt,
   RefreshCw,
   Search,
@@ -95,13 +95,13 @@ export default function StaffPayrollPage() {
   // Fetch year-to-date hours from work sessions
   const ytdHours = useQuery(
     api.queries.workSessions.getYearToDateHours,
-    staffUser && sessionToken ? { 
-      staffId: staffUser._id, 
+    staffUser && sessionToken ? {
+      staffId: staffUser._id,
       year: parseInt(yearFilter),
       sessionToken
     } : 'skip'
   );
-  
+
   // Handle payslip download
   const handleDownloadPayslip = async (payslipId: string) => {
     try {
@@ -111,11 +111,11 @@ export default function StaffPayrollPage() {
         throw new Error('Payslip not found');
       }
 
-            // Create downloadable content
+      // Create downloadable content
       const content = `PAYSLIP
- Period: ${payslip.startDate && payslip.endDate 
-        ? `${format(new Date(payslip.startDate), 'MMM d, yyyy')} - ${format(new Date(payslip.endDate), 'MMM d, yyyy')}`
-        : 'N/A'}
+ Period: ${payslip.startDate && payslip.endDate
+          ? `${format(new Date(payslip.startDate), 'MMM d, yyyy')} - ${format(new Date(payslip.endDate), 'MMM d, yyyy')}`
+          : 'N/A'}
  Payment Date: ${payslip.paymentDate ? format(new Date(payslip.paymentDate), 'MMM d, yyyy') : 'N/A'}
  Gross Pay: ${formatNaira((payslip.grossPay || 0) / 100)}
  Net Pay: ${formatNaira((payslip.netPay || 0) / 100)}
@@ -139,7 +139,7 @@ export default function StaffPayrollPage() {
       );
     }
   };
-  
+
   // Handle tax document download
   const handleDownloadTaxDoc = async (docId: string) => {
     try {
@@ -198,9 +198,9 @@ Document ID: ${doc._id}`;
           <body>
             <div class="header">
               <h1>PAYSLIP</h1>
-              <h2>${payslip.startDate && payslip.endDate 
-                ? `${format(new Date(payslip.startDate), 'MMM d, yyyy')} - ${format(new Date(payslip.endDate), 'MMM d, yyyy')}`
-                : 'N/A'}</h2>
+              <h2>${payslip.startDate && payslip.endDate
+          ? `${format(new Date(payslip.startDate), 'MMM d, yyyy')} - ${format(new Date(payslip.endDate), 'MMM d, yyyy')}`
+          : 'N/A'}</h2>
             </div>
             <div class="section">
               <div class="row">
@@ -217,9 +217,9 @@ Document ID: ${doc._id}`;
               </div>
               <div class="row">
                 <span class="label">Period:</span>
-                <span>${payslip.startDate && payslip.endDate 
-                  ? `${format(new Date(payslip.startDate), 'MMM d, yyyy')} - ${format(new Date(payslip.endDate), 'MMM d, yyyy')}`
-                  : 'N/A'}</span>
+                <span>${payslip.startDate && payslip.endDate
+          ? `${format(new Date(payslip.startDate), 'MMM d, yyyy')} - ${format(new Date(payslip.endDate), 'MMM d, yyyy')}`
+          : 'N/A'}</span>
               </div>
               <div class="row">
                 <span class="label">Status:</span>
@@ -256,7 +256,7 @@ Document ID: ${doc._id}`;
       // Create shareable content
       const shareData = {
         title: `Payslip - ${payslipId.slice(-6)}`,
-        text: `Payslip for period: ${payslip.startDate && payslip.endDate 
+        text: `Payslip for period: ${payslip.startDate && payslip.endDate
           ? `${format(new Date(payslip.startDate), 'MMM d, yyyy')} - ${format(new Date(payslip.endDate), 'MMM d, yyyy')}`
           : 'N/A'}. Net Pay: ${formatNaira((payslip.netPay || 0) / 100)}`,
         url: window.location.href
@@ -281,8 +281,8 @@ Document ID: ${doc._id}`;
   const summaryStats = {
     totalEarnings: ytdSummary?.grossEarnings ? ytdSummary.grossEarnings / 100 : 0,
     totalHours: ytdHours?.totalHours || 0,
-    averagePay: ytdSummary?.grossEarnings && ytdHours?.totalHours 
-      ? (ytdSummary.grossEarnings / 100) / ytdHours.totalHours 
+    averagePay: ytdSummary?.grossEarnings && ytdHours?.totalHours
+      ? (ytdSummary.grossEarnings / 100) / ytdHours.totalHours
       : 0,
     payslipsCount: payslips?.items?.length || 0,
     pendingPayslips: payslips?.items?.filter((p: any) => p.status === 'pending')?.length || 0,
@@ -294,7 +294,7 @@ Document ID: ${doc._id}`;
 
   // Filter payslips based on search and filters
   const filteredPayslips = payslips?.items?.filter((payslip: any) => {
-    const matchesSearch = searchQuery === '' || 
+    const matchesSearch = searchQuery === '' ||
       payslip._id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (payslip.startDate && format(new Date(payslip.startDate), 'MMM yyyy').toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || payslip.status === statusFilter;
@@ -458,10 +458,10 @@ Document ID: ${doc._id}`;
             )}
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="lg"
             className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white"
             onClick={() => setShowCalendar(!showCalendar)}
@@ -469,8 +469,8 @@ Document ID: ${doc._id}`;
             <Calendar className="w-4 h-4 mr-2" />
             {showCalendar ? 'Hide Calendar' : 'Monthly Pay Calendar'}
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="lg"
             className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white"
             onClick={async () => {
@@ -519,8 +519,8 @@ Document ID: ${doc._id}`;
             <Download className="w-4 h-4 mr-2" />
             Export All
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="lg"
             className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white"
             onClick={async () => {
@@ -570,7 +570,7 @@ Document ID: ${doc._id}`;
               Monthly payments on the last Friday of each month
             </p>
           </div>
-          
+
           <div className="p-6">
             {/* Calendar Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
@@ -588,54 +588,51 @@ Document ID: ${doc._id}`;
                     const monthData = (() => {
                       const currentYear = parseInt(yearFilter);
                       const monthIndex2 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(monthName);
-                      
+
                       // Get the last day of the month
                       const lastDay = new Date(currentYear, monthIndex2 + 1, 0);
                       const lastFriday = new Date(lastDay);
-                      
+
                       // Find the last Friday of the month
                       while (lastFriday.getDay() !== 5) { // 5 = Friday
                         lastFriday.setDate(lastFriday.getDate() - 1);
                       }
-                      
+
                       return {
                         date: lastFriday.toISOString().split('T')[0],
                         month: monthName,
                         day: lastFriday.getDate(),
                         year: lastFriday.getFullYear(),
-                        fullDate: lastFriday.toLocaleDateString('en-US', { 
-                          weekday: 'long', 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
+                        fullDate: lastFriday.toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
                         })
                       };
                     })();
-                    
+
                     const isCurrentMonth = new Date().getMonth() === ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(monthName);
                     const isPastMonth = monthData && new Date(monthData.date) < new Date();
-                    
+
                     return (
-                      <div 
+                      <div
                         key={monthName}
-                        className={`p-4 text-center border-r border-b border-gray-200 last:border-r-0 ${
-                          isCurrentMonth ? 'bg-[#F23E2E]/10 border-l-4 border-l-[#F23E2E]' : 
-                          isPastMonth ? 'bg-gray-50' : 'bg-white'
-                        }`}
+                        className={`p-4 text-center border-r border-b border-gray-200 last:border-r-0 ${isCurrentMonth ? 'bg-[#F23E2E]/10 border-l-4 border-l-[#F23E2E]' :
+                            isPastMonth ? 'bg-gray-50' : 'bg-white'
+                          }`}
                       >
-                        <div className={`font-semibold text-sm uppercase tracking-wide mb-3 ${
-                          isCurrentMonth ? 'text-[#F23E2E]' : 'text-gray-700'
-                        }`}>
+                        <div className={`font-semibold text-sm uppercase tracking-wide mb-3 ${isCurrentMonth ? 'text-[#F23E2E]' : 'text-gray-700'
+                          }`}>
                           {monthName}
                         </div>
-                        
-                        <div className={`inline-block px-3 py-2 rounded-lg text-white font-bold ${
-                          isCurrentMonth ? 'bg-[#F23E2E]' : 'bg-gray-600'
-                        }`}>
+
+                        <div className={`inline-block px-3 py-2 rounded-lg text-white font-bold ${isCurrentMonth ? 'bg-[#F23E2E]' : 'bg-gray-600'
+                          }`}>
                           <div className="text-lg">{monthData.day}</div>
                           <div className="text-xs opacity-90 uppercase tracking-wide">Last Friday</div>
                         </div>
-                        
+
                         <div className="text-xs text-gray-500 mt-2 leading-tight">
                           {monthData.fullDate}
                         </div>
@@ -645,33 +642,33 @@ Document ID: ${doc._id}`;
                 </div>
               ))}
             </div>
-            
+
             {/* Calendar Info Panel */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Next Pay Date */}
               {(() => {
                 const currentYear = parseInt(yearFilter);
                 const payDates = [];
-                
+
                 for (let month = 0; month < 12; month++) {
                   const lastDay = new Date(currentYear, month + 1, 0);
                   const lastFriday = new Date(lastDay);
-                  
+
                   while (lastFriday.getDay() !== 5) {
                     lastFriday.setDate(lastFriday.getDate() - 1);
                   }
-                  
+
                   payDates.push({
                     date: lastFriday.toISOString().split('T')[0],
-                    fullDate: lastFriday.toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
+                    fullDate: lastFriday.toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
                     })
                   });
                 }
-                
+
                 const nextPayDate = payDates.find(d => new Date(d.date) > new Date());
                 if (nextPayDate) {
                   const daysUntil = Math.ceil((new Date(nextPayDate.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
@@ -685,19 +682,19 @@ Document ID: ${doc._id}`;
                 }
                 return null;
               })()}
-              
+
               {/* Payment Schedule */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <h3 className="font-semibold text-gray-900 mb-2">Payment Schedule</h3>
                 <p className="text-sm text-gray-700">Monthly payments on the last Friday of each month</p>
               </div>
-              
+
               {/* Payment Method */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <h3 className="font-semibold text-gray-900 mb-2">Payment Method</h3>
                 <p className="text-sm text-gray-700">Direct bank transfer to registered account</p>
               </div>
-              
+
               {/* Processing Time */}
               <div className="bg-[#F23E2E]/10 border border-gray-200/60 rounded-lg p-4">
                 <h3 className="font-semibold text-[#F23E2E] mb-2">Processing Time</h3>
@@ -741,7 +738,7 @@ Document ID: ${doc._id}`;
           <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-gray-100 rounded-xl">
-                <DollarSign className="w-6 h-6 text-gray-900" />
+                <PoundSterling className="w-6 h-6 text-gray-900" />
               </div>
               <TrendingUp className="w-5 h-5 text-gray-900" />
             </div>
@@ -812,43 +809,43 @@ Document ID: ${doc._id}`;
       >
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-5 bg-white/80 backdrop-blur-sm border border-gray-200 p-1 rounded-xl">
-            <TabsTrigger 
-              value="overview" 
+            <TabsTrigger
+              value="overview"
               className="data-[state=active]:bg-primary-600 data-[state=active]:text-white rounded-lg transition-all"
             >
               <BarChart3 className="w-4 h-4 mr-2" />
               Overview
             </TabsTrigger>
-            <TabsTrigger 
-              value="payslips" 
+            <TabsTrigger
+              value="payslips"
               className="data-[state=active]:bg-primary-600 data-[state=active]:text-white rounded-lg transition-all"
             >
               <Receipt className="w-4 h-4 mr-2" />
               Payslips
             </TabsTrigger>
-            <TabsTrigger 
-              value="tax" 
+            <TabsTrigger
+              value="tax"
               className="data-[state=active]:bg-primary-600 data-[state=active]:text-white rounded-lg transition-all"
             >
               <FileText className="w-4 h-4 mr-2" />
               Tax Documents
             </TabsTrigger>
-            <TabsTrigger 
-              value="history" 
+            <TabsTrigger
+              value="history"
               className="data-[state=active]:bg-primary-600 data-[state=active]:text-white rounded-lg transition-all"
             >
               <Calendar className="w-4 h-4 mr-2" />
               History
             </TabsTrigger>
-            <TabsTrigger 
-              value="analytics" 
+            <TabsTrigger
+              value="analytics"
               className="data-[state=active]:bg-primary-600 data-[state=active]:text-white rounded-lg transition-all"
             >
               <PieChart className="w-4 h-4 mr-2" />
               Analytics
             </TabsTrigger>
           </TabsList>
-          
+
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             {/* Quick Stats Summary */}
@@ -911,7 +908,7 @@ Document ID: ${doc._id}`;
                       <div className="text-sm text-[#F23E2E] font-satoshi">Avg per Session</div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-gray-50/80 rounded-xl p-4">
                     <h4 className="text-md font-semibold font-asgard text-gray-900 mb-3">Hourly Rate Analysis</h4>
                     <div className="space-y-2">
@@ -940,7 +937,7 @@ Document ID: ${doc._id}`;
                 </div>
               )}
             </div>
-            
+
             <div className="grid gap-6 md:grid-cols-2">
               {/* Recent Activity */}
               <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
@@ -968,11 +965,10 @@ Document ID: ${doc._id}`;
                         <p className="text-sm font-bold font-asgard text-gray-900">
                           {formatNaira((payslip.netPay || 0) / 100)}
                         </p>
-                        <Badge className={`text-xs ${
-                          payslip.status === 'processed' ? 'bg-[#F23E2E]/10 text-[#F23E2E] border-[#F23E2E]/30' :
-                          payslip.status === 'pending' ? 'bg-gray-100 text-gray-800 border-gray-200' :
-                          'bg-gray-100 text-gray-800 border-gray-200'
-                        }`}>
+                        <Badge className={`text-xs ${payslip.status === 'processed' ? 'bg-[#F23E2E]/10 text-[#F23E2E] border-[#F23E2E]/30' :
+                            payslip.status === 'pending' ? 'bg-gray-100 text-gray-800 border-gray-200' :
+                              'bg-gray-100 text-gray-800 border-gray-200'
+                          }`}>
                           {payslip.status || 'Processed'}
                         </Badge>
                       </div>
@@ -989,7 +985,7 @@ Document ID: ${doc._id}`;
                 </h3>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
                   {/* Download Latest Payslip */}
-                  <div 
+                  <div
                     className="group relative overflow-hidden rounded-xl bg-linear-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => {
                       const latestPayslip = payslips?.items?.[0];
@@ -1022,7 +1018,7 @@ Document ID: ${doc._id}`;
                   </div>
 
                   {/* View Tax Summary */}
-                  <div 
+                  <div
                     className="group relative overflow-hidden rounded-xl bg-linear-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => setActiveTab('tax')}
                   >
@@ -1045,7 +1041,7 @@ Document ID: ${doc._id}`;
                   </div>
 
                   {/* Pay Schedule */}
-                  <div 
+                  <div
                     className="group relative overflow-hidden rounded-xl bg-linear-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => {
                       try {
@@ -1058,28 +1054,28 @@ Document ID: ${doc._id}`;
                           year: number;
                           fullDate: string;
                         }> = [];
-                        
+
                         // Generate pay dates for the year (last Friday of each month)
                         for (let month = 0; month < 12; month++) {
                           // Get the last day of the month
                           const lastDay = new Date(currentYear, month + 1, 0);
                           const lastFriday = new Date(lastDay);
-                          
+
                           // Find the last Friday of the month
                           while (lastFriday.getDay() !== 5) { // 5 = Friday
                             lastFriday.setDate(lastFriday.getDate() - 1);
                           }
-                          
+
                           payDates.push({
                             date: lastFriday.toISOString().split('T')[0],
                             month: lastFriday.toLocaleDateString('en-US', { month: 'short' }),
                             day: lastFriday.getDate(),
                             year: lastFriday.getFullYear(),
-                            fullDate: lastFriday.toLocaleDateString('en-US', { 
-                              weekday: 'long', 
-                              year: 'numeric', 
-                              month: 'long', 
-                              day: 'numeric' 
+                            fullDate: lastFriday.toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
                             })
                           });
                         }
@@ -1306,19 +1302,19 @@ Document ID: ${doc._id}`;
                                 
                                 <div class="calendar-grid">
                                   ${[
-                                    { title: 'Q1', months: ['Jan', 'Feb', 'Mar'] },
-                                    { title: 'Q2', months: ['Apr', 'May', 'Jun'] },
-                                    { title: 'Q3', months: ['Jul', 'Aug', 'Sep'] },
-                                    { title: 'Q4', months: ['Oct', 'Nov', 'Dec'] }
-                                  ].map(quarter => `
+                            { title: 'Q1', months: ['Jan', 'Feb', 'Mar'] },
+                            { title: 'Q2', months: ['Apr', 'May', 'Jun'] },
+                            { title: 'Q3', months: ['Jul', 'Aug', 'Sep'] },
+                            { title: 'Q4', months: ['Oct', 'Nov', 'Dec'] }
+                          ].map(quarter => `
                                     <div class="quarter">
                                       <div class="quarter-title">${quarter.title}</div>
                                       ${quarter.months.map(monthName => {
-                                        const monthData = payDates.find(d => d.month === monthName);
-                                        const isCurrentMonth = new Date().getMonth() === ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(monthName);
-                                        const isPastMonth = monthData && new Date(monthData.date) < new Date();
-                                        
-                                        return `
+                            const monthData = payDates.find(d => d.month === monthName);
+                            const isCurrentMonth = new Date().getMonth() === ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(monthName);
+                            const isPastMonth = monthData && new Date(monthData.date) < new Date();
+
+                            return `
                                           <div class="month ${isCurrentMonth ? 'current-month' : ''} ${isPastMonth ? 'past-month' : ''}">
                                             <div class="month-title">${monthName}</div>
                                             ${monthData ? `
@@ -1332,7 +1328,7 @@ Document ID: ${doc._id}`;
                                             ` : '<div style="color: #a0aec0; font-size: 0.875rem;">No data</div>'}
                                           </div>
                                         `;
-                                      }).join('')}
+                          }).join('')}
                                     </div>
                                   `).join('')}
                                 </div>
@@ -1350,19 +1346,19 @@ Document ID: ${doc._id}`;
                                   </div>
                                   
                                   ${(() => {
-                                    const nextPayDate = payDates.find(d => new Date(d.date) > new Date());
-                                    if (nextPayDate) {
-                                      const daysUntil = Math.ceil((new Date(nextPayDate.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                                      return `
+                            const nextPayDate = payDates.find(d => new Date(d.date) > new Date());
+                            if (nextPayDate) {
+                              const daysUntil = Math.ceil((new Date(nextPayDate.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                              return `
                                         <div class="next-pay">
                                           <h3>Next Pay Date</h3>
                                           <div class="date">${nextPayDate.fullDate}</div>
                                           <div class="countdown">${daysUntil} day${daysUntil !== 1 ? 's' : ''} from now</div>
                                         </div>
                                       `;
-                                    }
-                                    return '';
-                                  })()}
+                            }
+                            return '';
+                          })()}
                                   
                                   <div class="info-grid">
                                     <div class="info-card">
@@ -1420,7 +1416,7 @@ Document ID: ${doc._id}`;
                   </div>
 
                   {/* Banking Info */}
-                  <div 
+                  <div
                     className="group relative overflow-hidden rounded-xl bg-linear-to-br from-[#F23E2E]/10 to-[#F23E2E]/5 p-4 border border-gray-200/60/60 hover:border-gray-200/60 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => showInfo(
                       'Banking Information',
@@ -1446,7 +1442,7 @@ Document ID: ${doc._id}`;
                   </div>
 
                   {/* Contact HR */}
-                  <div 
+                  <div
                     className="group relative overflow-hidden rounded-xl bg-linear-to-br from-gray-50 to-gray-100 p-4 border border-gray-200/60 hover:border-gray-300 transition-all duration-300 hover:shadow-md cursor-pointer"
                     onClick={() => {
                       const subject = encodeURIComponent('Payroll Support Request');
@@ -1475,7 +1471,7 @@ Document ID: ${doc._id}`;
               </div>
             </div>
           </TabsContent>
-          
+
           {/* Payslips Tab */}
           <TabsContent value="payslips" className="space-y-6">
             <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
@@ -1484,7 +1480,7 @@ Document ID: ${doc._id}`;
                   <h3 className="text-xl font-bold font-asgard text-gray-900">Payslips</h3>
                   <p className="text-gray-600 font-satoshi">View and download your payslips</p>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                   <Button
                     variant="outline"
@@ -1529,7 +1525,7 @@ Document ID: ${doc._id}`;
                         />
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium font-satoshi text-gray-700">Status</label>
                       <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -1544,7 +1540,7 @@ Document ID: ${doc._id}`;
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium font-satoshi text-gray-700">Year</label>
                       <Select value={yearFilter} onValueChange={setYearFilter}>
@@ -1561,13 +1557,13 @@ Document ID: ${doc._id}`;
                   </div>
                 </motion.div>
               )}
-              
+
               {filteredPayslips.length > 0 ? (
                 <DataTable
                   columns={columns}
                   data={filteredPayslips.map((payslip: any) => ({
                     id: payslip._id,
-                    period: payslip.startDate && payslip.endDate 
+                    period: payslip.startDate && payslip.endDate
                       ? `${format(new Date(payslip.startDate), 'MMM d, yyyy')} - ${format(new Date(payslip.endDate), 'MMM d, yyyy')}`
                       : 'N/A',
                     payDate: payslip.paymentDate || payslip.endDate || Date.now(),
@@ -1575,11 +1571,11 @@ Document ID: ${doc._id}`;
                     grossPay: (payslip.grossPay || 0) / 100, // Convert cents to naira
                     netPay: (payslip.netPay || 0) / 100, // Convert cents to naira
                     hoursWorked: ytdHours?.totalHours ? Math.round(ytdHours.totalHours / (payslips?.items?.length || 1)) : 0,
-                                         overtimeHours: 0, // Overtime hours not available in YTD data
+                    overtimeHours: 0, // Overtime hours not available in YTD data
                     onDownload: () => handleDownloadPayslip(payslip._id),
                     onPrint: () => handlePrintPayslip(payslip._id),
                     onShare: () => handleSharePayslip(payslip._id)
-                  }))} 
+                  }))}
                 />
               ) : (
                 <div className="text-center py-16">
@@ -1591,12 +1587,12 @@ Document ID: ${doc._id}`;
                       {searchQuery || statusFilter !== 'all' ? 'No Matching Payslips' : 'No Payslips Available'}
                     </h3>
                     <p className="text-gray-600 font-satoshi mb-6 leading-relaxed">
-                      {searchQuery || statusFilter !== 'all' 
+                      {searchQuery || statusFilter !== 'all'
                         ? 'Try adjusting your filters or search terms to find what you\'re looking for.'
                         : 'Your payslips will appear here once they are processed by HR. New payslips are typically available within 2-3 business days after the pay period ends.'
                       }
                     </p>
-                    
+
                     {(searchQuery || statusFilter !== 'all') && (
                       <Button
                         variant="outline"
@@ -1609,7 +1605,7 @@ Document ID: ${doc._id}`;
                         Clear All Filters
                       </Button>
                     )}
-                    
+
                     {!searchQuery && statusFilter === 'all' && (
                       <div className="space-y-4">
                         <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200/60">
@@ -1618,13 +1614,13 @@ Document ID: ${doc._id}`;
                             <div className="text-left">
                               <h4 className="font-semibold font-asgard text-gray-900 mb-1">When to Expect Payslips</h4>
                               <p className="text-sm text-gray-700 font-satoshi leading-relaxed">
-                                Payslips are typically generated on the last Friday of each month and become available within 2-3 business days. 
+                                Payslips are typically generated on the last Friday of each month and become available within 2-3 business days.
                                 If you believe you should have a payslip, please contact HR for assistance.
                               </p>
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="p-4 bg-[#F23E2E]/10/80 rounded-xl border border-gray-200/60/60">
                           <div className="flex items-start gap-3">
                             <AlertCircle className="w-5 h-5 text-[#F23E2E] mt-0.5 shrink-0" />
@@ -1646,7 +1642,7 @@ Document ID: ${doc._id}`;
               )}
             </div>
           </TabsContent>
-          
+
           {/* Tax Documents Tab */}
           <TabsContent value="tax" className="space-y-6">
             <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
@@ -1655,7 +1651,7 @@ Document ID: ${doc._id}`;
                   <h3 className="text-xl font-bold font-asgard text-gray-900">Tax Documents</h3>
                   <p className="text-gray-600 font-satoshi">View and download your tax documents for {yearFilter}</p>
                 </div>
-                
+
                 <Select value={yearFilter} onValueChange={setYearFilter}>
                   <SelectTrigger className="w-32 bg-white/80 border-gray-200">
                     <SelectValue />
@@ -1667,7 +1663,7 @@ Document ID: ${doc._id}`;
                   </SelectContent>
                 </Select>
               </div>
-              
+
               {taxDocuments && taxDocuments.length > 0 ? (
                 <div className="space-y-4">
                   {taxDocuments.map((doc: any) => (
@@ -1714,7 +1710,7 @@ Document ID: ${doc._id}`;
                     <p className="text-gray-600 font-satoshi mb-6 leading-relaxed">
                       Tax documents for {yearFilter} are not yet available. These documents are typically generated after the tax year ends and become available in early {parseInt(yearFilter) + 1}.
                     </p>
-                    
+
                     <div className="space-y-4">
                       <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200/60">
                         <div className="flex items-start gap-3">
@@ -1727,7 +1723,7 @@ Document ID: ${doc._id}`;
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200/60">
                         <div className="flex items-start gap-3">
                           <AlertCircle className="w-5 h-5 text-gray-900 mt-0.5 shrink-0" />
@@ -1745,7 +1741,7 @@ Document ID: ${doc._id}`;
               )}
             </div>
           </TabsContent>
-          
+
           {/* History Tab */}
           <TabsContent value="history" className="space-y-6">
             <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
@@ -1753,7 +1749,7 @@ Document ID: ${doc._id}`;
               <p className="text-gray-600 font-satoshi mb-6">
                 View your complete payroll history and trends over time.
               </p>
-              
+
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="bg-gray-50/80 rounded-xl p-4">
                   <h4 className="text-lg font-semibold font-asgard text-gray-900 mb-3">Year-over-Year Comparison</h4>
@@ -1776,23 +1772,23 @@ Document ID: ${doc._id}`;
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-gray-50/80 rounded-xl p-4">
                   <h4 className="text-lg font-semibold font-asgard text-gray-900 mb-3">Monthly Breakdown</h4>
                   <div className="space-y-2">
                     {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month, index) => {
                       // Calculate estimated monthly earnings based on YTD data
-                      const monthlyEarnings = ytdSummary?.grossEarnings 
+                      const monthlyEarnings = ytdSummary?.grossEarnings
                         ? Math.round((ytdSummary.grossEarnings / 100) / 6) // Divide YTD by 6 months
                         : 0;
                       const progressWidth = ytdSummary?.grossEarnings ? Math.min(100, (monthlyEarnings / 8000000) * 100) : 0;
-                      
+
                       return (
                         <div key={month} className="flex justify-between items-center">
                           <span className="text-sm font-satoshi text-gray-600">{month}</span>
                           <div className="flex items-center gap-2">
                             <div className="w-16 bg-gray-200 rounded-full h-2">
-                              <div 
+                              <div
                                 className="bg-primary-600 h-2 rounded-full transition-all duration-500"
                                 style={{ width: `${progressWidth}%` }}
                               ></div>
@@ -1817,7 +1813,7 @@ Document ID: ${doc._id}`;
               <p className="text-gray-600 font-satoshi mb-6">
                 Detailed insights into your earnings, hours, and trends.
               </p>
-              
+
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {/* Earnings Distribution */}
                 <div className="bg-gray-50/80 rounded-xl p-4">
@@ -1857,7 +1853,7 @@ Document ID: ${doc._id}`;
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-satoshi text-gray-600">Overtime</span>
                       <span className="font-bold font-asgard text-gray-900">
-                                                 {'Calculating...'}
+                        {'Calculating...'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">

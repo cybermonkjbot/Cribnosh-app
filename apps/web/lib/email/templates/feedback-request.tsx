@@ -1,31 +1,27 @@
-import React from 'react';
-import { emailUrls } from '../utils/urls';
 import {
-  Html,
-  Head,
-  Preview,
-  Container,
-  Section,
-  Row,
   Column,
+  Head,
+  Html,
+  Preview,
+  Row,
+  Section
 } from '@react-email/components';
+import React from 'react';
 import {
-  EmailWrapper,
-  ProfessionalHeader,
-  ContentText,
-  EmailButton,
-  FooterSection,
-  FeatureCard,
+  Alert,
   CallToActionSection,
+  ContentText,
+  EmailWrapper,
+  FeatureCard,
+  FooterSection,
+  InteractiveButton,
+  ProfessionalHeader,
+  RatingStars,
   SocialLinks,
+  SocialProof,
   colors,
   spacing,
-  typography,
-  RatingStars,
-  SocialProof,
-  StatsHighlight,
-  Alert,
-  InteractiveButton,
+  typography
 } from './components';
 
 interface FeedbackRequestEmailProps {
@@ -94,7 +90,7 @@ export const FeedbackRequestEmail: React.FC<FeedbackRequestEmailProps> = ({
 }) => {
   const getIncentiveIcon = () => {
     switch (incentive?.type) {
-      case 'discount': return 'DollarSign';
+      case 'discount': return 'PoundSterling';
       case 'points': return 'Star';
       case 'free_item': return 'Gift';
       default: return 'Gift';
@@ -131,7 +127,7 @@ export const FeedbackRequestEmail: React.FC<FeedbackRequestEmailProps> = ({
           </ContentText>
 
           <ContentText>
-            We hope you enjoyed your recent order from <strong>{chef.name}</strong>! 
+            We hope you enjoyed your recent order from <strong>{chef.name}</strong>!
             Your feedback is incredibly valuable to us and helps us improve the experience for everyone.
           </ContentText>
 
@@ -164,7 +160,7 @@ export const FeedbackRequestEmail: React.FC<FeedbackRequestEmailProps> = ({
                   </ContentText>
                 </div>
               </div>
-              
+
               {items.map((item, index) => (
                 <div key={index} style={{
                   display: 'flex',
@@ -181,7 +177,7 @@ export const FeedbackRequestEmail: React.FC<FeedbackRequestEmailProps> = ({
                   </ContentText>
                 </div>
               ))}
-              
+
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -400,7 +396,7 @@ export const FeedbackRequestEmail: React.FC<FeedbackRequestEmailProps> = ({
         </Section>
 
         <SocialLinks links={socialLinks} />
-        
+
         <FooterSection
           unsubscribeUrl={unsubscribeUrl}
           address={companyAddress}

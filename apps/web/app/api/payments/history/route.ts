@@ -1,10 +1,10 @@
-import { getOrCreateCustomer, stripe } from '@/lib/stripe';
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
+import { withErrorHandling } from '@/lib/errors';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
+import { getOrCreateCustomer, stripe } from '@/lib/stripe';
 import { getErrorMessage } from '@/types/errors';
+import { NextRequest } from 'next/server';
 
 /**
  * @swagger
@@ -44,7 +44,7 @@ import { getErrorMessage } from '@/types/errors';
  *                           currency:
  *                             type: string
  *                             description: Currency code
- *                             example: "usd"
+ *                             example: "gbp"
  *                           status:
  *                             type: string
  *                             enum: [requires_payment_method, requires_confirmation, requires_action, processing, requires_capture, canceled, succeeded]
@@ -135,20 +135,20 @@ async function handleGET(request: NextRequest) {
   try {
     // Get authenticated user from session token
     const { userId, user } = await getAuthenticatedUser(request);
-    
+
     const email = user.email;
     if (!email) {
       return ResponseFactory.validationError('User email required.');
     }
     const customer = await getOrCreateCustomer({ userId, email });
-  if (!stripe) {
-    return ResponseFactory.serviceUnavailable('Stripe is not configured');
-  }
-  const paymentIntents = await stripe.paymentIntents.list({
-    customer: customer.id,
-    limit: 20,
-  });
-  return ResponseFactory.success({ payments: paymentIntents.data });
+    if (!stripe) {
+      return ResponseFactory.serviceUnavailable('Stripe is not configured');
+    }
+    const paymentIntents = await stripe.paymentIntents.list({
+      customer: customer.id,
+      limit: 20,
+    });
+    return ResponseFactory.success({ payments: paymentIntents.data });
   } catch (error: unknown) {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       return ResponseFactory.unauthorized(error.message);

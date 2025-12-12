@@ -8,9 +8,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ChevronLeft,
   Clock,
-  DollarSign,
   Edit3,
   MapPin,
+  PoundSterling,
   Share2,
   Trash2,
   User,
@@ -111,7 +111,7 @@ export default function CustomOrderDetailsScreen() {
 
     try {
       setIsGeneratingLink(true);
-      
+
       const convex = getConvexClient();
       const sessionToken = await getSessionToken();
 
@@ -129,10 +129,10 @@ export default function CustomOrderDetailsScreen() {
       }
 
       const shareLink = result.shareLink;
-      
+
       // Copy to clipboard and show success
       await Clipboard.setStringAsync(shareLink);
-      
+
       showToast({
         type: "success",
         title: "Share Link Generated",
@@ -374,7 +374,7 @@ export default function CustomOrderDetailsScreen() {
           <SectionHeader title="Pricing" />
           <View style={styles.card}>
             <View style={styles.infoRow}>
-              <DollarSign size={16} color="#E6FFE8" />
+              <PoundSterling size={16} color="#E6FFE8" />
               <Text style={styles.infoText}>
                 Estimated Price:{" "}
                 {customOrder.estimatedPrice

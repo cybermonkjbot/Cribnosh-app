@@ -1,9 +1,9 @@
+import { FamilyMember } from '@/types/customer';
+import { Heart, Package, PoundSterling } from 'lucide-react-native';
 import { useCallback, useMemo } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { BottomSheetBase } from '../BottomSheetBase';
-import { FamilyMember } from '@/types/customer';
-import { DollarSign, Heart, Package } from 'lucide-react-native';
 
 // Close icon SVG
 const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -104,7 +104,7 @@ export function FamilyMemberDetailSheet({
                 activeOpacity={0.7}
               >
                 <View style={styles.iconContainer}>
-                  <DollarSign size={24} color="#094327" />
+                  <PoundSterling size={24} color="#094327" />
                 </View>
                 <View style={styles.actionInfo}>
                   <Text style={styles.actionTitle}>Budget Settings</Text>

@@ -19,7 +19,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from 'convex/react';
 import { format } from 'date-fns';
-import { BarChart as BarChartIcon, CalendarIcon, Clock, DollarSign, Download, FileText, List, Users } from 'lucide-react';
+import { BarChart as BarChartIcon, CalendarIcon, Clock, Download, FileText, List, PoundSterling, Users } from 'lucide-react';
 import { useAdminUser } from '../../AdminUserProvider';
 
 interface TimeTrackingReport {
@@ -365,7 +365,7 @@ export default function PayrollReportsPage() {
                   <CardTitle className="text-sm font-medium">
                     Total Payroll
                   </CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <PoundSterling className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -420,7 +420,7 @@ export default function PayrollReportsPage() {
                   <CardTitle className="text-sm font-medium">
                     Average Pay
                   </CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <PoundSterling className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">

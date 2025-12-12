@@ -8,22 +8,22 @@ import { api } from '@/convex/_generated/api';
 import { formatCurrency } from '@/lib/utils/number-format';
 import { useQuery } from 'convex/react';
 import {
-    AlertCircle,
-    BarChart3,
-    CheckCircle,
-    CreditCard,
-    DollarSign,
-    PieChart,
-    TrendingDown,
-    TrendingUp,
-    XCircle,
+  AlertCircle,
+  BarChart3,
+  CheckCircle,
+  CreditCard,
+  PieChart,
+  PoundSterling,
+  TrendingDown,
+  TrendingUp,
+  XCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 
 export default function PaymentAnalyticsPage() {
   const { sessionToken, loading } = useAdminUser();
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
-  
+
   // Calculate date range
   const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
   const endDate: number = Date.now();
@@ -102,7 +102,7 @@ export default function PaymentAnalyticsPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 rounded-lg">
-                <DollarSign className="w-5 h-5 text-blue-600" />
+                <PoundSterling className="w-5 h-5 text-blue-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Revenue</p>
@@ -191,10 +191,9 @@ export default function PaymentAnalyticsPage() {
             <div className="border-t pt-2">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-900">Reputation Score</span>
-                <span className={`font-bold ${
-                  (paymentHealth?.reputationScore || 0) >= 90 ? 'text-green-600' :
-                  (paymentHealth?.reputationScore || 0) >= 75 ? 'text-yellow-600' : 'text-red-600'
-                }`}>
+                <span className={`font-bold ${(paymentHealth?.reputationScore || 0) >= 90 ? 'text-green-600' :
+                    (paymentHealth?.reputationScore || 0) >= 75 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
                   {paymentHealth?.reputationScore.toFixed(1) || 0}
                 </span>
               </div>
@@ -214,11 +213,10 @@ export default function PaymentAnalyticsPage() {
               {paymentMethods?.map((method: { method: string; count: number; revenue: number; successRate: number; percentage: number }, index: number) => (
                 <div key={method.method} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                      index === 0 ? 'bg-blue-500' :
-                      index === 1 ? 'bg-green-500' :
-                      index === 2 ? 'bg-purple-500' : 'bg-orange-500'
-                    }`} />
+                    <div className={`w-3 h-3 rounded-full ${index === 0 ? 'bg-blue-500' :
+                        index === 1 ? 'bg-green-500' :
+                          index === 2 ? 'bg-purple-500' : 'bg-orange-500'
+                      }`} />
                     <span className="text-sm text-gray-600 capitalize">{method.method}</span>
                   </div>
                   <div className="flex items-center gap-2">

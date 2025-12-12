@@ -8,10 +8,10 @@ import { useConvex } from 'convex/react';
 import {
   Activity,
   BarChart3,
-  DollarSign,
   Download,
   Filter,
   MapPin,
+  PoundSterling,
   ShoppingCart,
   TrendingUp,
   Users
@@ -47,7 +47,7 @@ export default function AdminAnalyticsPage() {
 
   const { data: analyticsData, isLoading } = useQuery({
     queryKey: ['admin-analytics', timeRange, sessionToken],
-    queryFn: () => convex.query(api.queries.analytics.getDashboardMetrics, { 
+    queryFn: () => convex.query(api.queries.analytics.getDashboardMetrics, {
       timeRange,
       sessionToken: sessionToken!,
     }) as Promise<AnalyticsData>,
@@ -113,7 +113,7 @@ export default function AdminAnalyticsPage() {
       value: formatCurrency(currentData.totalRevenue, { currency: 'GBP' }),
       change: `${currentData.revenueGrowth >= 0 ? '+' : ''}${currentData.revenueGrowth.toFixed(1)}%`,
       changeType: currentData.revenueGrowth >= 0 ? 'positive' as const : 'negative' as const,
-      icon: DollarSign,
+      icon: PoundSterling,
       color: 'text-gray-900',
       bgColor: 'bg-gray-100',
     },
@@ -128,76 +128,76 @@ export default function AdminAnalyticsPage() {
   }
 
   return (
-      <div className="container mx-auto py-6 space-y-[18px]">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="container mx-auto py-6 space-y-[18px]">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-              <h1 className="text-2xl sm:text-3xl font-bold font-asgard text-gray-900">Analytics Dashboard</h1>
-              <p className="text-gray-600 mt-1">Monitor your platform&apos;s performance and growth</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button variant="outline" size="lg">
-                <Download className="w-4 h-4" />
-                <span className="text-sm font-medium">Export</span>
-              </Button>
-              <Button variant="outline" size="lg">
-                <Filter className="w-4 h-4" />
-                <span className="text-sm font-medium">Filter</span>
-              </Button>
-            </div>
+          <h1 className="text-2xl sm:text-3xl font-bold font-asgard text-gray-900">Analytics Dashboard</h1>
+          <p className="text-gray-600 mt-1">Monitor your platform&apos;s performance and growth</p>
         </div>
-        
-          {/* Real-time Status */}
-          {realtimeMetrics && (
-            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-6">
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${realtimeMetrics.systemHealth.status === 'operational' ? 'bg-[#F23E2E]' : 'bg-gray-500'}`}></div>
-                    <span className="text-sm font-medium text-gray-700">
-                      System: {realtimeMetrics.systemHealth.status}
-                    </span>
-                  </div>
-                  <span className="text-sm text-gray-600">
-                    {realtimeMetrics.activeUsers} active users
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    {realtimeMetrics.pendingOrders} pending orders
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    {realtimeMetrics.liveStreams} live streams
-                  </span>
-                </div>
-                <span className="text-xs text-gray-700">
-                  Last updated: {new Date().toLocaleTimeString()}
+        <div className="flex items-center space-x-3">
+          <Button variant="outline" size="lg">
+            <Download className="w-4 h-4" />
+            <span className="text-sm font-medium">Export</span>
+          </Button>
+          <Button variant="outline" size="lg">
+            <Filter className="w-4 h-4" />
+            <span className="text-sm font-medium">Filter</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Real-time Status */}
+      {realtimeMetrics && (
+        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${realtimeMetrics.systemHealth.status === 'operational' ? 'bg-[#F23E2E]' : 'bg-gray-500'}`}></div>
+                <span className="text-sm font-medium text-gray-700">
+                  System: {realtimeMetrics.systemHealth.status}
                 </span>
               </div>
+              <span className="text-sm text-gray-600">
+                {realtimeMetrics.activeUsers} active users
+              </span>
+              <span className="text-sm text-gray-600">
+                {realtimeMetrics.pendingOrders} pending orders
+              </span>
+              <span className="text-sm text-gray-600">
+                {realtimeMetrics.liveStreams} live streams
+              </span>
             </div>
-          )}
+            <span className="text-xs text-gray-700">
+              Last updated: {new Date().toLocaleTimeString()}
+            </span>
+          </div>
+        </div>
+      )}
 
-          {/* Time Range Selector */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-gray-700">Time Range:</span>
-              <div className="flex bg-gray-100 rounded-lg p-1">
-                {[
-                  { key: '7d' as const, label: '7 Days' },
-                  { key: '30d' as const, label: '30 Days' },
-                  { key: '90d' as const, label: '90 Days' },
-                  { key: '1y' as const, label: '1 Year' }
-                ].map((period) => (
-                  <Button
-                    key={period.key}
-                    onClick={() => setTimeRange(period.key)}
-                    disabled={isLoading}
-                    variant={timeRange === period.key ? "default" : "ghost"}
-                    size="sm"
-                    className={timeRange === period.key ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
-                  >
-                    {period.label}
-                  </Button>
-                ))}
-              </div>
+      {/* Time Range Selector */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-medium text-gray-700">Time Range:</span>
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            {[
+              { key: '7d' as const, label: '7 Days' },
+              { key: '30d' as const, label: '30 Days' },
+              { key: '90d' as const, label: '90 Days' },
+              { key: '1y' as const, label: '1 Year' }
+            ].map((period) => (
+              <Button
+                key={period.key}
+                onClick={() => setTimeRange(period.key)}
+                disabled={isLoading}
+                variant={timeRange === period.key ? "default" : "ghost"}
+                size="sm"
+                className={timeRange === period.key ? 'bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white' : ''}
+              >
+                {period.label}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -212,9 +212,8 @@ export default function AdminAnalyticsPage() {
                   <p className="text-sm font-medium font-satoshi text-gray-600">{metric.title}</p>
                   <p className="text-2xl sm:text-3xl font-bold font-asgard text-gray-900 mt-1">{metric.value}</p>
                   <div className="flex items-center gap-1 mt-2">
-                    <span className={`text-sm font-medium font-satoshi ${
-                      metric.changeType === 'positive' ? 'text-[#F23E2E]' : 'text-gray-600'
-                    }`}>
+                    <span className={`text-sm font-medium font-satoshi ${metric.changeType === 'positive' ? 'text-[#F23E2E]' : 'text-gray-600'
+                      }`}>
                       {metric.change}
                     </span>
                   </div>
@@ -310,33 +309,33 @@ export default function AdminAnalyticsPage() {
         </div>
       </div>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { title: 'View Users', icon: Users, href: '/admin/users', color: 'text-gray-900', bgColor: 'bg-gray-100' },
-              { title: 'Manage Chefs', icon: Activity, href: '/admin/chefs', color: 'text-gray-900', bgColor: 'bg-gray-100' },
-              { title: 'Order History', icon: ShoppingCart, href: '/admin/orders', color: 'text-gray-900', bgColor: 'bg-gray-100' },
-              { title: 'System Settings', icon: BarChart3, href: '/admin/settings', color: 'text-gray-900', bgColor: 'bg-gray-100' },
-            ].map((action, index) => {
-              const Icon = action.icon;
-              return (
-                <Link key={action.title} href={action.href}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-      >
-                    <div className={`p-3 rounded-lg ${action.bgColor} w-fit mb-4`}>
-                      <Icon className={`w-6 h-6 ${action.color}`} />
-          </div>
-                    <h3 className="text-sm font-medium text-gray-900">{action.title}</h3>
-                  </motion.div>
-                </Link>
-              );
-            })}
-          </div>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { title: 'View Users', icon: Users, href: '/admin/users', color: 'text-gray-900', bgColor: 'bg-gray-100' },
+          { title: 'Manage Chefs', icon: Activity, href: '/admin/chefs', color: 'text-gray-900', bgColor: 'bg-gray-100' },
+          { title: 'Order History', icon: ShoppingCart, href: '/admin/orders', color: 'text-gray-900', bgColor: 'bg-gray-100' },
+          { title: 'System Settings', icon: BarChart3, href: '/admin/settings', color: 'text-gray-900', bgColor: 'bg-gray-100' },
+        ].map((action, index) => {
+          const Icon = action.icon;
+          return (
+            <Link key={action.title} href={action.href}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              >
+                <div className={`p-3 rounded-lg ${action.bgColor} w-fit mb-4`}>
+                  <Icon className={`w-6 h-6 ${action.color}`} />
+                </div>
+                <h3 className="text-sm font-medium text-gray-900">{action.title}</h3>
+              </motion.div>
+            </Link>
+          );
+        })}
       </div>
+    </div>
   );
 }
 

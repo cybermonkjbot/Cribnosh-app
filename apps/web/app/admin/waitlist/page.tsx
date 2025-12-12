@@ -11,27 +11,21 @@ import { useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import {
   BarChart2,
-  Building2,
   Calendar,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
-  Clock,
   Download,
   Edit,
   Eye,
-  Filter,
   List,
   Mail,
   MapPin,
   Phone,
-  Search,
   Table2,
   Trash2,
-  TrendingUp,
-  Users,
-  X
+  Users
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -42,9 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { PriorityBadge, StatusBadge } from "@/components/ui/glass-badges";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface WaitlistEntry {
@@ -514,64 +506,7 @@ export default function AdminWaitlistPage() {
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Entries</p>
-                <p className="text-2xl font-bold text-gray-900">{waitlistStats?.total || waitlistData.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="w-5 h-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-gray-900">{waitlistStats?.pending || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Converted</p>
-                <p className="text-2xl font-bold text-gray-900">{waitlistStats?.converted || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Conversion Rate</p>
-                <p className="text-2xl font-bold text-gray-900">{waitlistStats?.conversionRate || 0}%</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -588,141 +523,6 @@ export default function AdminWaitlistPage() {
 
         {/* List Tab */}
         <TabsContent value="list" className="space-y-6">
-          {/* Search and Filters */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-            <div className="flex flex-col lg:flex-row gap-4 mb-4">
-              {/* Search */}
-              <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="Search by name, email, or company..."
-                  value={searchTerm}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-10 bg-white border-gray-200 focus:border-gray-400 focus:ring-gray-400"
-                />
-              </div>
-
-              {/* Clear Filters Button */}
-              {hasActiveFilters && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearFilters}
-                  className="h-10 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                >
-                  <X className="w-4 h-4 mr-1" />
-                  Clear Filters
-                </Button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium font-satoshi text-gray-700 mb-2">Country</label>
-                <Select value={countryFilter} onValueChange={setCountryFilter}>
-                  <SelectTrigger className="min-h-[44px]">
-                    <SelectValue placeholder="All countries" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All countries</SelectItem>
-                    {countryOptions.map((country) => (
-                      <SelectItem key={country} value={country}>
-                        {countryCodeToFlagEmoji(countryNameToCode(country))} {country}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium font-satoshi text-gray-700 mb-2">Source</label>
-                <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                  <SelectTrigger className="min-h-[44px]">
-                    <SelectValue placeholder="All sources" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All sources</SelectItem>
-                    {sourceOptions.map((source) => (
-                      <SelectItem key={source} value={source}>{source}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium font-satoshi text-gray-700 mb-2">City</label>
-                <Select value={cityFilter} onValueChange={setCityFilter} disabled={countryFilter === "all" ? false : cityOptions.length === 0}>
-                  <SelectTrigger className="min-h-[44px]">
-                    <SelectValue placeholder={countryFilter === "all" ? "All cities" : cityOptions.length === 0 ? "No cities in selected country" : "All cities"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All cities</SelectItem>
-                    {cityOptions.map((city) => (
-                      <SelectItem key={city} value={city}>{city}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* List View Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Users className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium font-satoshi text-gray-600">Filtered Entries</p>
-                  <p className="text-2xl font-bold font-asgard text-gray-900">{filteredWaitlist.length}</p>
-                  {hasActiveFilters && waitlistData && (
-                    <p className="text-xs text-gray-500 font-satoshi mt-1">of {waitlistData.length} total</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <MapPin className="w-6 h-6 text-green-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium font-satoshi text-gray-600">Countries</p>
-                  <p className="text-2xl font-bold font-asgard text-gray-900">{countryOptions.length}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Building2 className="w-6 h-6 text-purple-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium font-satoshi text-gray-600">Companies</p>
-                  <p className="text-2xl font-bold font-asgard text-gray-900">
-                    {new Set(filteredWaitlist.filter(entry => entry.company).map(entry => entry.company)).size}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Phone className="w-6 h-6 text-orange-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium font-satoshi text-gray-600">With Phone</p>
-                  <p className="text-2xl font-bold font-asgard text-gray-900">
-                    {filteredWaitlist.filter(entry => entry.phone).length}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Waitlist Entries Table */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -879,89 +679,6 @@ export default function AdminWaitlistPage() {
 
         {/* Details Tab */}
         <TabsContent value="details" className="space-y-6">
-          {/* Filters */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-            <div className="flex flex-col lg:flex-row gap-4 mb-4">
-              <div className="relative flex-1 min-w-64">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-                <Input
-                  placeholder="Search waitlist entries..."
-                  value={searchTerm}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              {hasActiveFilters && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearFilters}
-                  className="h-10 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                >
-                  <X className="w-4 h-4 mr-1" />
-                  Clear Filters
-                </Button>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-4">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="converted">Converted</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Priority</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="vip">VIP</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={locationFilter} onValueChange={setLocationFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  {(uniqueLocations as string[]).map((location: string) => (
-                    <SelectItem key={location} value={location}>{location}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recent">Recent</SelectItem>
-                  <SelectItem value="oldest">Oldest</SelectItem>
-                  <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                  <SelectItem value="priority">Priority</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
           {/* Waitlist Entries Cards */}
           <div className="space-y-4">

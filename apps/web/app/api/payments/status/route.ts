@@ -1,14 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { stripe } from '@/lib/stripe';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
-import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { api } from '@/convex/_generated/api';
+import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { getErrorMessage } from '@/types/errors';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { withErrorHandling } from '@/lib/errors';
+import { stripe } from '@/lib/stripe';
 import { logger } from '@/lib/utils/logger';
+import { NextRequest, NextResponse } from 'next/server';
 /**
  * @swagger
  * /payments/status:
@@ -79,7 +78,7 @@ import { logger } from '@/lib/utils/logger';
  *                           example: 2599
  *                         currency:
  *                           type: string
- *                           example: "usd"
+ *                           example: "gbp"
  *                         status:
  *                           type: string
  *                           enum: [requires_payment_method, requires_confirmation, requires_action, processing, requires_capture, canceled, succeeded]
@@ -191,9 +190,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     if (paymentIntentId) {
       try {
         if (!stripe) {
-      return ResponseFactory.error('Stripe is not configured', 'CUSTOM_ERROR', 500);
-    }
-    paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+          return ResponseFactory.error('Stripe is not configured', 'CUSTOM_ERROR', 500);
+        }
+        paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
       } catch (stripeError: any) {
         logger.error('Failed to retrieve payment intent:', stripeError);
         return ResponseFactory.internalError('Failed to retrieve payment information.');

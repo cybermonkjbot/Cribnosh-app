@@ -1,20 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { motion } from 'motion/react';
-import { 
-  FileText, 
-  Download, 
-  Users, 
-  DollarSign, 
+import { useMutation, useQuery } from 'convex/react';
+import {
   Calendar,
+  Download,
+  Eye,
+  FileText,
   Filter,
   Plus,
-  Eye,
-  Send
+  PoundSterling,
+  Send,
+  Users
 } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useState } from 'react';
 
 interface PayrollSummary {
   totalEmployees: number;
@@ -101,7 +101,7 @@ export default function PayrollDashboard({
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-lg shadow-sm p-6"
@@ -172,7 +172,7 @@ export default function PayrollDashboard({
       </motion.div>
 
       {/* Summary Cards */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
@@ -193,7 +193,7 @@ export default function PayrollDashboard({
               <p className="text-sm font-medium text-gray-600">Total Gross Pay</p>
               <p className="text-2xl font-bold text-gray-900">£{payrollSummary?.totalGrossPay.toLocaleString()}</p>
             </div>
-            <DollarSign className="w-8 h-8 text-green-600" />
+            <PoundSterling className="w-8 h-8 text-green-600" />
           </div>
         </div>
 
@@ -219,7 +219,7 @@ export default function PayrollDashboard({
       </motion.div>
 
       {/* Tax Documents */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-lg shadow-sm overflow-hidden"
@@ -269,11 +269,10 @@ export default function PayrollDashboard({
                     {new Date(document.generated_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      document.status === 'generated' ? 'bg-yellow-100 text-yellow-800' :
-                      document.status === 'sent' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${document.status === 'generated' ? 'bg-yellow-100 text-yellow-800' :
+                        document.status === 'sent' ? 'bg-green-100 text-green-800' :
+                          'bg-gray-100 text-gray-800'
+                      }`}>
                       {document.status}
                     </span>
                   </td>
@@ -315,7 +314,7 @@ export default function PayrollDashboard({
       </motion.div>
 
       {/* Quick Actions */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-lg shadow-sm p-6"
@@ -323,21 +322,21 @@ export default function PayrollDashboard({
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
-            onClick={() => {/* Generate all P60s */}}
+            onClick={() => {/* Generate all P60s */ }}
             className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <FileText className="w-5 h-5" />
             Generate All P60s
           </button>
           <button
-            onClick={() => {/* Generate all P45s */}}
+            onClick={() => {/* Generate all P45s */ }}
             className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           >
             <FileText className="w-5 h-5" />
             Generate All P45s
           </button>
           <button
-            onClick={() => {/* Generate all P11Ds */}}
+            onClick={() => {/* Generate all P11Ds */ }}
             className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
           >
             <FileText className="w-5 h-5" />

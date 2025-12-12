@@ -1,8 +1,7 @@
 "use client";
 
-import React from "react";
+import { ChefHat, PoundSterling, ShieldCheck } from "lucide-react";
 import { motion } from "motion/react";
-import { ChefHat, ShieldCheck, DollarSign } from "lucide-react";
 
 const processSteps = [
   {
@@ -22,7 +21,7 @@ const processSteps = [
     shadowColor: "shadow-green-100/50",
   },
   {
-    icon: <DollarSign className="w-8 h-8" />,
+    icon: <PoundSterling className="w-8 h-8" />,
     title: "Start Earning",
     description: "Receive orders, cook delicious meals, and earn money sharing your authentic home cooking with your community.",
     color: "bg-gradient-to-br from-purple-50/80 via-purple-100 to-purple-200/90",
@@ -36,7 +35,7 @@ export function CookingProcess() {
     <section className="py-24 bg-white" id="process" data-section-theme="light">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-16">
-          <motion.h2 
+          <motion.h2
             className="text-4xl md:text-5xl font-display font-bold text-gray-900 mb-4"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -45,7 +44,7 @@ export function CookingProcess() {
           >
             How It Works
           </motion.h2>
-          <motion.p 
+          <motion.p
             className="text-lg text-gray-600 max-w-2xl mx-auto"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -66,11 +65,11 @@ export function CookingProcess() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
-              <div 
+              <div
                 className={`h-full rounded-2xl overflow-hidden border border-gray-100/50 shadow-md hover:shadow-xl transition-all duration-300 max-w-[85%] md:max-w-[85%] mx-auto backdrop-blur-sm ${step.shadowColor} hover:-translate-y-1`}
               >
                 <div className={`p-6 ${step.color} transition-colors duration-300`}>
-                  <div 
+                  <div
                     className={`w-16 h-16 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center mb-4 ${step.iconColor} shadow-inner transform transition-transform duration-300 group-hover:scale-105`}
                   >
                     {step.icon}
@@ -81,21 +80,21 @@ export function CookingProcess() {
                   <p className="text-gray-600 leading-relaxed">{step.description}</p>
                 </div>
               </div>
-              
+
               {index < processSteps.length - 1 && (
                 <>
                   {/* Mobile down arrow */}
                   <div className="block md:hidden absolute left-1/2 bottom-0 transform -translate-x-1/2 z-10">
-                    <svg 
-                      className="w-8 h-12 text-gray-300" 
-                      fill="none" 
-                      viewBox="0 0 24 48" 
+                    <svg
+                      className="w-8 h-12 text-gray-300"
+                      fill="none"
+                      viewBox="0 0 24 48"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth={2} 
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
                         d="M12 2v32M4 26l8 10 8-10"
                         stroke="currentColor"
                       />
@@ -103,16 +102,16 @@ export function CookingProcess() {
                   </div>
                   {/* Desktop right arrow */}
                   <div className="hidden md:block absolute top-1/2 -right-8 transform -translate-y-1/2 z-10">
-                    <svg 
-                      className="w-16 h-8 text-gray-300" 
-                      fill="none" 
-                      viewBox="0 0 48 24" 
+                    <svg
+                      className="w-16 h-8 text-gray-300"
+                      fill="none"
+                      viewBox="0 0 48 24"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth={2} 
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
                         d="M2 12h32M26 4l10 8-10 8"
                         stroke="currentColor"
                       />

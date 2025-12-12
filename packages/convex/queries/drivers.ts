@@ -5,21 +5,22 @@ export const getAll = query({
   args: {
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { limit, offset = 0 } = args;
-    
+
     // Fetch all drivers (will be optimized with index in schema if needed)
     const allDrivers = await ctx.db.query('drivers').collect();
-    
+
     // Sort by creation time desc (newest first)
     allDrivers.sort((a, b) => (b._creationTime || 0) - (a._creationTime || 0));
-    
+
     // Apply pagination
     if (limit !== undefined) {
       return allDrivers.slice(offset, offset + limit);
     }
-    
+
     // If no limit, return all from offset
     return allDrivers.slice(offset);
   }

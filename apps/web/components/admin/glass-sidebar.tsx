@@ -18,7 +18,6 @@ import {
   ClipboardList,
   Clock,
   Database,
-  DollarSign,
   Eye,
   FileSpreadsheet,
   FileText,
@@ -28,6 +27,7 @@ import {
   MapPin,
   MessageCircle,
   Plus,
+  PoundSterling,
   Radio,
   Settings,
   Shield,
@@ -57,7 +57,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
   const { user, loading, sessionToken } = useAdminUser();
   const [isClient, setIsClient] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -79,22 +79,22 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
   const waitlistCount = useQuery(api.queries.waitlist.getWaitlistCount, waitlistQueryArgs);
   const newChefApplications = useQuery(api.queries.careers.getNewChefApplicationsCount);
-  
+
   // Don't render if not in admin section or on login page
   if (!pathname.startsWith('/admin') || pathname === '/admin/login') {
     return null;
   }
 
-  const navItems = [  
-    { 
-      name: 'Dashboard', 
-      href: '/admin', 
+  const navItems = [
+    {
+      name: 'Dashboard',
+      href: '/admin',
       icon: Home,
       description: 'Overview and metrics'
     },
-    { 
-      name: 'Users', 
-      href: '/admin/users', 
+    {
+      name: 'Users',
+      href: '/admin/users',
       icon: Users,
       description: 'Manage user accounts',
       badge: formatNumber(totalUsers),
@@ -119,27 +119,27 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
         },
       ]
     },
-    { 
-      name: 'Chefs', 
-      href: '/admin/chefs', 
+    {
+      name: 'Chefs',
+      href: '/admin/chefs',
       icon: ChefHat,
       description: 'Chef management'
     },
-    { 
-      name: 'Orders', 
-      href: '/admin/orders', 
+    {
+      name: 'Orders',
+      href: '/admin/orders',
       icon: ShoppingCart,
       description: 'Order management'
     },
-    { 
-      name: 'Delivery', 
-      href: '/admin/delivery', 
+    {
+      name: 'Delivery',
+      href: '/admin/delivery',
       icon: Truck,
       description: 'Delivery management'
     },
-    { 
-      name: 'Careers', 
-      href: '/admin/careers', 
+    {
+      name: 'Careers',
+      href: '/admin/careers',
       icon: Briefcase,
       description: 'Job postings and applications',
       badge: newChefApplications && newChefApplications > 0 ? newChefApplications.toString() : undefined,
@@ -164,9 +164,9 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
         },
       ]
     },
-    { 
-      name: 'Waitlist', 
-      href: '/admin/waitlist', 
+    {
+      name: 'Waitlist',
+      href: '/admin/waitlist',
       icon: ClipboardList,
       description: 'Waitlist management',
       badge: formatNumber(waitlistCount),
@@ -191,9 +191,9 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
         },
       ]
     },
-    { 
-      name: 'Analytics', 
-      href: '/admin/analytics', 
+    {
+      name: 'Analytics',
+      href: '/admin/analytics',
       icon: BarChart2,
       description: 'Performance metrics',
       subItems: [
@@ -212,13 +212,13 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
         {
           name: 'Revenue Analytics',
           href: '/admin/analytics/revenue',
-          icon: DollarSign,
+          icon: PoundSterling,
           description: 'Financial metrics',
         },
         {
           name: 'Payment Analytics',
           href: '/admin/analytics/payments',
-          icon: DollarSign,
+          icon: PoundSterling,
           description: 'Payment metrics',
         },
         {
@@ -229,9 +229,9 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
         },
       ]
     },
-    { 
-      name: 'Content', 
-      href: '/admin/content', 
+    {
+      name: 'Content',
+      href: '/admin/content',
       icon: FileText,
       description: 'Content management',
       subItems: [
@@ -291,15 +291,15 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
         },
       ]
     },
-    { 
-      name: 'Cities', 
-      href: '/admin/cities', 
+    {
+      name: 'Cities',
+      href: '/admin/cities',
       icon: MapPin,
       description: 'City management'
     },
-    { 
-      name: 'Settings', 
-      href: '/admin/settings', 
+    {
+      name: 'Settings',
+      href: '/admin/settings',
       icon: Settings,
       description: 'System settings and configuration',
       subItems: [
@@ -335,9 +335,9 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
         },
       ]
     },
-    { 
-      name: 'Compliance', 
-      href: '/admin/compliance', 
+    {
+      name: 'Compliance',
+      href: '/admin/compliance',
       icon: Shield,
       description: 'Compliance management',
       subItems: [
@@ -361,9 +361,9 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
         },
       ]
     },
-    { 
-      name: 'Staff', 
-      href: '/admin/staff', 
+    {
+      name: 'Staff',
+      href: '/admin/staff',
       icon: Users,
       description: 'Staff management',
       subItems: [
@@ -405,9 +405,9 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
         },
       ]
     },
-    { 
-      name: 'Time Tracking', 
-      href: '/admin/time-tracking', 
+    {
+      name: 'Time Tracking',
+      href: '/admin/time-tracking',
       icon: Clock,
       description: 'Time tracking management',
       subItems: [
@@ -425,9 +425,9 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
         },
       ]
     },
-    { 
-      name: 'Payroll', 
-      href: '/admin/payroll', 
+    {
+      name: 'Payroll',
+      href: '/admin/payroll',
       icon: TrendingUp,
       description: 'Payroll management',
       subItems: [
@@ -492,7 +492,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
             <p className="text-xs text-gray-600 font-satoshi">Management Portal</p>
           </div>
         </div>
-        
+
         {isMobile && onClose && (
           <button
             onClick={onClose}
@@ -513,41 +513,36 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
             const isExpanded = isItemExpanded(item.name);
             const hasActiveSubItem = isSubItemActive(item);
             const Icon = item.icon;
-            
+
             return (
               <li key={item.name}>
                 <div className="flex items-center">
                   {hasSubItems ? (
                     <button
                       onClick={() => toggleExpanded(item.name)}
-                      className={`flex-1 group flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all duration-200 min-h-[44px] min-w-0 overflow-hidden ${
-                        isActive || hasActiveSubItem
+                      className={`flex-1 group flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all duration-200 min-h-[44px] min-w-0 overflow-hidden ${isActive || hasActiveSubItem
                           ? 'bg-[#F23E2E]/10 text-[#F23E2E] border border-[#F23E2E]/20'
                           : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                      }`}
+                        }`}
                     >
-                      <div className={`p-2 rounded-lg transition-colors ${
-                        isActive || hasActiveSubItem ? 'bg-[#F23E2E]/20' : 'bg-gray-100 group-hover:bg-gray-200'
-                      }`}>
-                        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${
-                          isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-600 group-hover:text-gray-700'
-                        }`} />
+                      <div className={`p-2 rounded-lg transition-colors ${isActive || hasActiveSubItem ? 'bg-[#F23E2E]/20' : 'bg-gray-100 group-hover:bg-gray-200'
+                        }`}>
+                        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-600 group-hover:text-gray-700'
+                          }`} />
                       </div>
-                      
+
                       <div className="flex-1 min-w-0 overflow-hidden">
                         <div className="flex items-center justify-between gap-2">
-                          <span className={`font-medium font-satoshi text-sm sm:text-base truncate flex-1 min-w-0 ${
-                            isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-700 group-hover:text-gray-900'
-                          }`} title={item.name}>
+                          <span className={`font-medium font-satoshi text-sm sm:text-base truncate flex-1 min-w-0 ${isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-700 group-hover:text-gray-900'
+                            }`} title={item.name}>
                             {item.name}
                           </span>
                           <div className="flex items-center gap-2 shrink-0">
                             {item.badge && (
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                item.badge === 'New' 
-                                  ? 'bg-green-100 text-green-800' 
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.badge === 'New'
+                                  ? 'bg-green-100 text-green-800'
                                   : 'bg-gray-100 text-gray-800'
-                              }`}>
+                                }`}>
                                 {item.badge}
                               </span>
                             )}
@@ -562,9 +557,8 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
                             )}
                           </div>
                         </div>
-                        <p className={`text-xs font-satoshi mt-1 truncate whitespace-nowrap overflow-hidden text-ellipsis ${
-                          isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-500 group-hover:text-gray-600'
-                        }`} title={item.description}>
+                        <p className={`text-xs font-satoshi mt-1 truncate whitespace-nowrap overflow-hidden text-ellipsis ${isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-500 group-hover:text-gray-600'
+                          }`} title={item.description}>
                           {item.description}
                         </p>
                       </div>
@@ -577,49 +571,43 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
                           onClose();
                         }
                       }}
-                      className={`flex-1 group flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all duration-200 min-h-[44px] min-w-0 overflow-hidden ${
-                        isActive || hasActiveSubItem
+                      className={`flex-1 group flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all duration-200 min-h-[44px] min-w-0 overflow-hidden ${isActive || hasActiveSubItem
                           ? 'bg-[#F23E2E]/10 text-[#F23E2E] border border-[#F23E2E]/20'
                           : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                      }`}
+                        }`}
                     >
-                      <div className={`p-2 rounded-lg transition-colors ${
-                        isActive || hasActiveSubItem ? 'bg-[#F23E2E]/20' : 'bg-gray-100 group-hover:bg-gray-200'
-                      }`}>
-                        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${
-                          isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-600 group-hover:text-gray-700'
-                        }`} />
+                      <div className={`p-2 rounded-lg transition-colors ${isActive || hasActiveSubItem ? 'bg-[#F23E2E]/20' : 'bg-gray-100 group-hover:bg-gray-200'
+                        }`}>
+                        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-600 group-hover:text-gray-700'
+                          }`} />
                       </div>
-                      
+
                       <div className="flex-1 min-w-0 overflow-hidden">
                         <div className="flex items-center justify-between gap-2">
-                          <span className={`font-medium font-satoshi text-sm sm:text-base truncate flex-1 min-w-0 ${
-                            isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-700 group-hover:text-gray-900'
-                          }`} title={item.name}>
+                          <span className={`font-medium font-satoshi text-sm sm:text-base truncate flex-1 min-w-0 ${isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-700 group-hover:text-gray-900'
+                            }`} title={item.name}>
                             {item.name}
                           </span>
                           <div className="flex items-center gap-2 shrink-0">
                             {item.badge && (
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                item.badge === 'New' 
-                                  ? 'bg-green-100 text-green-800' 
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.badge === 'New'
+                                  ? 'bg-green-100 text-green-800'
                                   : 'bg-gray-100 text-gray-800'
-                              }`}>
+                                }`}>
                                 {item.badge}
                               </span>
                             )}
                           </div>
                         </div>
-                        <p className={`text-xs font-satoshi mt-1 truncate whitespace-nowrap overflow-hidden text-ellipsis ${
-                          isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-500 group-hover:text-gray-600'
-                        }`} title={item.description}>
+                        <p className={`text-xs font-satoshi mt-1 truncate whitespace-nowrap overflow-hidden text-ellipsis ${isActive || hasActiveSubItem ? 'text-[#F23E2E]' : 'text-gray-500 group-hover:text-gray-600'
+                          }`} title={item.description}>
                           {item.description}
                         </p>
                       </div>
                     </Link>
                   )}
                 </div>
-                
+
                 {/* Sub-items with animation */}
                 <AnimatePresence>
                   {hasSubItems && isExpanded && (
@@ -633,7 +621,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
                       {item.subItems.map((subItem) => {
                         const SubIcon = subItem.icon;
                         const isSubActive = pathname === subItem.href;
-                        
+
                         return (
                           <motion.li
                             key={subItem.name}
@@ -648,24 +636,20 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
                                   onClose();
                                 }
                               }}
-                              className={`w-full group flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all duration-200 min-h-[40px] min-w-0 overflow-hidden ${
-                                isSubActive
+                              className={`w-full group flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all duration-200 min-h-[40px] min-w-0 overflow-hidden ${isSubActive
                                   ? 'bg-[#F23E2E]/10 text-[#F23E2E] border border-[#F23E2E]/20'
                                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-700'
-                              }`}
+                                }`}
                             >
-                              <SubIcon className={`w-4 h-4 ${
-                                isSubActive ? 'text-[#F23E2E]' : 'text-gray-500 group-hover:text-gray-600'
-                              }`} />
+                              <SubIcon className={`w-4 h-4 ${isSubActive ? 'text-[#F23E2E]' : 'text-gray-500 group-hover:text-gray-600'
+                                }`} />
                               <div className="flex-1 min-w-0 overflow-hidden">
-                                <span className={`font-medium font-satoshi text-sm truncate block whitespace-nowrap overflow-hidden text-ellipsis ${
-                                  isSubActive ? 'text-[#F23E2E]' : 'text-gray-600 group-hover:text-gray-700'
-                                }`} title={subItem.name}>
+                                <span className={`font-medium font-satoshi text-sm truncate block whitespace-nowrap overflow-hidden text-ellipsis ${isSubActive ? 'text-[#F23E2E]' : 'text-gray-600 group-hover:text-gray-700'
+                                  }`} title={subItem.name}>
                                   {subItem.name}
                                 </span>
-                                <p className={`text-xs font-satoshi mt-1 truncate whitespace-nowrap overflow-hidden text-ellipsis ${
-                                  isSubActive ? 'text-[#F23E2E]' : 'text-gray-500 group-hover:text-gray-600'
-                                }`} title={subItem.description}>
+                                <p className={`text-xs font-satoshi mt-1 truncate whitespace-nowrap overflow-hidden text-ellipsis ${isSubActive ? 'text-[#F23E2E]' : 'text-gray-500 group-hover:text-gray-600'
+                                  }`} title={subItem.description}>
                                   {subItem.description}
                                 </p>
                               </div>
@@ -688,8 +672,8 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
           {/* User Info */}
           {user && !loading && (
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="w-8 h-8 bg-[#F23E2E]/10 rounded-full flex items-center justify-center">
-          <span className="text-[#F23E2E] font-medium font-asgard text-sm">
+              <div className="w-8 h-8 bg-[#F23E2E]/10 rounded-full flex items-center justify-center">
+                <span className="text-[#F23E2E] font-medium font-asgard text-sm">
                   {user.name?.charAt(0)?.toUpperCase() || 'A'}
                 </span>
               </div>
@@ -703,7 +687,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
               </div>
             </div>
           )}
-          
+
           {/* Logout Button */}
           <button
             onClick={onLogout}

@@ -2,7 +2,6 @@
 
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { EmptyState } from '@/components/admin/empty-state';
-import { OrderFilterBar } from '@/components/admin/order-filter-bar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +17,6 @@ import {
   CheckCircle,
   ChefHat,
   Clock,
-  DollarSign,
   Download,
   Eye,
   Flag,
@@ -317,102 +315,22 @@ export default function OrderManagementPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                  <p className="text-2xl font-bold text-gray-900">{orderStats?.totalOrders || 0}</p>
-                </div>
-                <ShoppingCart className="w-8 h-8 text-[#F23E2E]" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+      {/* Essential Stats */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Active Orders</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {orderStats?.activeOrders || 0}
+              </p>
+            </div>
+            <Clock className="w-8 h-8 text-gray-900" />
+          </div>
+        </CardContent>
+      </Card>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Active Orders</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {orderStats?.activeOrders || 0}
-                  </p>
-                </div>
-                <Clock className="w-8 h-8 text-gray-900" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Today's Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    ${orderStats?.todayRevenue.toLocaleString() || '0'}
-                  </p>
-                </div>
-                <DollarSign className="w-8 h-8 text-gray-900" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Avg Order Value</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    ${orderStats?.averageOrderValue.toLocaleString() || '0'}
-                  </p>
-                </div>
-                <TrendingUp className="w-8 h-8 text-gray-900" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* Filters */}
-      <OrderFilterBar
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        paymentFilter={paymentFilter}
-        onPaymentFilterChange={setPaymentFilter}
-        timeFilter={timeFilter}
-        onTimeFilterChange={setTimeFilter}
-        sortBy={sortBy}
-        onSortByChange={setSortBy}
-        totalCount={orders?.length || 0}
-        filteredCount={filteredOrders.length}
-      />
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -457,73 +375,77 @@ export default function OrderManagementPage() {
               variant={hasActiveFilters ? "filtered" : "no-data"}
             />
           ) : (
-            <div className="space-y-4">
-              {filteredOrders.map((order, index) => {
-                const urgency = getUrgencyLevel(order);
-                return (
-                  <motion.div
-                    key={order._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <Card className={`hover:shadow-lg transition-shadow ${urgency === 'critical' || urgency === 'warning' ? 'border-[#F23E2E]/20 bg-[#F23E2E]/5' :
-                        urgency === 'attention' ? 'border-gray-200 bg-gray-50/30' : ''
-                      }`}>
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-[#F23E2E]/10 rounded-full flex items-center justify-center">
-                              <ShoppingCart className="w-6 h-6 text-[#F23E2E]" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-semibold">Order #{order._id.slice(-8)}</h3>
-                                {getUrgencyBadge(urgency)}
+            <div className="overflow-hidden flex flex-col h-[calc(100vh-400px)]">
+              <div className="overflow-auto flex-1">
+                <div className="space-y-4">
+                  {filteredOrders.map((order, index) => {
+                    const urgency = getUrgencyLevel(order);
+                    return (
+                      <motion.div
+                        key={order._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <Card className={`hover:shadow-lg transition-shadow ${urgency === 'critical' || urgency === 'warning' ? 'border-[#F23E2E]/20 bg-[#F23E2E]/5' :
+                          urgency === 'attention' ? 'border-gray-200 bg-gray-50/30' : ''
+                          }`}>
+                          <CardContent className="p-6">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-[#F23E2E]/10 rounded-full flex items-center justify-center">
+                                  <ShoppingCart className="w-6 h-6 text-[#F23E2E]" />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="font-semibold">Order #{order._id.slice(-8)}</h3>
+                                    {getUrgencyBadge(urgency)}
+                                  </div>
+                                  <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                                    <span>Customer: {order.customer?.name || 'Unknown'}</span>
+                                    <span>Chef: {order.chef?.bio?.substring(0, 30) || 'Unknown'}...</span>
+                                    <span>Amount: ${order.total_amount.toLocaleString()}</span>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                                <span>Customer: {order.customer?.name || 'Unknown'}</span>
-                                <span>Chef: {order.chef?.bio?.substring(0, 30) || 'Unknown'}...</span>
-                                <span>Amount: ${order.total_amount.toLocaleString()}</span>
+                              <div className="flex items-center gap-3">
+                                <div className="text-right">
+                                  <div className="flex items-center gap-2">
+                                    {getStatusBadge(order.order_status)}
+                                    {getPaymentBadge(order.payment_status)}
+                                  </div>
+                                  <p className="text-sm text-gray-500 mt-1">
+                                    {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
+                                  </p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedOrder(order);
+                                      setShowOrderDetails(true);
+                                    }}
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    View
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                  >
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <div className="flex items-center gap-2">
-                                {getStatusBadge(order.order_status)}
-                                {getPaymentBadge(order.payment_status)}
-                              </div>
-                              <p className="text-sm text-gray-500 mt-1">
-                                {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
-                              </p>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedOrder(order);
-                                  setShowOrderDetails(true);
-                                }}
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                View
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                              >
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              })}
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </TabsContent>
@@ -550,82 +472,86 @@ export default function OrderManagementPage() {
               variant={hasActiveFilters ? "filtered" : "no-data"}
             />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {filteredOrders
-                .filter(order => !['delivered', 'cancelled', 'refunded'].includes(order.order_status))
-                .map((order, index) => {
-                  const urgency = getUrgencyLevel(order);
-                  return (
-                    <motion.div
-                      key={order._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <Card className={`hover:shadow-lg transition-shadow ${urgency === 'critical' || urgency === 'warning' ? 'border-[#F23E2E]/20 bg-[#F23E2E]/5' :
-                          urgency === 'attention' ? 'border-gray-200 bg-gray-50/30' : ''
-                        }`}>
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg">Order #{order._id.slice(-8)}</CardTitle>
-                            {getUrgencyBadge(urgency)}
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <p className="font-medium text-gray-600">Customer</p>
-                              <p>{order.customer?.name || 'Unknown'}</p>
-                              <p className="text-gray-500">{order.customer?.phone || 'No phone'}</p>
-                            </div>
-                            <div>
-                              <p className="font-medium text-gray-600">Chef</p>
-                              <p>{order.chef?.bio?.substring(0, 30) || 'Unknown'}...</p>
-                              <div className="flex items-center gap-1">
-                                <Star className="w-3 h-3 text-gray-900" />
-                                <span className="text-sm">{order.chef?.rating?.toFixed(1) || 'N/A'}</span>
+            <div className="overflow-hidden flex flex-col h-[calc(100vh-400px)]">
+              <div className="overflow-auto flex-1">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {filteredOrders
+                    .filter(order => !['delivered', 'cancelled', 'refunded'].includes(order.order_status))
+                    .map((order, index) => {
+                      const urgency = getUrgencyLevel(order);
+                      return (
+                        <motion.div
+                          key={order._id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                        >
+                          <Card className={`hover:shadow-lg transition-shadow ${urgency === 'critical' || urgency === 'warning' ? 'border-[#F23E2E]/20 bg-[#F23E2E]/5' :
+                            urgency === 'attention' ? 'border-gray-200 bg-gray-50/30' : ''
+                            }`}>
+                            <CardHeader className="pb-3">
+                              <div className="flex items-center justify-between">
+                                <CardTitle className="text-lg">Order #{order._id.slice(-8)}</CardTitle>
+                                {getUrgencyBadge(urgency)}
                               </div>
-                            </div>
-                          </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <p className="font-medium text-gray-600">Customer</p>
+                                  <p>{order.customer?.name || 'Unknown'}</p>
+                                  <p className="text-gray-500">{order.customer?.phone || 'No phone'}</p>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-gray-600">Chef</p>
+                                  <p>{order.chef?.bio?.substring(0, 30) || 'Unknown'}...</p>
+                                  <div className="flex items-center gap-1">
+                                    <Star className="w-3 h-3 text-gray-900" />
+                                    <span className="text-sm">{order.chef?.rating?.toFixed(1) || 'N/A'}</span>
+                                  </div>
+                                </div>
+                              </div>
 
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              {getStatusBadge(order.order_status)}
-                              {getPaymentBadge(order.payment_status)}
-                            </div>
-                            <div className="text-right">
-                              <p className="font-bold text-lg">${order.total_amount.toLocaleString()}</p>
-                              <p className="text-sm text-gray-500">
-                                {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
-                              </p>
-                            </div>
-                          </div>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  {getStatusBadge(order.order_status)}
+                                  {getPaymentBadge(order.payment_status)}
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold text-lg">${order.total_amount.toLocaleString()}</p>
+                                  <p className="text-sm text-gray-500">
+                                    {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
+                                  </p>
+                                </div>
+                              </div>
 
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedOrder(order);
-                                setShowOrderDetails(true);
-                              }}
-                              className="flex-1"
-                            >
-                              <Eye className="w-4 h-4 mr-1" />
-                              View Details
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                            >
-                              <MessageSquare className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })}
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedOrder(order);
+                                    setShowOrderDetails(true);
+                                  }}
+                                  className="flex-1"
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  View Details
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  <MessageSquare className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      );
+                    })}
+                </div>
+              </div>
             </div>
           )}
         </TabsContent>
@@ -645,70 +571,74 @@ export default function OrderManagementPage() {
               variant="no-data"
             />
           ) : (
-            <div className="space-y-4">
-              {filteredOrders
-                .filter(order => {
-                  const urgency = getUrgencyLevel(order);
-                  return urgency === 'critical' || urgency === 'warning' ||
-                    order.payment_status === 'failed' ||
-                    order.order_status === 'cancelled';
-                })
-                .map((order, index) => {
-                  const urgency = getUrgencyLevel(order);
-                  return (
-                    <motion.div
-                      key={order._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <Card className={`border-[#F23E2E]/20 bg-[#F23E2E]/5`}>
-                        <CardContent className="p-6">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-[#F23E2E]/10 rounded-full flex items-center justify-center">
-                                <AlertTriangle className="w-6 h-6 text-[#F23E2E]" />
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <h3 className="font-semibold text-gray-900">Order #{order._id.slice(-8)}</h3>
-                                  {getUrgencyBadge(urgency)}
+            <div className="overflow-hidden flex flex-col h-[calc(100vh-400px)]">
+              <div className="overflow-auto flex-1">
+                <div className="space-y-4">
+                  {filteredOrders
+                    .filter(order => {
+                      const urgency = getUrgencyLevel(order);
+                      return urgency === 'critical' || urgency === 'warning' ||
+                        order.payment_status === 'failed' ||
+                        order.order_status === 'cancelled';
+                    })
+                    .map((order, index) => {
+                      const urgency = getUrgencyLevel(order);
+                      return (
+                        <motion.div
+                          key={order._id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                        >
+                          <Card className={`border-[#F23E2E]/20 bg-[#F23E2E]/5`}>
+                            <CardContent className="p-6">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-12 h-12 bg-[#F23E2E]/10 rounded-full flex items-center justify-center">
+                                    <AlertTriangle className="w-6 h-6 text-[#F23E2E]" />
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <h3 className="font-semibold text-gray-900">Order #{order._id.slice(-8)}</h3>
+                                      {getUrgencyBadge(urgency)}
+                                    </div>
+                                    <p className="text-sm text-gray-700 mt-1">
+                                      {urgency === 'critical' ? 'Order is significantly delayed' :
+                                        urgency === 'warning' ? 'Order is running late' :
+                                          order.payment_status === 'failed' ? 'Payment failed' :
+                                            'Order was cancelled'}
+                                    </p>
+                                  </div>
                                 </div>
-                                <p className="text-sm text-gray-700 mt-1">
-                                  {urgency === 'critical' ? 'Order is significantly delayed' :
-                                    urgency === 'warning' ? 'Order is running late' :
-                                      order.payment_status === 'failed' ? 'Payment failed' :
-                                        'Order was cancelled'}
-                                </p>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-[#F23E2E]/30 text-[#F23E2E] hover:bg-[#F23E2E]/10"
+                                  >
+                                    <Flag className="w-4 h-4 mr-1" />
+                                    Flag for Review
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedOrder(order);
+                                      setShowOrderDetails(true);
+                                    }}
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    Investigate
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-[#F23E2E]/30 text-[#F23E2E] hover:bg-[#F23E2E]/10"
-                              >
-                                <Flag className="w-4 h-4 mr-1" />
-                                Flag for Review
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedOrder(order);
-                                  setShowOrderDetails(true);
-                                }}
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                Investigate
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })}
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      );
+                    })}
+                </div>
+              </div>
             </div>
           )}
         </TabsContent>

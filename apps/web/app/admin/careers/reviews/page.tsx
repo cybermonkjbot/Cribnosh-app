@@ -1,5 +1,6 @@
 "use client";
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { EmptyState } from '@/components/admin/empty-state';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +49,7 @@ interface JobApplication {
 }
 
 export default function JobApplicationsPage() {
+  const { user, sessionToken } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [jobFilter, setJobFilter] = useState<string>('all');
@@ -56,8 +58,9 @@ export default function JobApplicationsPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Fetch job applications
-  const applications = useQuery(api.queries.careers.getJobApplications);
-  const applicationStats = useQuery(api.queries.careers.getApplicationStats);
+  const queryArgs = user && sessionToken ? { sessionToken } : "skip";
+  const applications = useQuery(api.queries.careers.getJobApplications, queryArgs);
+  const applicationStats = useQuery(api.queries.careers.getApplicationStats, queryArgs);
 
   // Mutations
   const updateApplicationStatus = useMutation(api.mutations.careers.updateApplicationStatus);
@@ -88,15 +91,15 @@ export default function JobApplicationsPage() {
   };
 
   const filteredApplications = applications?.filter((app: any) => {
-    const matchesSearch = 
+    const matchesSearch =
       app.applicantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.applicantEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.experience.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
     const matchesJob = jobFilter === 'all' || app.jobId === jobFilter;
-    
+
     return matchesSearch && matchesStatus && matchesJob;
   }).sort((a: any, b: any) => {
     switch (sortBy) {
@@ -178,7 +181,7 @@ export default function JobApplicationsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -194,7 +197,7 @@ export default function JobApplicationsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -210,7 +213,7 @@ export default function JobApplicationsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -251,7 +254,7 @@ export default function JobApplicationsPage() {
             className="pl-10"
           />
         </div>
-        
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-40">
             <Filter className="w-4 h-4 mr-2" />
@@ -266,7 +269,7 @@ export default function JobApplicationsPage() {
             <SelectItem value="rejected">Rejected</SelectItem>
           </SelectContent>
         </Select>
-        
+
         <Select value={jobFilter} onValueChange={setJobFilter}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Job Position" />
@@ -278,7 +281,7 @@ export default function JobApplicationsPage() {
             ))}
           </SelectContent>
         </Select>
-        
+
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Sort by" />
@@ -294,7 +297,7 @@ export default function JobApplicationsPage() {
 
       {/* Applications List */}
       <div className="space-y-4">
-                  {filteredApplications.map((application: any) => (
+        {filteredApplications.map((application: any) => (
           <Card key={application._id} className="relative">
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -317,7 +320,7 @@ export default function JobApplicationsPage() {
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-4">
               {/* Contact Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -389,9 +392,8 @@ export default function JobApplicationsPage() {
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`w-4 h-4 ${
-                          i < application.rating! ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                        }`}
+                        className={`w-4 h-4 ${i < application.rating! ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                          }`}
                       />
                     ))}
                     <span className="text-sm text-gray-600">({application.rating}/5)</span>
@@ -404,7 +406,7 @@ export default function JobApplicationsPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => {/* View full application */}}
+                  onClick={() => {/* View full application */ }}
                 >
                   <Eye className="w-4 h-4 mr-1" />
                   View Details
@@ -462,8 +464,8 @@ export default function JobApplicationsPage() {
         <EmptyState
           icon={FileText}
           title={searchTerm || statusFilter !== 'all' || jobFilter !== 'all' ? "No applications found" : "No applications yet"}
-          description={searchTerm || statusFilter !== 'all' || jobFilter !== 'all' 
-            ? "Try adjusting your search or filter criteria" 
+          description={searchTerm || statusFilter !== 'all' || jobFilter !== 'all'
+            ? "Try adjusting your search or filter criteria"
             : "Applications will appear here once candidates apply to job postings"}
           action={searchTerm || statusFilter !== 'all' || jobFilter !== 'all' ? {
             label: "Clear filters",

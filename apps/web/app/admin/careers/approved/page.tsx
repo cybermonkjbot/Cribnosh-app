@@ -1,5 +1,6 @@
 "use client";
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { EmptyState } from '@/components/admin/empty-state';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -14,12 +15,12 @@ import {
   Briefcase,
   Calendar,
   Clock,
-  DollarSign,
   Edit,
   Eye,
   Filter,
   MapPin,
   Plus,
+  PoundSterling,
   Search,
   Trash2,
   Users
@@ -45,6 +46,7 @@ interface JobPosting {
 }
 
 export default function ActiveJobsPage() {
+  const { user, sessionToken } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('published');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
@@ -54,8 +56,9 @@ export default function ActiveJobsPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Fetch job postings
-  const jobPostings = useQuery(api.queries.careers.getJobPostings);
-  const jobStats = useQuery(api.queries.careers.getJobStats);
+  const queryArgs = user && sessionToken ? { sessionToken } : "skip";
+  const jobPostings = useQuery(api.queries.careers.getJobPostings, queryArgs);
+  const jobStats = useQuery(api.queries.careers.getJobStats, queryArgs);
 
   // Mutations
   const updateJobStatus = useMutation(api.mutations.careers.updateJobStatus);
@@ -84,16 +87,16 @@ export default function ActiveJobsPage() {
   };
 
   const filteredJobs = jobPostings?.filter((job: any) => {
-    const matchesSearch = 
+    const matchesSearch =
       job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
     const matchesDepartment = departmentFilter === 'all' || job.department === departmentFilter;
     const matchesType = typeFilter === 'all' || job.type === typeFilter;
-    
+
     return matchesSearch && matchesStatus && matchesDepartment && matchesType;
   }).sort((a: any, b: any) => {
     switch (sortBy) {
@@ -171,7 +174,7 @@ export default function ActiveJobsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -187,7 +190,7 @@ export default function ActiveJobsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -203,7 +206,7 @@ export default function ActiveJobsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -244,7 +247,7 @@ export default function ActiveJobsPage() {
             className="pl-10"
           />
         </div>
-        
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-40">
             <Filter className="w-4 h-4 mr-2" />
@@ -258,7 +261,7 @@ export default function ActiveJobsPage() {
             <SelectItem value="archived">Archived</SelectItem>
           </SelectContent>
         </Select>
-        
+
         <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Department" />
@@ -283,7 +286,7 @@ export default function ActiveJobsPage() {
             <SelectItem value="internship">Internship</SelectItem>
           </SelectContent>
         </Select>
-        
+
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Sort by" />
@@ -299,7 +302,7 @@ export default function ActiveJobsPage() {
 
       {/* Jobs Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {filteredJobs.map((job: any) => (
+        {filteredJobs.map((job: any) => (
           <Card key={job._id} className="relative">
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -322,7 +325,7 @@ export default function ActiveJobsPage() {
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-4">
               {/* Department */}
               <div className="flex items-center gap-2">
@@ -335,7 +338,7 @@ export default function ActiveJobsPage() {
               {/* Salary */}
               {job.salaryMin && job.salaryMax && (
                 <div className="flex items-center gap-2 text-sm">
-                  <DollarSign className="w-4 h-4 text-green-600" />
+                  <PoundSterling className="w-4 h-4 text-green-600" />
                   <span className="font-medium">
                     ${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()}
                   </span>
@@ -386,7 +389,7 @@ export default function ActiveJobsPage() {
                   size="sm"
                   variant="outline"
                   className="flex-1"
-                  onClick={() => {/* View job details */}}
+                  onClick={() => {/* View job details */ }}
                 >
                   <Eye className="w-4 h-4 mr-1" />
                   View
@@ -394,7 +397,7 @@ export default function ActiveJobsPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => {/* Edit job */}}
+                  onClick={() => {/* Edit job */ }}
                 >
                   <Edit className="w-4 h-4" />
                 </Button>
@@ -416,8 +419,8 @@ export default function ActiveJobsPage() {
         <EmptyState
           icon={Briefcase}
           title={searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' ? "No job postings found" : "No active jobs yet"}
-          description={searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' 
-            ? "Try adjusting your search or filter criteria" 
+          description={searchTerm || statusFilter !== 'all' || departmentFilter !== 'all'
+            ? "Try adjusting your search or filter criteria"
             : "No active job postings have been published yet"}
           action={searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' ? {
             label: "Clear filters",

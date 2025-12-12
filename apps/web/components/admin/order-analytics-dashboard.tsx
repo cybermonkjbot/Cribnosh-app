@@ -3,7 +3,7 @@
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { api } from '@/convex/_generated/api';
 import { useQuery } from 'convex/react';
-import { DollarSign, Download, Filter, ShoppingCart, TrendingUp, Users } from 'lucide-react';
+import { Download, Filter, PoundSterling, ShoppingCart, TrendingUp, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -240,7 +240,7 @@ export default function OrderAnalyticsDashboard({
               <p className="text-sm font-medium text-gray-600">Total Revenue</p>
               <p className="text-2xl font-bold text-gray-900">£{summary.totalRevenue.toLocaleString()}</p>
             </div>
-            <DollarSign className="w-8 h-8 text-green-600" />
+            <PoundSterling className="w-8 h-8 text-green-600" />
           </div>
         </div>
 

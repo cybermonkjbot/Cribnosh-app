@@ -1,7 +1,7 @@
 export type TestPaymentIntent = {
   id: string
   amount: number
-  currency: 'gbp' | 'usd' | 'eur'
+  currency: 'gbp'
   status: 'requires_payment_method' | 'requires_confirmation' | 'processing' | 'succeeded' | 'canceled'
   client_secret: string
 }

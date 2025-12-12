@@ -1,24 +1,21 @@
 "use client";
 
-import { motion } from "motion/react";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  ChefHat, 
-  MapPin, 
-  Star,
-  Calendar,
-  DollarSign,
-  BarChart3,
-  PieChart,
-  Activity
-} from "lucide-react";
-import { useState } from "react";
 import { useAdminUser } from "@/app/admin/AdminUserProvider";
-import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { formatCurrency } from "@/lib/utils/number-format";
+import { useQuery } from "convex/react";
+import {
+  Activity,
+  ChefHat,
+  MapPin,
+  PoundSterling,
+  Star,
+  TrendingDown,
+  TrendingUp,
+  Users
+} from "lucide-react";
+import { motion } from "motion/react";
+import { useState } from "react";
 
 interface AnalyticsData {
   totalUsers: number;
@@ -48,7 +45,7 @@ export function AnalyticsOverview() {
   ];
 
   // Real analytics data using Convex useQuery
-  const analyticsData = useQuery(api.queries.analytics.getDashboardMetrics, sessionToken ? { 
+  const analyticsData = useQuery(api.queries.analytics.getDashboardMetrics, sessionToken ? {
     timeRange: selectedPeriod,
     sessionToken,
   } : 'skip');
@@ -109,7 +106,7 @@ export function AnalyticsOverview() {
       value: formatCurrency(currentData.totalRevenue, { currency: 'GBP' }),
       change: `${currentData.revenueGrowth >= 0 ? '+' : ''}${currentData.revenueGrowth.toFixed(1)}%`,
       trend: currentData.revenueGrowth >= 0 ? 'up' as const : 'down' as const,
-      icon: DollarSign,
+      icon: PoundSterling,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-50'
     },
@@ -154,7 +151,7 @@ export function AnalyticsOverview() {
       type: 'positive' as const,
       title: 'Revenue Performance',
       description: `Revenue ${currentData.revenueGrowth >= 0 ? 'increased' : 'decreased'} by ${Math.abs(currentData.revenueGrowth).toFixed(1)}% this period`,
-      icon: DollarSign,
+      icon: PoundSterling,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-50'
     }
@@ -228,7 +225,7 @@ export function AnalyticsOverview() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              whileHover={{ 
+              whileHover={{
                 scale: 1.02,
                 boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)"
               }}

@@ -1,31 +1,28 @@
-import React from 'react';
-import { emailUrls } from '../utils/urls';
 import {
-  Html,
-  Head,
-  Preview,
-  Container,
-  Section,
-  Row,
   Column,
+  Head,
+  Html,
+  Preview,
+  Row,
+  Section
 } from '@react-email/components';
+import React from 'react';
 import {
-  EmailWrapper,
-  ProfessionalHeader,
-  ContentText,
-  EmailButton,
-  FooterSection,
-  FeatureCard,
+  Alert,
   CallToActionSection,
+  ContentText,
+  EmailWrapper,
+  FeatureCard,
+  FooterSection,
+  InteractiveButton,
+  ProfessionalHeader,
+  ProgressBar,
   SocialLinks,
+  SocialProof,
+  StatsHighlight,
   colors,
   spacing,
-  typography,
-  ProgressBar,
-  StatsHighlight,
-  Alert,
-  InteractiveButton,
-  SocialProof,
+  typography
 } from './components';
 
 interface LoyaltyRewardsEmailProps {
@@ -144,7 +141,7 @@ export const LoyaltyRewardsEmail: React.FC<LoyaltyRewardsEmailProps> = ({
           </ContentText>
 
           <ContentText>
-            Welcome to your personalized rewards dashboard! Here's everything you need to know about your 
+            Welcome to your personalized rewards dashboard! Here's everything you need to know about your
             <strong> {tierInfo.name} membership</strong> and how to maximize your benefits.
           </ContentText>
 
@@ -174,7 +171,7 @@ export const LoyaltyRewardsEmail: React.FC<LoyaltyRewardsEmailProps> = ({
 
           {/* Recent Earnings */}
           <FeatureCard
-            icon="DollarSign"
+            icon="PoundSterling"
             title="Recent Point Earnings"
             description="Your latest point activities"
           >
@@ -214,7 +211,7 @@ export const LoyaltyRewardsEmail: React.FC<LoyaltyRewardsEmailProps> = ({
           <ContentText style={{ ...typography.heading.h3, textAlign: 'center', margin: `${spacing.xl} 0 ${spacing.lg} 0` }}>
             Available Rewards
           </ContentText>
-          
+
           <Row style={{ marginBottom: spacing.lg }}>
             {availableRewards.slice(0, 2).map((reward, index) => (
               <Column key={index} style={{ width: '50%', padding: '0 8px' }}>
@@ -276,10 +273,10 @@ export const LoyaltyRewardsEmail: React.FC<LoyaltyRewardsEmailProps> = ({
                     {offer.code && (
                       <div style={{ marginTop: spacing.sm, textAlign: 'center' }}>
                         <ContentText style={{ ...typography.body.small, fontWeight: '600', margin: '0' }}>
-                          Code: <span style={{ 
-                            backgroundColor: tierInfo.color, 
-                            color: colors.background, 
-                            padding: '2px 8px', 
+                          Code: <span style={{
+                            backgroundColor: tierInfo.color,
+                            color: colors.background,
+                            padding: '2px 8px',
                             borderRadius: '4px',
                             fontFamily: 'monospace'
                           }}>
@@ -325,18 +322,18 @@ export const LoyaltyRewardsEmail: React.FC<LoyaltyRewardsEmailProps> = ({
                     {benefit.available ? '✓' : '○'}
                   </div>
                   <div>
-                    <ContentText style={{ 
-                      ...typography.body.small, 
-                      fontWeight: '600', 
+                    <ContentText style={{
+                      ...typography.body.small,
+                      fontWeight: '600',
                       margin: '0 0 2px 0',
                       color: benefit.available ? colors.text : colors.textMuted
                     }}>
                       {benefit.benefit}
                     </ContentText>
-                    <ContentText style={{ 
-                      ...typography.body.xs, 
-                      color: colors.textSecondary, 
-                      margin: '0' 
+                    <ContentText style={{
+                      ...typography.body.xs,
+                      color: colors.textSecondary,
+                      margin: '0'
                     }}>
                       {benefit.description}
                     </ContentText>
@@ -432,7 +429,7 @@ export const LoyaltyRewardsEmail: React.FC<LoyaltyRewardsEmailProps> = ({
         </Section>
 
         <SocialLinks links={socialLinks} />
-        
+
         <FooterSection
           unsubscribeUrl={unsubscribeUrl}
           address={companyAddress}

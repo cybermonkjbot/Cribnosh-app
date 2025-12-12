@@ -15,12 +15,12 @@ import { useMutation, useQuery } from 'convex/react';
 import {
   BarChart2,
   Clock,
-  DollarSign,
   Download,
   Eye,
   FileSpreadsheet,
   Filter,
   Plus,
+  PoundSterling,
   Trash2,
   Users
 } from 'lucide-react';
@@ -112,16 +112,16 @@ export default function AnalyticsReportsPage() {
 
   const handleDownloadReport = async (reportId: string) => {
     try {
-      const result = await downloadReport({ 
+      const result = await downloadReport({
         reportId: reportId as unknown as Id<"reports">
       });
-      
+
       if (result?.downloadUrl) {
         // Trigger download
         const link = document.createElement('a');
         link.href = result.downloadUrl;
         const report = reports?.find((r: Report) => r._id === reportId);
-        const fileName = report?.name 
+        const fileName = report?.name
           ? `${report.name.replace(/[^a-z0-9]/gi, '_')}.${report.parameters?.format || 'pdf'}`
           : `report-${reportId}.pdf`;
         link.download = fileName;
@@ -141,7 +141,7 @@ export default function AnalyticsReportsPage() {
   const handleDeleteReport = async (reportId: string) => {
     if (confirm('Are you sure you want to delete this report?')) {
       try {
-        await deleteReport({ 
+        await deleteReport({
           reportId: reportId as unknown as Id<"reports">
         });
         setSuccess('Report deleted successfully');
@@ -153,12 +153,12 @@ export default function AnalyticsReportsPage() {
   };
 
   const filteredReports = reports?.filter((report: Report) => {
-    const matchesSearch = 
+    const matchesSearch =
       report.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesType = typeFilter === 'all' || report.type === typeFilter;
     const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
-    
+
     return matchesSearch && matchesType && matchesStatus;
   }) || [];
 
@@ -180,7 +180,7 @@ export default function AnalyticsReportsPage() {
       case 'user':
         return <Users className="w-4 h-4" />;
       case 'revenue':
-        return <DollarSign className="w-4 h-4" />;
+        return <PoundSterling className="w-4 h-4" />;
       case 'orders':
         return <BarChart2 className="w-4 h-4" />;
       case 'custom':
@@ -233,7 +233,7 @@ export default function AnalyticsReportsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -249,7 +249,7 @@ export default function AnalyticsReportsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -265,7 +265,7 @@ export default function AnalyticsReportsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -325,8 +325,8 @@ export default function AnalyticsReportsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-700">Date Range</label>
-                    <Select 
-                      value={reportParameters.dateRange || ''} 
+                    <Select
+                      value={reportParameters.dateRange || ''}
                       onValueChange={(value) => setReportParameters(prev => ({ ...prev, dateRange: value }))}
                     >
                       <SelectTrigger>
@@ -341,14 +341,14 @@ export default function AnalyticsReportsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <label className="text-sm font-medium text-gray-700">Format</label>
-                    <Select 
-                      value={reportParameters.format || 'csv'} 
+                    <Select
+                      value={reportParameters.format || 'csv'}
                       onValueChange={(value: 'csv' | 'pdf' | 'excel') => {
-                        setReportParameters(prev => ({ 
-                          ...prev, 
+                        setReportParameters(prev => ({
+                          ...prev,
                           format: value as 'csv' | 'pdf' | 'excel'
                         }));
                       }}
@@ -397,7 +397,7 @@ export default function AnalyticsReportsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        
+
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-32">
             <Filter className="w-4 h-4 mr-2" />
@@ -411,7 +411,7 @@ export default function AnalyticsReportsPage() {
             <SelectItem value="custom">Custom</SelectItem>
           </SelectContent>
         </Select>
-        
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="Status" />
@@ -473,7 +473,7 @@ export default function AnalyticsReportsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {/* View report details */}}
+                    onClick={() => {/* View report details */ }}
                   >
                     <Eye className="w-4 h-4 mr-1" />
                     View
@@ -508,8 +508,8 @@ export default function AnalyticsReportsPage() {
         <EmptyState
           icon={FileSpreadsheet}
           title={searchTerm || typeFilter !== 'all' || statusFilter !== 'all' ? "No reports found" : "No reports yet"}
-          description={searchTerm || typeFilter !== 'all' || statusFilter !== 'all' 
-            ? "Try adjusting your search or filter criteria" 
+          description={searchTerm || typeFilter !== 'all' || statusFilter !== 'all'
+            ? "Try adjusting your search or filter criteria"
             : "Generate your first report to get started"}
           action={searchTerm || typeFilter !== 'all' || statusFilter !== 'all' ? {
             label: "Clear filters",

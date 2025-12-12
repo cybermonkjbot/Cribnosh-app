@@ -20,13 +20,13 @@ import {
   Calendar,
   CheckCircle,
   Clock,
-  DollarSign,
   Download,
   Edit,
   Eye,
   FileText,
   PieChart,
   Plus,
+  PoundSterling,
   Settings,
   TrendingUp,
   Users
@@ -302,7 +302,7 @@ export default function PayrollAdminPage() {
           <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-purple-100 rounded-xl">
-                <DollarSign className="w-6 h-6 text-purple-600" />
+                <PoundSterling className="w-6 h-6 text-purple-600" />
               </div>
               <BarChart3 className="w-5 h-5 text-purple-500" />
             </div>

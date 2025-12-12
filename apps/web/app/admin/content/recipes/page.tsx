@@ -1,5 +1,6 @@
 "use client";
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { EmptyState } from '@/components/admin/empty-state';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -62,6 +63,7 @@ interface Recipe {
 }
 
 export default function RecipeManagementPage() {
+  const { user, sessionToken } = useAdminUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [cuisineFilter, setCuisineFilter] = useState<string>('all');
@@ -92,9 +94,10 @@ export default function RecipeManagementPage() {
   });
 
   // Fetch data
-  const recipes = useQuery(api.queries.content.getRecipes);
-  const cuisines = useQuery(api.queries.content.getCuisines);
-  const categories = useQuery(api.queries.content.getRecipeCategories);
+  const queryArgs = user && sessionToken ? { sessionToken } : "skip";
+  const recipes = useQuery(api.queries.content.getRecipes, queryArgs);
+  const cuisines = useQuery(api.queries.content.getCuisines, queryArgs);
+  const categories = useQuery(api.queries.content.getRecipeCategories, queryArgs);
 
   // Mutations
   const createRecipe = useMutation(api.mutations.content.createRecipe);
@@ -114,7 +117,7 @@ export default function RecipeManagementPage() {
         ingredients: newRecipe.ingredients.filter(ing => ing.name.trim()),
         instructions: newRecipe.instructions.filter(inst => inst.trim())
       });
-      
+
       setNewRecipe({
         title: '',
         description: '',
@@ -189,7 +192,7 @@ export default function RecipeManagementPage() {
   const updateIngredient = (index: number, field: string, value: string) => {
     setNewRecipe(prev => ({
       ...prev,
-      ingredients: prev.ingredients.map((ing, i) => 
+      ingredients: prev.ingredients.map((ing, i) =>
         i === index ? { ...ing, [field]: value } : ing
       )
     }));
@@ -212,22 +215,22 @@ export default function RecipeManagementPage() {
   const updateInstruction = (index: number, value: string) => {
     setNewRecipe(prev => ({
       ...prev,
-      instructions: prev.instructions.map((inst, i) => 
+      instructions: prev.instructions.map((inst, i) =>
         i === index ? value : inst
       )
     }));
   };
 
   const filteredRecipes = recipes?.filter((recipe: any) => {
-    const matchesSearch = 
+    const matchesSearch =
       recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       recipe.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       recipe.tags.some((tag: any) => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+
     const matchesStatus = statusFilter === 'all' || recipe.status === statusFilter;
     const matchesCuisine = cuisineFilter === 'all' || recipe.cuisine === cuisineFilter;
     const matchesDifficulty = difficultyFilter === 'all' || recipe.difficulty === difficultyFilter;
-    
+
     return matchesSearch && matchesStatus && matchesCuisine && matchesDifficulty;
   }).sort((a: any, b: any) => {
     switch (sortBy) {
@@ -305,7 +308,7 @@ export default function RecipeManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -321,7 +324,7 @@ export default function RecipeManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -337,7 +340,7 @@ export default function RecipeManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -469,8 +472,8 @@ export default function RecipeManagementPage() {
                 <label className="text-sm font-medium text-gray-700">Tags (comma-separated)</label>
                 <Input
                   value={newRecipe.tags.join(', ')}
-                  onChange={(e) => setNewRecipe(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setNewRecipe(prev => ({
+                    ...prev,
                     tags: e.target.value.split(',').map((tag: any) => tag.trim()).filter(Boolean)
                   }))}
                   placeholder="Enter tags"
@@ -578,7 +581,7 @@ export default function RecipeManagementPage() {
             className="pl-10"
           />
         </div>
-        
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-32">
             <Filter className="w-4 h-4 mr-2" />
@@ -591,7 +594,7 @@ export default function RecipeManagementPage() {
             <SelectItem value="archived">Archived</SelectItem>
           </SelectContent>
         </Select>
-        
+
         <Select value={cuisineFilter} onValueChange={setCuisineFilter}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="Cuisine" />
@@ -603,7 +606,7 @@ export default function RecipeManagementPage() {
             ))}
           </SelectContent>
         </Select>
-        
+
         <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="Difficulty" />
@@ -615,7 +618,7 @@ export default function RecipeManagementPage() {
             <SelectItem value="hard">Hard</SelectItem>
           </SelectContent>
         </Select>
-        
+
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="Sort by" />
@@ -645,7 +648,7 @@ export default function RecipeManagementPage() {
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-4">
               {/* Recipe Info */}
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -690,7 +693,7 @@ export default function RecipeManagementPage() {
                   size="sm"
                   variant="outline"
                   className="flex-1"
-                  onClick={() => {/* View recipe */}}
+                  onClick={() => {/* View recipe */ }}
                 >
                   <Eye className="w-4 h-4 mr-1" />
                   View
@@ -729,8 +732,8 @@ export default function RecipeManagementPage() {
         <EmptyState
           icon={ChefHat}
           title={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' ? "No recipes found" : "No recipes yet"}
-          description={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' 
-            ? "Try adjusting your search or filter criteria" 
+          description={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all'
+            ? "Try adjusting your search or filter criteria"
             : "Create your first recipe to get started"}
           action={searchTerm || categoryFilter !== 'all' || statusFilter !== 'all' ? {
             label: "Clear filters",

@@ -11,7 +11,7 @@ export type TestOrder = {
   chefId: string
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled'
   total: number
-  currency: 'gbp' | 'usd' | 'eur'
+  currency: 'gbp'
   items: TestOrderItem[]
   createdAt: string
   updatedAt: string

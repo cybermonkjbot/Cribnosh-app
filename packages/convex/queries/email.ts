@@ -151,6 +151,8 @@ const emailTemplateDocValidator = v.object({
   senderName: v.string(),
   senderEmail: v.string(),
   replyToEmail: v.string(),
+  fromEmail: v.optional(v.string()), // Added missing field
+  htmlContent: v.optional(v.string()), // Added missing field
   customFields: v.record(v.string(), v.any()),
   styling: v.object({
     primaryColor: v.string(),
