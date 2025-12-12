@@ -1,5 +1,6 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
+import { query } from "../_generated/server";
+import { requireStaff } from "../utils/auth";
 
 export const getContentItems = query({
   args: {
@@ -9,24 +10,24 @@ export const getContentItems = query({
   },
   handler: async (ctx: any, args: any) => {
     let content = await ctx.db.query("content").collect();
-    
+
     if (args.type) {
       content = content.filter((item: any) => item.type === args.type);
     }
-    
+
     if (args.status) {
       content = content.filter((item: any) => item.status === args.status);
     }
-    
+
     if (args.search) {
       const searchLower = args.search.toLowerCase();
-      content = content.filter((item: any) => 
+      content = content.filter((item: any) =>
         item.title.toLowerCase().includes(searchLower) ||
         item.content?.toLowerCase().includes(searchLower) ||
         item.author.toLowerCase().includes(searchLower)
       );
     }
-    
+
     // Get real analytics data for all content items
     const contentWithAnalytics = await Promise.all(
       content.map(async (item: any) => {
@@ -85,12 +86,12 @@ export const getContentStats = query({
     const published = content.filter((item: any) => item.status === 'published').length;
     const draft = content.filter((item: any) => item.status === 'draft').length;
     const archived = content.filter((item: any) => item.status === 'archived').length;
-    
+
     const byType = content.reduce((acc: any, item: any) => {
       acc[item.type] = (acc[item.type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     return {
       total: content.length,
       published,
@@ -110,20 +111,20 @@ export const getBlogPosts = query({
     let posts = await ctx.db.query("content")
       .filter((q: any) => q.eq(q.field("type"), "blog"))
       .collect();
-    
+
     if (args.status) {
       posts = posts.filter((post: any) => post.status === args.status);
     }
-    
+
     if (args.search) {
       const searchLower = args.search.toLowerCase();
-      posts = posts.filter((post: any) => 
+      posts = posts.filter((post: any) =>
         post.title.toLowerCase().includes(searchLower) ||
         post.content?.toLowerCase().includes(searchLower) ||
         post.author.toLowerCase().includes(searchLower)
       );
     }
-    
+
     // Get real analytics data for blog posts
     const postsWithAnalytics = await Promise.all(
       posts.map(async (post: any) => {
@@ -180,20 +181,20 @@ export const getRecipes = query({
     let recipes = await ctx.db.query("content")
       .filter((q: any) => q.eq(q.field("type"), "recipe"))
       .collect();
-    
+
     if (args.status) {
       recipes = recipes.filter((recipe: any) => recipe.status === args.status);
     }
-    
+
     if (args.search) {
       const searchLower = args.search.toLowerCase();
-      recipes = recipes.filter((recipe: any) => 
+      recipes = recipes.filter((recipe: any) =>
         recipe.title.toLowerCase().includes(searchLower) ||
         recipe.content?.toLowerCase().includes(searchLower) ||
         recipe.author.toLowerCase().includes(searchLower)
       );
     }
-    
+
     // Get real analytics data for recipes
     const recipesWithAnalytics = await Promise.all(
       recipes.map(async (recipe: any) => {
@@ -250,25 +251,28 @@ export const getStaticPages = query({
   args: {
     search: v.optional(v.string()),
     status: v.optional(v.string()),
+    sessionToken: v.optional(v.string())
   },
   handler: async (ctx: any, args: any) => {
+    await requireStaff(ctx, args.sessionToken);
+
     let pages = await ctx.db.query("content")
       .filter((q: any) => q.eq(q.field("type"), "page"))
       .collect();
-    
+
     if (args.status) {
       pages = pages.filter((page: any) => page.status === args.status);
     }
-    
+
     if (args.search) {
       const searchLower = args.search.toLowerCase();
-      pages = pages.filter((page: any) => 
+      pages = pages.filter((page: any) =>
         page.title.toLowerCase().includes(searchLower) ||
         page.content?.toLowerCase().includes(searchLower) ||
         page.author.toLowerCase().includes(searchLower)
       );
     }
-    
+
     // Get real analytics data for static pages
     const pagesWithAnalytics = await Promise.all(
       pages.map(async (page: any) => {

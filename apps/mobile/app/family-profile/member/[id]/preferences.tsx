@@ -1,22 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  StatusBar,
-  TextInput,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SuperButton } from '@/components/ui/SuperButton';
-import { useToast } from '@/lib/ToastContext';
-import { useFamilyProfile } from '@/hooks/useFamilyProfile';
-import { AlertTriangle, Plus, X, ChevronDown, ChevronUp } from 'lucide-react-native';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { api } from '@/convex/_generated/api';
+import { useFamilyProfile } from '@/hooks/useFamilyProfile';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { useToast } from '@/lib/ToastContext';
+import type { FamilyMember } from '@/types/customer';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { AlertTriangle, ChevronDown, ChevronUp, Plus, X } from 'lucide-react-native';
+import {
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+// ... existing imports
+
 
 interface Allergy {
   name: string;
@@ -82,7 +85,7 @@ export default function MemberPreferencesScreen() {
     fetchFamilyProfile();
   }, [fetchFamilyProfile]);
 
-  const member = familyProfileData?.data?.family_members.find((m) => m.id === id);
+  const member = familyProfileData?.data?.family_members.find((m: FamilyMember) => m.id === id);
   const [parentControlled, setParentControlled] = useState(true);
   const [allergies, setAllergies] = useState<Allergy[]>([]);
   const [dietaryPrefs, setDietaryPrefs] = useState<DietaryPreferences>({
@@ -107,7 +110,7 @@ export default function MemberPreferencesScreen() {
     if (member) {
       // Load existing preferences from member data
       // For now, we'll initialize with empty array
-      
+
       // Load parent controlled setting
       // This would come from familyMemberPreferences table
       // For now, defaulting to true
@@ -230,7 +233,7 @@ export default function MemberPreferencesScreen() {
       />
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-        
+
         <ScreenHeader title="Preferences" onBack={() => router.back()} />
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -343,7 +346,7 @@ export default function MemberPreferencesScreen() {
                         >
                           <Text style={[styles.severityButtonText, newAllergySeverity === severity && styles.severityButtonTextActive]}>
                             {severity.charAt(0).toUpperCase() + severity.slice(1)}
-            </Text>
+                          </Text>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -503,12 +506,12 @@ export default function MemberPreferencesScreen() {
         </ScrollView>
 
         <View style={styles.buttonContainer}>
-        <SuperButton
-          title={isLoading ? 'Updating...' : 'Save Preferences'}
-          onPress={handleSubmit}
-          backgroundColor="#094327"
-          textColor="white"
-        />
+          <SuperButton
+            title={isLoading ? 'Updating...' : 'Save Preferences'}
+            onPress={handleSubmit}
+            backgroundColor="#094327"
+            textColor="white"
+          />
         </View>
       </SafeAreaView>
     </>

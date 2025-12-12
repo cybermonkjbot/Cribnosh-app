@@ -1,10 +1,15 @@
+import { AddFamilyMemberSheet } from "@/components/ui/AddFamilyMemberSheet";
+import { FamilyMemberDetailSheet } from "@/components/ui/FamilyMemberDetailSheet";
+import { FamilyOrdersSheet } from "@/components/ui/FamilyOrdersSheet";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { api } from "@/convex/_generated/api";
+import { useFamilyProfile } from "@/hooks/useFamilyProfile";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
 import { useToast } from "@/lib/ToastContext";
 import type { FamilyMember } from "@/types/customer";
 import { Stack, useRouter } from "expo-router";
-import { getConvexClient, getSessionToken } from "@/lib/convexClient";
-import { api } from "@/convex/_generated/api";
-import { useAuthContext } from "@/contexts/AuthContext";
 import { Plus, Users } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,11 +22,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SvgXml } from "react-native-svg";
-import { AddFamilyMemberSheet } from "@/components/ui/AddFamilyMemberSheet";
-import { FamilyMemberDetailSheet } from "@/components/ui/FamilyMemberDetailSheet";
-import { FamilyOrdersSheet } from "@/components/ui/FamilyOrdersSheet";
-import { useEffect, useState } from "react";
-import { useFamilyProfile } from "@/hooks/useFamilyProfile";
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -66,7 +66,7 @@ export default function FamilyProfileManageScreen() {
   const refetchFamilyProfile = () => {
     loadFamilyData();
   };
-  
+
   const { } = useAuthContext();
   const [isRemovingMember, setIsRemovingMember] = useState(false);
 
@@ -94,7 +94,7 @@ export default function FamilyProfileManageScreen() {
       data: result,
     };
   };
-  
+
   const [isAddMemberSheetVisible, setIsAddMemberSheetVisible] = useState(false);
   const [isMemberDetailSheetVisible, setIsMemberDetailSheetVisible] = useState(false);
   const [isOrdersSheetVisible, setIsOrdersSheetVisible] = useState(false);
@@ -122,7 +122,7 @@ export default function FamilyProfileManageScreen() {
   const handleOrders = () => {
     setIsOrdersSheetVisible(true);
   };
-  
+
   const handleOrderSelect = (orderId: string) => {
     router.push(`/order-details?id=${orderId}`);
   };
@@ -295,7 +295,7 @@ export default function FamilyProfileManageScreen() {
               </TouchableOpacity>
             </View>
 
-            {profile.family_members.map((member) => (
+            {profile.family_members.map((member: FamilyMember) => (
               <TouchableOpacity
                 key={member.id}
                 onPress={() => handleMemberPress(member)}
@@ -307,7 +307,7 @@ export default function FamilyProfileManageScreen() {
                   <Text style={styles.memberInitials}>
                     {member.name
                       .split(" ")
-                      .map((n) => n[0])
+                      .map((n: string) => n[0])
                       .join("")
                       .toUpperCase()
                       .slice(0, 2)}
@@ -322,18 +322,18 @@ export default function FamilyProfileManageScreen() {
                 </View>
                 <View style={styles.memberSpending}>
                   {spendingData?.data?.members.find(
-                    (m) => m.member_id === member.id
+                    (m: any) => m.member_id === member.id
                   ) && (
-                    <>
-                      <Text style={styles.spendingAmount}>
-                        £
-                        {spendingData.data.members
-                          .find((m) => m.member_id === member.id)
-                          ?.monthly_spent.toFixed(2) || "0.00"}
-                      </Text>
-                      <Text style={styles.spendingLabel}>This Month</Text>
-                    </>
-                  )}
+                      <>
+                        <Text style={styles.spendingAmount}>
+                          £
+                          {spendingData.data.members
+                            .find((m: any) => m.member_id === member.id)
+                            ?.monthly_spent.toFixed(2) || "0.00"}
+                        </Text>
+                        <Text style={styles.spendingLabel}>This Month</Text>
+                      </>
+                    )}
                 </View>
               </TouchableOpacity>
             ))}
@@ -350,14 +350,14 @@ export default function FamilyProfileManageScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
-        
+
         {/* Add Family Member Sheet */}
         <AddFamilyMemberSheet
           isVisible={isAddMemberSheetVisible}
           onClose={() => setIsAddMemberSheetVisible(false)}
           onSuccess={handleAddMemberSuccess}
         />
-        
+
         {/* Family Member Detail Sheet */}
         <FamilyMemberDetailSheet
           isVisible={isMemberDetailSheetVisible}
@@ -368,9 +368,9 @@ export default function FamilyProfileManageScreen() {
           member={selectedMember}
           onNavigateToBudget={(memberId) => router.push(`/family-profile/member/${memberId}/budget`)}
           onNavigateToPreferences={(memberId) => router.push(`/family-profile/member/${memberId}/preferences`)}
-          onNavigateToOrders={(memberId) => router.push(`/family-profile/member/${memberId}/orders`)}
+          onNavigateToOrders={(memberId) => router.push(`/family-profile/member/${memberId}/orders` as any)}
         />
-        
+
         {/* Family Orders Sheet */}
         <FamilyOrdersSheet
           isVisible={isOrdersSheetVisible}

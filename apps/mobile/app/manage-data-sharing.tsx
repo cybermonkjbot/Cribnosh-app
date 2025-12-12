@@ -40,6 +40,7 @@ export default function ManageDataSharingScreen() {
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
   const [personalizationEnabled, setPersonalizationEnabled] = useState(true);
   const [marketingEnabled, setMarketingEnabled] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
 
   // Load data sharing preferences on mount
@@ -68,15 +69,15 @@ export default function ManageDataSharingScreen() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false,
           title: 'Manage Data Sharing'
-        }} 
+        }}
       />
       <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-        
+
         {/* Header with back button */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -89,12 +90,12 @@ export default function ManageDataSharingScreen() {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Main Title */}
           <Text style={styles.mainTitle}>Manage Data Sharing</Text>
-          
+
 
 
           {/* Data Sharing Settings */}
           <View style={styles.section}>
-            
+
             <View style={styles.dataCategoryItem}>
               <View style={styles.categoryLeft}>
                 <View style={styles.categoryIcon}>
@@ -187,7 +188,7 @@ export default function ManageDataSharingScreen() {
                 ios_backgroundColor="#E5E7EB"
               />
             </View>
-            
+
 
           </View>
         </ScrollView>

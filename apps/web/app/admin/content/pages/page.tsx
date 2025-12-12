@@ -1,5 +1,6 @@
 "use client";
 
+import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { EmptyState } from '@/components/admin/empty-state';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -63,6 +64,8 @@ export default function StaticPagesManagementPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const { user, sessionToken } = useAdminUser();
+
   // New page form
   const [newPage, setNewPage] = useState({
     title: '',
@@ -81,7 +84,7 @@ export default function StaticPagesManagementPage() {
   });
 
   // Fetch data
-  const staticPages = useQuery(api.queries.content.getStaticPages);
+  const staticPages = useQuery(api.queries.content.getStaticPages, user && sessionToken ? { sessionToken } : "skip");
   const pageTypes = [
     { value: 'about', label: 'About' },
     { value: 'terms', label: 'Terms of Service' },
@@ -109,7 +112,7 @@ export default function StaticPagesManagementPage() {
         slug: newPage.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         seoKeywords: newPage.seoKeywords.filter(keyword => keyword.trim())
       });
-      
+
       setNewPage({
         title: '',
         content: '',
@@ -167,14 +170,14 @@ export default function StaticPagesManagementPage() {
   };
 
   const filteredPages = staticPages?.filter((page: any) => {
-    const matchesSearch = 
+    const matchesSearch =
       page.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       page.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
       page.slug.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'all' || page.status === statusFilter;
     const matchesType = typeFilter === 'all' || page.pageType === typeFilter;
-    
+
     return matchesSearch && matchesStatus && matchesType;
   }).sort((a: any, b: any) => {
     switch (sortBy) {
@@ -245,7 +248,7 @@ export default function StaticPagesManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -261,7 +264,7 @@ export default function StaticPagesManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -277,7 +280,7 @@ export default function StaticPagesManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -395,8 +398,8 @@ export default function StaticPagesManagementPage() {
               <label className="text-sm font-medium text-gray-700">SEO Keywords (comma-separated)</label>
               <Input
                 value={newPage.seoKeywords.join(', ')}
-                onChange={(e) => setNewPage(prev => ({ 
-                  ...prev, 
+                onChange={(e) => setNewPage(prev => ({
+                  ...prev,
                   seoKeywords: e.target.value.split(',').map(keyword => keyword.trim()).filter(Boolean)
                 }))}
                 placeholder="Enter keywords"
@@ -483,7 +486,7 @@ export default function StaticPagesManagementPage() {
             className="pl-10"
           />
         </div>
-        
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-32">
             <Filter className="w-4 h-4 mr-2" />
@@ -496,7 +499,7 @@ export default function StaticPagesManagementPage() {
             <SelectItem value="archived">Archived</SelectItem>
           </SelectContent>
         </Select>
-        
+
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="Type" />
@@ -508,7 +511,7 @@ export default function StaticPagesManagementPage() {
             ))}
           </SelectContent>
         </Select>
-        
+
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="Sort by" />
@@ -561,14 +564,14 @@ export default function StaticPagesManagementPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {/* View page */}}
+                    onClick={() => {/* View page */ }}
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {/* Preview page */}}
+                    onClick={() => {/* Preview page */ }}
                   >
                     <ExternalLink className="w-4 h-4" />
                   </Button>
@@ -621,8 +624,8 @@ export default function StaticPagesManagementPage() {
         <EmptyState
           icon={FileText}
           title={searchTerm || statusFilter !== 'all' ? "No static pages found" : "No static pages yet"}
-          description={searchTerm || statusFilter !== 'all' 
-            ? "Try adjusting your search or filter criteria" 
+          description={searchTerm || statusFilter !== 'all'
+            ? "Try adjusting your search or filter criteria"
             : "Create your first static page to get started"}
           action={searchTerm || statusFilter !== 'all' ? {
             label: "Clear filters",

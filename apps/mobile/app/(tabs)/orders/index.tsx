@@ -508,7 +508,7 @@ export default function OrdersScreen() {
     }
 
     // Sort all orders by time (most recent first)
-    const sortedOrders = [...currentOrders].sort((a, b) => {
+    const sortedOrders = [...currentOrders].sort((a: Order, b: Order) => {
       // Parse time strings to compare - format: "20:00 • 2nd November" or "19:18, 6th June"
       const timeA = a.time.match(/(\d{1,2}):(\d{2})/);
       const timeB = b.time.match(/(\d{1,2}):(\d{2})/);

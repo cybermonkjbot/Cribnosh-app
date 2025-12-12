@@ -145,7 +145,7 @@ export default function TaxDocumentsPage() {
         notes: newDocument.notes,
         sessionToken: sessionToken || undefined
       });
-      
+
       setNewDocument({
         documentType: 'payslip',
         employeeId: '',
@@ -184,13 +184,13 @@ export default function TaxDocumentsPage() {
       setError(null);
       setIsDownloading(documentId);
       const result = await downloadDocument({ documentId, sessionToken: sessionToken || undefined });
-      
+
       if (result?.downloadUrl) {
         // Trigger download
         const link = document.createElement('a');
         link.href = result.downloadUrl;
         const taxDoc = taxDocuments?.find((d: any) => d._id === documentId);
-        const fileName = taxDoc 
+        const fileName = taxDoc
           ? `${taxDoc.documentType}-${taxDoc.taxYear}-${taxDoc.metadata?.employeeName || 'employee'}.pdf`
           : `tax-document-${documentId}.pdf`;
         link.download = fileName.replace(/[^a-z0-9.-]/gi, '_');
@@ -237,14 +237,14 @@ export default function TaxDocumentsPage() {
   }, [error]);
 
   const filteredDocuments = taxDocuments?.filter((document: any) => {
-    const matchesSearch = 
+    const matchesSearch =
       (document.employeeName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (document.documentType?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-    
+
     const matchesType = typeFilter === 'all' || document.documentType === typeFilter;
     const matchesStatus = statusFilter === 'all' || document.status === statusFilter;
     const matchesYear = yearFilter === 'all' || document.taxYear === yearFilter;
-    
+
     return matchesSearch && matchesType && matchesStatus && matchesYear;
   }).sort((a: any, b: any) => {
     switch (sortBy) {
@@ -310,7 +310,7 @@ export default function TaxDocumentsPage() {
           <p className="text-gray-600 font-satoshi mt-2">Generate and manage tax documents for employees</p>
         </div>
         <Button
-          onClick={() => {/* Open generate document modal */}}
+          onClick={() => {/* Open generate document modal */ }}
           className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -333,7 +333,7 @@ export default function TaxDocumentsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -349,7 +349,7 @@ export default function TaxDocumentsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -365,7 +365,7 @@ export default function TaxDocumentsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -426,7 +426,7 @@ export default function TaxDocumentsPage() {
                   <SelectValue placeholder="Select employee" />
                 </SelectTrigger>
                 <SelectContent>
-                    {employees?.map((employee: any) => (
+                  {employees?.map((employee: any) => (
                     <SelectItem key={employee._id} value={employee._id}>
                       {employee.name || employee.email}
                     </SelectItem>
@@ -460,8 +460,8 @@ export default function TaxDocumentsPage() {
               <Input
                 type="date"
                 value={newDocument.period.start}
-                onChange={(e) => setNewDocument(prev => ({ 
-                  ...prev, 
+                onChange={(e) => setNewDocument(prev => ({
+                  ...prev,
                   period: { ...prev.period, start: e.target.value }
                 }))}
               />
@@ -471,8 +471,8 @@ export default function TaxDocumentsPage() {
               <Input
                 type="date"
                 value={newDocument.period.end}
-                onChange={(e) => setNewDocument(prev => ({ 
-                  ...prev, 
+                onChange={(e) => setNewDocument(prev => ({
+                  ...prev,
                   period: { ...prev.period, end: e.target.value }
                 }))}
               />
@@ -489,8 +489,8 @@ export default function TaxDocumentsPage() {
           </div>
 
           <div className="flex gap-2">
-            <Button 
-              onClick={handleGenerateDocument} 
+            <Button
+              onClick={handleGenerateDocument}
               disabled={isGenerating}
               className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
             >
@@ -511,7 +511,7 @@ export default function TaxDocumentsPage() {
             className="pl-10"
           />
         </div>
-        
+
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-32">
             <Filter className="w-4 h-4 mr-2" />
@@ -527,7 +527,7 @@ export default function TaxDocumentsPage() {
             <SelectItem value="custom">Custom</SelectItem>
           </SelectContent>
         </Select>
-        
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="Status" />
@@ -540,7 +540,7 @@ export default function TaxDocumentsPage() {
             <SelectItem value="acknowledged">Acknowledged</SelectItem>
           </SelectContent>
         </Select>
-        
+
         <Select value={yearFilter} onValueChange={setYearFilter}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="Year" />
@@ -552,7 +552,7 @@ export default function TaxDocumentsPage() {
             ))}
           </SelectContent>
         </Select>
-        
+
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="Sort by" />
@@ -579,7 +579,7 @@ export default function TaxDocumentsPage() {
                     {getStatusBadge(document.status)}
                   </div>
                   <p className="text-sm text-gray-600 mb-2">
-                    Tax Year: {document.taxYear} | Period: {new Date(document.period.start).toLocaleDateString()} - {new Date(document.period.end).toLocaleDateString()}
+                    Tax Year: {document.taxYear} {document.period ? `| Period: ${new Date(document.period.start).toLocaleDateString()} - ${new Date(document.period.end).toLocaleDateString()}` : ''}
                   </p>
                   <div className="flex items-center gap-4 text-sm text-gray-700">
                     <div className="flex items-center gap-1">
@@ -688,8 +688,8 @@ export default function TaxDocumentsPage() {
         <EmptyState
           icon={FileText}
           title={searchTerm || statusFilter !== 'all' || yearFilter !== 'all' ? "No tax documents found" : "No tax documents yet"}
-          description={searchTerm || statusFilter !== 'all' || yearFilter !== 'all' 
-            ? "Try adjusting your search or filter criteria" 
+          description={searchTerm || statusFilter !== 'all' || yearFilter !== 'all'
+            ? "Try adjusting your search or filter criteria"
             : "Generate your first tax document to get started"}
           action={searchTerm || statusFilter !== 'all' || yearFilter !== 'all' ? {
             label: "Clear filters",
@@ -739,7 +739,7 @@ export default function TaxDocumentsPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => {/* Use template */}}
+                      onClick={() => {/* Use template */ }}
                     >
                       Use Template
                     </Button>

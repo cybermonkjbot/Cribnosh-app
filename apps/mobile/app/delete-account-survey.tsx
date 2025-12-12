@@ -1,10 +1,10 @@
-import { Stack, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { SvgXml } from 'react-native-svg';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { Stack, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { SvgXml } from 'react-native-svg';
 import { useToast } from '../lib/ToastContext';
 
 // Back arrow icon SVG
@@ -71,19 +71,19 @@ export default function DeleteAccountSurveyScreen() {
       if (result.success === false) {
         throw new Error(result.error || "Failed to submit feedback");
       }
-      
+
       showToast({
         type: "success",
         title: "Feedback Submitted",
         message: "Thank you for your feedback.",
         duration: 3000,
       });
-      
+
       // Navigate to the success screen
       router.push('/delete-account-success');
     } catch (error: any) {
       console.error("Error submitting feedback:", error);
-      const errorMessage = 
+      const errorMessage =
         error?.message ||
         error?.data?.error?.message ||
         error?.data?.message ||
@@ -101,15 +101,15 @@ export default function DeleteAccountSurveyScreen() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false,
           title: 'Request received'
-        }} 
+        }}
       />
       <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-        
+
         {/* Custom Header */}
         <View style={styles.customHeader}>
           <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
@@ -119,7 +119,7 @@ export default function DeleteAccountSurveyScreen() {
           <View style={styles.headerSpacer} />
         </View>
 
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -150,10 +150,10 @@ export default function DeleteAccountSurveyScreen() {
                   activeOpacity={0.7}
                 >
                   <View style={styles.checkboxContainer}>
-                    <SvgXml 
-                      xml={selectedOptions.has(index) ? checkboxCheckedSVG : checkboxUncheckedSVG} 
-                      width={20} 
-                      height={20} 
+                    <SvgXml
+                      xml={selectedOptions.has(index) ? checkboxCheckedSVG : checkboxUncheckedSVG}
+                      width={20}
+                      height={20}
                     />
                   </View>
                   <Text style={styles.optionText}>{option}</Text>
@@ -165,8 +165,8 @@ export default function DeleteAccountSurveyScreen() {
 
         {/* Done Button - Floating */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={[styles.doneButton, isSubmitting && styles.doneButtonDisabled]} 
+          <TouchableOpacity
+            style={[styles.doneButton, isSubmitting && styles.doneButtonDisabled]}
             onPress={handleDone}
             activeOpacity={0.8}
             disabled={isSubmitting}

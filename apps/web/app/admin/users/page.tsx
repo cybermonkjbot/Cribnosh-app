@@ -66,7 +66,7 @@ export default function AdminUsers() {
   // Pass sessionToken if available (for development debug cookie), otherwise rely on httpOnly cookie
   const queryArgs = loading || !sessionToken ? "skip" : { sessionToken };
   const usersQuery = useQuery(api.queries.users.getAllUsers, queryArgs);
-  
+
   // Transform users data: map roles array to role string for display
   const users = usersQuery ? (usersQuery as any[]).map((u: any) => ({
     ...u,
@@ -167,7 +167,7 @@ export default function AdminUsers() {
           delete errors.name;
         }
         break;
-      
+
       case 'email':
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!value.trim()) {
@@ -180,7 +180,7 @@ export default function AdminUsers() {
           delete errors.email;
         }
         break;
-      
+
       case 'password':
         if (!editingUser && !value) {
           errors.password = 'Password is required';
@@ -201,7 +201,7 @@ export default function AdminUsers() {
 
   const filteredUsers = users?.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchQuery.toLowerCase());
+      user.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     return matchesSearch && matchesStatus && matchesRole;
@@ -329,10 +329,10 @@ export default function AdminUsers() {
             Manage system users, roles, and permissions
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="lg"
             onClick={() => router.push('/admin/users/permissions')}
             className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white"
@@ -340,7 +340,7 @@ export default function AdminUsers() {
             <Shield className="w-4 h-4 mr-2" />
             Permissions
           </Button>
-          <Button 
+          <Button
             size="lg"
             onClick={handleCreateNew}
             className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white shadow-lg"
@@ -381,7 +381,7 @@ export default function AdminUsers() {
             <EmptyState
               icon={Users}
               title={searchQuery || statusFilter !== 'all' || roleFilter !== 'all' ? "No users found" : "No users yet"}
-              description={searchQuery || statusFilter !== 'all' || roleFilter !== 'all' 
+              description={searchQuery || statusFilter !== 'all' || roleFilter !== 'all'
                 ? "Try adjusting your search or filter criteria to see more results."
                 : "Users will appear here once they are added to the system."}
               action={searchQuery || statusFilter !== 'all' || roleFilter !== 'all' ? {
@@ -397,234 +397,234 @@ export default function AdminUsers() {
             />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px]" role="table" aria-label="Users table">
-              <thead className="bg-gray-50/80 border-b border-gray-200">
-                <tr role="row">
-                  <th className="px-6 py-4 text-left text-sm font-semibold font-asgard text-gray-900" scope="col" role="columnheader">User</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold font-asgard text-gray-900" scope="col" role="columnheader">Role</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold font-asgard text-gray-900" scope="col" role="columnheader">Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold font-asgard text-gray-900" scope="col" role="columnheader">Last Login</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold font-asgard text-gray-900" scope="col" role="columnheader">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200/60">
-                {!users ? (
-                  <UsersTableSkeleton rowCount={5} />
-                ) : filteredUsers?.map((user) => (
-                  <motion.tr
-                    key={user._id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="hover:bg-gray-50/50 transition-colors"
-                    role="row"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-primary-800 font-asgard">
-                            {user.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-semibold font-asgard text-gray-900">{user.name}</p>
-                          <div className="flex items-center gap-1 text-sm text-gray-600 font-satoshi">
-                            <Mail className="w-3 h-3" />
-                            {user.email}
+          <div className="overflow-hidden flex flex-col h-[calc(100vh-280px)]">
+            <div className="overflow-auto flex-1">
+              <table className="w-full min-w-[600px] relative" role="table" aria-label="Users table">
+                <thead className="bg-gray-50/95 backdrop-blur border-b border-gray-200 sticky top-0 z-10">
+                  <tr role="row">
+                    <th className="px-6 py-4 text-left text-sm font-semibold font-asgard text-gray-900" scope="col" role="columnheader">User</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold font-asgard text-gray-900" scope="col" role="columnheader">Role</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold font-asgard text-gray-900" scope="col" role="columnheader">Status</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold font-asgard text-gray-900" scope="col" role="columnheader">Last Login</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold font-asgard text-gray-900" scope="col" role="columnheader">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200/60">
+                  {!users ? (
+                    <UsersTableSkeleton rowCount={5} />
+                  ) : filteredUsers?.map((user) => (
+                    <motion.tr
+                      key={user._id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="hover:bg-gray-50/50 transition-colors"
+                      role="row"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-primary-800 font-asgard">
+                              {user.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-semibold font-asgard text-gray-900">{user.name}</p>
+                            <div className="flex items-center gap-1 text-sm text-gray-600 font-satoshi">
+                              <Mail className="w-3 h-3" />
+                              {user.email}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge className={`${getRoleBadge(user.role)} capitalize`}>
-                        {user.role}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge className={`${getStatusBadge(user.status)}`}>
-                        {user.status}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-600 font-satoshi">
-                        <Calendar className="w-4 h-4" />
-                        {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4" role="cell">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(user)}
-                          aria-label={`Edit user ${user.name}`}
-                        >
-                          <Edit className="w-3 h-3 mr-1" aria-hidden="true" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(user._id)}
-                          disabled={isDeleting === user._id}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50"
-                          aria-label={`Delete user ${user.name}`}
-                        >
-                          {isDeleting === user._id ? (
-                            <>
-                              <div className="w-3 h-3 mr-1 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
-                              Deleting...
-                            </>
-                          ) : (
-                            <>
-                              <Trash className="w-3 h-3 mr-1" aria-hidden="true" />
-                              Delete
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </motion.div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge className={`${getRoleBadge(user.role)} capitalize`}>
+                          {user.role}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge className={`${getStatusBadge(user.status)}`}>
+                          {user.status}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-600 font-satoshi">
+                          <Calendar className="w-4 h-4" />
+                          {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4" role="cell">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(user)}
+                            aria-label={`Edit user ${user.name}`}
+                          >
+                            <Edit className="w-3 h-3 mr-1" aria-hidden="true" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(user._id)}
+                            disabled={isDeleting === user._id}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50"
+                            aria-label={`Delete user ${user.name}`}
+                          >
+                            {isDeleting === user._id ? (
+                              <>
+                                <div className="w-3 h-3 mr-1 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
+                                Deleting...
+                              </>
+                            ) : (
+                              <>
+                                <Trash className="w-3 h-3 mr-1" aria-hidden="true" />
+                                Delete
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div >
+        )
+        }
+      </motion.div >
 
       {/* User Modal */}
-      <Dialog open={showModal} onOpenChange={setShowModal}>
+      < Dialog open={showModal} onOpenChange={setShowModal} >
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold font-asgard text-gray-900">
               {editingUser ? 'Edit User' : 'Add New User'}
             </DialogTitle>
           </DialogHeader>
-          
+
           <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-4" role="form" aria-label="User form">
-                <div>
-                  <label htmlFor="user-name" className="block text-sm font-medium font-satoshi text-gray-700 mb-2">
-                    Name
-                  </label>
-                  <Input
-                    id="user-name"
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setFormData({ ...formData, name: value });
-                      validateField('name', value);
-                    }}
-                    placeholder="Enter user name"
-                    className={`min-h-[44px] ${
-                      formErrors.name 
-                        ? 'border-red-500 focus:border-red-500' 
-                        : formData.name && !formErrors.name 
-                        ? 'border-green-500 focus:border-green-500' 
-                        : ''
-                    }`}
-                    required
-                    aria-describedby={formErrors.name ? "name-error" : undefined}
-                    aria-invalid={!!formErrors.name}
-                  />
-                  {formErrors.name && (
-                    <p id="name-error" className="text-red-500 text-sm font-satoshi mt-1" role="alert">{formErrors.name}</p>
-                  )}
-                </div>
-                
-                <div>
-                  <label htmlFor="user-email" className="block text-sm font-medium font-satoshi text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <Input
-                    id="user-email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setFormData({ ...formData, email: value });
-                      validateField('email', value);
-                    }}
-                    placeholder="Enter user email"
-                    className={`min-h-[44px] ${
-                      formErrors.email 
-                        ? 'border-red-500 focus:border-red-500' 
-                        : formData.email && !formErrors.email 
-                        ? 'border-green-500 focus:border-green-500' 
-                        : ''
-                    }`}
-                    required
-                    aria-describedby={formErrors.email ? "email-error" : undefined}
-                    aria-invalid={!!formErrors.email}
-                  />
-                  {formErrors.email && (
-                    <p id="email-error" className="text-red-500 text-sm font-satoshi mt-1" role="alert">{formErrors.email}</p>
-                  )}
-                </div>
-                
-                <div>
-                  <label htmlFor="user-password" className="block text-sm font-medium font-satoshi text-gray-700 mb-2">
-                    Password
-                  </label>
-                  <Input
-                    id="user-password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setFormData({ ...formData, password: value });
-                      validateField('password', value);
-                    }}
-                    placeholder={editingUser ? 'Leave blank to keep current' : 'Enter password'}
-                    className={`min-h-[44px] ${
-                      formErrors.password 
-                        ? 'border-red-500 focus:border-red-500' 
-                        : formData.password && !formErrors.password 
-                        ? 'border-green-500 focus:border-green-500' 
-                        : ''
-                    }`}
-                    required={!editingUser}
-                    aria-describedby={formErrors.password ? "password-error" : undefined}
-                    aria-invalid={!!formErrors.password}
-                  />
-                  {formErrors.password && (
-                    <p id="password-error" className="text-red-500 text-sm font-satoshi mt-1" role="alert">{formErrors.password}</p>
-                  )}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium font-satoshi text-gray-700 mb-2">
-                    Role
-                  </label>
-                  <Select value={formData.role} onValueChange={(value: 'user' | 'admin' | 'moderator' | 'chef') => setFormData({ ...formData, role: value })}>
-                    <SelectTrigger className="min-h-[44px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="moderator">Moderator</SelectItem>
-                      <SelectItem value="chef">Chef</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium font-satoshi text-gray-700 mb-2">
-                    Status
-                  </label>
-                  <Select value={formData.status} onValueChange={(value: 'active' | 'inactive' | 'suspended') => setFormData({ ...formData, status: value })}>
-                    <SelectTrigger className="min-h-[44px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="suspended">Suspended</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
+            <div>
+              <label htmlFor="user-name" className="block text-sm font-medium font-satoshi text-gray-700 mb-2">
+                Name
+              </label>
+              <Input
+                id="user-name"
+                type="text"
+                value={formData.name}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, name: value });
+                  validateField('name', value);
+                }}
+                placeholder="Enter user name"
+                className={`min-h-[44px] ${formErrors.name
+                  ? 'border-red-500 focus:border-red-500'
+                  : formData.name && !formErrors.name
+                    ? 'border-green-500 focus:border-green-500'
+                    : ''
+                  }`}
+                required
+                aria-describedby={formErrors.name ? "name-error" : undefined}
+                aria-invalid={!!formErrors.name}
+              />
+              {formErrors.name && (
+                <p id="name-error" className="text-red-500 text-sm font-satoshi mt-1" role="alert">{formErrors.name}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="user-email" className="block text-sm font-medium font-satoshi text-gray-700 mb-2">
+                Email
+              </label>
+              <Input
+                id="user-email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, email: value });
+                  validateField('email', value);
+                }}
+                placeholder="Enter user email"
+                className={`min-h-[44px] ${formErrors.email
+                  ? 'border-red-500 focus:border-red-500'
+                  : formData.email && !formErrors.email
+                    ? 'border-green-500 focus:border-green-500'
+                    : ''
+                  }`}
+                required
+                aria-describedby={formErrors.email ? "email-error" : undefined}
+                aria-invalid={!!formErrors.email}
+              />
+              {formErrors.email && (
+                <p id="email-error" className="text-red-500 text-sm font-satoshi mt-1" role="alert">{formErrors.email}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="user-password" className="block text-sm font-medium font-satoshi text-gray-700 mb-2">
+                Password
+              </label>
+              <Input
+                id="user-password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, password: value });
+                  validateField('password', value);
+                }}
+                placeholder={editingUser ? 'Leave blank to keep current' : 'Enter password'}
+                className={`min-h-[44px] ${formErrors.password
+                  ? 'border-red-500 focus:border-red-500'
+                  : formData.password && !formErrors.password
+                    ? 'border-green-500 focus:border-green-500'
+                    : ''
+                  }`}
+                required={!editingUser}
+                aria-describedby={formErrors.password ? "password-error" : undefined}
+                aria-invalid={!!formErrors.password}
+              />
+              {formErrors.password && (
+                <p id="password-error" className="text-red-500 text-sm font-satoshi mt-1" role="alert">{formErrors.password}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium font-satoshi text-gray-700 mb-2">
+                Role
+              </label>
+              <Select value={formData.role} onValueChange={(value: 'user' | 'admin' | 'moderator' | 'chef') => setFormData({ ...formData, role: value })}>
+                <SelectTrigger className="min-h-[44px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="moderator">Moderator</SelectItem>
+                  <SelectItem value="chef">Chef</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium font-satoshi text-gray-700 mb-2">
+                Status
+              </label>
+              <Select value={formData.status} onValueChange={(value: 'active' | 'inactive' | 'suspended') => setFormData({ ...formData, status: value })}>
+                <SelectTrigger className="min-h-[44px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <DialogFooter>
               <Button
                 type="button"
@@ -646,7 +646,7 @@ export default function AdminUsers() {
             </DialogFooter>
           </form>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       <ConfirmationDialog
         isOpen={deleteConfirm.isOpen}
@@ -659,7 +659,7 @@ export default function AdminUsers() {
         type="error"
         isLoading={isDeleting !== null}
       />
-    </div>
+    </div >
   );
 }
 

@@ -2,10 +2,10 @@ import { AddCardSheet } from '@/components/ui/AddCardSheet';
 import { BalanceInfoSheet } from '@/components/ui/BalanceInfoSheet';
 import { BalanceTransactionsSheet } from '@/components/ui/BalanceTransactionsSheet';
 import { TopUpBalanceSheet } from '@/components/ui/TopUpBalanceSheet';
+import { usePayments } from '@/hooks/usePayments';
 import { useRouter } from 'expo-router';
 import { CreditCard } from 'lucide-react-native';
-import { useState, useEffect } from 'react';
-import { usePayments } from '@/hooks/usePayments';
+import { useEffect, useState } from 'react';
 
 
 import { Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -61,6 +61,8 @@ export default function PaymentSettingsScreen() {
   const [isTopUpVisible, setIsTopUpVisible] = useState(false);
   const [paymentMethodsData, setPaymentMethodsData] = useState<any>(null);
   const [balanceData, setBalanceData] = useState<any>(null);
+  const [transactionsData, setTransactionsData] = useState<any>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
 
 
   const {
@@ -136,190 +138,190 @@ export default function PaymentSettingsScreen() {
 
   return (
     <SafeAreaView style={styles.mainContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-        
-        {/* Header with back button */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <SvgXml xml={backArrowSVG} width={24} height={24} />
+      <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
+
+      {/* Header with back button */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <SvgXml xml={backArrowSVG} width={24} height={24} />
+        </TouchableOpacity>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      {/* Content */}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Main Title */}
+        <Text style={styles.mainTitle}>Payment</Text>
+
+        {/* Cribnosh Balance Section */}
+        <View style={styles.balanceSection}>
+          <TouchableOpacity
+            style={styles.balanceCard}
+            onPress={handleTopUpBalance}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.balanceTitle}>Cribnosh balance</Text>
+            <Text style={styles.balanceAmount}>
+              {balanceData?.data
+                ? `£${(balanceData.data.balance / 100).toFixed(2)}`
+                : "£0.00"}
+            </Text>
+            <Text style={styles.balanceDescription}>
+              {balanceData?.data?.is_available
+                ? "Your Cribnosh balance"
+                : "Cribnosh balance is not available with this payment method"}
+            </Text>
           </TouchableOpacity>
-          <View style={styles.headerSpacer} />
+
+          <TouchableOpacity style={styles.balanceItem} onPress={handleBalanceInfo}>
+            <View style={styles.itemLeft}>
+              <View style={styles.itemIcon}>
+                <SvgXml xml={checkIconSVG} width={20} height={20} />
+              </View>
+              <Text style={styles.itemText}>What is Cribnosh balance?</Text>
+            </View>
+            <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.balanceItem} onPress={handleBalanceTransactions}>
+            <View style={styles.itemLeft}>
+              <View style={styles.itemIcon}>
+                <SvgXml xml={clockIconSVG} width={20} height={20} />
+              </View>
+              <Text style={styles.itemText}>See balance transactions</Text>
+            </View>
+            <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.balanceItem} onPress={handleTopUpBalance}>
+            <View style={styles.itemLeft}>
+              <View style={styles.itemIcon}>
+                <SvgXml xml={plusIconSVG} width={20} height={20} />
+              </View>
+              <Text style={styles.itemText}>Top up balance</Text>
+            </View>
+            <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
+          </TouchableOpacity>
         </View>
 
-        {/* Content */}
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Main Title */}
-          <Text style={styles.mainTitle}>Payment</Text>
-          
-          {/* Cribnosh Balance Section */}
-          <View style={styles.balanceSection}>
-            <TouchableOpacity 
-              style={styles.balanceCard} 
-              onPress={handleTopUpBalance}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.balanceTitle}>Cribnosh balance</Text>
-              <Text style={styles.balanceAmount}>
-                {balanceData?.data
-                  ? `£${(balanceData.data.balance / 100).toFixed(2)}`
-                  : "£0.00"}
-              </Text>
-              <Text style={styles.balanceDescription}>
-                {balanceData?.data?.is_available
-                  ? "Your Cribnosh balance"
-                  : "Cribnosh balance is not available with this payment method"}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.balanceItem} onPress={handleBalanceInfo}>
-              <View style={styles.itemLeft}>
-                <View style={styles.itemIcon}>
-                  <SvgXml xml={checkIconSVG} width={20} height={20} />
-                </View>
-                <Text style={styles.itemText}>What is Cribnosh balance?</Text>
-              </View>
-              <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.balanceItem} onPress={handleBalanceTransactions}>
-              <View style={styles.itemLeft}>
-                <View style={styles.itemIcon}>
-                  <SvgXml xml={clockIconSVG} width={20} height={20} />
-                </View>
-                <Text style={styles.itemText}>See balance transactions</Text>
-              </View>
-              <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
-            </TouchableOpacity>
+        {/* Payment Methods Section */}
+        <View style={styles.paymentSection}>
+          <Text style={styles.sectionTitle}>Payment methods</Text>
 
-            <TouchableOpacity style={styles.balanceItem} onPress={handleTopUpBalance}>
-              <View style={styles.itemLeft}>
-                <View style={styles.itemIcon}>
-                  <SvgXml xml={plusIconSVG} width={20} height={20} />
-                </View>
-                <Text style={styles.itemText}>Top up balance</Text>
-              </View>
-              <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Payment Methods Section */}
-          <View style={styles.paymentSection}>
-            <Text style={styles.sectionTitle}>Payment methods</Text>
-            
-            <View style={styles.paymentMethodsCard}>
-              {paymentMethodsData?.data && paymentMethodsData.data.length > 0 ? (
-                paymentMethodsData.data.map((method) => (
-                  <View key={method.id}>
-                    <TouchableOpacity
-                      style={styles.paymentMethodItem}
-                      onPress={() => handlePaymentMethodSelect(method.id)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.methodLeft}>
-                        {method.type === "apple_pay" ? (
-                          <View style={styles.appleIconContainer}>
-                            <Text style={styles.appleIconText}>Apple</Text>
-                          </View>
-                        ) : (
-                          <Image
-                            source={require("@/assets/images/mastercard-logo.png")}
-                            style={styles.methodIcon}
-                            resizeMode="contain"
-                          />
-                        )}
-                        <Text style={styles.methodText}>
-                          {method.type === "apple_pay"
-                            ? "Apple Pay"
-                            : method.last4
-                              ? `... ${method.last4}`
-                              : "Card"}
-                        </Text>
-                      </View>
-                      <View
-                        style={[
-                          styles.radioButton,
-                          method.is_default && styles.radioButtonSelected,
-                        ]}
-                      />
-                    </TouchableOpacity>
-                    {paymentMethodsData.data.indexOf(method) <
-                      paymentMethodsData.data.length - 1 && (
+          <View style={styles.paymentMethodsCard}>
+            {paymentMethodsData?.data && paymentMethodsData.data.length > 0 ? (
+              paymentMethodsData.data.map((method: any) => (
+                <View key={method.id}>
+                  <TouchableOpacity
+                    style={styles.paymentMethodItem}
+                    onPress={() => handlePaymentMethodSelect(method.id)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.methodLeft}>
+                      {method.type === "apple_pay" ? (
+                        <View style={styles.appleIconContainer}>
+                          <Text style={styles.appleIconText}>Apple</Text>
+                        </View>
+                      ) : (
+                        <Image
+                          source={require("@/assets/images/mastercard-logo.png")}
+                          style={styles.methodIcon}
+                          resizeMode="contain"
+                        />
+                      )}
+                      <Text style={styles.methodText}>
+                        {method.type === "apple_pay"
+                          ? "Apple Pay"
+                          : method.last4
+                            ? `... ${method.last4}`
+                            : "Card"}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.radioButton,
+                        method.is_default && styles.radioButtonSelected,
+                      ]}
+                    />
+                  </TouchableOpacity>
+                  {paymentMethodsData.data.indexOf(method) <
+                    paymentMethodsData.data.length - 1 && (
                       <View style={styles.paymentMethodSeparator} />
                     )}
-                  </View>
-                ))
-              ) : (
-                // Empty state when no payment methods are set up
-                <View style={styles.emptyStateContainer}>
-                  <View style={styles.emptyStateIconContainer}>
-                    <CreditCard size={32} color="#9CA3AF" />
-                      </View>
-                  <Text style={styles.emptyStateTitle}>No payment methods</Text>
-                  <Text style={styles.emptyStateSubtitle}>
-                    Add a payment method to get started
-                  </Text>
-                    </View>
-              )}
+                </View>
+              ))
+            ) : (
+              // Empty state when no payment methods are set up
+              <View style={styles.emptyStateContainer}>
+                <View style={styles.emptyStateIconContainer}>
+                  <CreditCard size={32} color="#9CA3AF" />
+                </View>
+                <Text style={styles.emptyStateTitle}>No payment methods</Text>
+                <Text style={styles.emptyStateSubtitle}>
+                  Add a payment method to get started
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={styles.addCardItem}
+            onPress={handleAddCard}
+            activeOpacity={0.7}
+          >
+            <View style={styles.itemLeft}>
+              <View style={styles.itemIcon}>
+                <SvgXml xml={plusIconSVG} width={20} height={20} />
+              </View>
+              <Text style={styles.itemText}>Add debit/credit card</Text>
             </View>
-            
-            <TouchableOpacity 
-              style={styles.addCardItem} 
-              onPress={handleAddCard}
-              activeOpacity={0.7}
-            >
-              <View style={styles.itemLeft}>
-                <View style={styles.itemIcon}>
-                  <SvgXml xml={plusIconSVG} width={20} height={20} />
-                </View>
-                <Text style={styles.itemText}>Add debit/credit card</Text>
+            <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Family Profile Section */}
+        <View style={styles.familySection}>
+          <TouchableOpacity
+            style={styles.familyItem}
+            onPress={handleFamilyProfile}
+            activeOpacity={0.7}
+          >
+            <View style={styles.itemLeft}>
+              <View style={styles.itemIcon}>
+                <SvgXml xml={familyIconSVG} width={20} height={20} />
               </View>
-              <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
-            </TouchableOpacity>
-          </View>
+              <Text style={styles.itemText}>Setup a family profile</Text>
+            </View>
+            <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
 
-          {/* Family Profile Section */}
-          <View style={styles.familySection}>
-            <TouchableOpacity 
-              style={styles.familyItem} 
-              onPress={handleFamilyProfile}
-              activeOpacity={0.7}
-            >
-              <View style={styles.itemLeft}>
-                <View style={styles.itemIcon}>
-                  <SvgXml xml={familyIconSVG} width={20} height={20} />
-                </View>
-                <Text style={styles.itemText}>Setup a family profile</Text>
-              </View>
-              <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
+      {/* Balance Info Sheet */}
+      <BalanceInfoSheet
+        isVisible={isBalanceInfoVisible}
+        onClose={() => setIsBalanceInfoVisible(false)}
+      />
 
-        {/* Balance Info Sheet */}
-        <BalanceInfoSheet
-          isVisible={isBalanceInfoVisible}
-          onClose={() => setIsBalanceInfoVisible(false)}
-        />
+      {/* Balance Transactions Sheet */}
+      <BalanceTransactionsSheet
+        isVisible={isTransactionsVisible}
+        onClose={() => setIsTransactionsVisible(false)}
+      />
 
-        {/* Balance Transactions Sheet */}
-        <BalanceTransactionsSheet
-          isVisible={isTransactionsVisible}
-          onClose={() => setIsTransactionsVisible(false)}
-        />
+      {/* Top Up Balance Sheet */}
+      <TopUpBalanceSheet
+        isVisible={isTopUpVisible}
+        onClose={handleCloseTopUp}
+      />
 
-        {/* Top Up Balance Sheet */}
-        <TopUpBalanceSheet
-          isVisible={isTopUpVisible}
-          onClose={handleCloseTopUp}
-        />
-
-        {/* Add Card Sheet */}
-        <AddCardSheet
-          isVisible={isAddCardVisible}
-          onClose={() => setIsAddCardVisible(false)}
-          onSuccess={handleCardAdded}
-        />
-      </SafeAreaView>
+      {/* Add Card Sheet */}
+      <AddCardSheet
+        isVisible={isAddCardVisible}
+        onClose={() => setIsAddCardVisible(false)}
+        onSuccess={handleCardAdded}
+      />
+    </SafeAreaView>
   );
 }
 

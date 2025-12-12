@@ -1,12 +1,12 @@
 import AmountInput from '@/components/AmountInput';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { api } from '@/convex/_generated/api';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useGroupOrders } from '@/hooks/useGroupOrders';
 import { useUserLocation } from '@/hooks/useUserLocation';
-import { Chef, CustomerAddress } from '@/types/customer';
 import { getConvexReactClient } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
+import { Chef, CustomerAddress } from '@/types/customer';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Search as SearchIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
@@ -33,34 +33,34 @@ const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none
 
 export default function CreateGroupOrderScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ 
-    chef_id?: string; 
+  const params = useLocalSearchParams<{
+    chef_id?: string;
     restaurant_name?: string;
   }>();
   const { } = useAuthState();
   const { location: userLocation } = useUserLocation();
-  
+
   // Chef selection state
   const [selectedChef, setSelectedChef] = useState<{ chef_id: string; restaurant_name: string } | null>(
-    params.chef_id && params.restaurant_name 
+    params.chef_id && params.restaurant_name
       ? { chef_id: params.chef_id, restaurant_name: params.restaurant_name }
       : null
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [showChefSelection, setShowChefSelection] = useState(!params.chef_id || !params.restaurant_name);
-  
+
   const [initialBudget, setInitialBudget] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [deliveryAddress] = useState<CustomerAddress | undefined>(undefined);
   const [deliveryTime, setDeliveryTime] = useState('');
   const [expiresInHours, setExpiresInHours] = useState('24');
-  
+
   const { createGroupOrder, isLoading: isCreating } = useGroupOrders();
-  
+
   const [kitchensData, setKitchensData] = useState<any>(null);
   const [isLoadingKitchens, setIsLoadingKitchens] = useState(false);
-  
+
   // Fetch nearby kitchens or search kitchens using Convex queries directly
   useEffect(() => {
     if (showChefSelection && userLocation) {
@@ -68,9 +68,9 @@ export default function CreateGroupOrderScreen() {
         try {
           setIsLoadingKitchens(true);
           const convex = getConvexReactClient();
-          
+
           let chefs: any[] = [];
-          
+
           if (searchQuery && searchQuery.length >= 2) {
             // Search kitchens/chefs by query
             const searchResult = await convex.query(api.queries.chefs.searchChefsByQuery, {
@@ -90,9 +90,9 @@ export default function CreateGroupOrderScreen() {
             });
             chefs = nearbyResult || [];
           }
-          
+
           console.log('Loaded chefs:', chefs.length);
-          
+
           // Transform to expected format
           const transformedChefs = chefs.map((chef: any) => ({
             id: chef._id,
@@ -104,7 +104,7 @@ export default function CreateGroupOrderScreen() {
             distance: chef.distance || 0,
             rating: chef.rating || null,
           }));
-          
+
           setKitchensData({ success: true, data: { chefs: transformedChefs } });
         } catch (error) {
           console.error('Failed to load kitchens:', error);
@@ -118,10 +118,10 @@ export default function CreateGroupOrderScreen() {
       setKitchensData(null);
     }
   }, [showChefSelection, userLocation, searchQuery]);
-  
+
   const chefId = selectedChef?.chef_id || '';
   const restaurantName = selectedChef?.restaurant_name || '';
-  
+
   // Get kitchens list (from search results)
   const chefs = useMemo(() => {
     if (kitchensData?.data?.chefs) {
@@ -129,9 +129,9 @@ export default function CreateGroupOrderScreen() {
     }
     return [];
   }, [kitchensData]);
-  
+
   const isLoadingChefs = isLoadingKitchens;
-  
+
   // Default title
   const defaultTitle = useMemo(() => {
     if (restaurantName) {
@@ -139,10 +139,10 @@ export default function CreateGroupOrderScreen() {
     }
     return 'Group Order';
   }, [restaurantName]);
-  
+
   // Preset budget amounts
   const presetAmounts = ['10', '20', '50', '100', 'Custom'];
-  
+
   const handlePresetSelect = (preset: string) => {
     if (preset === 'Custom') {
       setSelectedPreset('Custom');
@@ -152,7 +152,7 @@ export default function CreateGroupOrderScreen() {
       setInitialBudget(preset);
     }
   };
-  
+
   const handleAmountChange = (value: string) => {
     setInitialBudget(value);
     if (presetAmounts.includes(value)) {
@@ -161,16 +161,16 @@ export default function CreateGroupOrderScreen() {
       setSelectedPreset('Custom');
     }
   };
-  
+
   const isValidBudget = () => {
     const budgetNum = parseFloat(initialBudget);
     return !isNaN(budgetNum) && budgetNum > 0;
   };
-  
+
   const canCreate = () => {
     return chefId && restaurantName && isValidBudget() && !isCreating;
   };
-  
+
   const handleCreate = async () => {
     if (!canCreate()) {
       if (!chefId || !restaurantName) {
@@ -183,10 +183,10 @@ export default function CreateGroupOrderScreen() {
       }
       return;
     }
-    
+
     const budgetNum = parseFloat(initialBudget);
     const expiresHours = parseInt(expiresInHours) || 24;
-    
+
     try {
       const result = await createGroupOrder({
         chef_id: chefId,
@@ -196,17 +196,17 @@ export default function CreateGroupOrderScreen() {
         delivery_address: deliveryAddress ? {
           street: deliveryAddress.street || '',
           city: deliveryAddress.city || '',
-          postal_code: deliveryAddress.postal_code || '',
+          postcode: deliveryAddress.postal_code || '',
           country: deliveryAddress.country || '',
         } : undefined,
         delivery_time: deliveryTime || undefined,
         expires_in_hours: expiresHours,
       });
-      
+
       if (!result.success || !result.data) {
         throw new Error('Failed to create group order');
       }
-      
+
       // Success - navigate to group order screen
       // Navigate back multiple times to clear modal context (e.g., from BottomSearchDrawer),
       // then navigate to group order to ensure clean navigation stack
@@ -217,7 +217,7 @@ export default function CreateGroupOrderScreen() {
           params: { group_order_id: result.data.group_order_id },
         });
       };
-      
+
       if (router.canGoBack()) {
         // Go back once to remove create screen
         router.back();
@@ -244,13 +244,13 @@ export default function CreateGroupOrderScreen() {
       }
     } catch (error: any) {
       // Error already handled in hook with toast
-      const errorMessage = 
+      const errorMessage =
         error?.message ||
         'Failed to create group order. Please try again.';
       Alert.alert('Error', errorMessage);
     }
   };
-  
+
   const handleChefSelect = (chef: Chef) => {
     setSelectedChef({
       chef_id: chef.id,
@@ -258,12 +258,12 @@ export default function CreateGroupOrderScreen() {
     });
     setShowChefSelection(false);
   };
-  
+
   const handleBackToChefSelection = () => {
     setShowChefSelection(true);
     setSelectedChef(null);
   };
-  
+
   // Show chef selection if no chef selected
   if (showChefSelection || !chefId || !restaurantName) {
     return (
@@ -276,7 +276,7 @@ export default function CreateGroupOrderScreen() {
           <Text style={styles.headerTitle}>Select Food Creator</Text>
           <View style={styles.headerSpacer} />
         </View>
-        
+
         {/* Search Input */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputWrapper}>
@@ -299,7 +299,7 @@ export default function CreateGroupOrderScreen() {
             )}
           </View>
         </View>
-        
+
         {/* Chefs List */}
         <View style={styles.chefsListContainer}>
           {isLoadingChefs ? (
@@ -329,7 +329,7 @@ export default function CreateGroupOrderScreen() {
                   activeOpacity={0.7}
                 >
                   <Image
-                    source={{ 
+                    source={{
                       uri: chef.image_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face'
                     }}
                     style={styles.chefImage}
@@ -358,7 +358,7 @@ export default function CreateGroupOrderScreen() {
       </SafeAreaView>
     );
   }
-  
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
@@ -368,9 +368,9 @@ export default function CreateGroupOrderScreen() {
         </TouchableOpacity>
         <View style={styles.headerSpacer} />
       </View>
-      
-      <ScrollView 
-        style={styles.content} 
+
+      <ScrollView
+        style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
@@ -378,7 +378,7 @@ export default function CreateGroupOrderScreen() {
         <View style={styles.infoCard}>
           <View style={styles.infoCardHeader}>
             <Text style={styles.infoLabel}>Food Creator</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={handleBackToChefSelection}
               style={styles.changeButton}
             >
@@ -387,21 +387,21 @@ export default function CreateGroupOrderScreen() {
           </View>
           <Text style={styles.infoValue}>{restaurantName}</Text>
         </View>
-        
+
         {/* Initial Budget Section */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Initial Budget *</Text>
           <Text style={styles.sectionDescription}>
             Set the starting budget for this group order. Participants can chip in to increase it.
           </Text>
-          
+
           <View style={styles.amountInputContainer}>
-            <AmountInput 
-              amount={initialBudget} 
+            <AmountInput
+              amount={initialBudget}
               setAmount={handleAmountChange}
             />
           </View>
-          
+
           {/* Preset Amount Buttons */}
           <View style={styles.presetContainer}>
             {presetAmounts.map((preset) => (
@@ -425,7 +425,7 @@ export default function CreateGroupOrderScreen() {
             ))}
           </View>
         </View>
-        
+
         {/* Title Section */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Order Title (Optional)</Text>
@@ -439,7 +439,7 @@ export default function CreateGroupOrderScreen() {
             style={styles.textInput}
           />
         </View>
-        
+
         {/* Delivery Time Section */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Delivery Time (Optional)</Text>
@@ -453,7 +453,7 @@ export default function CreateGroupOrderScreen() {
             style={styles.textInput}
           />
         </View>
-        
+
         {/* Expires In Section */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Expires In (Hours)</Text>
@@ -469,7 +469,7 @@ export default function CreateGroupOrderScreen() {
           />
         </View>
       </ScrollView>
-      
+
       {/* Bottom Actions */}
       <View style={styles.bottomActions}>
         <Button

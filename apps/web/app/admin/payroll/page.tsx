@@ -52,18 +52,18 @@ export default function PayrollAdminPage() {
   const { sessionToken } = useAdminUser();
   const [isPayPeriodDialogOpen, setIsPayPeriodDialogOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  
+
   // Fetch payroll data with proper typing
   const payPeriodsRaw = useQuery(api.payroll.periods.getPayPeriods, { limit: 5 });
   const staffProfilesRaw = useQuery(
-    api.payroll.admin.getStaffPayrollProfiles, 
+    api.payroll.admin.getStaffPayrollProfiles,
     sessionToken ? { sessionToken } : "skip"
   );
-  
+
   const payPeriods = useMemo(() => payPeriodsRaw || [], [payPeriodsRaw]);
   const staffProfiles = useMemo(() => staffProfilesRaw || [], [staffProfilesRaw]);
   const ytdHoursSummary = useQuery(
-    api.payroll.admin.getYearToDateHoursSummary, 
+    api.payroll.admin.getYearToDateHoursSummary,
     sessionToken ? { year: selectedYear, sessionToken } : "skip"
   ) || null;
   const settings = useQuery(
@@ -75,12 +75,12 @@ export default function PayrollAdminPage() {
     overtimeMultiplier?: number;
     holidayOvertimeMultiplier?: number;
   } | null;
-  
+
   const processPayroll = useMutation(api.payroll.admin.processPayroll);
-  
+
   const handleProcessPayroll = async (periodId: Id<"payPeriods">) => {
     if (!periodId) return;
-    
+
     try {
       await processPayroll({ periodId });
       toast({
@@ -112,16 +112,16 @@ export default function PayrollAdminPage() {
       const processedDate = new Date(p.processedAt || 0);
       const now = new Date();
       return (
-        p.status === 'processed' && 
+        p.status === 'processed' &&
         processedDate.getMonth() === now.getMonth() &&
         processedDate.getFullYear() === now.getFullYear()
       );
     }).length || 0;
-    
+
     // Calculate total payroll from active staff using real salary data
     const totalPayroll = staffProfiles?.filter((p: StaffPayrollProfile) => p.status === 'active')
       .reduce((sum: number, staff: StaffPayrollProfile) => sum + ((staff.hourlyRate || 0) * 40 * 4), 0) || 0;
-    
+
     return {
       activeStaff,
       pendingPayrolls,
@@ -136,12 +136,12 @@ export default function PayrollAdminPage() {
     if (!payPeriods || payPeriods.length === 0) {
       return [];
     }
-    
+
     // Group pay periods by month and calculate totals
     const monthlyData = payPeriods.reduce((acc: Record<string, { month: string; payroll: number; staff: number }>, period: PayPeriod) => {
       const date = new Date(period.startDate);
       const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-      
+
       if (!acc[monthKey]) {
         acc[monthKey] = {
           month: date.toLocaleDateString('en-US', { month: 'short' }),
@@ -149,15 +149,37 @@ export default function PayrollAdminPage() {
           staff: 0
         };
       }
-      
+
       acc[monthKey].payroll += 0; // Calculate from staff profiles if needed
       acc[monthKey].staff += 1; // Count periods as staff count
-      
+
       return acc;
     }, {});
-    
+
     return Object.values(monthlyData).slice(-6) as Array<{ month: string; payroll: number; staff: number }>; // Last 6 months
   }, [payPeriods]);
+
+  const maxPayroll = useMemo(() => {
+    if (chartData.length === 0) return 0;
+    return Math.max(...chartData.map(d => d.payroll)) || 1;
+  }, [chartData]);
+
+  const staffStatusDistribution = useMemo(() => {
+    if (!staffProfiles || staffProfiles.length === 0) {
+      return { active: 0, inactive: 0, onLeave: 0, total: 0 };
+    }
+
+    const active = staffProfiles.filter((p: StaffPayrollProfile) => p.status === 'active').length;
+    const inactive = staffProfiles.filter((p: StaffPayrollProfile) => p.status === 'inactive').length;
+    const onLeave = staffProfiles.filter((p: StaffPayrollProfile) => p.status === 'on_leave').length;
+
+    return {
+      active,
+      inactive,
+      onLeave,
+      total: staffProfiles.length
+    };
+  }, [staffProfiles]);
 
   return (
     <div className="container mx-auto py-6 space-y-[18px]">
@@ -175,17 +197,17 @@ export default function PayrollAdminPage() {
             Manage employee payroll, pay periods, and generate comprehensive reports
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="lg"
             className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white"
           >
             <Download className="w-4 h-4 mr-2" />
             Export Reports
           </Button>
-          <Button 
+          <Button
             size="lg"
             onClick={() => setIsPayPeriodDialogOpen(true)}
             className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white shadow-lg"
@@ -328,42 +350,42 @@ export default function PayrollAdminPage() {
       >
         <Tabs defaultValue="periods" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 bg-white/80 backdrop-blur-sm border border-gray-200 p-1 rounded-xl">
-            <TabsTrigger 
-              value="periods" 
+            <TabsTrigger
+              value="periods"
               className="data-[state=active]:bg-[#F23E2E] data-[state=active]:text-white rounded-lg transition-all"
             >
               <Calendar className="w-4 h-4 mr-2" />
               Pay Periods
             </TabsTrigger>
-            <TabsTrigger 
-              value="staff" 
+            <TabsTrigger
+              value="staff"
               className="data-[state=active]:bg-[#F23E2E] data-[state=active]:text-white rounded-lg transition-all"
             >
               <Users className="w-4 h-4 mr-2" />
               Staff
             </TabsTrigger>
-            <TabsTrigger 
-              value="analytics" 
+            <TabsTrigger
+              value="analytics"
               className="data-[state=active]:bg-[#F23E2E] data-[state=active]:text-white rounded-lg transition-all"
             >
               <BarChart3 className="w-4 h-4 mr-2" />
               Analytics
             </TabsTrigger>
-            <TabsTrigger 
-              value="settings" 
+            <TabsTrigger
+              value="settings"
               className="data-[state=active]:bg-[#F23E2E] data-[state=active]:text-white rounded-lg transition-all"
             >
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </TabsTrigger>
           </TabsList>
-          
+
           {/* Pay Periods Tab */}
           <TabsContent value="periods" className="space-y-6">
             <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold font-asgard text-gray-900">Pay Periods</h3>
-                <Button 
+                <Button
                   onClick={() => setIsPayPeriodDialogOpen(true)}
                   className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
                 >
@@ -371,7 +393,7 @@ export default function PayrollAdminPage() {
                   New Period
                 </Button>
               </div>
-              
+
               {!payPeriods ? (
                 <div className="space-y-4">
                   {[...Array(5)].map((_, i) => (
@@ -391,8 +413,8 @@ export default function PayrollAdminPage() {
                   variant="no-data"
                 />
               ) : (
-                <DataTable 
-                  columns={columns} 
+                <DataTable
+                  columns={columns}
                   data={payPeriods.map((period: PayPeriod) => ({
                     id: period._id,
                     startDate: new Date(period.startDate),
@@ -403,12 +425,12 @@ export default function PayrollAdminPage() {
                     staffCount: 0, // Calculate from staff profiles if needed
                     processedAt: period.processedAt ? new Date(period.processedAt).toISOString() : null,
                     onProcess: period._id ? () => handleProcessPayroll(period._id) : undefined
-                  }))} 
+                  }))}
                 />
               )}
             </div>
           </TabsContent>
-          
+
           {/* Staff Tab */}
           <TabsContent value="staff" className="space-y-6">
             <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
@@ -416,7 +438,7 @@ export default function PayrollAdminPage() {
               <p className="text-gray-600 font-satoshi mb-6">
                 Manage payroll settings and view individual staff member details
               </p>
-              
+
               {!staffProfiles ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {[...Array(6)].map((_, i) => (
@@ -461,7 +483,7 @@ export default function PayrollAdminPage() {
               )}
             </div>
           </TabsContent>
-          
+
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
@@ -477,9 +499,9 @@ export default function PayrollAdminPage() {
                       <span className="text-sm font-satoshi text-gray-600">{data.month}</span>
                       <div className="flex items-center gap-3">
                         <div className="w-24 bg-gray-200 rounded-full h-2">
-                          <div 
+                          <div
                             className="bg-primary-600 h-2 rounded-full transition-all duration-500"
-                            style={{ width: `${(data.payroll / 70000) * 100}%` }}
+                            style={{ width: `${maxPayroll > 0 ? (data.payroll / maxPayroll) * 100 : 0}%` }}
                           ></div>
                         </div>
                         <span className="text-sm font-medium font-satoshi text-gray-900">
@@ -499,24 +521,36 @@ export default function PayrollAdminPage() {
                 </h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-satoshi text-gray-600">Full-time</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span className="text-sm font-medium font-satoshi text-gray-900">65%</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-satoshi text-gray-600">Part-time</span>
+                    <span className="text-sm font-satoshi text-gray-600">Active</span>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <span className="text-sm font-medium font-satoshi text-gray-900">25%</span>
+                      <span className="text-sm font-medium font-satoshi text-gray-900">
+                        {staffStatusDistribution.total > 0
+                          ? Math.round((staffStatusDistribution.active / staffStatusDistribution.total) * 100)
+                          : 0}%
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-satoshi text-gray-600">Contract</span>
+                    <span className="text-sm font-satoshi text-gray-600">Inactive</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                      <span className="text-sm font-medium font-satoshi text-gray-900">10%</span>
+                      <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                      <span className="text-sm font-medium font-satoshi text-gray-900">
+                        {staffStatusDistribution.total > 0
+                          ? Math.round((staffStatusDistribution.inactive / staffStatusDistribution.total) * 100)
+                          : 0}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-satoshi text-gray-600">On Leave</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+                      <span className="text-sm font-medium font-satoshi text-gray-900">
+                        {staffStatusDistribution.total > 0
+                          ? Math.round((staffStatusDistribution.onLeave / staffStatusDistribution.total) * 100)
+                          : 0}%
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -557,7 +591,7 @@ export default function PayrollAdminPage() {
                       <div className="text-sm text-amber-700 font-satoshi">Avg per Staff</div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <h4 className="text-md font-semibold font-asgard text-gray-900">Staff Hours Breakdown</h4>
                     {(() => {
@@ -593,7 +627,7 @@ export default function PayrollAdminPage() {
                             </div>
                           </div>
                         ))
-                      })()}
+                    })()}
                   </div>
                 </div>
               ) : (
@@ -605,7 +639,7 @@ export default function PayrollAdminPage() {
               )}
             </div>
           </TabsContent>
-          
+
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
             <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
@@ -613,7 +647,7 @@ export default function PayrollAdminPage() {
               <p className="text-gray-600 font-satoshi mb-6">
                 Configure global payroll settings and rules for your organization
               </p>
-              
+
               {settings ? (
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-4">

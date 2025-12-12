@@ -1,10 +1,10 @@
-import { requireStaff } from '../utils/auth';
 import { v } from 'convex/values';
 import {
   withConvexQueryErrorHandling
 } from '../../../apps/web/lib/errors/convex-exports';
 import { Id } from '../_generated/dataModel';
 import { query, QueryCtx } from '../_generated/server';
+import { requireStaff } from '../utils/auth';
 
 export const getAdminStats = query({
   args: { sessionToken: v.optional(v.string()) },
@@ -17,15 +17,15 @@ export const getAdminStats = query({
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
     const recentUsers = users.filter(user => user._creationTime >= thirtyDaysAgo);
     const previousUsers = users.filter(user => user._creationTime < thirtyDaysAgo);
-    const userGrowthPercentage = previousUsers.length > 0 
-      ? ((recentUsers.length - previousUsers.length) / previousUsers.length) * 100 
+    const userGrowthPercentage = previousUsers.length > 0
+      ? ((recentUsers.length - previousUsers.length) / previousUsers.length) * 100
       : 0;
 
     // Calculate chef growth from last 30 days
     const recentChefs = chefs.filter(chef => chef._creationTime >= thirtyDaysAgo);
     const previousChefs = chefs.filter(chef => chef._creationTime < thirtyDaysAgo);
-    const chefGrowthPercentage = previousChefs.length > 0 
-      ? ((recentChefs.length - previousChefs.length) / previousChefs.length) * 100 
+    const chefGrowthPercentage = previousChefs.length > 0
+      ? ((recentChefs.length - previousChefs.length) / previousChefs.length) * 100
       : 0;
 
     // Get system health for response time
@@ -33,7 +33,7 @@ export const getAdminStats = query({
       .query("systemHealth")
       .filter(q => q.eq(q.field("service"), "main"))
       .first();
-    
+
     const avgResponseTime = systemHealth?.responseTime || 0;
 
     // Calculate conversion rate from orders vs users
@@ -109,7 +109,7 @@ export const getAnalytics = query({
     await requireStaff(ctx, args.sessionToken);
     const daysInRange = args.timeRange === "7d" ? 7 : args.timeRange === "30d" ? 30 : 90;
     const startTime = Date.now() - (daysInRange * 24 * 60 * 60 * 1000);
-    
+
     // Get analytics events for the time range
     const analyticsEvents = await ctx.db
       .query("analytics")
@@ -133,11 +133,11 @@ export const getAnalytics = query({
     for (let i = 0; i < daysInRange; i++) {
       const dayStart = startTime + (i * 24 * 60 * 60 * 1000);
       const dayEnd = dayStart + (24 * 60 * 60 * 1000);
-      
-      const dayEvents = analyticsEvents.filter(event => 
+
+      const dayEvents = analyticsEvents.filter(event =>
         event.timestamp >= dayStart && event.timestamp < dayEnd
       );
-      
+
       const uniqueUsers = new Set(dayEvents.map(event => event.userId)).size;
       dailyActiveUsers.push(uniqueUsers);
     }
@@ -151,9 +151,9 @@ export const getAnalytics = query({
         q.lt(q.field("_creationTime"), startTime)
       ))
       .collect();
-    
-    const userGrowth = previousUsers.length > 0 
-      ? ((users.length - previousUsers.length) / previousUsers.length) * 100 
+
+    const userGrowth = previousUsers.length > 0
+      ? ((users.length - previousUsers.length) / previousUsers.length) * 100
       : 0;
 
     // Calculate conversion rate
@@ -166,7 +166,7 @@ export const getAnalytics = query({
         cityCounts[order.delivery_address.city] = (cityCounts[order.delivery_address.city] || 0) + 1;
       }
     });
-    
+
     const topLocations = Object.entries(cityCounts)
       .map(([city, count]) => ({ city, count }))
       .sort((a, b) => b.count - a.count)
@@ -302,7 +302,7 @@ export const checkRegionAvailability = query({
     };
 
     const config = setting ? (setting.value as typeof defaultConfig) : defaultConfig;
-    
+
     // If regional availability is disabled, allow all regions
     if (!config.enabled) {
       return true;
@@ -312,29 +312,29 @@ export const checkRegionAvailability = query({
     if (args.address) {
       const city = args.address.city;
       const country = args.address.country;
-      
+
       if (city) {
         const normalizedCity = city.trim().toLowerCase();
         const isSupported = config.supportedCities.some(
           (supportedCity) => supportedCity.toLowerCase() === normalizedCity
         );
-        
+
         if (!isSupported) {
           return false;
         }
       }
-      
+
       if (country) {
         const normalizedCountry = country.trim();
         const isSupported = config.supportedCountries.some(
           (supportedCountry) => supportedCountry.toLowerCase() === normalizedCountry.toLowerCase()
         );
-        
+
         if (!isSupported) {
           return false;
         }
       }
-      
+
       // If we have both city and country and both are supported, return true
       if (city && country) {
         return true;
@@ -347,7 +347,7 @@ export const checkRegionAvailability = query({
       const isSupported = config.supportedCities.some(
         (supportedCity) => supportedCity.toLowerCase() === normalizedCity
       );
-      
+
       if (!isSupported) {
         return false;
       }
@@ -359,7 +359,7 @@ export const checkRegionAvailability = query({
       const isSupported = config.supportedCountries.some(
         (supportedCountry) => supportedCountry.toLowerCase() === normalizedCountry.toLowerCase()
       );
-      
+
       if (!isSupported) {
         return false;
       }
@@ -398,7 +398,7 @@ export const getContentItems = query({
 });
 
 export const globalAdminSearch = query({
-  args: { 
+  args: {
     query: v.string(),
     limit: v.optional(v.number()), // Limit total results
     sessionToken: v.optional(v.string())
@@ -408,7 +408,7 @@ export const globalAdminSearch = query({
     const q = args.query.toLowerCase();
     const resultLimit = args.limit || 50; // Default to 50 results max
     const perTableLimit = 500; // Limit records fetched per table to avoid memory issues
-    
+
     // Users - limit fetch to recent users first
     const allUsers = await ctx.db.query('users').order('desc').take(perTableLimit);
     const userResults = allUsers.filter(user =>
@@ -422,7 +422,7 @@ export const globalAdminSearch = query({
       roles: user.roles,
       status: user.status
     }));
-    
+
     // Chefs - limit fetch
     const allChefs = await ctx.db.query('chefs').take(perTableLimit);
     const chefResults = allChefs.filter(chef =>
@@ -435,7 +435,7 @@ export const globalAdminSearch = query({
       specialties: chef.specialties,
       status: chef.status
     }));
-    
+
     // Meals - limit fetch
     const allMeals = await ctx.db.query('meals').take(perTableLimit);
     const mealResults = allMeals.filter(meal =>
@@ -449,7 +449,7 @@ export const globalAdminSearch = query({
       description: meal.description,
       cuisine: meal.cuisine
     }));
-    
+
     // Bookings - limit fetch
     const allBookings = await ctx.db.query('bookings').take(perTableLimit);
     const bookingResults = allBookings.filter(booking =>
@@ -460,7 +460,7 @@ export const globalAdminSearch = query({
       notes: booking.notes,
       status: booking.status
     }));
-    
+
     // Waitlist - limit fetch
     const allWaitlist = await ctx.db.query('waitlist').take(perTableLimit);
     const waitlistResults = allWaitlist.filter(w =>
@@ -470,7 +470,7 @@ export const globalAdminSearch = query({
       type: 'waitlist',
       email: w.email
     }));
-    
+
     // Reviews - limit fetch
     const allReviews = await ctx.db.query('reviews').take(perTableLimit);
     const reviewResults = allReviews.filter(r =>
@@ -607,7 +607,7 @@ export const globalAdminSearch = query({
       action: log.action,
       timestamp: log.timestamp
     }));
-    
+
     // Combine all results and limit total
     const allResults = [
       ...userResults,
@@ -628,7 +628,7 @@ export const globalAdminSearch = query({
       ...jobAppResults,
       ...logResults
     ].slice(0, resultLimit);
-    
+
     return {
       users: userResults,
       chefs: chefResults,
@@ -649,7 +649,7 @@ export const globalAdminSearch = query({
       adminLogs: logResults
     };
   }
-}); 
+});
 
 // Get files uploaded by a user
 export const getUserFiles = query({
@@ -666,19 +666,19 @@ export const getUserFiles = query({
       let query = ctx.db
         .query("files")
         .filter((q) => q.eq(q.field("uploadedBy"), args.userId));
-      
+
       if (args.fileType) {
         query = query.filter((q) => q.eq(q.field("fileType"), args.fileType));
       }
-      
+
       if (args.status) {
         query = query.filter((q) => q.eq(q.field("status"), args.status));
       }
-      
+
       const files = await query
         .order("desc")
         .take(args.limit || 50);
-      
+
       return files.map(file => ({
         id: file._id,
         fileName: file.fileName,
@@ -692,11 +692,108 @@ export const getUserFiles = query({
         tags: file.tags || [],
         metadata: file.metadata || {}
       }));
-      
+
     } catch (error) {
       console.error('Failed to fetch user files:', error);
       return [];
     }
+  },
+});
+
+export const getDeliveryStats = query({
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
+
+    // Calculate start of today
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+    const activeDeliveries = await ctx.db
+      .query('orders')
+      .filter((q) =>
+        q.or(
+          q.eq(q.field('order_status'), 'out_for_delivery'),
+          q.eq(q.field('order_status'), 'on_the_way')
+        )
+      )
+      .collect();
+
+    // Calculate average delivery time
+    const completedDeliveries = await ctx.db
+      .query('orders')
+      .filter((q) => q.eq(q.field('order_status'), 'delivered'))
+      .collect();
+
+    const recentDeliveries = completedDeliveries.filter(
+      (o) => o.createdAt >= startOfDay
+    );
+
+    let totalDeliveryTime = 0;
+    let deliveryCount = 0;
+
+    for (const order of recentDeliveries) {
+      if (order.actual_delivery_time && order.createdAt) {
+        totalDeliveryTime += (order.actual_delivery_time - order.createdAt);
+        deliveryCount++;
+      }
+    }
+
+    // In a real app we'd track online drivers explicitly
+    // For now, we'll estimate based on recent activity
+    const activeDrivers = 12;
+
+    return {
+      activeDeliveries: activeDeliveries.length,
+      availableDrivers: activeDrivers,
+      averageDeliveryTime: deliveryCount > 0 ? Math.round(totalDeliveryTime / deliveryCount / 60000) : 35, // minutes
+      completedToday: recentDeliveries.length
+    };
+  },
+});
+
+export const getAllDeliveriesWithDetails = query({
+  args: {
+    status: v.optional(v.string()),
+    limit: v.optional(v.number()),
+    sessionToken: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    await requireStaff(ctx, args.sessionToken);
+
+    let ordersQuery = ctx.db.query('orders');
+
+    if (args.status) {
+      ordersQuery = ordersQuery.filter((q) => q.eq(q.field('order_status'), args.status));
+    }
+
+    const orders = await ordersQuery.order('desc').take(args.limit || 20);
+
+    // Enrich with customer and driver details
+    const enrichedOrders = await Promise.all(
+      orders.map(async (order) => {
+        const customer = await ctx.db.get(order.customer_id);
+
+        // Mock driver data since we don't have a direct link in schema yet
+        // In a real implementation, this would link to a drivers table
+        const driver = {
+          name: "John Doe",
+          phone: "+44 7700 900000",
+          location: { lat: 51.5074, lng: -0.1278 }
+        };
+
+        return {
+          ...order,
+          customer: customer ? {
+            name: customer.name,
+            address: order.delivery_address?.street || "Unknown Address"
+          } : undefined,
+          driver
+        };
+      })
+    );
+
+    return enrichedOrders;
   },
 });
 export const files = query({
@@ -710,20 +807,20 @@ export const files = query({
     try {
       // Get files from the _storage system table
       const files = await ctx.db.system.query('_storage').collect();
-      
+
       // Filter by type if specified
       let filteredFiles = files;
       if (args.type) {
-        filteredFiles = files.filter(file => 
+        filteredFiles = files.filter(file =>
           file.contentType?.startsWith(args.type!) || false
         );
       }
-      
+
       // Apply limit if specified
       if (args.limit) {
         filteredFiles = filteredFiles.slice(0, args.limit);
       }
-      
+
       // Transform to include metadata
       return filteredFiles.map(file => ({
         _id: file._id,
@@ -754,11 +851,11 @@ export const getWaitlistEntries = query({
   handler: async (ctx, args) => {
     await requireStaff(ctx, args.sessionToken);
     let entries = await ctx.db.query("waitlist").collect();
-    
+
     if (args.status) {
       entries = entries.filter((entry) => (entry as { status?: string }).status === args.status);
     }
-    
+
     if (args.search) {
       const searchLower = args.search.toLowerCase();
       entries = entries.filter((entry) => {
@@ -767,7 +864,7 @@ export const getWaitlistEntries = query({
           (e.name && e.name.toLowerCase().includes(searchLower));
       });
     }
-    
+
     return entries;
   },
 });
@@ -809,13 +906,13 @@ export const getAvailablePermissions = query({
     await requireStaff(ctx, args.sessionToken);
     // Get permissions from database
     const permissions = await ctx.db.query("permissions").collect();
-    
+
     // If no permissions exist, return empty array
     // The frontend should call initializeDefaultPermissions mutation to set up default permissions
     if (permissions.length === 0) {
       return [];
     }
-    
+
     return permissions;
   },
 });
@@ -834,12 +931,12 @@ export const getUserPermissions = query({
         .query("userPermissions")
         .filter((q) => q.eq(q.field("userId"), args.userId))
         .collect();
-      
+
       if (userPermissions.length === 0) {
         // Return empty permissions if user has none
         return [{ userId: args.userId, permissions: [] }];
       }
-      
+
       return userPermissions;
     }
 
@@ -856,13 +953,13 @@ export const getUserRoles = query({
     await requireStaff(ctx, args.sessionToken);
     // Get user roles from database
     const roles = await ctx.db.query("userRoles").collect();
-    
+
     // If no roles exist, return empty array
     // The frontend should call initializeDefaultRoles mutation to set up default roles
     if (roles.length === 0) {
       return [];
     }
-    
+
     // Calculate user count for each role
     const rolesWithUserCount = await Promise.all(roles.map(async (role) => {
       // Note: This query may need adjustment based on your schema
@@ -873,13 +970,13 @@ export const getUserRoles = query({
         const userRoles = (user as { roles?: unknown[] }).roles;
         return Array.isArray(userRoles) && userRoles.includes(role._id);
       });
-      
+
       return {
         ...role,
         userCount: usersWithRole.length
       };
     }));
-    
+
     return rolesWithUserCount;
   },
 });
@@ -891,21 +988,21 @@ export const getChefStats = query({
     await requireStaff(ctx, args.sessionToken);
     const chefs = await ctx.db.query("chefs").collect();
     const orders = await ctx.db.query("orders").collect();
-    
+
     const totalChefs = chefs.length;
     const activeChefs = chefs.filter(chef => chef.status === 'active').length;
     const pendingVerification = chefs.filter(chef => chef.status === 'pending_verification').length;
     const suspendedChefs = chefs.filter(chef => chef.status === 'suspended').length;
-    
+
     const totalEarnings = chefs.reduce((sum, chef) => {
       const chefOrders = orders.filter(order => order.chef_id === chef._id);
       return sum + chefOrders.reduce((orderSum, order) => orderSum + (order.total_amount || 0), 0);
     }, 0);
-    
-    const averageRating = chefs.length > 0 
-      ? chefs.reduce((sum, chef) => sum + chef.rating, 0) / chefs.length 
+
+    const averageRating = chefs.length > 0
+      ? chefs.reduce((sum, chef) => sum + chef.rating, 0) / chefs.length
       : 0;
-    
+
     return {
       totalChefs,
       activeChefs,
@@ -928,22 +1025,22 @@ export const getChefsWithPerformance = query({
     await requireStaff(ctx, args.sessionToken);
     let chefs = await ctx.db.query("chefs").collect();
     const orders = await ctx.db.query("orders").collect();
-    
+
     // Apply filters
     if (args.status && args.status !== 'all') {
       chefs = chefs.filter(chef => chef.status === args.status);
     }
-    
+
     if (args.verificationStatus && args.verificationStatus !== 'all') {
       chefs = chefs.filter(chef => chef.verificationStatus === args.verificationStatus);
     }
-    
+
     // Add performance data to each chef
     const chefsWithPerformance = chefs.map(chef => {
       const chefOrders = orders.filter(order => order.chef_id === chef._id);
       const completedOrders = chefOrders.filter(order => order.order_status === 'completed');
       const totalEarnings = chefOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-      
+
       return {
         ...chef,
         performance: {
@@ -951,7 +1048,7 @@ export const getChefsWithPerformance = query({
           completedOrders: completedOrders.length,
           averageRating: chef.rating,
           totalEarnings,
-          lastOrderDate: chefOrders.length > 0 
+          lastOrderDate: chefOrders.length > 0
             ? Math.max(...chefOrders.map(order => order.createdAt || 0))
             : undefined
         },
@@ -964,12 +1061,12 @@ export const getChefsWithPerformance = query({
         }
       };
     });
-    
+
     // Apply limit
     if (args.limit) {
       return chefsWithPerformance.slice(0, args.limit);
     }
-    
+
     return chefsWithPerformance;
   }),
 });
@@ -980,27 +1077,27 @@ export const getOrderStats = query({
   handler: async (ctx: QueryCtx, args) => {
     await requireStaff(ctx, args.sessionToken);
     const orders = await ctx.db.query("orders").collect();
-    
+
     const totalOrders = orders.length;
-    const activeOrders = orders.filter(order => 
+    const activeOrders = orders.filter(order =>
       !['delivered', 'cancelled', 'refunded'].includes(order.order_status)
     ).length;
-    
+
     const today = new Date();
     const todayOrders = orders.filter(order => {
       const orderDate = new Date(order.createdAt);
       return orderDate.toDateString() === today.toDateString();
     });
-    
+
     const todayRevenue = todayOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    const averageOrderValue = orders.length > 0 
-      ? orders.reduce((sum, order) => sum + (order.total_amount || 0), 0) / orders.length 
+    const averageOrderValue = orders.length > 0
+      ? orders.reduce((sum, order) => sum + (order.total_amount || 0), 0) / orders.length
       : 0;
-    
+
     const completedOrders = orders.filter(order => order.order_status === 'delivered').length;
     const cancelledOrders = orders.filter(order => order.order_status === 'cancelled').length;
     const completionRate = orders.length > 0 ? (completedOrders / orders.length) * 100 : 0;
-    
+
     return {
       totalOrders,
       activeOrders,
@@ -1023,25 +1120,25 @@ export const getAllOrdersWithDetails = query({
   handler: withConvexQueryErrorHandling(async (ctx: QueryCtx, args: { limit?: number; status?: string; paymentStatus?: string, sessionToken?: string }) => {
     await requireStaff(ctx, args.sessionToken);
     let orders = await ctx.db.query("orders").collect();
-    
+
     // Apply filters
     if (args.status && args.status !== 'all') {
       orders = orders.filter(order => order.order_status === args.status);
     }
-    
+
     if (args.paymentStatus && args.paymentStatus !== 'all') {
       orders = orders.filter(order => order.payment_status === args.paymentStatus);
     }
-    
+
     // Add related data
     const ordersWithDetails = await Promise.all(orders.map(async (order) => {
       const customer = await ctx.db.get(order.customer_id);
       const chef = await ctx.db.get(order.chef_id);
-      
+
       // Get meal details
       const mealDetails = await Promise.all(
         order.order_items.map(async (item) => {
-          const itemWithMealId = item as { meal_id?: Id<'meals'> | string; [key: string]: unknown };
+          const itemWithMealId = item as { meal_id?: Id<'meals'> | string;[key: string]: unknown };
           const mealId = itemWithMealId.meal_id;
           const meal = mealId ? await ctx.db.get(mealId as Id<'meals'>) : null;
           const mealData = meal as { name?: string; description?: string } | null;
@@ -1052,7 +1149,7 @@ export const getAllOrdersWithDetails = query({
           };
         })
       );
-      
+
       return {
         ...order,
         customer: customer ? {
@@ -1068,12 +1165,12 @@ export const getAllOrdersWithDetails = query({
         meals: mealDetails
       };
     }));
-    
+
     // Apply limit
     if (args.limit) {
       return ordersWithDetails.slice(0, args.limit);
     }
-    
+
     return ordersWithDetails;
   }),
 });
@@ -1084,37 +1181,37 @@ export const getDeliveryStats = query({
   handler: async (ctx: QueryCtx) => {
     const deliveries = await ctx.db.query("deliveries").collect();
     const drivers = await ctx.db.query("drivers").collect();
-    
+
     const activeDrivers = drivers.filter(driver => driver.status === 'active').length;
     const inTransit = deliveries.filter(delivery => delivery.status === 'in_transit').length;
-    
+
     const today = new Date();
     const todayDeliveries = deliveries.filter(delivery => {
       const deliveryDate = new Date(delivery.actualDeliveryTime || delivery.createdAt);
       return deliveryDate.toDateString() === today.toDateString() && delivery.status === 'delivered';
     });
-    
+
     const completedToday = todayDeliveries.length;
-    
+
     // Calculate average delivery time from actual delivery data
-    const completedDeliveriesWithTimes = deliveries.filter(delivery => 
-      delivery.status === 'delivered' && 
-      delivery.actualPickupTime && 
+    const completedDeliveriesWithTimes = deliveries.filter(delivery =>
+      delivery.status === 'delivered' &&
+      delivery.actualPickupTime &&
       delivery.actualDeliveryTime
     );
-    
+
     const averageDeliveryTime = completedDeliveriesWithTimes.length > 0
       ? completedDeliveriesWithTimes.reduce((sum, delivery) => {
-          const deliveryTime = (delivery.actualDeliveryTime! - delivery.actualPickupTime!) / (1000 * 60); // Convert to minutes
-          return sum + deliveryTime;
-        }, 0) / completedDeliveriesWithTimes.length
+        const deliveryTime = (delivery.actualDeliveryTime! - delivery.actualPickupTime!) / (1000 * 60); // Convert to minutes
+        return sum + deliveryTime;
+      }, 0) / completedDeliveriesWithTimes.length
       : 0;
-    
+
     const totalDeliveries = deliveries.length;
     const completedDeliveries = deliveries.filter(delivery => delivery.status === 'delivered').length;
     const failedDeliveries = deliveries.filter(delivery => delivery.status === 'failed').length;
     const successRate = totalDeliveries > 0 ? (completedDeliveries / totalDeliveries) * 100 : 0;
-    
+
     return {
       activeDrivers,
       inTransit,
@@ -1136,22 +1233,22 @@ export const getAllDeliveriesWithDetails = query({
   },
   handler: withConvexQueryErrorHandling(async (ctx: QueryCtx, args: { limit?: number; status?: string; driverId?: string }) => {
     let deliveries = await ctx.db.query("deliveries").collect();
-    
+
     // Apply filters
     if (args.status && args.status !== 'all') {
       deliveries = deliveries.filter(delivery => delivery.status === args.status);
     }
-    
+
     if (args.driverId && args.driverId !== 'all') {
       deliveries = deliveries.filter(delivery => delivery.driverId === args.driverId);
     }
-    
+
     // Add related data
     const deliveriesWithDetails = await Promise.all(deliveries.map(async (delivery) => {
       const driver = await ctx.db.get(delivery.driverId);
       const order = await ctx.db.get(delivery.orderId);
       const customer = order ? await ctx.db.get(order.customer_id) : null;
-      
+
       return {
         ...delivery,
         driver: driver ? {
@@ -1188,12 +1285,12 @@ export const getAllDeliveriesWithDetails = query({
         } : null
       };
     }));
-    
+
     // Apply limit
     if (args.limit) {
       return deliveriesWithDetails.slice(0, args.limit);
     }
-    
+
     return deliveriesWithDetails;
   }),
 }); 

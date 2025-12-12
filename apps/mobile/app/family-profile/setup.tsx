@@ -1,10 +1,10 @@
 import { RelationshipSelectionSheet } from '@/components/ui/RelationshipSelectionSheet';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { api } from '@/convex/_generated/api';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { useToast } from '@/lib/ToastContext';
 import { Stack, useRouter } from 'expo-router';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
 import { CheckCircle, Plus, X } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -48,7 +48,7 @@ export default function FamilyProfileSetupScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [relationshipSheetIndex, setRelationshipSheetIndex] = useState<number | null>(null);
   const [memberValidationStatus, setMemberValidationStatus] = useState<Map<number, MemberValidation>>(new Map());
-  const validationTimeoutRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
+  const validationTimeoutRef = useRef<Map<number, any>>(new Map());
 
   const handleBack = () => {
     if (step > 1) {
@@ -68,7 +68,7 @@ export default function FamilyProfileSetupScreen() {
 
   const checkDuplicateEmail = (email: string, currentIndex: number): boolean => {
     const normalizedEmail = email.toLowerCase().trim();
-    return members.some((member, index) => 
+    return members.some((member, index) =>
       index !== currentIndex && member.email.toLowerCase().trim() === normalizedEmail
     );
   };
@@ -82,7 +82,7 @@ export default function FamilyProfileSetupScreen() {
     const updated = [...members];
     updated[index] = { ...updated[index], [field]: value };
     setMembers(updated);
-    
+
     // Clear validation status if email is changed
     if (field === 'email') {
       // Clear any pending validation timeout
@@ -102,7 +102,7 @@ export default function FamilyProfileSetupScreen() {
       if (normalizedEmail && normalizedEmail.includes('@')) {
         const isDuplicate = checkDuplicateEmail(value, index);
         const isSelfEmail = checkSelfEmail(value);
-        
+
         if (isDuplicate || isSelfEmail) {
           const updatedStatus = new Map(memberValidationStatus);
           updatedStatus.set(index, {
@@ -183,7 +183,7 @@ export default function FamilyProfileSetupScreen() {
       if (result.success === false) {
         throw new Error(result.error || 'Failed to validate email');
       }
-      
+
       // Update validation status
       const updatedStatus = new Map(memberValidationStatus);
       updatedStatus.set(index, {
@@ -385,13 +385,13 @@ export default function FamilyProfileSetupScreen() {
         throw new Error(result.error || 'Failed to create family profile');
       }
 
-        showToast({
-          type: 'success',
-          title: 'Family Profile Created',
-          message: 'Your family profile has been set up successfully!',
-          duration: 3000,
-        });
-        router.replace('/family-profile/manage');
+      showToast({
+        type: 'success',
+        title: 'Family Profile Created',
+        message: 'Your family profile has been set up successfully!',
+        duration: 3000,
+      });
+      router.replace('/family-profile/manage');
     } catch (error: any) {
       showToast({
         type: 'error',
@@ -597,15 +597,15 @@ export default function FamilyProfileSetupScreen() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false,
           title: 'Family Profile Setup'
-        }} 
+        }}
       />
       <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-        
+
         <ScreenHeader title="Family Profile Setup" onBack={handleBack} />
 
         <View style={styles.progressContainer}>

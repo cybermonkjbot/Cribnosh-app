@@ -1,18 +1,18 @@
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { useFamilyProfile } from '@/hooks/useFamilyProfile';
+import { Stack, useRouter } from 'expo-router';
+import { Package } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
-import { Package } from 'lucide-react-native';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { useFamilyProfile } from '@/hooks/useFamilyProfile';
-import { useEffect, useState } from 'react';
 
 export default function FamilyOrdersScreen() {
   const router = useRouter();
@@ -29,7 +29,7 @@ export default function FamilyOrdersScreen() {
       setIsLoading(true);
       const result = await getFamilyOrders({ limit: 50 });
       if (result.success) {
-        setOrdersData({ success: true, data: result.orders });
+        setOrdersData({ success: true, data: result.data.orders });
       }
     } catch (_error) {
       // Error already handled in hook
@@ -48,7 +48,7 @@ export default function FamilyOrdersScreen() {
       />
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-        
+
         <ScreenHeader title="Family Orders" onBack={() => router.back()} />
 
         {isLoading ? (

@@ -1,8 +1,9 @@
 import LiveScreenView from "@/components/ui/LiveViewerScreen";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 const LiveScreen = () => {
-  return <LiveScreenView onClose={() => router.back()} />;
+  const { sessionId } = useLocalSearchParams();
+  return <LiveScreenView sessionId={sessionId as string} onClose={() => router.back()} />;
 };
 
 export default LiveScreen;

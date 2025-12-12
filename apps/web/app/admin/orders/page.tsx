@@ -24,7 +24,6 @@ import {
   Flag,
   MessageSquare,
   MoreHorizontal,
-  Package,
   RefreshCw,
   ShoppingCart,
   Star,
@@ -98,10 +97,10 @@ export default function OrderManagementPage() {
   // Fetch data - authentication is handled by layout, so user is guaranteed to be authenticated here
   // These queries don't accept sessionToken, so we just pass an empty object when user is authenticated
   const shouldSkip = !user;
-      // Use orderStats from backend query instead of calculating client-side
-      const ordersQueryResult = useQuery(api.queries.admin.getAllOrdersWithDetails, shouldSkip ? "skip" : {});
+  // Use orderStats from backend query instead of calculating client-side
+  const ordersQueryResult = useQuery(api.queries.admin.getAllOrdersWithDetails, shouldSkip || !sessionToken ? "skip" : { sessionToken });
   const orders = ordersQueryResult as Order[] | undefined;
-  const orderStatsQueryResult = useQuery(api.queries.admin.getOrderStats, shouldSkip ? "skip" : {});
+  const orderStatsQueryResult = useQuery(api.queries.admin.getOrderStats, shouldSkip || !sessionToken ? "skip" : { sessionToken });
   const orderStats = orderStatsQueryResult as {
     totalOrders: number;
     activeOrders: number;
@@ -119,23 +118,23 @@ export default function OrderManagementPage() {
   // Filter and sort orders
   const filteredOrders = useMemo(() => {
     if (!orders) return [];
-    
+
     const filtered = orders.filter(order => {
-      const matchesSearch = 
+      const matchesSearch =
         order.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.chef?.bio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.delivery_address.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order._id.includes(searchTerm);
-      
+
       const matchesStatus = statusFilter === 'all' || order.order_status === statusFilter;
       const matchesPayment = paymentFilter === 'all' || order.payment_status === paymentFilter;
-      
+
       // Time filter
       const now = Date.now();
       const oneDay = 24 * 60 * 60 * 1000;
       const oneWeek = 7 * oneDay;
       const oneMonth = 30 * oneDay;
-      
+
       let matchesTime = true;
       if (timeFilter === 'today') {
         matchesTime = order.createdAt >= now - oneDay;
@@ -144,7 +143,7 @@ export default function OrderManagementPage() {
       } else if (timeFilter === 'month') {
         matchesTime = order.createdAt >= now - oneMonth;
       }
-      
+
       return matchesSearch && matchesStatus && matchesPayment && matchesTime;
     });
 
@@ -194,10 +193,10 @@ export default function OrderManagementPage() {
       completed: { color: 'bg-[#F23E2E]/10 text-[#F23E2E]', icon: CheckCircle },
       refunded: { color: 'bg-gray-100 text-gray-800', icon: RefreshCw }
     };
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
     const Icon = config.icon;
-    
+
     return (
       <Badge className={config.color}>
         <Icon className="w-3 h-3 mr-1" />
@@ -214,9 +213,9 @@ export default function OrderManagementPage() {
       failed: { color: 'bg-gray-100 text-gray-800' },
       refunded: { color: 'bg-gray-100 text-gray-800' }
     };
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-    
+
     return (
       <Badge className={config.color}>
         {status.toUpperCase()}
@@ -228,7 +227,7 @@ export default function OrderManagementPage() {
     const now = Date.now();
     const timeSinceCreated = now - order.createdAt;
     const estimatedDelivery = order.estimated_delivery_time;
-    
+
     if (timeSinceCreated > estimatedDelivery + (30 * 60 * 1000)) { // 30 minutes late
       return 'critical';
     } else if (timeSinceCreated > estimatedDelivery) {
@@ -247,9 +246,9 @@ export default function OrderManagementPage() {
       attention: { color: 'bg-gray-100 text-gray-800', icon: Zap },
       normal: { color: 'bg-gray-100 text-gray-800', icon: CheckCircle }
     };
-    
+
     const { color, icon: Icon } = config[urgency as keyof typeof config];
-    
+
     return (
       <Badge className={color}>
         <Icon className="w-3 h-3 mr-1" />
@@ -261,32 +260,32 @@ export default function OrderManagementPage() {
   // Loading state
   if (orders === undefined) {
     return (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold font-asgard text-gray-900">Order Management</h1>
-              <p className="text-gray-600 font-satoshi mt-2">Monitor and oversee order fulfillment across the platform</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-6">
-                  <Skeleton className="h-20 w-full" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-6">
-                  <Skeleton className="h-24 w-full" />
-                </CardContent>
-              </Card>
-            ))}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold font-asgard text-gray-900">Order Management</h1>
+            <p className="text-gray-600 font-satoshi mt-2">Monitor and oversee order fulfillment across the platform</p>
           </div>
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <Skeleton className="h-20 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <Skeleton className="h-24 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -295,171 +294,171 @@ export default function OrderManagementPage() {
 
   return (
     <div className="container mx-auto py-6 space-y-[18px]">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-asgard text-gray-900">Order Management</h1>
-            <p className="text-gray-600 font-satoshi mt-2">Monitor and oversee order fulfillment across the platform</p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="border-[#F23E2E] text-[#F23E2E] hover:bg-[#F23E2E]/10"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export Orders
-            </Button>
-            <Button
-              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh Data
-            </Button>
-          </div>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold font-asgard text-gray-900">Order Management</h1>
+          <p className="text-gray-600 font-satoshi mt-2">Monitor and oversee order fulfillment across the platform</p>
         </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="border-[#F23E2E] text-[#F23E2E] hover:bg-[#F23E2E]/10"
           >
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                    <p className="text-2xl font-bold text-gray-900">{orderStats?.totalOrders || 0}</p>
-                  </div>
-                  <ShoppingCart className="w-8 h-8 text-[#F23E2E]" />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            <Download className="w-4 h-4 mr-2" />
+            Export Orders
+          </Button>
+          <Button
+            className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
           >
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Active Orders</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {orderStats?.activeOrders || 0}
-                    </p>
-                  </div>
-                  <Clock className="w-8 h-8 text-gray-900" />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Today's Revenue</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      ${orderStats?.todayRevenue.toLocaleString() || '0'}
-                    </p>
-                  </div>
-                  <DollarSign className="w-8 h-8 text-gray-900" />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Avg Order Value</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      ${orderStats?.averageOrderValue.toLocaleString() || '0'}
-                    </p>
-                  </div>
-                  <TrendingUp className="w-8 h-8 text-gray-900" />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh Data
+          </Button>
         </div>
+      </div>
 
-        {/* Filters */}
-        <OrderFilterBar
-          searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          paymentFilter={paymentFilter}
-          onPaymentFilterChange={setPaymentFilter}
-          timeFilter={timeFilter}
-          onTimeFilterChange={setTimeFilter}
-          sortBy={sortBy}
-          onSortByChange={setSortBy}
-          totalCount={orders?.length || 0}
-          filteredCount={filteredOrders.length}
-        />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Orders</p>
+                  <p className="text-2xl font-bold text-gray-900">{orderStats?.totalOrders || 0}</p>
+                </div>
+                <ShoppingCart className="w-8 h-8 text-[#F23E2E]" />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/90 backdrop-blur-lg border border-white/20">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="active" className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Active Orders
-            </TabsTrigger>
-            <TabsTrigger value="issues" className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" />
-              Issues
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              Analytics
-            </TabsTrigger>
-          </TabsList>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Active Orders</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {orderStats?.activeOrders || 0}
+                  </p>
+                </div>
+                <Clock className="w-8 h-8 text-gray-900" />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            {filteredOrders.length === 0 ? (
-              <EmptyState
-                icon={ShoppingCart}
-                title={hasActiveFilters ? "No orders found" : "No orders yet"}
-                description={hasActiveFilters 
-                  ? "Try adjusting your search or filter criteria to see more results."
-                  : "Orders will appear here once they are placed."}
-                action={hasActiveFilters ? {
-                  label: "Clear filters",
-                  onClick: () => {
-                    setSearchTerm("");
-                    setStatusFilter("all");
-                    setPaymentFilter("all");
-                    setTimeFilter("today");
-                  },
-                  variant: "secondary"
-                } : undefined}
-                variant={hasActiveFilters ? "filtered" : "no-data"}
-              />
-            ) : (
-              <div className="space-y-4">
-                {filteredOrders.map((order, index) => {
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Today's Revenue</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    ${orderStats?.todayRevenue.toLocaleString() || '0'}
+                  </p>
+                </div>
+                <DollarSign className="w-8 h-8 text-gray-900" />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Avg Order Value</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    ${orderStats?.averageOrderValue.toLocaleString() || '0'}
+                  </p>
+                </div>
+                <TrendingUp className="w-8 h-8 text-gray-900" />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Filters */}
+      <OrderFilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        paymentFilter={paymentFilter}
+        onPaymentFilterChange={setPaymentFilter}
+        timeFilter={timeFilter}
+        onTimeFilterChange={setTimeFilter}
+        sortBy={sortBy}
+        onSortByChange={setSortBy}
+        totalCount={orders?.length || 0}
+        filteredCount={filteredOrders.length}
+      />
+
+      {/* Main Content Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 bg-white/90 backdrop-blur-lg border border-white/20">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="active" className="flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            Active Orders
+          </TabsTrigger>
+          <TabsTrigger value="issues" className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4" />
+            Issues
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" />
+            Analytics
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          {filteredOrders.length === 0 ? (
+            <EmptyState
+              icon={ShoppingCart}
+              title={hasActiveFilters ? "No orders found" : "No orders yet"}
+              description={hasActiveFilters
+                ? "Try adjusting your search or filter criteria to see more results."
+                : "Orders will appear here once they are placed."}
+              action={hasActiveFilters ? {
+                label: "Clear filters",
+                onClick: () => {
+                  setSearchTerm("");
+                  setStatusFilter("all");
+                  setPaymentFilter("all");
+                  setTimeFilter("today");
+                },
+                variant: "secondary"
+              } : undefined}
+              variant={hasActiveFilters ? "filtered" : "no-data"}
+            />
+          ) : (
+            <div className="space-y-4">
+              {filteredOrders.map((order, index) => {
                 const urgency = getUrgencyLevel(order);
                 return (
                   <motion.div
@@ -468,10 +467,9 @@ export default function OrderManagementPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <Card className={`hover:shadow-lg transition-shadow ${
-                      urgency === 'critical' || urgency === 'warning' ? 'border-[#F23E2E]/20 bg-[#F23E2E]/5' : 
-                      urgency === 'attention' ? 'border-gray-200 bg-gray-50/30' : ''
-                    }`}>
+                    <Card className={`hover:shadow-lg transition-shadow ${urgency === 'critical' || urgency === 'warning' ? 'border-[#F23E2E]/20 bg-[#F23E2E]/5' :
+                        urgency === 'attention' ? 'border-gray-200 bg-gray-50/30' : ''
+                      }`}>
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
@@ -525,37 +523,37 @@ export default function OrderManagementPage() {
                     </Card>
                   </motion.div>
                 );
-                })}
-              </div>
-            )}
-          </TabsContent>
+              })}
+            </div>
+          )}
+        </TabsContent>
 
-          {/* Active Orders Tab */}
-          <TabsContent value="active" className="space-y-6">
-            {filteredOrders.filter(order => !['delivered', 'cancelled', 'refunded'].includes(order.order_status)).length === 0 ? (
-              <EmptyState
-                icon={Clock}
-                title={hasActiveFilters ? "No active orders found" : "No active orders"}
-                description={hasActiveFilters 
-                  ? "Try adjusting your search or filter criteria to see more results."
-                  : "There are currently no active orders."}
-                action={hasActiveFilters ? {
-                  label: "Clear filters",
-                  onClick: () => {
-                    setSearchTerm("");
-                    setStatusFilter("all");
-                    setPaymentFilter("all");
-                    setTimeFilter("today");
-                  },
-                  variant: "secondary"
-                } : undefined}
-                variant={hasActiveFilters ? "filtered" : "no-data"}
-              />
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {filteredOrders
-                  .filter(order => !['delivered', 'cancelled', 'refunded'].includes(order.order_status))
-                  .map((order, index) => {
+        {/* Active Orders Tab */}
+        <TabsContent value="active" className="space-y-6">
+          {filteredOrders.filter(order => !['delivered', 'cancelled', 'refunded'].includes(order.order_status)).length === 0 ? (
+            <EmptyState
+              icon={Clock}
+              title={hasActiveFilters ? "No active orders found" : "No active orders"}
+              description={hasActiveFilters
+                ? "Try adjusting your search or filter criteria to see more results."
+                : "There are currently no active orders."}
+              action={hasActiveFilters ? {
+                label: "Clear filters",
+                onClick: () => {
+                  setSearchTerm("");
+                  setStatusFilter("all");
+                  setPaymentFilter("all");
+                  setTimeFilter("today");
+                },
+                variant: "secondary"
+              } : undefined}
+              variant={hasActiveFilters ? "filtered" : "no-data"}
+            />
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {filteredOrders
+                .filter(order => !['delivered', 'cancelled', 'refunded'].includes(order.order_status))
+                .map((order, index) => {
                   const urgency = getUrgencyLevel(order);
                   return (
                     <motion.div
@@ -564,10 +562,9 @@ export default function OrderManagementPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
                     >
-                          <Card className={`hover:shadow-lg transition-shadow ${
-                            urgency === 'critical' || urgency === 'warning' ? 'border-[#F23E2E]/20 bg-[#F23E2E]/5' : 
-                            urgency === 'attention' ? 'border-gray-200 bg-gray-50/30' : ''
-                          }`}>
+                      <Card className={`hover:shadow-lg transition-shadow ${urgency === 'critical' || urgency === 'warning' ? 'border-[#F23E2E]/20 bg-[#F23E2E]/5' :
+                          urgency === 'attention' ? 'border-gray-200 bg-gray-50/30' : ''
+                        }`}>
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-lg">Order #{order._id.slice(-8)}</CardTitle>
@@ -590,7 +587,7 @@ export default function OrderManagementPage() {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               {getStatusBadge(order.order_status)}
@@ -628,35 +625,35 @@ export default function OrderManagementPage() {
                       </Card>
                     </motion.div>
                   );
-                  })}
-              </div>
-            )}
-          </TabsContent>
+                })}
+            </div>
+          )}
+        </TabsContent>
 
-          {/* Issues Tab */}
-          <TabsContent value="issues" className="space-y-6">
-            {filteredOrders.filter(order => {
-              const urgency = getUrgencyLevel(order);
-              return urgency === 'critical' || urgency === 'warning' || 
-                     order.payment_status === 'failed' || 
-                     order.order_status === 'cancelled';
-            }).length === 0 ? (
-              <EmptyState
-                icon={CheckCircle}
-                title="No issues found"
-                description="All orders are processing normally. Great job!"
-                variant="no-data"
-              />
-            ) : (
-              <div className="space-y-4">
-                {filteredOrders
-                  .filter(order => {
-                    const urgency = getUrgencyLevel(order);
-                    return urgency === 'critical' || urgency === 'warning' || 
-                           order.payment_status === 'failed' || 
-                           order.order_status === 'cancelled';
-                  })
-                  .map((order, index) => {
+        {/* Issues Tab */}
+        <TabsContent value="issues" className="space-y-6">
+          {filteredOrders.filter(order => {
+            const urgency = getUrgencyLevel(order);
+            return urgency === 'critical' || urgency === 'warning' ||
+              order.payment_status === 'failed' ||
+              order.order_status === 'cancelled';
+          }).length === 0 ? (
+            <EmptyState
+              icon={CheckCircle}
+              title="No issues found"
+              description="All orders are processing normally. Great job!"
+              variant="no-data"
+            />
+          ) : (
+            <div className="space-y-4">
+              {filteredOrders
+                .filter(order => {
+                  const urgency = getUrgencyLevel(order);
+                  return urgency === 'critical' || urgency === 'warning' ||
+                    order.payment_status === 'failed' ||
+                    order.order_status === 'cancelled';
+                })
+                .map((order, index) => {
                   const urgency = getUrgencyLevel(order);
                   return (
                     <motion.div
@@ -679,9 +676,9 @@ export default function OrderManagementPage() {
                                 </div>
                                 <p className="text-sm text-gray-700 mt-1">
                                   {urgency === 'critical' ? 'Order is significantly delayed' :
-                                   urgency === 'warning' ? 'Order is running late' :
-                                   order.payment_status === 'failed' ? 'Payment failed' :
-                                   'Order was cancelled'}
+                                    urgency === 'warning' ? 'Order is running late' :
+                                      order.payment_status === 'failed' ? 'Payment failed' :
+                                        'Order was cancelled'}
                                 </p>
                               </div>
                             </div>
@@ -689,7 +686,7 @@ export default function OrderManagementPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                    className="border-[#F23E2E]/30 text-[#F23E2E] hover:bg-[#F23E2E]/10"
+                                className="border-[#F23E2E]/30 text-[#F23E2E] hover:bg-[#F23E2E]/10"
                               >
                                 <Flag className="w-4 h-4 mr-1" />
                                 Flag for Review
@@ -711,67 +708,67 @@ export default function OrderManagementPage() {
                       </Card>
                     </motion.div>
                   );
-                  })}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Order Status Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'].map(status => {
-                      const count = orders?.filter(o => o.order_status === status).length || 0;
-                      const percentage = orders?.length ? (count / orders.length) * 100 : 0;
-                      return (
-                        <div key={status} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {getStatusBadge(status)}
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold">{count}</p>
-                            <p className="text-sm text-gray-500">{percentage.toFixed(1)}%</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Revenue by Status</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {['delivered', 'preparing', 'ready', 'out_for_delivery'].map(status => {
-                      const statusOrders = orders?.filter(o => o.order_status === status) || [];
-                      const revenue = statusOrders.reduce((sum, o) => sum + o.total_amount, 0);
-                      const count = statusOrders.length;
-                      return (
-                        <div key={status} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {getStatusBadge(status)}
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold">${revenue.toLocaleString()}</p>
-                            <p className="text-sm text-gray-500">{count} orders</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+                })}
             </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+          )}
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Order Status Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'].map(status => {
+                    const count = orders?.filter(o => o.order_status === status).length || 0;
+                    const percentage = orders?.length ? (count / orders.length) * 100 : 0;
+                    return (
+                      <div key={status} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(status)}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold">{count}</p>
+                          <p className="text-sm text-gray-500">{percentage.toFixed(1)}%</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue by Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {['delivered', 'preparing', 'ready', 'out_for_delivery'].map(status => {
+                    const statusOrders = orders?.filter(o => o.order_status === status) || [];
+                    const revenue = statusOrders.reduce((sum, o) => sum + o.total_amount, 0);
+                    const count = statusOrders.length;
+                    return (
+                      <div key={status} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(status)}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold">${revenue.toLocaleString()}</p>
+                          <p className="text-sm text-gray-500">{count} orders</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
