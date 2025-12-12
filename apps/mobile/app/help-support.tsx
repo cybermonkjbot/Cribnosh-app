@@ -41,7 +41,7 @@ const burgerIconSVG = `<svg width="40" height="40" viewBox="0 0 40 40" fill="non
 
 export default function HelpSupportScreen() {
   const router = useRouter();
-  const { showToast } = useToast();
+  const { } = useToast();
   const { isAuthenticated } = useAuthContext();
 
   // Fetch support cases using new hook

@@ -31,7 +31,7 @@ export default function FamilyOrdersScreen() {
       if (result.success) {
         setOrdersData({ success: true, data: result.orders });
       }
-    } catch (error) {
+    } catch (_error) {
       // Error already handled in hook
     } finally {
       setIsLoading(false);
