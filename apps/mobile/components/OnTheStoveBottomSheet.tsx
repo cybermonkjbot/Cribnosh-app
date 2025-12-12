@@ -4,7 +4,7 @@ import { Dimensions, StyleSheet, Text, View } from 'react-native';
 import BottomSheetBase from './BottomSheetBase';
 import CompactMealSelection from './CompactMealSelection';
 import CustomLiveButton from './CustomLiveButton';
-import AISparkles from './ui/AISparkles';
+import { AISparkles } from './ui/AISparkles';
 import LoveThisButton from './ui/LoveThisButton';
 import { OnTheStoveBottomSheetSkeleton } from './ui/OnTheStoveBottomSheetSkeleton';
 
@@ -117,9 +117,7 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
     onAddToCart?.();
   }, [onAddToCart]);
 
-  const handleToggleExpanded = useCallback(() => {
-    setIsExpanded(prev => !prev);
-  }, []);
+
 
   const handleReaction = useCallback((liked: boolean) => {
     // Send heart reaction when user likes/unlikes

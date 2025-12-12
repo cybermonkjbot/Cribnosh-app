@@ -1,14 +1,14 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator, Modal } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import { getConvexClient } from '@/lib/convexClient';
 import { useToast } from '@/lib/ToastContext';
+import { useMutation } from 'convex/react';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { X } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { getConvexClient } from '@/lib/convexClient';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 
 // Close icon SVG
@@ -136,7 +136,7 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
           const storageId = uploadResult.storageId || uploadResult;
 
           // Get file URL
-          const fileUrl = await convex.storage.getUrl(storageId);
+          const fileUrl = await (convex as any).storage.getUrl(storageId);
           uploadedImages.push(fileUrl);
         }
 

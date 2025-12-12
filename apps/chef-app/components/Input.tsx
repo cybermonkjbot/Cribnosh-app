@@ -31,7 +31,7 @@ const getSizeStyles = (size: 'sm' | 'md' | 'lg') => {
 
 export const Input: FC<InputProps> = ({ size = 'md', leftIcon, style, ...props }) => {
   const sizeStyles = getSizeStyles(size);
-  
+
   return (
     <View
       style={[
@@ -41,7 +41,7 @@ export const Input: FC<InputProps> = ({ size = 'md', leftIcon, style, ...props }
           paddingLeft: leftIcon ? 8 : sizeStyles.paddingHorizontal,
           paddingRight: sizeStyles.paddingHorizontal,
         },
-        style,
+        style as any,
       ]}
     >
       {leftIcon && <View style={styles.iconContainer}>{leftIcon}</View>}

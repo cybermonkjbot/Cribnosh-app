@@ -1,12 +1,12 @@
 import { useNotifications } from '@/hooks/useNotifications';
 import { Notification } from '@/types/notification';
+import { BlurEffect } from '@/utils/blurEffects';
 import { useRouter } from 'expo-router';
 import { Bell, CheckCheck } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
-import { BlurEffect } from '@/utils/blurEffects';
 
 // Close icon SVG
 const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -229,10 +229,10 @@ export function NotificationsSheet({
                   tint="light"
                   useGradient={true}
                   backgroundColor="rgba(242, 62, 46, 0.75)"
-                  style={[StyleSheet.absoluteFill, { zIndex: 0 }]}
+                  style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]}
                 />
               )}
-              
+
               {/* Content container - positioned above blur */}
               <View style={styles.floatingButtonContent}>
                 {isMarkingAll ? (

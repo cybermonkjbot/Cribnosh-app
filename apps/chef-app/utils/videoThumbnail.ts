@@ -1,6 +1,6 @@
-import * as VideoThumbnails from 'expo-video-thumbnails';
+import { AVPlaybackStatus, Video } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
-import { Video, AVPlaybackStatus } from 'expo-av';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 
 /**
  * Generate a thumbnail from a video file
@@ -34,7 +34,7 @@ export async function getVideoMetadata(videoUri: string): Promise<{
   height: number;
 }> {
   return new Promise((resolve, reject) => {
-    const video = new Video({ uri: videoUri });
+    const video = new Video({ source: { uri: videoUri } } as any);
     let resolved = false;
 
     const cleanup = async () => {
@@ -46,14 +46,15 @@ export async function getVideoMetadata(videoUri: string): Promise<{
     };
 
     video.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
+      const anyStatus = status as any;
       if (status.isLoaded && !resolved) {
         resolved = true;
         const fileInfo = FileSystem.getInfoAsync(videoUri).then(info => {
           return {
             duration: status.durationMillis ? status.durationMillis / 1000 : 0,
             fileSize: info.exists && 'size' in info ? info.size : 0,
-            width: status.naturalSize?.width || 1280,
-            height: status.naturalSize?.height || 720,
+            width: anyStatus.naturalSize?.width || 1280,
+            height: anyStatus.naturalSize?.height || 720,
           };
         });
 
@@ -66,14 +67,14 @@ export async function getVideoMetadata(videoUri: string): Promise<{
           resolve({
             duration: status.durationMillis ? status.durationMillis / 1000 : 0,
             fileSize: 0,
-            width: status.naturalSize?.width || 1280,
-            height: status.naturalSize?.height || 720,
+            width: anyStatus.naturalSize?.width || 1280,
+            height: anyStatus.naturalSize?.height || 720,
           });
         });
       }
     });
 
-    video.loadAsync().catch((error) => {
+    video.loadAsync({ uri: videoUri }).catch((error) => {
       cleanup();
       reject(error);
     });

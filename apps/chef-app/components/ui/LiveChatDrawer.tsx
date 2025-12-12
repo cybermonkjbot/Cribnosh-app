@@ -414,7 +414,11 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
           scrollViewRef.current?.scrollToEnd({ animated: true });
         }, 100);
       } else {
-        showToast('Failed to send message. Please try again.', 'error');
+        showToast({
+          message: 'Failed to send message. Please try again.',
+          type: 'error',
+          title: 'Error'
+        });
       }
     }
   };
@@ -435,7 +439,11 @@ export const LiveChatDrawer: React.FC<LiveChatDrawerProps> = ({ isVisible, onClo
   // Show error toast if there's an error
   useEffect(() => {
     if (error && isVisible) {
-      showToast('Failed to load chat. Please try again.', 'error');
+      showToast({
+        message: 'Failed to load chat. Please try again.',
+        type: 'error',
+        title: 'Error'
+      });
     }
   }, [error, isVisible, showToast]);
 

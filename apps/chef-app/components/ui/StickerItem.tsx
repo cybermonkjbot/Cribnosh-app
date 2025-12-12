@@ -26,7 +26,6 @@ interface StickerItemProps {
 }
 
 const MIN_SIZE = 60;
-const MIN_SIZE = 60;
 
 export function StickerItem({
   stickerData,

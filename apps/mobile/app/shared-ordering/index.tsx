@@ -127,40 +127,7 @@ export default function SharedOrderingIndex() {
     };
   }, []);
 
-  // Update custom order function
-  const updateCustomOrder = useCallback(async (data: {
-    customOrderId: string;
-    data: {
-      details?: {
-        dietary_restrictions?: string[];
-      };
-    };
-  }) => {
-    const convex = getConvexClient();
-    const sessionToken = await getSessionToken();
 
-    if (!sessionToken) {
-      throw new Error('Not authenticated');
-    }
-
-    // Extract dietary restrictions from the nested structure
-    const dietaryRestrictions = data.data.details?.dietary_restrictions?.[0] || null;
-
-    const result = await convex.action(api.actions.orders.customerUpdateCustomOrder, {
-      sessionToken,
-      custom_order_id: data.customOrderId,
-      dietary_restrictions: dietaryRestrictions,
-    });
-
-    if (result.success === false) {
-      throw new Error(result.error || 'Failed to update custom order');
-    }
-
-    // Transform to match expected format
-    return {
-      data: result.custom_order,
-    };
-  }, []);
 
   const presetAmounts = ["10", "20", "50", "Unlimited"];
 

@@ -202,7 +202,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
       const storageId = uploadResult.storageId || uploadResult;
 
       // Get file URL
-      const fileUrl = await convex.storage.getUrl(storageId);
+      const fileUrl = await (convex as any).storage.getUrl(storageId);
 
       setFormData({ ...formData, featuredImage: fileUrl });
       showSuccess('Image Uploaded', 'Recipe image uploaded successfully.');

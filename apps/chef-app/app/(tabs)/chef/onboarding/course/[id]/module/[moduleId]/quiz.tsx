@@ -6,7 +6,7 @@ import { useToast } from '@/lib/ToastContext';
 import { useMutation, useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, CheckCircle, XCircle } from 'lucide-react-native';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -33,14 +33,14 @@ export default function ModuleQuizScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string; moduleId: string }>();
   const { showSuccess, showError } = useToast();
-  
+
   const courseId = params.id;
   const moduleId = params.moduleId;
-  
+
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitted, setSubmitted] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const saveQuizProgressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveQuizProgressTimeoutRef = useRef<any>(null);
   const [showingFeedback, setShowingFeedback] = useState(false);
   const [currentFeedback, setCurrentFeedback] = useState<{
     isCorrect: boolean;
@@ -61,7 +61,7 @@ export default function ModuleQuizScreen() {
 
   // Get module content to access quiz
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
-   
+
   // @ts-ignore
   const moduleContent = useQuery(
     // @ts-ignore
@@ -102,12 +102,12 @@ export default function ModuleQuizScreen() {
   // Save quiz progress as answers change
   const saveQuizProgress = React.useCallback(async (newAnswers: Record<string, any>, questionIndex: number) => {
     if (!chef?._id || !courseId || !moduleId || !sessionToken || !currentModule || !moduleContent || submitted) return;
-    
+
     // Clear existing timeout
     if (saveQuizProgressTimeoutRef.current) {
       clearTimeout(saveQuizProgressTimeoutRef.current);
     }
-    
+
     // Debounce saves - only save after 500ms of no changes
     saveQuizProgressTimeoutRef.current = setTimeout(async () => {
       try {
@@ -139,7 +139,7 @@ export default function ModuleQuizScreen() {
     if (!currentModule || !sortedModules.length) return null;
     const currentIndex = sortedModules.findIndex((m: any) => m.moduleId === moduleId);
     if (currentIndex === -1) return null;
-    
+
     // Find next incomplete module after current
     for (let i = currentIndex + 1; i < sortedModules.length; i++) {
       if (!sortedModules[i].completed) {
@@ -174,20 +174,20 @@ export default function ModuleQuizScreen() {
 
   const handleAnswerChange = useCallback((questionId: string, answer: any, question: QuizQuestion, totalQuestions: number, isLastQuestion: boolean, submitCallback: () => void) => {
     if (submitted || showingFeedback) return;
-    
+
     // Save the answer
     const newAnswers = {
       ...answers,
       [questionId]: answer,
     };
     setAnswers(newAnswers);
-    
+
     // Save progress immediately
     saveQuizProgress(newAnswers, currentQuestionIndex);
 
     // Check if answer is correct
     const isCorrect = JSON.stringify(answer) === JSON.stringify(question.correctAnswer);
-    
+
     // Show feedback immediately
     setCurrentFeedback({
       isCorrect,
@@ -207,7 +207,7 @@ export default function ModuleQuizScreen() {
 
     // Auto-advance after delay
     const delay = isCorrect ? 2000 : 4000; // 2s for correct, 4s for wrong (to read explanation)
-    
+
     setTimeout(() => {
       Animated.timing(feedbackOpacity, {
         toValue: 0,
@@ -216,7 +216,7 @@ export default function ModuleQuizScreen() {
       }).start(() => {
         setShowingFeedback(false);
         setCurrentFeedback(null);
-        
+
         // Move to next question or submit if last
         if (isLastQuestion) {
           // Last question - submit quiz after a brief delay
@@ -242,7 +242,7 @@ export default function ModuleQuizScreen() {
     questions.forEach((question) => {
       const userAnswer = userAnswers[question.questionId];
       const isCorrect = JSON.stringify(userAnswer) === JSON.stringify(question.correctAnswer);
-      
+
       questionResults[question.questionId] = {
         isCorrect,
         userAnswer,
@@ -318,7 +318,7 @@ export default function ModuleQuizScreen() {
       } else {
         showError('Quiz Failed', `You scored ${results.score}%. Minimum ${quiz.passingScore}% required.`);
       }
-      
+
       // Auto-navigate to next module or completion after 1.5 seconds
       setTimeout(() => {
         if (nextModule) {
@@ -340,7 +340,7 @@ export default function ModuleQuizScreen() {
     setSubmitted(false);
     setQuizResults(null);
     setCurrentQuestionIndex(0);
-    
+
     // Clear saved progress
     if (chef?._id && courseId && moduleId && sessionToken && currentModule && moduleContent) {
       try {
@@ -359,7 +359,7 @@ export default function ModuleQuizScreen() {
         console.error('Error clearing quiz progress:', error);
       }
     }
-    
+
     if (quiz?.timeLimit) {
       setTimeRemaining(quiz.timeLimit);
     }
@@ -452,8 +452,8 @@ export default function ModuleQuizScreen() {
                     <TouchableOpacity
                       key={optIndex}
                       onPress={() => !submitted && !showingFeedback && handleAnswerChange(
-                        currentQuestion.questionId, 
-                        option, 
+                        currentQuestion.questionId,
+                        option,
                         currentQuestion,
                         sortedQuestions.length,
                         isLastQuestion,
@@ -491,8 +491,8 @@ export default function ModuleQuizScreen() {
                     <TouchableOpacity
                       key={option}
                       onPress={() => !submitted && !showingFeedback && handleAnswerChange(
-                        currentQuestion.questionId, 
-                        option, 
+                        currentQuestion.questionId,
+                        option,
                         currentQuestion,
                         sortedQuestions.length,
                         isLastQuestion,
@@ -561,7 +561,7 @@ export default function ModuleQuizScreen() {
 
       {/* Full Screen Feedback Overlay */}
       {showingFeedback && currentFeedback && (
-        <Animated.View 
+        <Animated.View
           style={[
             styles.feedbackOverlay,
             { opacity: feedbackOpacity }
@@ -585,8 +585,8 @@ export default function ModuleQuizScreen() {
                 <View style={styles.correctAnswerContainer}>
                   <Text style={styles.correctAnswerLabel}>Correct answer:</Text>
                   <Text style={styles.correctAnswerText}>
-                    {typeof currentFeedback.correctAnswer === 'string' 
-                      ? currentFeedback.correctAnswer 
+                    {typeof currentFeedback.correctAnswer === 'string'
+                      ? currentFeedback.correctAnswer
                       : JSON.stringify(currentFeedback.correctAnswer)}
                   </Text>
                 </View>
@@ -924,7 +924,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     fontSize: 18,
     lineHeight: 24,
-    color: COLORS.textSecondary || 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
   },
   correctAnswerContainer: {
@@ -941,7 +941,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
     lineHeight: 20,
-    color: COLORS.textSecondary || 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.8)',
     marginBottom: 8,
   },
   correctAnswerText: {
@@ -966,7 +966,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 8,
-    color: COLORS.textSecondary || 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   feedbackExplanationText: {
     fontFamily: 'SF Pro',

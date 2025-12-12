@@ -210,7 +210,7 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
 
       const uploadResult = await uploadResponse.json();
       const storageId = uploadResult.storageId || uploadResult;
-      const mediaUrl = await convex.storage.getUrl(storageId);
+      const mediaUrl = await (convex as any).storage.getUrl(storageId);
 
       setIsUploadingMedia(false);
 

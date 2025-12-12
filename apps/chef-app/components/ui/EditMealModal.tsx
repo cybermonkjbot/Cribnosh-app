@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator, Modal } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
-import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { useToast } from '@/lib/ToastContext';
 import { Id } from '@/convex/_generated/dataModel';
-import { X } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
 import { getConvexClient } from '@/lib/convexClient';
+import { useToast } from '@/lib/ToastContext';
+import { useMutation, useQuery } from 'convex/react';
+import * as ImagePicker from 'expo-image-picker';
+import { X } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 
 // Close icon SVG
@@ -49,7 +49,7 @@ export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps
   });
 
   const updateMeal = useMutation(api.mutations.meals.updateMeal);
-  
+
   // Fetch meal data when modal opens
   const meal = useQuery(
     api.queries.meals.getMealByIdForEdit,
@@ -134,7 +134,7 @@ export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps
           const storageId = uploadResult.storageId || uploadResult;
 
           // Get file URL
-          const fileUrl = await convex.storage.getUrl(storageId);
+          const fileUrl = await (convex as any).storage.getUrl(storageId);
           uploadedImages.push(fileUrl);
         }
 
@@ -264,7 +264,7 @@ export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps
                 {/* Basic Information */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Basic Information</Text>
-                  
+
                   <View style={styles.fieldContainer}>
                     <Text style={styles.label}>Meal Name *</Text>
                     <TextInput
@@ -358,7 +358,7 @@ export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps
                 {/* Images */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Meal Images</Text>
-                  
+
                   {formData.images.length > 0 && (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScrollView}>
                       <View style={styles.imagesContainer}>
@@ -376,7 +376,7 @@ export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps
                       </View>
                     </ScrollView>
                   )}
-                  
+
                   <TouchableOpacity
                     onPress={handleImagePick}
                     disabled={isUploadingImage}

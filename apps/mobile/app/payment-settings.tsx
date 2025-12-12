@@ -4,11 +4,10 @@ import { BalanceTransactionsSheet } from '@/components/ui/BalanceTransactionsShe
 import { TopUpBalanceSheet } from '@/components/ui/TopUpBalanceSheet';
 import { useRouter } from 'expo-router';
 import { CreditCard } from 'lucide-react-native';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { usePayments } from '@/hooks/usePayments';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
-import { useAuthContext } from '@/contexts/AuthContext';
+
+
 import { Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
@@ -53,23 +52,23 @@ const chevronRightIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fil
 
 export default function PaymentSettingsScreen() {
   const router = useRouter();
-  const { showToast } = useToast();
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('apple-pay');
-  const [isAddingCard, setIsAddingCard] = useState(false);
+  const { } = useToast();
+
+
   const [isAddCardVisible, setIsAddCardVisible] = useState(false);
   const [isBalanceInfoVisible, setIsBalanceInfoVisible] = useState(false);
   const [isTransactionsVisible, setIsTransactionsVisible] = useState(false);
   const [isTopUpVisible, setIsTopUpVisible] = useState(false);
   const [paymentMethodsData, setPaymentMethodsData] = useState<any>(null);
   const [balanceData, setBalanceData] = useState<any>(null);
-  const [transactionsData, setTransactionsData] = useState<any>(null);
+
 
   const {
     getPaymentMethods,
     getBalance,
     getBalanceTransactions,
     setDefaultPaymentMethod,
-    isLoading: paymentsLoading,
+    isLoading: _paymentsLoading,
   } = usePayments();
 
   // Fetch payment data using Convex

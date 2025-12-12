@@ -1,7 +1,7 @@
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Platform, StyleSheet, View, ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 export interface BlurEffectProps {
   intensity?: number;
@@ -42,7 +42,7 @@ export function BlurEffect({
 
   // Android fallback
   const opacity = Math.min(intensity / 100, 0.85);
-  
+
   // Determine background color based on tint if not explicitly provided
   let fallbackColor = backgroundColor;
   if (!fallbackColor) {
@@ -59,14 +59,14 @@ export function BlurEffect({
 
   // Android with gradient overlay for better visual similarity
   if (useGradient) {
-    const gradientColors = 
-      tint === 'dark' 
+    const gradientColors =
+      tint === 'dark'
         ? [`rgba(0, 0, 0, ${opacity * 0.8})`, `rgba(0, 0, 0, ${opacity * 0.6})`]
         : [`rgba(255, 255, 255, ${opacity})`, `rgba(255, 255, 255, ${opacity * 0.8})`];
 
     return (
       <LinearGradient
-        colors={gradientColors}
+        colors={gradientColors as any}
         style={[StyleSheet.absoluteFill, style]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}

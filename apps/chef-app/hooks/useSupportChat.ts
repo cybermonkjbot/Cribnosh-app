@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { api } from '@/convex/_generated/api';
-import { SupportMessage, SupportAgent } from '@/types/customer';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
+import { SupportAgent, SupportMessage } from '@/types/customer';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 
 interface UseSupportChatOptions {
   enabled?: boolean;
@@ -45,8 +45,8 @@ export function useSupportChat(options: UseSupportChatOptions = {}) {
 
   const lastMessageIdRef = useRef<string | null>(null);
   const lastAgentIdRef = useRef<string | null>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const agentPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const agentPollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isInitializedRef = useRef(false);
   const isMountedRef = useRef(true);
 

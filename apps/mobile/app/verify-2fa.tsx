@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Keyboard,
   StatusBar,
   StyleSheet,
   Text,

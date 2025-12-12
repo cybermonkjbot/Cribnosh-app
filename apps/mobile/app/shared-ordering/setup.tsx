@@ -23,8 +23,8 @@ export default function SharedOrderingSetup() {
   const [amount, setAmount] = useState("");
   const [selectedAmount, setSelectedAmount] = useState<string | null>(null);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
-  const [customOrdersData, setCustomOrdersData] = useState<any>(null);
-  const [customOrdersError, setCustomOrdersError] = useState<any>(null);
+
+
 
   // Fetch existing custom orders from Convex
   const fetchCustomOrders = useCallback(async () => {
