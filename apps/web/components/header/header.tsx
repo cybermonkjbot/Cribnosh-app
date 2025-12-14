@@ -29,8 +29,8 @@ export function Header({ className = '' }: HeaderProps) {
   const isDark = env.DISABLE_DARK_MODE ? false : theme === 'dark';
 
   const [headerStyle, setHeaderStyle] = useState({
-    text: 'text-white',
-    border: 'border-white/20',
+    text: 'text-gray-900',
+    border: 'border-gray-900/20',
     scrolled: false,
     bgOpacity: 0,
     initialized: false,
@@ -136,8 +136,8 @@ export function Header({ className = '' }: HeaderProps) {
                   width={110}
                   height={36}
                   className={`h-9 w-auto transition-all duration-500 ${headerStyle.isOverHero
-                      ? 'brightness-0 invert' // White logo over red background
-                      : 'brightness-100 invert-0' // Normal red logo
+                    ? 'brightness-0 invert' // White logo over red background
+                    : 'brightness-100 invert-0' // Normal red logo
                     }`}
                   priority
                 />
@@ -181,8 +181,8 @@ export function HeaderCTA() {
       >
         <motion.div
           className={`absolute -inset-2 bg-gradient-radial from-transparent ${isDarkTheme
-              ? "via-green-400/30 via-30% via-emerald-400/30 via-60% via-teal-400/30 via-90%"
-              : "via-green-400/20 via-30% via-emerald-400/20 via-60% via-teal-400/20 via-90%"
+            ? "via-green-400/30 via-30% via-emerald-400/30 via-60% via-teal-400/30 via-90%"
+            : "via-green-400/20 via-30% via-emerald-400/20 via-60% via-teal-400/20 via-90%"
             } to-transparent rounded-3xl z-0 pointer-events-none opacity-0`}
           initial={{ opacity: 0 }}
           whileHover={{ opacity: 1 }}
@@ -218,8 +218,8 @@ export function HeaderCTA() {
       >
         <motion.div
           className={`absolute -inset-2 bg-gradient-radial from-transparent ${isDarkTheme
-              ? "via-purple-400/40 via-30% via-fuchsia-400/40 via-60% via-pink-400/40 via-90%"
-              : "via-purple-400/30 via-30% via-fuchsia-400/30 via-60% via-pink-400/30 via-90%"
+            ? "via-purple-400/40 via-30% via-fuchsia-400/40 via-60% via-pink-400/40 via-90%"
+            : "via-purple-400/30 via-30% via-fuchsia-400/30 via-60% via-pink-400/30 via-90%"
             } to-transparent rounded-3xl z-0 pointer-events-none opacity-0`}
           initial={{ opacity: 0 }}
           whileHover={{ opacity: 1 }}

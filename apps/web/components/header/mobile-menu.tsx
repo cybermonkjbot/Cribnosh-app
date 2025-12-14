@@ -1,15 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { motion, AnimatePresence, Variants } from "motion/react"
-import { Menu, X, ArrowLeft } from "lucide-react"
-import { useTheme } from "next-themes"
 import { MobileMenuInput } from "@/components/try-it/mobile-menu-input"
 import { useMobileMenu } from "@/context"
-import { useMobileDevice, MobileDeviceInfo } from "@/hooks/use-mobile-device"
+import { MobileDeviceInfo, useMobileDevice } from "@/hooks/use-mobile-device"
 import { env } from "@/lib/config/env"
+import { ArrowLeft, Menu, X } from "lucide-react"
+import { AnimatePresence, motion, Variants } from "motion/react"
+import { useTheme } from "next-themes"
+import Image from "next/image"
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
 interface NavItem {
   label: string
@@ -32,7 +32,7 @@ interface MobileMenuProps {
 export function MobileMenu({ navItems }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [touchStart, setTouchStart] = useState<number | null>(null)
-  const [isOverHero, setIsOverHero] = useState(true)
+  const [isOverHero, setIsOverHero] = useState(false)
   const { theme } = useTheme()
   // When dark mode is disabled, we still want the mobile menu to use light theme styling
   const isDark = env.DISABLE_DARK_MODE ? false : theme === "dark"
@@ -54,20 +54,17 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
     const handleScroll = () => {
       const scrollY = window.scrollY;
       const sections = document.querySelectorAll<HTMLElement>('[data-section-theme]');
-      
+
       // Start with brand theme (red background) until we've scrolled enough to detect sections
-      let currentTheme = 'brand';
-      
-      // Only start detecting section themes after we've scrolled a bit
-      if (scrollY > 50) {
-        sections.forEach(section => {
-          const rect = section.getBoundingClientRect();
-          if (rect.top <= 100 && rect.bottom >= 50) {
-            currentTheme = section.dataset.sectionTheme || currentTheme;
-          }
-        });
-      }
-      
+      let currentTheme = 'light';
+
+      sections.forEach(section => {
+        const rect = section.getBoundingClientRect();
+        if (rect.top <= 100 && rect.bottom >= 50) {
+          currentTheme = section.dataset.sectionTheme || currentTheme;
+        }
+      });
+
       // Determine if we're over a red background (brand theme) for logo color
       setIsOverHero(currentTheme === 'brand');
     };
@@ -84,7 +81,7 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!touchStart) return;
-    
+
     const currentTouch = e.touches[0].clientX;
     const diff = touchStart - currentTouch;
 
@@ -96,7 +93,7 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
   };
 
   const menuVariants: Variants = {
-    hidden: { 
+    hidden: {
       opacity: 0,
       x: "-100%",
     },
@@ -191,26 +188,24 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
             <div className={`flex items-center p-4 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'} ${isDark ? 'bg-slate-900' : 'bg-slate-50'} safe-area-top`}>
               <button
                 onClick={toggleMenu}
-                className={`p-2 rounded-full transition-colors active:scale-90 mr-3 ${
-                  isDark 
-                    ? 'text-slate-200 hover:bg-slate-800 active:bg-slate-700' 
+                className={`p-2 rounded-full transition-colors active:scale-90 mr-3 ${isDark
+                    ? 'text-slate-200 hover:bg-slate-800 active:bg-slate-700'
                     : 'text-slate-700 hover:bg-slate-100 active:bg-slate-200'
-                }`}
+                  }`}
                 aria-label="Close menu"
               >
                 <ArrowLeft className="w-6 h-6" />
               </button>
               <div className="relative h-8 w-auto">
-                <Image 
+                <Image
                   src="/logo.svg"
                   alt="Cribnosh Logo"
                   width={100}
                   height={32}
-                  className={`h-8 w-auto transition-all duration-500 ${
-                    isOverHero 
+                  className={`h-8 w-auto transition-all duration-500 ${isOverHero
                       ? 'brightness-0 invert' // White logo over red background
                       : 'brightness-100 invert-0' // Normal red logo
-                  }`}
+                    }`}
                   priority
                 />
               </div>
@@ -231,24 +226,21 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
                       <Link
                         href={item.href}
                         onClick={toggleMenu}
-                        className={`block px-4 py-4 text-lg font-asgard rounded-xl relative group overflow-hidden ${
-                          isDark 
-                            ? 'text-slate-100 hover:text-white hover:bg-slate-800 active:bg-slate-700' 
+                        className={`block px-4 py-4 text-lg font-asgard rounded-xl relative group overflow-hidden ${isDark
+                            ? 'text-slate-100 hover:text-white hover:bg-slate-800 active:bg-slate-700'
                             : 'text-slate-800 hover:text-slate-900 hover:bg-slate-100 active:bg-slate-200'
-                        }`}
+                          }`}
                       >
                         <motion.div
-                          className={`absolute inset-0 bg-gradient-to-r from-[#ff3b30]/5 to-[#ff5e54]/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity ${
-                            isDark ? 'group-hover:from-[#ff3b30]/10 group-hover:to-[#ff5e54]/10' : ''
-                          }`}
+                          className={`absolute inset-0 bg-gradient-to-r from-[#ff3b30]/5 to-[#ff5e54]/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'group-hover:from-[#ff3b30]/10 group-hover:to-[#ff5e54]/10' : ''
+                            }`}
                           layoutId={`highlight-${item.href}`}
                         />
                         <span className="relative z-10 flex items-center">
                           <span>{item.label}</span>
-                          <motion.span 
-                            className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${
-                              isDark ? 'text-slate-400' : 'text-slate-500'
-                            }`}
+                          <motion.span
+                            className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'text-slate-400' : 'text-slate-500'
+                              }`}
                           >
                             →
                           </motion.span>
@@ -273,11 +265,10 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
                     <Link
                       href="/work-with-cribnosh"
                       onClick={toggleMenu}
-                      className={`block px-4 py-4 text-lg font-asgard rounded-xl text-center border-2 ${
-                        isDark 
-                          ? 'text-slate-100 border-slate-800 hover:bg-slate-800 active:bg-slate-700' 
+                      className={`block px-4 py-4 text-lg font-asgard rounded-xl text-center border-2 ${isDark
+                          ? 'text-slate-100 border-slate-800 hover:bg-slate-800 active:bg-slate-700'
                           : 'text-slate-800 border-slate-200 hover:bg-slate-100 active:bg-slate-200'
-                      }`}
+                        }`}
                     >
                       Work with Cribnosh
                     </Link>
