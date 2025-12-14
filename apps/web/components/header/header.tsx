@@ -1,15 +1,14 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { motion, useScroll, useTransform } from "motion/react"
-import { MenuBar } from "./header-menu"
-import { HeaderNav } from "./header-nav"
-import { MobileMenu } from "./mobile-menu"
-import { useTheme } from "next-themes"
 import { useMobileDevice } from "@/hooks/use-mobile-device"
 import { env } from "@/lib/config/env"
+import { motion } from "motion/react"
+import { useTheme } from "next-themes"
+import Image from "next/image"
+import Link from "next/link"
+import { useCallback, useEffect, useState } from "react"
+import { MenuBar } from "./header-menu"
+import { MobileMenu } from "./mobile-menu"
 
 interface HeaderProps {
   className?: string;
@@ -28,7 +27,7 @@ export function Header({ className = '' }: HeaderProps) {
   // When dark mode is disabled, we still want the header to use light theme
   // but keep section theming functionality
   const isDark = env.DISABLE_DARK_MODE ? false : theme === 'dark';
-  
+
   const [headerStyle, setHeaderStyle] = useState({
     text: 'text-white',
     border: 'border-white/20',
@@ -37,7 +36,7 @@ export function Header({ className = '' }: HeaderProps) {
     initialized: false,
     isOverHero: true // Start with white logo for hero section
   });
-  
+
   const colorMap = {
     'dark': { text: 'text-white', border: 'border-white/20' },
     'light': { text: 'text-gray-900', border: 'border-gray-900/20' },
@@ -55,21 +54,18 @@ export function Header({ className = '' }: HeaderProps) {
       if (!ticking) {
         rafId = requestAnimationFrame(() => {
           const sections = document.querySelectorAll<HTMLElement>('[data-section-theme]');
-          
+
           // Start with dark theme until we've scrolled enough to detect sections
           let currentTheme = 'light';
-          let isOverHero = true; // Default to true for hero section
-          
-          // Only start detecting section themes after we've scrolled a bit
-          if (lastScrollY > 50) {
-            sections.forEach(section => {
-              const rect = section.getBoundingClientRect();
-              if (rect.top <= 100 && rect.bottom >= 50) {
-                currentTheme = section.dataset.sectionTheme || currentTheme;
-              }
-            });
-          }
-          
+          let isOverHero = false; // Default to false for initial render
+
+          sections.forEach(section => {
+            const rect = section.getBoundingClientRect();
+            if (rect.top <= 100 && rect.bottom >= 50) {
+              currentTheme = section.dataset.sectionTheme || currentTheme;
+            }
+          });
+
           // Determine if we're over a red background (brand theme) for logo color
           isOverHero = currentTheme === 'brand';
 
@@ -99,16 +95,14 @@ export function Header({ className = '' }: HeaderProps) {
   }, [handleScroll]);
 
   return (
-    <header 
-      className={`fixed top-0 w-full z-50 transition-all duration-500 ${headerStyle.text} ${
-        isMobile && !headerStyle.scrolled ? '' : headerStyle.border
-      } ${
-        headerStyle.scrolled 
-          ? 'py-3 border-b' 
+    <header
+      className={`fixed top-0 w-full z-50 transition-all duration-500 ${headerStyle.text} ${isMobile && !headerStyle.scrolled ? '' : headerStyle.border
+        } ${headerStyle.scrolled
+          ? 'py-3 border-b'
           : 'py-6'
-      } ${className}`}
+        } ${className}`}
       style={{
-        backgroundColor: isMobile && !headerStyle.scrolled 
+        backgroundColor: isMobile && !headerStyle.scrolled
           ? 'transparent'
           : isDark
             ? `rgba(0, 0, 0, ${headerStyle.bgOpacity * 0.3})`
@@ -131,31 +125,30 @@ export function Header({ className = '' }: HeaderProps) {
               { label: "Blog", href: "/by-us" }
             ]} />
           </div>
-          
+
           <div className="-ml-4 pl-4">
             <Link href="/" className="flex items-center" data-cursor-text="Back to Home">
               <div className="relative h-9 w-auto">
                 {/* Logo with dynamic styling based on hero section */}
-                <Image 
+                <Image
                   src="/logo.svg"
                   alt="Cribnosh Logo"
                   width={110}
                   height={36}
-                  className={`h-9 w-auto transition-all duration-500 ${
-                    headerStyle.isOverHero 
+                  className={`h-9 w-auto transition-all duration-500 ${headerStyle.isOverHero
                       ? 'brightness-0 invert' // White logo over red background
                       : 'brightness-100 invert-0' // Normal red logo
-                  }`}
+                    }`}
                   priority
                 />
               </div>
             </Link>
           </div>
-          
+
           <div className={`${(isMobile || isTablet) ? 'hidden' : ''} ml-6`}>
             <MenuBar />
           </div>
-          
+
           <div className="ml-auto">
             <HeaderCTA />
           </div>
@@ -187,11 +180,10 @@ export function HeaderCTA() {
         whileHover={{ opacity: 1 }}
       >
         <motion.div
-          className={`absolute -inset-2 bg-gradient-radial from-transparent ${
-            isDarkTheme
+          className={`absolute -inset-2 bg-gradient-radial from-transparent ${isDarkTheme
               ? "via-green-400/30 via-30% via-emerald-400/30 via-60% via-teal-400/30 via-90%"
               : "via-green-400/20 via-30% via-emerald-400/20 via-60% via-teal-400/20 via-90%"
-          } to-transparent rounded-3xl z-0 pointer-events-none opacity-0`}
+            } to-transparent rounded-3xl z-0 pointer-events-none opacity-0`}
           initial={{ opacity: 0 }}
           whileHover={{ opacity: 1 }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
@@ -218,18 +210,17 @@ export function HeaderCTA() {
           </Link>
         )}
       </motion.div>
-      
+
       <motion.div
         className="hidden sm:block p-1.5 rounded-2xl bg-gradient-to-b from-background/80 to-background/40 backdrop-blur-lg border border-border/40 shadow-lg relative overflow-hidden"
         initial={{ opacity: 0.8 }}
         whileHover={{ opacity: 1 }}
       >
         <motion.div
-          className={`absolute -inset-2 bg-gradient-radial from-transparent ${
-            isDarkTheme
+          className={`absolute -inset-2 bg-gradient-radial from-transparent ${isDarkTheme
               ? "via-purple-400/40 via-30% via-fuchsia-400/40 via-60% via-pink-400/40 via-90%"
               : "via-purple-400/30 via-30% via-fuchsia-400/30 via-60% via-pink-400/30 via-90%"
-          } to-transparent rounded-3xl z-0 pointer-events-none opacity-0`}
+            } to-transparent rounded-3xl z-0 pointer-events-none opacity-0`}
           initial={{ opacity: 0 }}
           whileHover={{ opacity: 1 }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
