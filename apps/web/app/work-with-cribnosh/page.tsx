@@ -1,10 +1,10 @@
 "use client";
 
-import Link from 'next/link';
-import { motion } from 'motion/react';
 import { MasonryBackground } from '@/components/ui/masonry-background';
 import { ParallaxContent } from '@/components/ui/parallax-section';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
+import { motion } from 'motion/react';
+import Link from 'next/link';
 
 export default function WorkWithCribnosh() {
   const isMobile = useMobileDevice();
@@ -12,7 +12,7 @@ export default function WorkWithCribnosh() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <MasonryBackground className="z-0" />
-      
+
       <div className="relative z-10">
         {/* Hero Section */}
         <section className="pt-16 sm:pt-40 pb-6 sm:pb-20 px-4 sm:px-6 lg:px-8" data-section-theme="light">
@@ -53,10 +53,10 @@ export default function WorkWithCribnosh() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                       </svg>
                     </div>
-                    <h2 className="font-asgard text-xl sm:text-3xl text-gray-900 group-hover:text-[#ff3b30] transition-colors">Become a Chef</h2>
+                    <h2 className="font-asgard text-xl sm:text-3xl text-gray-900 group-hover:text-[#ff3b30] transition-colors">Cook on Cribnosh</h2>
                   </div>
                   <p className="font-satoshi text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">Share your culinary passion with food enthusiasts in your area. Set your own menu, prices, and schedule.</p>
-                  <Link 
+                  <Link
                     href="/cooking/apply"
                     className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-[#ff3b30] text-white rounded-lg hover:bg-[#ff5e54] transition-all duration-300 font-satoshi group relative overflow-hidden"
                   >
@@ -91,7 +91,7 @@ export default function WorkWithCribnosh() {
                     <h2 className="font-asgard text-xl sm:text-3xl text-gray-900 group-hover:text-[#ff3b30] transition-colors">Become a Driver</h2>
                   </div>
                   <p className="font-satoshi text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">Deliver joy to customers' doorsteps. Flexible hours, great earnings, and the freedom to choose your schedule.</p>
-                  <Link 
+                  <Link
                     href="/driving/apply"
                     className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-[#ff3b30] text-white rounded-lg hover:bg-[#ff5e54] transition-all duration-300 font-satoshi group relative overflow-hidden"
                   >

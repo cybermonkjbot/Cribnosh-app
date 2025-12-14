@@ -1,8 +1,6 @@
 ﻿"use client";
 
-import React from "react";
-import { CityHero } from "@/components/sections";
-import { CitiesSection } from "@/components/sections";
+import { CitiesSection, CityHero } from "@/components/sections";
 import Link from "next/link";
 
 /**
@@ -26,7 +24,7 @@ export default function WolverhamptonPage() {
               <h2 className="text-2xl md:text-3xl font-display font-bold mb-4 text-white">Your kitchen, your rules.</h2>
               <p className="text-lg mb-6 max-w-xl mx-auto">Share your culinary heritage and earn on your terms. Join CribNosh as a Food Creator and bring Wolverhampton's flavors to more tables.</p>
               <Link href="/cooking/apply" className="inline-block px-8 py-3 bg-white text-amber-600 rounded-lg font-medium hover:bg-white/90 transition-colors">
-                Become a Chef
+                Cook on Cribnosh
               </Link>
             </div>
             {/* Driver CTA */}

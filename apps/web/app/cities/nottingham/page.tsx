@@ -1,8 +1,6 @@
 ﻿"use client";
 
-import React from "react";
-import { CityHero } from "@/components/sections";
-import { CitiesSection } from "@/components/sections";
+import { CitiesSection, CityHero } from "@/components/sections";
 import { motion } from "motion/react";
 import Link from "next/link";
 
@@ -15,7 +13,7 @@ export default function NottinghamPage() {
   return (
     <main className="relative min-h-screen w-full bg-gradient-to-br from-gray-900 to-black text-white">
       <CityHero city="Nottingham" />
-      
+
       {/* City-specific feature section with image */}
       <section className="py-24">
         <div className="container mx-auto px-4">
@@ -28,9 +26,9 @@ export default function NottinghamPage() {
             >
               <div className="rounded-2xl overflow-hidden h-[500px] relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-[#10b981] to-[#34d399] opacity-90 mix-blend-multiply"></div>
-                <div 
+                <div
                   className="absolute inset-0 bg-cover bg-center"
-                  style={{ 
+                  style={{
                     backgroundImage: `url(https://images.unsplash.com/photo-1464983953574-0892a716854b)`,
                     filter: 'grayscale(30%)'
                   }}
@@ -43,7 +41,7 @@ export default function NottinghamPage() {
                 </div>
               </div>
             </motion.div>
-            
+
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -56,7 +54,7 @@ export default function NottinghamPage() {
               <p className="text-lg text-white mb-8">
                 From traditional English fare to innovative fusion cuisine, Nottingham's food scene is as diverse as its population. CribNosh is bringing this culinary excellence directly to your doorstep.
               </p>
-              
+
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-full bg-[#10b981] flex items-center justify-center flex-shrink-0 mt-1">
@@ -71,7 +69,7 @@ export default function NottinghamPage() {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-full bg-[#10b981] flex items-center justify-center flex-shrink-0 mt-1">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-white">
@@ -85,7 +83,7 @@ export default function NottinghamPage() {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-full bg-[#10b981] flex items-center justify-center flex-shrink-0 mt-1">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-white">
@@ -101,7 +99,7 @@ export default function NottinghamPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="mt-10">
                 <Link href="/waitlist" className="inline-flex items-center px-6 py-3 bg-[#10b981] text-white rounded-lg hover:bg-[#0d9668] transition-colors">
                   <span>Join Nottingham Waitlist</span>
@@ -114,11 +112,11 @@ export default function NottinghamPage() {
           </div>
         </div>
       </section>
-      
+
       {/* City-specific stats */}
       <section className="py-16 bg-[#10b981]/10">
         <div className="container mx-auto px-4">
-          <motion.h2 
+          <motion.h2
             className="text-3xl md:text-4xl font-display font-bold mb-12 text-center"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -126,9 +124,9 @@ export default function NottinghamPage() {
           >
             CribNosh in Nottingham
           </motion.h2>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <motion.div 
+            <motion.div
               className="text-center"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -138,8 +136,8 @@ export default function NottinghamPage() {
               <div className="text-4xl md:text-5xl font-bold text-[#10b981] mb-2">30+</div>
               <p className="text-white">Food Creators</p>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="text-center"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -149,8 +147,8 @@ export default function NottinghamPage() {
               <div className="text-4xl md:text-5xl font-bold text-[#10b981] mb-2">15+</div>
               <p className="text-white">Cuisines</p>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="text-center"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -160,8 +158,8 @@ export default function NottinghamPage() {
               <div className="text-4xl md:text-5xl font-bold text-[#10b981] mb-2">100%</div>
               <p className="text-white">Certified Kitchens</p>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="text-center"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -174,7 +172,7 @@ export default function NottinghamPage() {
           </div>
         </div>
       </section>
-      
+
       <CitiesSection />
 
       {/* Unified Chef/Driver CTA Section */}
@@ -192,7 +190,7 @@ export default function NottinghamPage() {
               <h2 className="text-2xl md:text-3xl font-display font-bold mb-4 text-white">Your kitchen, your rules.</h2>
               <p className="text-lg mb-6 max-w-xl mx-auto">Share your culinary heritage and earn on your terms. Join CribNosh as a Food Creator and bring Nottingham's flavors to more tables.</p>
               <Link href="/cooking/apply" className="inline-block px-8 py-3 bg-white text-[#10b981] rounded-lg font-medium hover:bg-white/90 transition-colors">
-                Become a Chef
+                Cook on Cribnosh
               </Link>
             </motion.div>
             {/* Driver CTA */}

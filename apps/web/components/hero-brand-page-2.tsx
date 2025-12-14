@@ -27,19 +27,19 @@ function useInView<T extends HTMLElement = HTMLElement>(threshold = 0.1): [React
     observer.observe(node);
     return () => observer.disconnect();
   }, [threshold]);
-  
+
   return [ref, inView];
 }
 
-export function HeroBrandPage2({ 
+export function HeroBrandPage2({
   className,
   onInteractionStart,
-  onInteractionEnd 
+  onInteractionEnd
 }: HeroBrandPage2Props): React.ReactElement {
   const { scrollYProgress } = useScroll();
   const [isMobile, setIsMobile] = useState(false);
   const [imageError, setImageError] = useState(false);
-  
+
   // Memoize event handlers
   const handleInteractionStart = useCallback(() => {
     onInteractionStart?.();
@@ -64,11 +64,11 @@ export function HeroBrandPage2({
 
   // Primary section movement (slower)
   const y = useTransform(scrollYProgress, [0, 1], [0, -150]);
-  
+
   // Background elements movement (faster)
   const bgY1 = useTransform(scrollYProgress, [0, 1], [0, -50]);
   const bgY2 = useTransform(scrollYProgress, [0, 1], [0, -80]);
-  
+
   // Opacity and scale effects
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0.9]);
   const scale = useTransform(scrollYProgress, [0, 0.5], [1, 1.02]);
@@ -82,10 +82,10 @@ export function HeroBrandPage2({
 
   return (
     <>
-      <motion.section 
+      <motion.section
         ref={sectionRef}
         className={cn(
-          "relative bg-gradient-to-br from-[#ff3b30] to-[#ff5e54] text-white min-h-screen w-full flex items-center justify-center overflow-hidden", 
+          "relative bg-gradient-to-br from-[#ff3b30] to-[#ff5e54] text-white min-h-screen w-full flex items-center justify-center overflow-hidden",
           className
         )}
         style={{ y, opacity, scale, willChange: "opacity, transform" }}
@@ -99,7 +99,7 @@ export function HeroBrandPage2({
       >
         {/* Background elements with independent parallax */}
         {!isMobile && (
-          <motion.div 
+          <motion.div
             ref={bgRef}
             className="absolute inset-0 overflow-hidden"
             style={{ y: bgY1, willChange: "opacity, transform" }}
@@ -107,14 +107,14 @@ export function HeroBrandPage2({
             animate={bgInView ? { opacity: 1 } : { opacity: 0 }}
             transition={{ duration: 0.7 }}
           >
-            <motion.div 
+            <motion.div
               className="absolute -left-40 -bottom-40 w-[600px] h-[600px] rounded-full bg-[#ff7b72]/30"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={bgInView ? { scale: 1, opacity: 1 } : { scale: 0.8, opacity: 0 }}
               transition={{ duration: 1.5, ease: "easeOut" }}
               style={{ y: bgY2, willChange: "opacity, transform" }}
             />
-            <motion.div 
+            <motion.div
               className="absolute -right-20 top-40 w-[300px] h-[300px] rounded-full bg-[#ff2920]/20"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={bgInView ? { scale: 1, opacity: 1 } : { scale: 0.8, opacity: 0 }}
@@ -169,7 +169,7 @@ export function HeroBrandPage2({
               "relative",
               isMobile ? "order-1" : "order-1 lg:order-2"
             )}>
-              <motion.div 
+              <motion.div
                 ref={headlineRef}
                 className="mb-8 sm:mb-10 inline-block"
                 initial={{ opacity: 0, y: 20 }}
@@ -181,15 +181,15 @@ export function HeroBrandPage2({
                 </span>
               </motion.div>
 
-              <motion.div 
+              <motion.div
                 className="mb-8 sm:mb-10"
                 initial={{ opacity: 0, y: 30 }}
                 animate={headlineInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                 transition={{ duration: 0.7, delay: 0.1 }}
               >
                 {!isMobile && (
-                  <ContainerTextFlip 
-                    words={["Local", "Fresh", "Verified", "Unique"]} 
+                  <ContainerTextFlip
+                    words={["Local", "Fresh", "Verified", "Unique"]}
                     interval={2000}
                     className="!bg-[#ff3b30]/50 !shadow-none !text-white"
                     textClassName="font-display font-bold"
@@ -199,15 +199,15 @@ export function HeroBrandPage2({
                 <span className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-display font-bold leading-tight text-white/90">Home Kitchen Magic</span>
               </motion.div>
 
-              <motion.p 
+              <motion.p
                 ref={descRef}
                 className="text-lg sm:text-xl md:text-2xl text-white/80 mb-10 sm:mb-14 max-w-2xl"
                 initial={{ opacity: 0, y: 30 }}
                 animate={descInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
               >
-                Our verified home kitchens bring you personalized menus, cultural exchange, 
-                and flexible dietary options - all while maintaining the highest standards of 
+                Our verified home kitchens bring you personalized menus, cultural exchange,
+                and flexible dietary options - all while maintaining the highest standards of
                 quality and hygiene. This is where <span className="text-[#00FF00] font-semibold bg-[#00FF00]/10 px-2 py-1 rounded-md transition-all duration-300 hover:text-[#00FF00]/80 hover:bg-[#00FF00]/30 hover:-rotate-2 hover:px-3 hover:py-1.5 cursor-pointer" style={{ display: 'inline-block' }}>food creators</span> and <span className="text-[#00FFFF] font-semibold bg-[#00FFFF]/10 px-2 py-1 rounded-md transition-all duration-300 hover:text-[#00FFFF]/80 hover:bg-[#00FFFF]/30 hover:rotate-3 hover:px-3 hover:py-1.5 cursor-pointer" style={{ display: 'inline-block' }}>foodies</span> unite.
               </motion.p>
 
@@ -235,7 +235,7 @@ export function HeroBrandPage2({
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.98 }}
                       >
-                        Become a Chef
+                        Cook on Cribnosh
                       </motion.button>
                     </Link>
                   </>
@@ -256,7 +256,7 @@ export function HeroBrandPage2({
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.98 }}
                       >
-                        Become a Chef
+                        Cook on Cribnosh
                       </motion.button>
                     </Link>
                   </>

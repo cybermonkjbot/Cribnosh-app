@@ -41,7 +41,7 @@ export const getCursorTitle = (path: string) => {
     "/": "Welcome to CribNosh",
     "/try-it": "Find Your Perfect Meal",
     "/cooking": "Join Our Chefs",
-    "/cooking/apply": "Become a Chef",
+    "/cooking/apply": "Cook on Cribnosh",
     "/driving": "Deliver with Us",
     "/driving/apply": "Join Our Drivers",
     "/about": "Our Story",
@@ -80,22 +80,22 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const isApplicationPage = pathname === "/cooking/apply" || pathname === "/driving/apply";
   const isTryItPage = pathname === "/try-it";
   const isWaitlistPage = pathname === "/waitlist";
-  
+
   // Food ordering experience routes - show bottom menu only on the three pages the tabs link to
-  const isFoodOrderingRoute = pathname === "/try-it" || 
-    pathname === "/orders" || 
+  const isFoodOrderingRoute = pathname === "/try-it" ||
+    pathname === "/orders" ||
     pathname === "/profile";
-  
+
   // Hide footer on pages with floating bottom menu
   const shouldShowFooter = !isFoodOrderingRoute;
-  
+
   // Hide floating bottom menu when sign-in screen is showing (not authenticated on try-it page)
   const shouldShowFloatingBottomMenu = isFoodOrderingRoute && isAuthenticated;
-  
+
   // Food ordering routes - show floating cart icon on these pages (only when authenticated)
   const showFloatingCart = isAuthenticated && (
-    pathname === "/try-it" || 
-    pathname === "/orders" || 
+    pathname === "/try-it" ||
+    pathname === "/orders" ||
     pathname === "/profile" ||
     pathname === "/cart" ||
     pathname === "/checkout"
@@ -213,7 +213,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       const focusTimer = setTimeout(() => {
         searchInputRef.current?.focus();
       }, 100);
-      
+
       return () => clearTimeout(focusTimer);
     }
   }, [contextMenu.show]);
@@ -265,8 +265,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     }
 
     // Add passive listeners for wheel and touchmove
-    window.addEventListener('wheel', () => {}, { passive: true });
-    window.addEventListener('touchmove', () => {}, { passive: true });
+    window.addEventListener('wheel', () => { }, { passive: true });
+    window.addEventListener('touchmove', () => { }, { passive: true });
 
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu);
@@ -276,8 +276,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       window.removeEventListener('orientationchange', debouncedViewportUpdate);
       motionMediaQuery.removeEventListener('change', updateMotionPreference);
       orientationMediaQuery.removeEventListener('change', updateOrientation);
-      window.removeEventListener('wheel', () => {});
-      window.removeEventListener('touchmove', () => {});
+      window.removeEventListener('wheel', () => { });
+      window.removeEventListener('touchmove', () => { });
     };
   }, [handleContextMenu, handleClick, updateViewportHeight, updateMotionPreference, updateOrientation]);
 
@@ -293,7 +293,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       if (isMobile) return; // Exit early on mobile devices
       const touch = e.touches[0];
       setTouchStartPos({ x: touch.clientX, y: touch.clientY });
-      
+
       const timer = setTimeout(() => {
         const isMobileDevice = window.innerWidth <= 768;
         setContextMenu({
@@ -317,13 +317,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
     const handleTouchMove = (e: TouchEvent) => {
       if (!touchStartPos) return;
-      
+
       const touch = e.touches[0];
       const moveThreshold = 10; // pixels
-      
+
       const deltaX = Math.abs(touch.clientX - touchStartPos.x);
       const deltaY = Math.abs(touch.clientY - touchStartPos.y);
-      
+
       if (deltaX > moveThreshold || deltaY > moveThreshold) {
         if (longPressTimer) {
           clearTimeout(longPressTimer);
@@ -390,7 +390,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <MultiStepLoader loading={loading} />
       {/* CSS Variables for responsive design */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         :root {
           --viewport-height: ${viewportHeight};
           --safe-area-top: ${safeAreaTop};
@@ -436,17 +437,17 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           --glass-opacity: ${isMobile ? '0.85' : '0.8'};
           --glass-blur: ${isMobile ? '8px' : '12px'};
           --glass-border: ${isMobile ? '0.5px' : '1px'};
-          --glass-shadow: ${isMobile 
-            ? '0 2px 15px rgba(0, 0, 0, 0.1)' 
+          --glass-shadow: ${isMobile
+            ? '0 2px 15px rgba(0, 0, 0, 0.1)'
             : '0 4px 30px rgba(0, 0, 0, 0.1)'};
           
           /* Orientation-specific variables */
-          --content-width: ${deviceOrientation === 'landscape' 
-            ? 'min(90vw, var(--content-max-width))' 
+          --content-width: ${deviceOrientation === 'landscape'
+            ? 'min(90vw, var(--content-max-width))'
             : 'min(95vw, var(--content-max-width))'};
           --sidebar-width: ${deviceOrientation === 'landscape' ? '20rem' : '100%'};
-          --content-padding: ${deviceOrientation === 'landscape' 
-            ? 'clamp(2rem, 5vw, 4rem)' 
+          --content-padding: ${deviceOrientation === 'landscape'
+            ? 'clamp(2rem, 5vw, 4rem)'
             : 'clamp(1rem, 3vw, 2rem)'};
           
           /* Safari-specific touch handling */
@@ -609,11 +610,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main Layout Structure */}
       <div>
-        <CookieSettingsPopup 
-          isOpen={isCookieSettingsOpen} 
-          onClose={() => setIsCookieSettingsOpen(false)} 
+        <CookieSettingsPopup
+          isOpen={isCookieSettingsOpen}
+          onClose={() => setIsCookieSettingsOpen(false)}
         />
-        <div 
+        <div
           className="flex min-h-[var(--viewport-height)] flex-col ios-scroll safe-area-inset"
         >
           {/* Hide header on mobile for waitlist page */}
@@ -623,7 +624,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
               {/* <Footer className="mt-auto h-[var(--footer-height)]" /> */}
             </>
           )}
-          <main 
+          <main
             className="flex-1 relative w-full"
             style={{
               isolation: 'isolate',
@@ -631,9 +632,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             }}
           >
             {/* Content wrapper that allows full-screen sections */}
-            <div 
+            <div
               className="relative"
-              style={{ 
+              style={{
                 containerType: 'inline-size',
                 containerName: 'main-content'
               }}
@@ -643,10 +644,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           </main>
           {/* Hide footer on mobile for waitlist page, and on pages with floating bottom menu */}
           {shouldShowFooter && !(isAdminRoute || isStaffRoute || isTryItPage || isApplicationPage || (isWaitlistPage && isMobile)) && <Footer className="mt-auto h-[var(--footer-height)]" />}
-          
+
           {/* Floating bottom menu - only show on food ordering experience pages when authenticated */}
           {shouldShowFloatingBottomMenu && !(isAdminRoute || isStaffRoute) && <FloatingBottomMenu />}
-          
+
           {/* Floating cart icon - show on food ordering routes */}
           {showFloatingCart && !(isAdminRoute || isStaffRoute) && <FloatingCartIcon />}
         </div>
@@ -669,39 +670,39 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                   style={{ pointerEvents: 'auto' }}
                 />
               )}
-              
+
               {/* Context Menu / Bottom Sheet */}
               <motion.div
-                initial={contextMenu.isMobile ? 
-                  { y: "100%" } : 
+                initial={contextMenu.isMobile ?
+                  { y: "100%" } :
                   { opacity: 0, scale: 0.95 }
                 }
-                animate={contextMenu.isMobile ? 
-                  { y: 0 } : 
+                animate={contextMenu.isMobile ?
+                  { y: 0 } :
                   { opacity: 1, scale: 1 }
                 }
-                exit={contextMenu.isMobile ? 
-                  { y: "100%" } : 
+                exit={contextMenu.isMobile ?
+                  { y: "100%" } :
                   { opacity: 0, scale: 0.95 }
                 }
-                transition={{ 
+                transition={{
                   type: "spring",
                   damping: 25,
                   stiffness: 300
                 }}
                 className={`fixed z-[99999] bg-white/90  backdrop-blur-sm shadow-lg border border-gray-200  context-menu pointer-events-auto mix-blend-normal
-                  ${contextMenu.isMobile ? 
-                    'bottom-0 left-0 right-0 rounded-t-2xl p-6 pb-8 max-h-[85vh] overflow-y-auto' : 
+                  ${contextMenu.isMobile ?
+                    'bottom-0 left-0 right-0 rounded-t-2xl p-6 pb-8 max-h-[85vh] overflow-y-auto' :
                     'rounded-lg p-4 min-w-[300px] max-h-[500px] overflow-auto'
                   }`}
                 style={{
                   ...(
-                    !contextMenu.isMobile 
+                    !contextMenu.isMobile
                       ? {
-                          top: `${contextMenu.y}px`,
-                          left: `${contextMenu.x}px`,
-                          transform: 'translate(0, 0)'
-                        } 
+                        top: `${contextMenu.y}px`,
+                        left: `${contextMenu.x}px`,
+                        transform: 'translate(0, 0)'
+                      }
                       : {}
                   ),
                   pointerEvents: 'auto'
@@ -775,8 +776,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                     )}
                     <Link href="/cooking/apply" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100  rounded-md transition-colors">
                       <ChefHat className="w-4 h-4 text-[#ff3b30] shrink-0" />
-                      <span className="truncate">Become a Chef</span>
-                      </Link>
+                      <span className="truncate">Cook on Cribnosh</span>
+                    </Link>
                     <Link href="/driving/apply" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100  rounded-md transition-colors">
                       <Car className="w-4 h-4 text-[#ff3b30] shrink-0" />
                       <span className="truncate">Deliver with Us</span>

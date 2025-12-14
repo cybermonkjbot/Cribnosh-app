@@ -1,11 +1,9 @@
 ﻿"use client";
 
-import React from "react";
-import { CityHero } from "@/components/sections";
-import { CitiesSection } from "@/components/sections";
+import { CitiesSection, CityHero } from "@/components/sections";
+import { GlassCard } from "@/components/ui/glass-card";
 import { motion } from "motion/react";
 import Link from "next/link";
-import { GlassCard } from "@/components/ui/glass-card";
 
 /**
  * Renders an enhanced Birmingham city page with themed sections highlighting local food culture, 
@@ -78,7 +76,7 @@ export default function BirminghamPage() {
   return (
     <main className="relative min-h-screen w-full bg-gradient-to-br from-gray-900 to-black text-white">
       <CityHero city="Birmingham" />
-      
+
       {/* Enhanced City-specific feature section */}
       <section className="py-24 bg-gradient-to-b from-[#ff3b30]/10 to-transparent">
         <div className="container mx-auto px-4">
@@ -164,7 +162,7 @@ export default function BirminghamPage() {
           </div>
         </div>
       </section>
-      
+
       {/* Enhanced City-specific CTA */}
       <section className="py-16 bg-gradient-to-r from-[#ff3b30] to-[#ff5e54] text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10"></div>
@@ -181,7 +179,7 @@ export default function BirminghamPage() {
           }}
         />
         <div className="container mx-auto px-4 text-center relative z-10">
-          <motion.h2 
+          <motion.h2
             className="text-3xl md:text-4xl font-display font-bold mb-6"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -258,7 +256,7 @@ export default function BirminghamPage() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <span>Become a Chef</span>
+                    <span>Cook on Cribnosh</span>
                     <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
@@ -297,7 +295,7 @@ export default function BirminghamPage() {
           </div>
         </div>
       </section>
-      
+
       <CitiesSection />
     </main>
   );

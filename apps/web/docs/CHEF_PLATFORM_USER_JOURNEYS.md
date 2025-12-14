@@ -19,7 +19,7 @@ This document maps out complete user journeys for chefs using the platform, from
 
 **User Actions**:
 1. Chef discovers platform through marketing, referral, or search
-2. Clicks "Become a Chef" or "Apply to Cook" button
+2. Clicks "Cook on Cribnosh" or "Apply to Cook" button
 3. Views information about becoming a chef
 4. Decides to register
 

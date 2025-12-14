@@ -1,8 +1,6 @@
 ﻿"use client";
 
-import React from "react";
-import { CityHero } from "@/components/sections";
-import { CitiesSection } from "@/components/sections";
+import { CitiesSection, CityHero } from "@/components/sections";
 import { motion } from "motion/react";
 import Link from "next/link";
 
@@ -17,7 +15,7 @@ export default function CoventryPage() {
   return (
     <main className="relative min-h-screen w-full bg-gradient-to-br from-gray-900 to-black text-white">
       <CityHero city="Coventry" />
-      
+
       {/* City-specific feature grid */}
       <section className="py-24">
         <div className="container mx-auto px-4">
@@ -35,10 +33,10 @@ export default function CoventryPage() {
               From its medieval roots to its modern rebirth, Coventry has always been a city of innovation. CribNosh is proud to continue this tradition by revolutionizing how Coventry eats.
             </p>
           </motion.div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             {/* Feature 1 - Large */}
-            <motion.div 
+            <motion.div
               className="md:col-span-8 bg-[#8b5cf6]/10 rounded-2xl p-8 relative overflow-hidden"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -68,9 +66,9 @@ export default function CoventryPage() {
                 </div>
               </div>
             </motion.div>
-            
+
             {/* Feature 2 */}
-            <motion.div 
+            <motion.div
               className="md:col-span-4 bg-[#8b5cf6]/10 rounded-2xl p-8 relative overflow-hidden"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -91,9 +89,9 @@ export default function CoventryPage() {
                 With Coventry University and the University of Warwick nearby, our platform features innovative dishes that appeal to a diverse student population with global tastes.
               </p>
             </motion.div>
-            
+
             {/* Feature 3 */}
-            <motion.div 
+            <motion.div
               className="md:col-span-4 bg-[#8b5cf6]/10 rounded-2xl p-8 relative overflow-hidden"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -113,9 +111,9 @@ export default function CoventryPage() {
                 From Coventry Godcakes to modern interpretations of traditional Midlands fare, our chefs celebrate local culinary heritage.
               </p>
             </motion.div>
-            
+
             {/* Feature 4 */}
-            <motion.div 
+            <motion.div
               className="md:col-span-8 bg-[#8b5cf6]/10 rounded-2xl p-8 relative overflow-hidden"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -136,7 +134,7 @@ export default function CoventryPage() {
               </p>
               <div className="flex flex-wrap gap-2">
                 {["Earlsdon", "City Centre", "Tile Hill", "Canley", "Foleshill", "Holbrooks"].map((area, index) => (
-                  <span 
+                  <span
                     key={index}
                     className="px-3 py-1 bg-white/80 rounded-full text-sm text-gray-900"
                   >
@@ -148,11 +146,11 @@ export default function CoventryPage() {
           </div>
         </div>
       </section>
-      
+
       {/* Timeline section */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
-          <motion.h2 
+          <motion.h2
             className="text-3xl md:text-4xl font-display font-bold mb-12 text-center text-gray-900"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -166,7 +164,7 @@ export default function CoventryPage() {
             {/* Timeline items */}
             <div className="space-y-12">
               {/* Item 1 */}
-              <motion.div 
+              <motion.div
                 className="relative flex flex-col md:flex-row"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -185,7 +183,7 @@ export default function CoventryPage() {
                 </div>
               </motion.div>
               {/* Item 2 */}
-              <motion.div 
+              <motion.div
                 className="relative flex flex-col md:flex-row"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -203,7 +201,7 @@ export default function CoventryPage() {
                 </div>
               </motion.div>
               {/* Item 3 */}
-              <motion.div 
+              <motion.div
                 className="relative flex flex-col md:flex-row"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -221,7 +219,7 @@ export default function CoventryPage() {
                 <div className="md:w-1/2 md:pl-8"></div>
               </motion.div>
               {/* Item 4 */}
-              <motion.div 
+              <motion.div
                 className="relative flex flex-col md:flex-row"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -242,11 +240,11 @@ export default function CoventryPage() {
           </div>
         </div>
       </section>
-      
+
       {/* City-specific CTA */}
       <section className="py-16 bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] text-white">
         <div className="container mx-auto px-4 text-center">
-          <motion.h2 
+          <motion.h2
             className="text-3xl md:text-4xl font-display font-bold mb-6"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -279,7 +277,7 @@ export default function CoventryPage() {
           </motion.div>
         </div>
       </section>
-      
+
       <CitiesSection />
       {/* Unified Chef/Driver CTA Section */}
       <section className="py-16">
@@ -296,7 +294,7 @@ export default function CoventryPage() {
               <h2 className="text-2xl md:text-3xl font-display font-bold mb-4 text-white">Your kitchen, your rules.</h2>
               <p className="text-lg mb-6 max-w-xl mx-auto">Share your culinary heritage and earn on your terms. Join CribNosh as a Food Creator and bring Coventry's flavors to more tables.</p>
               <Link href="/cooking/apply" className="inline-block px-8 py-3 bg-white text-[#8b5cf6] rounded-lg font-medium hover:bg-white/90 transition-colors">
-                Become a Chef
+                Cook on Cribnosh
               </Link>
             </motion.div>
             {/* Driver CTA */}

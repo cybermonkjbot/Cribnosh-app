@@ -1,12 +1,8 @@
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { EmailService } from '@/lib/email/email.service';
 import { addToBroadcastList } from '@/lib/email/addToBroadcastList';
+import { EmailService } from '@/lib/email/email.service';
 import { mattermostService } from '@/lib/mattermost';
-import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { NextRequest } from 'next/server';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_EQsb5GpW_HkaiK9VCCYjwAYH2Jd8xP5VN';
 
@@ -20,7 +16,7 @@ const emailService = new EmailService({
  * @swagger
  * /cooking/apply:
  *   post:
- *     summary: Apply to Become a Chef
+ *     summary: Apply to Cook on Cribnosh
  *     description: Submit chef application with personal, kitchen, and culinary background information
  *     tags: [Chef, Applications, Onboarding]
  *     requestBody:
@@ -233,7 +229,7 @@ export async function POST(request: NextRequest) {
   });
   // Add to broadcast list
   await addToBroadcastList({ email: personalInfo.email, firstName: personalInfo.firstName, lastName: personalInfo.lastName });
-  
+
   // Send Mattermost notification
   await mattermostService.notifyChefApplication({
     name: `${personalInfo.firstName} ${personalInfo.lastName}`,
@@ -245,7 +241,7 @@ export async function POST(request: NextRequest) {
     certifications: culinaryBackground.certifications,
     specialties: culinaryBackground.specialties,
   });
-  
+
   // Confirmation email to chef (already templated)
   const confirmationHtml = await emailService.getTemplateRenderer().renderGenericNotificationEmail({
     title: 'Thank you for applying as a CribNosh chef!',

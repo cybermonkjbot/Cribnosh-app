@@ -1,15 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
-import "./globals.css";
-import { ClientLayout } from "../components/layout/client-layout";
-import { JsonLd } from "../components/JsonLd";
 import { AiMetadata } from "../components/AiMetadata";
-import { ScrollToTop } from "../components/ui/scroll-to-top";
-import { CustomScrollbar } from "../components/ui/custom-scrollbar";
-import RootLayoutClient from "./layout-client";
-import { LocationProvider } from '../context/location-context';
-import AppProviders from './providers';
 import { ConvexClientProvider } from '../components/ConvexClientProvider';
+import { JsonLd } from "../components/JsonLd";
+import { ClientLayout } from "../components/layout/client-layout";
+import { CustomScrollbar } from "../components/ui/custom-scrollbar";
+import { ScrollToTop } from "../components/ui/scroll-to-top";
+import { LocationProvider } from '../context/location-context';
+import "./globals.css";
+import RootLayoutClient from "./layout-client";
+import AppProviders from './providers';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     "Midlands food startup",
     "local chefs Midlands",
     "Midlands food tech app",
-    "become a chef on CribNosh",
+    "Cook on Cribnosh on CribNosh",
     "earn money cooking UK",
     "join as a chef UK",
     "freelance chef platform",
@@ -206,7 +206,7 @@ export default async function RootLayout({
         <meta name="color-scheme" content="light" />
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
         {/* <meta n ame="theme-color" content="#000000" media="(prefers-color-scheme: dark)" /> */}
-        
+
         {/* iOS icons and splash screens */}
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon.png" />
         {/* Recommended additional Apple icon sizes for best compatibility */}
@@ -221,43 +221,47 @@ export default async function RootLayout({
           (Add these files to /public and uncomment the lines above for full support.)
         */}
         <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#ff3b30" />
-        
+
         {/* Other meta tags */}
         <meta name="msapplication-TileColor" content="#ffffff" />
-        
+
         {/* PWA manifest */}
         <link rel="manifest" href="/site.webmanifest" />
-        
+
         <JsonLd />
         {/* Organization and WebSite structured data */}
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'Organization',
-          name: 'Cribnosh',
-          url: getBaseUrl().toString(),
-          logo: '/apple-icon.png',
-          address: {
-            '@type': 'PostalAddress',
-            addressCountry: 'GB',
-            addressRegion: 'United Kingdom'
-          },
-          sameAs: [
-            'https://www.facebook.com/share/16yzxEUqpx/',
-            'https://www.instagram.com/cribnoshuk?igsh=MXM3NWxsOHpsbDB1bA==',
-            'https://x.com/CribNosh?t=YDYNvB1ZIaVe0IX5NDe9YQ&s=09'
-          ]
-        }) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'WebSite',
-          url: getBaseUrl().toString(),
-          name: 'Cribnosh',
-          potentialAction: {
-            '@type': 'SearchAction',
-            target: `${getBaseUrl().toString()}search?q={search_term_string}`,
-            'query-input': 'required name=search_term_string'
-          }
-        }) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'Cribnosh',
+            url: getBaseUrl().toString(),
+            logo: '/apple-icon.png',
+            address: {
+              '@type': 'PostalAddress',
+              addressCountry: 'GB',
+              addressRegion: 'United Kingdom'
+            },
+            sameAs: [
+              'https://www.facebook.com/share/16yzxEUqpx/',
+              'https://www.instagram.com/cribnoshuk?igsh=MXM3NWxsOHpsbDB1bA==',
+              'https://x.com/CribNosh?t=YDYNvB1ZIaVe0IX5NDe9YQ&s=09'
+            ]
+          })
+        }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            url: getBaseUrl().toString(),
+            name: 'Cribnosh',
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: `${getBaseUrl().toString()}search?q={search_term_string}`,
+              'query-input': 'required name=search_term_string'
+            }
+          })
+        }} />
         <AiMetadata />
 
         {/* Additional SEO enhancements */}

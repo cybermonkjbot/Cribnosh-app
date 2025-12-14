@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     "Midlands food startup",
     "local chefs Midlands",
     "Midlands food tech app",
-    "become a chef on CribNosh",
+    "Cook on Cribnosh on CribNosh",
     "earn money cooking UK",
     "join as a chef UK",
     "freelance chef platform",

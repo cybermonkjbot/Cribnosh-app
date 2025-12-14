@@ -1,8 +1,6 @@
 ﻿"use client";
 
-import React from "react";
-import { CityHero } from "@/components/sections";
-import { CitiesSection } from "@/components/sections";
+import { CitiesSection, CityHero } from "@/components/sections";
 import { motion } from "motion/react";
 import Link from "next/link";
 
@@ -17,7 +15,7 @@ export default function LeicesterPage() {
   return (
     <main className="relative min-h-screen w-full bg-gradient-to-br from-gray-900 to-black text-white">
       <CityHero city="Leicester" />
-      
+
       {/* City-specific feature section */}
       <section className="py-24 bg-gradient-to-b from-[#3b82f6]/10 to-transparent">
         <div className="container mx-auto px-4">
@@ -93,11 +91,11 @@ export default function LeicesterPage() {
           </div>
         </div>
       </section>
-      
+
       {/* City-specific testimonial */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             className="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-lg relative overflow-hidden"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -120,11 +118,11 @@ export default function LeicesterPage() {
           </motion.div>
         </div>
       </section>
-      
+
       {/* City-specific CTA */}
       <section className="py-16 bg-gradient-to-r from-[#3b82f6] to-[#60a5fa] text-white">
         <div className="container mx-auto px-4 text-center">
-          <motion.h2 
+          <motion.h2
             className="text-3xl md:text-4xl font-display font-bold mb-6"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -153,7 +151,7 @@ export default function LeicesterPage() {
           </motion.div>
         </div>
       </section>
-      
+
       {/* Unified Chef/Driver CTA Section */}
       <section className="py-16">
         <div className="container mx-auto px-4">
@@ -169,7 +167,7 @@ export default function LeicesterPage() {
               <h2 className="text-2xl md:text-3xl font-display font-bold mb-4 text-white">Your kitchen, your rules.</h2>
               <p className="text-lg mb-6 max-w-xl mx-auto">Share your culinary heritage and earn on your terms. Join CribNosh as a Food Creator and bring Leicester's flavors to more tables.</p>
               <Link href="/cooking/apply" className="inline-block px-8 py-3 bg-white text-[#3b82f6] rounded-lg font-medium hover:bg-white/90 transition-colors">
-                Become a Chef
+                Cook on Cribnosh
               </Link>
             </motion.div>
             {/* Driver CTA */}
@@ -189,7 +187,7 @@ export default function LeicesterPage() {
           </div>
         </div>
       </section>
-      
+
       <CitiesSection />
     </main>
   );

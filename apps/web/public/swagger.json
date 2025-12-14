@@ -31702,7 +31702,7 @@
     },
     "/cooking/apply": {
       "post": {
-        "summary": "Apply to Become a Chef",
+        "summary": "Apply to Cook on Cribnosh",
         "description": "Submit chef application with personal, kitchen, and culinary background information",
         "tags": [
           "Chef",
