@@ -461,7 +461,7 @@ export default function PayrollReportsPage() {
                       <XAxis type="number" />
                       <YAxis dataKey="name" type="category" width={100} />
                       <Tooltip
-                        formatter={(value) => [`$${value.toLocaleString()}`, 'Payroll']}
+                        formatter={(value: number) => [`$${value.toLocaleString()}`, 'Payroll']}
                         labelFormatter={(label) => `Department: ${label}`}
                       />
                       <Bar dataKey="payroll" fill="#8884d8" name="Payroll" />
@@ -495,7 +495,7 @@ export default function PayrollReportsPage() {
                       <XAxis dataKey="name" />
                       <YAxis />
                       <Tooltip
-                        formatter={(value) => [`$${value.toLocaleString()}`, 'Payroll']}
+                        formatter={(value: number) => [`$${value.toLocaleString()}`, 'Payroll']}
                         labelFormatter={(label) => `Period: ${label}`}
                       />
                       <Bar dataKey="payroll" fill="#82ca9d" name="Payroll" />
