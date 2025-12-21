@@ -1,37 +1,38 @@
-/**
- * Convex-specific error handling utilities
- */
-
-import { ErrorCode, ErrorSeverity, ErrorContext } from './types';
-import { ConvexError } from './standard-errors';
-import { ErrorFactory } from './standard-errors';
+import { ConvexError } from 'convex/values';
+import { CribNoshError, ErrorFactory } from './standard-errors';
+import { ErrorCode, ErrorContext } from './types';
 
 /**
  * Handle Convex errors and convert them to standardized errors
  */
 export function handleConvexError(
   error: unknown,
-  context?: ErrorContext
-): ConvexError {
-  // If it's already a CribNoshError, return as ConvexError
-  if (error instanceof Error && 'code' in error) {
-    return new ConvexError(error.message, context);
+  _context?: ErrorContext
+): ConvexError<any> {
+  // If it's already a ConvexError, return it
+  if (error instanceof ConvexError) {
+    return error as ConvexError<any>;
+  }
+
+  // If it's a CribNosh error with a code, wrap its message
+  if (error instanceof CribNoshError) {
+    return new ConvexError(error.message);
   }
 
   // Handle standard Error instances
   if (error instanceof Error) {
-    return new ConvexError(error.message, context);
+    return new ConvexError(error.message);
   }
 
   // Handle unknown errors
-  return new ConvexError('An unknown Convex error occurred', context);
+  return new ConvexError('An unknown Convex error occurred');
 }
 
 /**
  * Validate Convex function arguments and throw appropriate errors
  */
 export function validateConvexArgs(args: Record<string, unknown>, requiredFields: string[]): void {
-  const missingFields = requiredFields.filter(field => 
+  const missingFields = requiredFields.filter(field =>
     args[field] === undefined || args[field] === null || args[field] === ''
   );
 
@@ -68,7 +69,7 @@ export async function safeConvexOperation<T>(
         throw ErrorFactory.validation(error.message, context);
       }
     }
-    
+
     throw handleConvexError(error, context);
   }
 }
@@ -80,12 +81,13 @@ export function createConvexErrorResponse(
   error: unknown,
   context?: ErrorContext
 ): { success: false; error: string; code: string } {
-  const cribNoshError = handleConvexError(error, context);
-  
+  const convexError = handleConvexError(error, context);
+  const data = convexError.data;
+
   return {
     success: false,
-    error: cribNoshError.message,
-    code: cribNoshError.code,
+    error: typeof data === 'string' ? data : (data?.message || convexError.message),
+    code: (typeof data === 'object' && data?.code) || ErrorCode.CONVEX_ERROR,
   };
 }
 

@@ -1,9 +1,9 @@
 "use node";
 
-import { action } from "../_generated/server";
 import { v } from "convex/values";
 import { api } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
+import { action } from "../_generated/server";
 
 interface WaitlistResult {
   success: boolean;
@@ -41,9 +41,9 @@ export const addToWaitlistWithSync = action({
       referralCode: args.referralCode,
       source: args.source,
     });
-    
+
     const id: Id<"waitlist"> = result.waitlistId;
-    
+
     // If this is an existing user, we don't need to create a new user
     if (result.isExisting) {
       // Find existing user by email
@@ -100,9 +100,9 @@ export const addToWaitlistComplete = action({
       referralCode: args.referralCode,
       source: args.source,
     });
-    
+
     const waitlistId: Id<"waitlist"> = waitlistResult.waitlistId;
-    
+
     // Get or create user - use userId from mutation if available (optimization)
     let userId: Id<"users">;
     if (waitlistResult.userId) {
@@ -151,8 +151,8 @@ export const addToWaitlistComplete = action({
       id: waitlistId,
       userId,
       isExisting: waitlistResult.isExisting,
-      sessionToken,
-      referralLink,
+      sessionToken: sessionResult.sessionToken,
+      referralLink: referralLink,
       referralAttributed,
     };
   }

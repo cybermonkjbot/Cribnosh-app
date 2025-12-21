@@ -257,6 +257,7 @@ import type * as utils_priceEstimation from "../utils/priceEstimation.js";
 import type * as utils_regionValidation from "../utils/regionValidation.js";
 import type * as utils_timeCalculations from "../utils/timeCalculations.js";
 import type * as utils_userPreferencesFilter from "../utils/userPreferencesFilter.js";
+import type * as waitlist_utils from "../waitlist_utils.js";
 
 import type {
   ApiFromModules,
@@ -514,6 +515,7 @@ declare const fullApi: ApiFromModules<{
   "utils/regionValidation": typeof utils_regionValidation;
   "utils/timeCalculations": typeof utils_timeCalculations;
   "utils/userPreferencesFilter": typeof utils_userPreferencesFilter;
+  waitlist_utils: typeof waitlist_utils;
 }>;
 
 /**

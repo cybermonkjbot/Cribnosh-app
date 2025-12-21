@@ -7,9 +7,9 @@ import {
 } from '../../../apps/web/lib/errors/convex-exports';
 import { SMS_CONFIG } from '../../../apps/web/lib/sms/sms-config';
 import { DEFAULT_SMS_PROVIDER, SMS_PROVIDERS, createSMSService } from '../../../apps/web/lib/sms/sms-providers';
-import { api } from '../_generated/api';
 import { Doc } from '../_generated/dataModel';
 import { MutationCtx, mutation } from '../_generated/server';
+import { addToWaitlistInternal } from '../waitlist_utils';
 
 // Create OTP mutation
 export const createOTP = mutation({
@@ -57,8 +57,8 @@ export const createOTP = mutation({
 
     // Add user to waitlist before sending OTP
     const identifier = args.email || args.phone!;
-    const waitlistResult: { waitlistId: string; isExisting: boolean } = await safeConvexOperation(
-      () => ctx.runMutation(api.mutations.waitlist.addToWaitlist, {
+    const waitlistResult = await safeConvexOperation(
+      () => addToWaitlistInternal(ctx, {
         email: args.email || `${args.phone}@temp.cribnosh.com`, // Use phone as temp email if no email
         name: args.name,
         phone: args.phone,
@@ -146,132 +146,132 @@ export const verifyOTP = mutation({
       });
     }
 
-      if (!args.code || args.code.length !== 6 || !/^\d{6}$/.test(args.code)) {
-        throw ErrorFactory.validation('OTP code must be a 6-digit number', {
-          operation: 'verify_otp',
-          code: args.code
-        });
-      }
+    if (!args.code || args.code.length !== 6 || !/^\d{6}$/.test(args.code)) {
+      throw ErrorFactory.validation('OTP code must be a 6-digit number', {
+        operation: 'verify_otp',
+        code: args.code
+      });
+    }
 
-      // Find the OTP for this phone or email
-      let otp: Doc<"otps"> | null;
-      const identifier = args.phone || args.email;
-      const identifierType = args.phone ? 'phone number' : 'email address';
+    // Find the OTP for this phone or email
+    let otp: Doc<"otps"> | null;
+    const identifier = args.phone || args.email;
+    const identifierType = args.phone ? 'phone number' : 'email address';
 
-      if (args.phone) {
-        otp = await safeConvexOperation(
-          () => ctx.db
-            .query('otps')
-            .withIndex('by_phone', (q) => q.eq('phone', args.phone))
-            .order('desc')
-            .first(),
-          { operation: 'find_otp_by_phone', phone: args.phone }
-        );
-      } else {
-        otp = await safeConvexOperation(
-          () => ctx.db
-            .query('otps')
-            .withIndex('by_email', (q) => q.eq('email', args.email))
-            .order('desc')
-            .first(),
-          { operation: 'find_otp_by_email', email: args.email }
-        );
-      }
+    if (args.phone) {
+      otp = await safeConvexOperation(
+        () => ctx.db
+          .query('otps')
+          .withIndex('by_phone', (q) => q.eq('phone', args.phone))
+          .order('desc')
+          .first(),
+        { operation: 'find_otp_by_phone', phone: args.phone }
+      );
+    } else {
+      otp = await safeConvexOperation(
+        () => ctx.db
+          .query('otps')
+          .withIndex('by_email', (q) => q.eq('email', args.email))
+          .order('desc')
+          .first(),
+        { operation: 'find_otp_by_email', email: args.email }
+      );
+    }
 
-      if (!otp) {
-        throw ErrorFactory.notFound(`No verification code found for this ${identifierType}. Please request a new verification code.`, {
-          operation: 'verify_otp',
-          identifier,
-          identifierType
-        });
-      }
+    if (!otp) {
+      throw ErrorFactory.notFound(`No verification code found for this ${identifierType}. Please request a new verification code.`, {
+        operation: 'verify_otp',
+        identifier,
+        identifierType
+      });
+    }
 
-      // At this point, otp is guaranteed to be non-null
-      const otpDoc = otp as Doc<"otps">;
+    // At this point, otp is guaranteed to be non-null
+    const otpDoc = otp as Doc<"otps">;
 
-      // Check if OTP is expired
-      if (now > otpDoc.expiresAt) {
-        // Clean up expired OTP
-        await safeConvexOperation(
-          () => ctx.db.delete(otpDoc._id),
-          { operation: 'delete_expired_otp', otpId: otpDoc._id }
-        );
-        throw ErrorFactory.validation('Verification code has expired. Please request a new verification code.', {
-          operation: 'verify_otp',
-          identifier,
-          expiresAt: otpDoc.expiresAt
-        });
-      }
+    // Check if OTP is expired
+    if (now > otpDoc.expiresAt) {
+      // Clean up expired OTP
+      await safeConvexOperation(
+        () => ctx.db.delete(otpDoc._id),
+        { operation: 'delete_expired_otp', otpId: otpDoc._id }
+      );
+      throw ErrorFactory.validation('Verification code has expired. Please request a new verification code.', {
+        operation: 'verify_otp',
+        identifier,
+        expiresAt: otpDoc.expiresAt
+      });
+    }
 
-      // Check if OTP is already used
-      if (otpDoc.isUsed) {
-        throw ErrorFactory.conflict('This verification code has already been used. Please request a new one.', {
-          operation: 'verify_otp',
-          identifier
-        });
-      }
+    // Check if OTP is already used
+    if (otpDoc.isUsed) {
+      throw ErrorFactory.conflict('This verification code has already been used. Please request a new one.', {
+        operation: 'verify_otp',
+        identifier
+      });
+    }
 
-      // Check if max attempts exceeded
-      if (otpDoc.attempts >= otpDoc.maxAttempts) {
-        // Mark as used to prevent further attempts
-        await safeConvexOperation(
-          () => ctx.db.patch(otpDoc._id, {
-            isUsed: true,
-            updatedAt: now,
-          }),
-          { operation: 'mark_otp_used', otpId: otpDoc._id }
-        );
-        throw ErrorFactory.validation('Maximum verification attempts exceeded. Please request a new verification code.', {
-          operation: 'verify_otp',
-          identifier,
-          attempts: otpDoc.attempts,
-          maxAttempts: otpDoc.maxAttempts
-        });
-      }
-
-      // Check if code matches first
-      if (otpDoc.code !== args.code) {
-        const newAttempts = otpDoc.attempts + 1;
-        const remainingAttempts = otpDoc.maxAttempts - newAttempts;
-        
-        // Increment attempts only if code is wrong
-        await ctx.db.patch(otpDoc._id, {
-          attempts: newAttempts,
+    // Check if max attempts exceeded
+    if (otpDoc.attempts >= otpDoc.maxAttempts) {
+      // Mark as used to prevent further attempts
+      await safeConvexOperation(
+        () => ctx.db.patch(otpDoc._id, {
+          isUsed: true,
           updatedAt: now,
-        });
+        }),
+        { operation: 'mark_otp_used', otpId: otpDoc._id }
+      );
+      throw ErrorFactory.validation('Maximum verification attempts exceeded. Please request a new verification code.', {
+        operation: 'verify_otp',
+        identifier,
+        attempts: otpDoc.attempts,
+        maxAttempts: otpDoc.maxAttempts
+      });
+    }
 
-        if (remainingAttempts <= 0) {
-          throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Invalid verification code. Maximum attempts exceeded. Please request a new verification code.');
-        } else {
-          throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, `Invalid verification code. ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.`);
-        }
-      }
+    // Check if code matches first
+    if (otpDoc.code !== args.code) {
+      const newAttempts = otpDoc.attempts + 1;
+      const remainingAttempts = otpDoc.maxAttempts - newAttempts;
 
-      // Code matches - mark OTP as used and increment attempts in one operation
+      // Increment attempts only if code is wrong
       await ctx.db.patch(otpDoc._id, {
-        isUsed: true,
-        attempts: otpDoc.attempts + 1,
+        attempts: newAttempts,
         updatedAt: now,
       });
 
-      // Get waitlist information for the verified user
-      const waitlistEntry = await safeConvexOperation(
-        () => ctx.db
-          .query('waitlist')
-          .filter((q) => q.eq(q.field('email'), args.email || `${args.phone}@temp.cribnosh.com`))
-          .first(),
-        { operation: 'get_waitlist_entry', identifier }
-      );
+      if (remainingAttempts <= 0) {
+        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Invalid verification code. Maximum attempts exceeded. Please request a new verification code.');
+      } else {
+        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, `Invalid verification code. ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.`);
+      }
+    }
 
-      return { 
-        success: true, 
-        message: 'Verification successful',
-        identifier: identifier,
-        identifierType: identifierType,
-        verifiedAt: now,
-        waitlistId: waitlistEntry?._id,
-        isWaitlistUser: !!waitlistEntry
-      };
+    // Code matches - mark OTP as used and increment attempts in one operation
+    await ctx.db.patch(otpDoc._id, {
+      isUsed: true,
+      attempts: otpDoc.attempts + 1,
+      updatedAt: now,
+    });
+
+    // Get waitlist information for the verified user
+    const waitlistEntry = await safeConvexOperation(
+      () => ctx.db
+        .query('waitlist')
+        .filter((q) => q.eq(q.field('email'), args.email || `${args.phone}@temp.cribnosh.com`))
+        .first(),
+      { operation: 'get_waitlist_entry', identifier }
+    );
+
+    return {
+      success: true,
+      message: 'Verification successful',
+      identifier: identifier,
+      identifierType: identifierType,
+      verifiedAt: now,
+      waitlistId: waitlistEntry?._id,
+      isWaitlistUser: !!waitlistEntry
+    };
   }),
 });
 
@@ -327,8 +327,8 @@ export const createEmailOTP = mutation({
       }
 
       // Add user to waitlist before sending OTP
-      const waitlistResult: { waitlistId: string; isExisting: boolean } = await safeConvexOperation(
-        () => ctx.runMutation(api.mutations.waitlist.addToWaitlist, {
+      const waitlistResult = await safeConvexOperation(
+        () => addToWaitlistInternal(ctx, {
           email: args.email,
           name: args.name,
           phone: undefined,
@@ -449,7 +449,7 @@ export const verifyEmailOTP = mutation({
       if (otpDoc.code !== args.code) {
         const newAttempts = otpDoc.attempts + 1;
         const remainingAttempts = otpDoc.maxAttempts - newAttempts;
-        
+
         // Increment attempts only if code is wrong
         await ctx.db.patch(otpDoc._id, {
           attempts: newAttempts,
@@ -479,8 +479,8 @@ export const verifyEmailOTP = mutation({
         { operation: 'get_waitlist_entry', email: args.email }
       );
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         message: 'Email verified successfully',
         email: args.email,
         verifiedAt: now,

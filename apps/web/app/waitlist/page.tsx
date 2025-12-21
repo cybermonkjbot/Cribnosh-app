@@ -55,7 +55,7 @@ export default function WaitlistPage() {
   };
 
   const addToWaitlist = useAction(api.actions.waitlist.addToWaitlistComplete);
-  
+
   // Debounced email for query to prevent excessive queries
   const [debouncedEmail, setDebouncedEmail] = useState<string>('');
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -86,7 +86,7 @@ export default function WaitlistPage() {
     api.queries.waitlist.getByEmail,
     debouncedEmail ? { email: debouncedEmail } : 'skip'
   );
-  
+
   // These are now handled by addToWaitlistComplete action
   // const attributeReferral = useMutation(api.mutations.users.attributeReferral);
   // const generateReferralLink = useMutation(api.mutations.users.generateReferralLink);
@@ -179,7 +179,7 @@ export default function WaitlistPage() {
       // Store the token and user info
       localStorage.setItem('cribnosh_waitlist_session', token);
       localStorage.setItem('cribnosh_user_id', user.user_id);
-      
+
       // Add to waitlist with the verified email
       const result = await addToWaitlist({
         email: contact,
@@ -192,17 +192,17 @@ export default function WaitlistPage() {
 
       if (result.userId) {
         setUserId(result.userId);
-        
+
         // Session token and referral link are now returned from the action
         if (result.sessionToken) {
           localStorage.setItem('cribnosh_waitlist_session', result.sessionToken);
         }
         localStorage.setItem('cribnosh_user_id', result.userId);
-        
+
         if (result.referralLink) {
           setReferralLink(result.referralLink);
         }
-        
+
         if (result.referralAttributed) {
           setReferralRewarded(true);
         }
@@ -241,13 +241,13 @@ export default function WaitlistPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateContact(contact)) return;
-    
+
     // Check if user is already signed up before proceeding
     if (alreadySignedUp) {
       setError('You are already signed up to our waitlist! Check your email for updates.');
       return;
     }
-    
+
     setIsSubmitting(true);
     setError('');
     setSyncStatus('pending');
@@ -288,7 +288,7 @@ export default function WaitlistPage() {
 
     // For phone numbers, we need to create a temporary email for the waitlist
     const tempEmail = `${contact.replace(/\D/g, '')}@phone.cribnosh.com`;
-    
+
     try {
       // Queue email for sending (admin notification)
       const res = await fetch('/api/waitlist', {
@@ -335,11 +335,11 @@ export default function WaitlistPage() {
           localStorage.setItem('cribnosh_waitlist_session', result.sessionToken);
         }
         localStorage.setItem('cribnosh_user_id', result.userId);
-        
+
         if (result.referralLink) {
           setReferralLink(result.referralLink);
         }
-        
+
         if (result.referralAttributed) {
           setReferralRewarded(true);
         }
@@ -402,7 +402,7 @@ export default function WaitlistPage() {
               >
                 {/* Mobile-only heading and description */}
                 <div className="sm:hidden mb-8 text-center">
-                   <h1 className="font-asgard text-3xl text-gray-900 mb-3 text-center mx-auto">
+                  <h1 className="font-asgard text-3xl text-gray-900 mb-3 text-center mx-auto">
                     Join Our Waitlist
                   </h1>
                   <p className="font-satoshi text-base text-gray-600 text-center mx-auto">
@@ -411,8 +411,8 @@ export default function WaitlistPage() {
                 </div>
 
                 <AnimatePresence mode="wait">
-                  {!isSuccess && (
-                    <motion.div 
+                  {!isSuccess && currentStep === 'form' && (
+                    <motion.div
                       className="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 flex items-center justify-center mb-6"
                       whileHover={{ scale: 1.1 }}
                       transition={{ type: "spring", stiffness: 400 }}
@@ -429,7 +429,7 @@ export default function WaitlistPage() {
                           transition={{ duration: 0.3 }}
                         >
                           {contactType === 'email' ? (
-                            <a 
+                            <a
                               href="mailto:enquiries@cribnosh.co.uk"
                               className="cursor-pointer hover:scale-110 transition-transform duration-200"
                               title="Contact us at enquiries@cribnosh.co.uk"
@@ -443,7 +443,7 @@ export default function WaitlistPage() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                             </svg>
                           ) : (
-                            <a 
+                            <a
                               href="mailto:enquiries@cribnosh.co.uk"
                               className="cursor-pointer hover:scale-110 transition-transform duration-200"
                               title="Contact us at enquiries@cribnosh.co.uk"
@@ -458,7 +458,7 @@ export default function WaitlistPage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-                
+
                 <AnimatePresence mode="wait">
                   {currentStep === 'otp-verification' ? (
                     <EmailOTPVerification
@@ -525,7 +525,7 @@ export default function WaitlistPage() {
                       exit={{ opacity: 0, y: -20 }}
                     >
 
-                      
+
                       <form onSubmit={handleSubmit} className="space-y-6 w-full">
                         <div>
                           <label htmlFor="contact" className="block font-satoshi text-gray-800 font-semibold text-base mb-2">Email or Phone Number</label>
@@ -535,9 +535,8 @@ export default function WaitlistPage() {
                               id="contact"
                               value={contact}
                               onChange={handleContactChange}
-                              className={`w-full p-3 rounded-lg shadow-md bg-white focus:bg-white border-2 transition-colors duration-200 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 text-gray-900 placeholder-gray-400 font-medium text-base outline-none ${
-                                error ? 'border-red-500' : contactType ? 'border-green-500' : 'border-gray-300'
-                              }`}
+                              className={`w-full p-3 rounded-lg shadow-md bg-white focus:bg-white border-2 transition-colors duration-200 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 text-gray-900 placeholder-gray-400 font-medium text-base outline-none ${error ? 'border-red-500' : contactType ? 'border-green-500' : 'border-gray-300'
+                                }`}
                               placeholder="your@email.com or +44 7123 456789"
                               required
                               autoComplete="email"
@@ -569,7 +568,7 @@ export default function WaitlistPage() {
                               </motion.p>
                             )}
                           </AnimatePresence>
-                          
+
                           <div className="mt-4 flex items-start">
                             <div className="flex items-center h-5">
                               <input
@@ -581,15 +580,15 @@ export default function WaitlistPage() {
                                 className="h-4 w-4 rounded border-gray-300 text-[#ff3b30] focus:ring-[#ff3b30] cursor-pointer"
                               />
                             </div>
-                            <label 
-                              htmlFor="social-media-following" 
+                            <label
+                              htmlFor="social-media-following"
                               className="ml-3 text-sm font-medium text-gray-700 cursor-pointer select-none"
                             >
                               I have a significant social media following and would be open to receiving a PR package
                             </label>
                           </div>
-                          
-                          <motion.div 
+
+                          <motion.div
                             className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-100"
                             whileHover={{ scale: 1.01 }}
                             transition={{ type: "spring", stiffness: 400 }}
@@ -599,7 +598,7 @@ export default function WaitlistPage() {
                             </p>
                           </motion.div>
                         </div>
-                        
+
                         <motion.button
                           type="submit"
                           whileHover={{ scale: alreadySignedUp ? 1 : 1.02 }}
@@ -624,7 +623,7 @@ export default function WaitlistPage() {
                               <p className="text-green-800 font-semibold">You're already on our waitlist!</p>
                             </div>
                             <p className="text-green-700 text-sm">
-                              Thanks for your interest! We'll notify you as soon as we launch in your area. 
+                              Thanks for your interest! We'll notify you as soon as we launch in your area.
                               <Link href="/referral" className="text-[#ff3b30] font-medium hover:underline ml-1">
                                 Start earning rewards with referrals →
                               </Link>

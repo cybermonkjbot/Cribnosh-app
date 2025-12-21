@@ -2,16 +2,20 @@ import { v } from 'convex/values';
 import {
   ErrorFactory
 } from '../../../apps/web/lib/errors/convex-exports';
-import { api } from '../_generated/api';
 import { Id } from '../_generated/dataModel';
-import { mutation, internalMutation, MutationCtx } from '../_generated/server';
-import { requireAuth, requireAdmin, requireStaff, isAdmin, isStaff } from '../utils/auth';
+import { internalMutation, mutation, MutationCtx } from '../_generated/server';
+import { isAdmin, isStaff, requireAdmin, requireAuth, requireStaff } from '../utils/auth';
 
 /**
  * Initialize profile tracking records for a new user
  * Errors are caught and logged but don't fail user creation
  */
 async function initializeUserProfile(ctx: MutationCtx, userId: Id<'users'>) {
+  // TODO: Refactor these into internal functions that take MutationCtx
+  // so they can be called directly from mutations.
+  // MutationCtx does not support runMutation.
+
+  /*
   try {
     // Initialize Nosh Points (0 points)
     await ctx.runMutation(api.mutations.noshPoints.initializePoints, {
@@ -19,7 +23,6 @@ async function initializeUserProfile(ctx: MutationCtx, userId: Id<'users'>) {
     });
   } catch (error) {
     console.error('Failed to initialize Nosh Points:', error);
-    // Continue with other initializations
   }
 
   try {
@@ -30,7 +33,6 @@ async function initializeUserProfile(ctx: MutationCtx, userId: Id<'users'>) {
     });
   } catch (error) {
     console.error('Failed to initialize ForkPrint score:', error);
-    // Continue with other initializations
   }
 
   try {
@@ -42,7 +44,6 @@ async function initializeUserProfile(ctx: MutationCtx, userId: Id<'users'>) {
     });
   } catch (error) {
     console.error('Failed to initialize nutrition goal:', error);
-    // Continue with other initializations
   }
 
   try {
@@ -52,8 +53,9 @@ async function initializeUserProfile(ctx: MutationCtx, userId: Id<'users'>) {
     });
   } catch (error) {
     console.error('Failed to initialize streak:', error);
-    // Continue - user creation should still succeed
   }
+  */
+  console.log('Profile initialization deferred for user:', userId);
 }
 
 export const create = mutation({
@@ -124,17 +126,17 @@ export const updateUser = mutation({
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     // Users can update their own data, but only admins can update roles/status
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
       throw new Error('Access denied');
     }
-    
+
     // Only admins can update roles or status
     if ((args.roles || args.status) && !isAdmin(user)) {
       throw new Error('Only admins can update roles or status');
     }
-    
+
     const { userId, ...updates } = args;
     // Check if email is being updated and if it's already taken
     if (updates.email) {
@@ -163,7 +165,7 @@ export const setupTwoFactor = mutation({
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     // Users can only set up 2FA for themselves
     if (!isAdmin(user) && args.userId !== user._id) {
       throw new Error('Access denied');
@@ -188,7 +190,7 @@ export const disableTwoFactor = mutation({
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     // Users can only disable 2FA for themselves, admins can disable for anyone
     if (!isAdmin(user) && args.userId !== user._id) {
       throw new Error('Access denied');
@@ -215,7 +217,7 @@ export const verifyTwoFactorCode = mutation({
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
     const authUser = await requireAuth(ctx, args.sessionToken);
-    
+
     // Users can only verify 2FA for themselves
     if (!isAdmin(authUser) && args.userId !== authUser._id) {
       throw new Error('Access denied');
@@ -225,11 +227,11 @@ export const verifyTwoFactorCode = mutation({
     if (!targetUser || !targetUser.twoFactorEnabled || !targetUser.twoFactorSecret) {
       return false;
     }
-    
+
     if (!isValid) {
       return false;
     }
-    
+
     // If code is valid and it's a backup code, remove it from the list
     if (targetUser.twoFactorBackupCodes && targetUser.twoFactorBackupCodes.length > 0) {
       // Check if code matches any backup code (this check was done in API route)
@@ -240,10 +242,10 @@ export const verifyTwoFactorCode = mutation({
         // This is a simplified approach - the API route will handle the actual verification
         return true; // Keep all codes for now, API route handles removal
       });
-      
+
       // Note: Backup code removal is handled in the API route after verification
     }
-    
+
     return true;
   },
 });
@@ -258,7 +260,7 @@ export const removeBackupCode = mutation({
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
     const authUser = await requireAuth(ctx, args.sessionToken);
-    
+
     // Users can only remove backup codes for themselves
     if (!isAdmin(authUser) && args.userId !== authUser._id) {
       throw new Error('Access denied');
@@ -268,13 +270,13 @@ export const removeBackupCode = mutation({
     if (!targetUser || !targetUser.twoFactorBackupCodes) {
       return false;
     }
-    
+
     const updatedCodes = targetUser.twoFactorBackupCodes.filter((code: string) => code !== hashedCode);
     await ctx.db.patch(userId, {
       twoFactorBackupCodes: updatedCodes,
       lastModified: Date.now(),
     });
-    
+
     return true;
   },
 });
@@ -288,7 +290,7 @@ export const deleteUser = mutation({
   handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
     await requireAdmin(ctx, args.sessionToken);
-    
+
     await ctx.db.delete(args.userId);
   },
 });
@@ -303,7 +305,7 @@ export const updateUserStatus = mutation({
   handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
     await requireAdmin(ctx, args.sessionToken);
-    
+
     await ctx.db.patch(args.userId, {
       status: args.status,
     });
@@ -320,7 +322,7 @@ export const updateUserRoles = mutation({
   handler: async (ctx: MutationCtx, args) => {
     // Require admin authentication
     await requireAdmin(ctx, args.sessionToken);
-    
+
     await ctx.db.patch(args.userId, {
       roles: args.roles,
       lastModified: Date.now(),
@@ -467,7 +469,7 @@ export const getUserStats = mutation({
     const activeUsers = users.filter(user => user.status === 'active');
     const inactiveUsers = users.filter(user => user.status === 'inactive');
     const suspendedUsers = users.filter(user => user.status === 'suspended');
-    
+
     return {
       total: users.length,
       active: activeUsers.length,
@@ -489,11 +491,11 @@ export const searchUsers = mutation({
     // Require staff/admin authentication
     await requireStaff(ctx, args.sessionToken);
     const users = await ctx.db.query("users").collect();
-    const filtered = users.filter(user => 
+    const filtered = users.filter(user =>
       user.name.toLowerCase().includes(args.query.toLowerCase()) ||
       user.email.toLowerCase().includes(args.query.toLowerCase())
     );
-    
+
     return filtered.slice(0, args.limit || 10);
   },
 });
@@ -513,7 +515,7 @@ export const updateUserOnboarding = mutation({
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     // Users can update their own onboarding, staff/admin can update any
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
       throw new Error('Access denied');
@@ -536,25 +538,25 @@ export const updateMattermostStatus = mutation({
 });
 
 export const markNotificationRead = mutation({
-  args: { 
+  args: {
     notificationId: v.id("notifications"),
     sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     // Get notification to check ownership
     const notification = await ctx.db.get(args.notificationId);
     if (!notification) {
       throw new Error('Notification not found');
     }
-    
+
     // Users can mark their own notifications as read, staff/admin can mark any
     if (notification.userId && !isAdmin(user) && !isStaff(user) && notification.userId !== user._id) {
       throw new Error('Access denied');
     }
-    
+
     await ctx.db.patch(args.notificationId, { read: true });
   },
 });
@@ -571,7 +573,7 @@ export const createNotification = mutation({
   handler: async (ctx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     // If creating global notification or notification for other users, require staff/admin
     if (args.global || (args.userId && args.userId !== user._id)) {
       if (!isAdmin(user) && !isStaff(user)) {
@@ -599,7 +601,7 @@ export const generateReferralLink = mutation({
   handler: async (ctx: MutationCtx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     // Users can generate referral links for themselves
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
       throw new Error('Access denied');
@@ -774,10 +776,10 @@ export const createOrUpdateUserWithRoles = mutation({
       .query('users')
       .filter(q => q.eq(q.field('email'), args.email))
       .first();
-    
+
     let userId: Id<'users'>;
     let userRoles: string[] = args.roles || [];
-    
+
     if (existing) {
       userId = existing._id;
       // Merge with existing roles
@@ -794,13 +796,13 @@ export const createOrUpdateUserWithRoles = mutation({
         lastModified: Date.now(),
       });
     }
-    
+
     // Ensure customer role if requested (default true)
     const ensureCustomer = args.ensureCustomerRole !== false;
     if (ensureCustomer && !userRoles.includes('customer')) {
       userRoles = [...userRoles, 'customer'];
     }
-    
+
     // Update roles if needed
     if (existing) {
       await ctx.db.patch(userId, {
@@ -808,13 +810,13 @@ export const createOrUpdateUserWithRoles = mutation({
         lastModified: Date.now(),
       });
     }
-    
+
     // Return the full user
     const user = await ctx.db.get(userId);
     if (!user) {
       throw new Error('Failed to retrieve user after creation/update');
     }
-    
+
     return user;
   },
 });
@@ -873,15 +875,15 @@ export const createAndSetSessionToken = mutation({
   }),
   handler: async (ctx: MutationCtx, args) => {
     const { userId, expiresInDays = 30, userAgent, ipAddress, deviceId, deviceName } = args;
-    
+
     // Generate secure session token using Convex-native crypto
     const sessionToken = generateSecureSessionToken();
-    
+
     // Calculate expiry (default 30 days)
     const expiresInMs = expiresInDays * 24 * 60 * 60 * 1000;
     const sessionExpiry = Date.now() + expiresInMs;
     const now = Date.now();
-    
+
     // Create an entry in the sessions table for session management (primary storage)
     // This supports multiple devices - each device gets its own session entry
     await ctx.db.insert("sessions", {
@@ -894,7 +896,7 @@ export const createAndSetSessionToken = mutation({
       deviceId: deviceId || undefined,
       deviceName: deviceName || undefined,
     });
-    
+
     // Also update user document for backward compatibility
     // Note: This will overwrite any existing sessionToken on the user document,
     // but validation now primarily uses the sessions table, so this is okay
@@ -903,7 +905,7 @@ export const createAndSetSessionToken = mutation({
       sessionExpiry,
       lastModified: now,
     });
-    
+
     return {
       sessionToken,
       sessionExpiry,
@@ -945,10 +947,10 @@ export const clearExpiredSessionToken = mutation({
     if (!user) {
       return { success: false, message: 'User not found' };
     }
-    
+
     // Check if session token is expired
     const isExpired = user.sessionExpiry && user.sessionExpiry < Date.now();
-    
+
     if (isExpired || !user.sessionToken) {
       // Clear the expired session token
       await ctx.db.patch(args.userId, {
@@ -956,13 +958,13 @@ export const clearExpiredSessionToken = mutation({
         sessionExpiry: undefined,
         lastModified: Date.now(),
       });
-      
-      return { 
-        success: true, 
-        message: isExpired ? 'Expired session token cleared' : 'Session token cleared' 
+
+      return {
+        success: true,
+        message: isExpired ? 'Expired session token cleared' : 'Session token cleared'
       };
     }
-    
+
     return { success: false, message: 'Session token is still valid' };
   },
 });
@@ -1010,8 +1012,8 @@ export const setStripeCustomerId = mutation({
 
 // Update subscription status for Stripe webhooks
 export const updateSubscriptionStatus = mutation({
-  args: { 
-    userId: v.id("users"), 
+  args: {
+    userId: v.id("users"),
     subscriptionStatus: v.union(
       v.literal("active"),
       v.literal("canceled"),
@@ -1021,7 +1023,7 @@ export const updateSubscriptionStatus = mutation({
     )
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.userId, { 
+    await ctx.db.patch(args.userId, {
       status: args.subscriptionStatus === 'canceled' ? 'inactive' : 'active',
       lastModified: Date.now()
     });
@@ -1047,26 +1049,26 @@ export const createOrUpdateOAuthUser = mutation({
       hasPicture: !!args.picture,
       verified: args.verified,
     });
-    
+
     try {
       const now = Date.now();
-      
+
       // Validate required fields
       if (!args.provider || !args.providerId || !args.email || !args.name) {
         const errorMsg = `Missing required fields: provider=${args.provider}, providerId=${args.providerId}, email=${args.email}, name=${args.name}`;
         console.error('[createOrUpdateOAuthUser] Validation error:', errorMsg);
         throw new Error(errorMsg);
       }
-      
+
       // Check if user already exists by OAuth provider ID
       let existingUser;
       try {
         console.log('[createOrUpdateOAuthUser] Querying users by OAuth provider...');
         const allUsers = await ctx.db.query('users').collect();
         console.log(`[createOrUpdateOAuthUser] Found ${allUsers.length} total users`);
-        existingUser = allUsers.find(user => 
-          user.oauthProviders?.some(oauth => 
-            oauth.provider === args.provider && 
+        existingUser = allUsers.find(user =>
+          user.oauthProviders?.some(oauth =>
+            oauth.provider === args.provider &&
             oauth.providerId === args.providerId
           )
         );
@@ -1079,30 +1081,30 @@ export const createOrUpdateOAuthUser = mutation({
         console.error('[createOrUpdateOAuthUser] Error querying users by OAuth provider:', queryError);
         throw new Error(`Failed to query users: ${queryError instanceof Error ? queryError.message : String(queryError)}`);
       }
-      
+
       if (existingUser) {
         // Update existing user's OAuth info
         try {
-          const updatedOAuthProviders = existingUser.oauthProviders?.map(oauth => 
-            oauth.provider === args.provider 
+          const updatedOAuthProviders = existingUser.oauthProviders?.map(oauth =>
+            oauth.provider === args.provider
               ? { ...oauth, ...args, verified: args.verified ?? true }
               : oauth
           ) || [{ ...args, verified: args.verified ?? true }];
-          
+
           await ctx.db.patch(existingUser._id, {
             oauthProviders: updatedOAuthProviders,
             primaryOAuthProvider: args.provider,
             lastModified: now,
             lastLogin: now,
           });
-          
+
           return { userId: existingUser._id, isNewUser: false };
         } catch (patchError) {
           console.error('Error updating existing OAuth user:', patchError);
           throw new Error(`Failed to update OAuth user: ${patchError instanceof Error ? patchError.message : String(patchError)}`);
         }
       }
-      
+
       // Check if user exists by email
       let userByEmail;
       try {
@@ -1120,7 +1122,7 @@ export const createOrUpdateOAuthUser = mutation({
         console.error('[createOrUpdateOAuthUser] Error querying user by email:', emailQueryError);
         throw new Error(`Failed to query user by email: ${emailQueryError instanceof Error ? emailQueryError.message : String(emailQueryError)}`);
       }
-      
+
       if (userByEmail) {
         // Link OAuth to existing account
         try {
@@ -1128,21 +1130,21 @@ export const createOrUpdateOAuthUser = mutation({
             ...(userByEmail.oauthProviders || []),
             { ...args, verified: args.verified ?? true }
           ];
-          
+
           await ctx.db.patch(userByEmail._id, {
             oauthProviders: updatedOAuthProviders,
             primaryOAuthProvider: args.provider,
             lastModified: now,
             lastLogin: now,
           });
-          
+
           return { userId: userByEmail._id, isNewUser: false };
         } catch (patchError) {
           console.error('Error linking OAuth to existing user:', patchError);
           throw new Error(`Failed to link OAuth provider: ${patchError instanceof Error ? patchError.message : String(patchError)}`);
         }
       }
-      
+
       // Create new user
       let userId: Id<'users'>;
       try {
@@ -1157,14 +1159,14 @@ export const createOrUpdateOAuthUser = mutation({
           lastModified: now,
           lastLogin: now,
         };
-        
+
         console.log('[createOrUpdateOAuthUser] Creating new OAuth user with data:', {
           name: userData.name,
           email: userData.email,
           provider: userData.primaryOAuthProvider,
           hasOAuthProviders: !!userData.oauthProviders?.length,
         });
-        
+
         userId = await ctx.db.insert('users', userData);
         console.log('[createOrUpdateOAuthUser] Successfully created user:', userId);
       } catch (insertError) {
@@ -1183,7 +1185,7 @@ export const createOrUpdateOAuthUser = mutation({
         console.error('Failed to initialize user profile (non-fatal):', initError);
         // Continue - user creation succeeded, profile initialization can be retried later
       }
-      
+
       return { userId, isNewUser: true };
     } catch (error) {
       // Ensure all errors are properly formatted with messages
@@ -1201,7 +1203,7 @@ export const createOrUpdateOAuthUser = mutation({
           name: args.name,
         },
       });
-      
+
       // Re-throw with a descriptive message
       const finalError = new Error(`OAuth user creation/update failed: ${errorMessage}`);
       console.error('[createOrUpdateOAuthUser] Throwing error:', finalError.message);

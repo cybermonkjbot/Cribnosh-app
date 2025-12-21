@@ -1,7 +1,8 @@
-import { mutation } from "../_generated/server";
 import { v } from "convex/values";
-import { Id, Doc } from "../_generated/dataModel";
-import { requireStaff, getAuthenticatedUser } from "../utils/auth";
+import { Id } from "../_generated/dataModel";
+import { mutation } from "../_generated/server";
+import { requireStaff } from "../utils/auth";
+import { addToWaitlistInternal } from "../waitlist_utils";
 
 export const addToWaitlist = mutation({
   args: {
@@ -22,53 +23,7 @@ export const addToWaitlist = mutation({
     userId: v.optional(v.id("users")),
   }),
   handler: async (ctx, args) => {
-    // Check if email already exists in waitlist
-    const existing = await ctx.db
-      .query("waitlist")
-      .filter((q) => q.eq(q.field("email"), args.email))
-      .first();
-    
-    // Check if user exists with this email (optimization - return user info if exists)
-    const existingUser = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("email"), args.email))
-      .first();
-    
-    if (existing) {
-      // Return existing entry with user info if available
-      return { 
-        success: true, 
-        waitlistId: existing._id,
-        isExisting: true,
-        userId: existingUser?._id,
-      };
-    }
-    
-    const waitlistId = await ctx.db.insert("waitlist", {
-      email: args.email,
-      name: args.name,
-      phone: args.phone,
-      location: args.location,
-      referralCode: args.referralCode,
-      referrer: args.referralCode ? await ctx.db
-        .query("waitlist")
-        .filter((q) => q.eq(q.field("referralCode"), args.referralCode))
-        .first()
-        .then((entry: Doc<"waitlist"> | null) => entry?._id) : undefined,
-      status: "active",
-      joinedAt: args.joinedAt || Date.now(),
-      source: args.source || "website",
-      priority: "normal",
-      addedBy: args.addedBy,
-      addedByName: args.addedByName,
-    });
-    
-    return { 
-      success: true, 
-      waitlistId, 
-      isExisting: false,
-      userId: existingUser?._id, // Return user ID if user already exists
-    };
+    return await addToWaitlistInternal(ctx, args);
   },
 });
 
@@ -86,17 +41,17 @@ export const updateWaitlistStatus = mutation({
     if (!waitlist) {
       throw new Error("Waitlist entry not found");
     }
-    
+
     const updateData: Record<string, unknown> = {
       status: args.status,
     };
-    
+
     if (args.status === "converted") {
       updateData.convertedAt = Date.now();
     }
-    
+
     await ctx.db.patch(args.waitlistId, updateData);
-    
+
     // Log the status change
     await ctx.db.insert("adminActivity", {
       type: "waitlist_status_change",
@@ -111,7 +66,7 @@ export const updateWaitlistStatus = mutation({
         },
       },
     });
-    
+
     return { success: true };
   },
 });
@@ -129,7 +84,7 @@ export const createEmailCampaign = mutation({
     await requireStaff(ctx, args.sessionToken);
     // In a real app, this would create an email campaign record
     console.log("Creating email campaign:", args.name);
-    
+
     // Log the campaign creation
     await ctx.db.insert("adminActivity", {
       type: "email_campaign_created",
@@ -144,7 +99,7 @@ export const createEmailCampaign = mutation({
         },
       },
     });
-    
+
     return { success: true, campaignId: "new-campaign-id" };
   },
 });
@@ -200,14 +155,14 @@ export const sendEmailCampaign = mutation({
 
     // Wait for all emails to be queued
     await Promise.all(emailPromises);
-    
+
     // Update last notified timestamp for all recipients
     for (const waitlistId of args.waitlistIds) {
       await ctx.db.patch(waitlistId, {
         lastNotifiedAt: Date.now(),
       });
     }
-    
+
     // Log the campaign send
     await ctx.db.insert("adminActivity", {
       type: "email_campaign_sent",
@@ -222,7 +177,7 @@ export const sendEmailCampaign = mutation({
         },
       },
     });
-    
+
     return { success: true, sentCount: args.waitlistIds.length };
   },
 });
@@ -239,7 +194,7 @@ export const deleteWaitlistEntry = mutation({
   handler: async (ctx, args) => {
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
-    
+
     await ctx.db.delete(args.entryId);
     return { success: true };
   },
@@ -258,7 +213,7 @@ export const updateWaitlistEntry = mutation({
   handler: async (ctx, args) => {
     // Require staff authentication
     const user = await requireStaff(ctx, args.sessionToken);
-    
+
     // If addedBy is provided, ensure it matches the authenticated user or user is admin
     if (args.addedBy && args.addedBy !== user._id) {
       const { isAdmin } = await import("../utils/auth");
@@ -269,13 +224,13 @@ export const updateWaitlistEntry = mutation({
     const updateData: Record<string, unknown> = {
       updatedAt: Date.now(),
     };
-    
+
     if (args.status) updateData.status = args.status;
     if (args.notes !== undefined) updateData.notes = args.notes;
     if (args.priority) updateData.priority = args.priority;
     if (args.addedBy) updateData.addedBy = args.addedBy;
     if (args.addedByName) updateData.addedByName = args.addedByName;
-    
+
     await ctx.db.patch(args.entryId, updateData);
     return { success: true };
   },
@@ -310,11 +265,11 @@ export const rejectWaitlistEntry = mutation({
       status: 'rejected',
       updatedAt: Date.now(),
     };
-    
+
     if (args.reason) {
       updateData.notes = args.reason;
     }
-    
+
     await ctx.db.patch(args.entryId, updateData);
     return { success: true };
   },
@@ -336,7 +291,7 @@ export const addBulkWaitlistEntries = mutation({
   handler: async (ctx, args) => {
     // Require staff authentication
     const user = await requireStaff(ctx, args.sessionToken);
-    
+
     // Ensure addedBy matches authenticated user if provided
     if (args.addedBy && args.addedBy !== user._id) {
       const { isAdmin } = await import("../utils/auth");
@@ -353,7 +308,7 @@ export const addBulkWaitlistEntries = mutation({
         .query("waitlist")
         .filter((q) => q.eq(q.field("email"), email))
         .first();
-      
+
       if (!existing) {
         await ctx.db.insert("waitlist", {
           email,
@@ -374,7 +329,7 @@ export const addBulkWaitlistEntries = mutation({
         existingCount++;
       }
     }
-    
+
     return { success: true, added: addedCount, existing: existingCount };
   },
 });

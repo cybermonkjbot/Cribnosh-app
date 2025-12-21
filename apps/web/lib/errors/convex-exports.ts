@@ -15,27 +15,16 @@ export * from './convex-error-handler';
 
 // Re-export commonly used items for convenience
 export {
-  ErrorFactory,
-  CribNoshError,
-  ValidationError,
   AuthenticationError,
-  AuthorizationError,
-  NotFoundError,
-  ConflictError,
-  BusinessRuleError,
-  ServiceUnavailableError,
-  DatabaseError,
-  ExternalServiceError,
-  ConvexError,
+  AuthorizationError, BusinessRuleError, ConflictError, ConvexError as CribNoshConvexError, CribNoshError, DatabaseError, ErrorFactory, ExternalServiceError, NotFoundError, ServiceUnavailableError, ValidationError
 } from './standard-errors';
 
+// Re-export official ConvexError from convex/values for propagation
+export { ConvexError } from 'convex/values';
+
 export {
-  handleConvexError,
-  validateConvexArgs,
-  safeConvexOperation,
-  createConvexErrorResponse,
-  createConvexSuccessResponse,
-  withConvexErrorHandling,
-  withConvexQueryErrorHandling,
-  CONVEX_ERROR_MESSAGES,
+  CONVEX_ERROR_MESSAGES, createConvexErrorResponse,
+  createConvexSuccessResponse, handleConvexError, safeConvexOperation, validateConvexArgs, withConvexErrorHandling,
+  withConvexQueryErrorHandling
 } from './convex-error-handler';
+
