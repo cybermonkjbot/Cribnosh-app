@@ -224,6 +224,7 @@ export default function WaitlistPage() {
       setIsSuccess(true);
     } catch (err) {
       setError('Something went wrong. Please try again.');
+      throw err;
     }
   };
 

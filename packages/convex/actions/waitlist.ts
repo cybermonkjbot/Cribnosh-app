@@ -127,6 +127,7 @@ export const addToWaitlistComplete = action({
     // Step 3: Generate referral link
     const referralLink = await ctx.runMutation(api.mutations.users.generateReferralLink, {
       userId,
+      sessionToken: sessionResult.sessionToken,
     });
 
     // Step 4: Attribute referral if referrer exists

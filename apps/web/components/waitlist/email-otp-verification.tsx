@@ -138,7 +138,7 @@ export function EmailOTPVerification({
         // Handle response structure: data.data.sessionToken or data.data.token (for backwards compatibility)
         const token = data.data?.sessionToken || data.data?.token || data.sessionToken || data.token;
         const user = data.data?.user || data.user;
-        onSuccess(token, user);
+        await onSuccess(token, user);
       } else {
         const errorMessage = data.error || data.message || 'Verification failed. Please try again.';
 
