@@ -1,7 +1,7 @@
-import Image from 'next/image';
+import { Handshake, Lock, MapPin, Sparkles, TrendingUp } from 'lucide-react';
 import { motion, Variants } from 'motion/react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Handshake, MapPin } from 'lucide-react';
 
 export const SharedKitchenIntro = () => {
   const router = useRouter();
@@ -24,7 +24,7 @@ export const SharedKitchenIntro = () => {
       {/* Decorative elements */}
       <div className="absolute inset-0 bg-[url('/backgrounds/masonry-2.jpg')] opacity-5 bg-cover bg-center" />
       <div className="absolute inset-0 bg-gradient-to-br from-white/90 via-white/85 to-[#ff3b30]/5   " />
-      
+
       <div className="relative container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -46,13 +46,13 @@ export const SharedKitchenIntro = () => {
                 Introducing Shared Kitchen
               </span>
             </motion.div>
-            
+
             <h2 className="font-asgard text-5xl md:text-6xl lg:text-7xl mb-6 bg-gradient-to-r from-[#ff3b30] to-[#ff5e54] bg-clip-text text-transparent">
               No Kitchen?
               <br />
               No Problem!
             </h2>
-            
+
             <p className="font-satoshi text-xl md:text-2xl text-gray-700  max-w-3xl mx-auto">
               Where Culinary Dreams Meet Reality - Connect with kitchen owners and create magic together
             </p>
@@ -86,15 +86,15 @@ export const SharedKitchenIntro = () => {
                 </h3>
                 <ul className="font-satoshi space-y-4 text-gray-600  mb-8">
                   <li className="flex items-center">
-                    <Sparkles className="w-5 h-5 mr-3 text-yellow-400" />
+                    <Sparkles className="w-5 h-5 mr-3 text-gray-900" />
                     Access fully-equipped professional kitchens
                   </li>
                   <li className="flex items-center">
-                    <Handshake className="w-5 h-5 mr-3 text-blue-500" />
+                    <Handshake className="w-5 h-5 mr-3 text-gray-900" />
                     Partner with verified kitchen owners
                   </li>
                   <li className="flex items-center">
-                    <MapPin className="w-5 h-5 mr-3 text-red-500" />
+                    <MapPin className="w-5 h-5 mr-3 text-gray-900" />
                     Find spaces in your neighborhood
                   </li>
                 </ul>
@@ -134,15 +134,15 @@ export const SharedKitchenIntro = () => {
                 </h3>
                 <ul className="font-satoshi space-y-4 text-gray-600  mb-8">
                   <li className="flex items-center">
-                    <span className="mr-3">💫</span>
+                    <Sparkles className="w-5 h-5 mr-3 text-gray-900" />
                     Monetize your unused kitchen time
                   </li>
                   <li className="flex items-center">
-                    <span className="mr-3">🔒</span>
+                    <Lock className="w-5 h-5 mr-3 text-gray-900" />
                     Connect with verified, skilled chefs
                   </li>
                   <li className="flex items-center">
-                    <span className="mr-3">📈</span>
+                    <TrendingUp className="w-5 h-5 mr-3 text-gray-900" />
                     Grow your culinary community
                   </li>
                 </ul>
