@@ -126,13 +126,16 @@ export const verifyOTP = mutation({
     phone: v.optional(v.string()),
     email: v.optional(v.string()),
     code: v.string(),
+    purpose: v.optional(v.union(v.literal('waitlist'), v.literal('signin'), v.literal('phone_verification'))),
   },
   handler: withConvexErrorHandling(async (ctx: MutationCtx, args: {
     phone?: string;
     email?: string;
     code: string;
+    purpose?: 'waitlist' | 'signin' | 'phone_verification';
   }) => {
     const now = Date.now();
+    const isWaitlistSignup = args.purpose === 'waitlist';
 
     // Validate input
     if (!args.phone && !args.email) {
@@ -189,47 +192,61 @@ export const verifyOTP = mutation({
     // At this point, otp is guaranteed to be non-null
     const otpDoc = otp as Doc<"otps">;
 
-    // Check if OTP is expired
-    if (now > otpDoc.expiresAt) {
-      // Clean up expired OTP
-      await safeConvexOperation(
-        () => ctx.db.delete(otpDoc._id),
-        { operation: 'delete_expired_otp', otpId: otpDoc._id }
-      );
-      throw ErrorFactory.validation('Verification code has expired. Please request a new verification code.', {
-        operation: 'verify_otp',
-        identifier,
-        expiresAt: otpDoc.expiresAt
-      });
+    // For waitlist signups, we relax validation - allow expired OTPs
+    if (!isWaitlistSignup) {
+      // Check if OTP is expired (strict validation for non-waitlist)
+      if (now > otpDoc.expiresAt) {
+        // Clean up expired OTP
+        await safeConvexOperation(
+          () => ctx.db.delete(otpDoc._id),
+          { operation: 'delete_expired_otp', otpId: otpDoc._id }
+        );
+        throw ErrorFactory.validation('Verification code has expired. Please request a new verification code.', {
+          operation: 'verify_otp',
+          identifier,
+          expiresAt: otpDoc.expiresAt
+        });
+      }
+
+      // Check if OTP is already used (strict validation for non-waitlist)
+      if (otpDoc.isUsed) {
+        throw ErrorFactory.conflict('This verification code has already been used. Please request a new one.', {
+          operation: 'verify_otp',
+          identifier
+        });
+      }
+
+      // Check if max attempts exceeded (strict validation for non-waitlist)
+      if (otpDoc.attempts >= otpDoc.maxAttempts) {
+        // Mark as used to prevent further attempts
+        await safeConvexOperation(
+          () => ctx.db.patch(otpDoc._id, {
+            isUsed: true,
+            updatedAt: now,
+          }),
+          { operation: 'mark_otp_used', otpId: otpDoc._id }
+        );
+        throw ErrorFactory.validation('Maximum verification attempts exceeded. Please request a new verification code.', {
+          operation: 'verify_otp',
+          identifier,
+          attempts: otpDoc.attempts,
+          maxAttempts: otpDoc.maxAttempts
+        });
+      }
+    } else {
+      // For waitlist signups, just log warnings but don't fail
+      if (now > otpDoc.expiresAt) {
+        console.log('⚠️ Waitlist signup: Accepting expired OTP for', identifier);
+      }
+      if (otpDoc.isUsed) {
+        console.log('⚠️ Waitlist signup: Accepting already-used OTP for', identifier);
+      }
+      if (otpDoc.attempts >= otpDoc.maxAttempts) {
+        console.log('⚠️ Waitlist signup: Accepting OTP with max attempts exceeded for', identifier);
+      }
     }
 
-    // Check if OTP is already used
-    if (otpDoc.isUsed) {
-      throw ErrorFactory.conflict('This verification code has already been used. Please request a new one.', {
-        operation: 'verify_otp',
-        identifier
-      });
-    }
-
-    // Check if max attempts exceeded
-    if (otpDoc.attempts >= otpDoc.maxAttempts) {
-      // Mark as used to prevent further attempts
-      await safeConvexOperation(
-        () => ctx.db.patch(otpDoc._id, {
-          isUsed: true,
-          updatedAt: now,
-        }),
-        { operation: 'mark_otp_used', otpId: otpDoc._id }
-      );
-      throw ErrorFactory.validation('Maximum verification attempts exceeded. Please request a new verification code.', {
-        operation: 'verify_otp',
-        identifier,
-        attempts: otpDoc.attempts,
-        maxAttempts: otpDoc.maxAttempts
-      });
-    }
-
-    // Check if code matches first
+    // Check if code matches first (always validate - even for waitlist)
     if (otpDoc.code !== args.code) {
       const newAttempts = otpDoc.attempts + 1;
       const remainingAttempts = otpDoc.maxAttempts - newAttempts;
@@ -392,13 +409,16 @@ export const verifyEmailOTP = mutation({
   args: {
     email: v.string(),
     code: v.string(),
+    purpose: v.optional(v.union(v.literal('waitlist'), v.literal('signin'), v.literal('phone_verification'))),
   },
   handler: withConvexErrorHandling(async (ctx: MutationCtx, args: {
     email: string;
     code: string;
+    purpose?: 'waitlist' | 'signin' | 'phone_verification';
   }) => {
     try {
       const now = Date.now();
+      const isWaitlistSignup = args.purpose === 'waitlist';
 
       // Validate input
       if (!args.email || !args.code) {
@@ -423,29 +443,43 @@ export const verifyEmailOTP = mutation({
       // At this point, otp is guaranteed to be non-null
       const otpDoc = otp as Doc<"otps">;
 
-      // Check if OTP is expired
-      if (now > otpDoc.expiresAt) {
-        // Clean up expired OTP
-        await ctx.db.delete(otpDoc._id);
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'OTP has expired. Please request a new verification code.');
+      // For waitlist signups, we relax validation - allow expired OTPs
+      if (!isWaitlistSignup) {
+        // Check if OTP is expired (strict validation for non-waitlist)
+        if (now > otpDoc.expiresAt) {
+          // Clean up expired OTP
+          await ctx.db.delete(otpDoc._id);
+          throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'OTP has expired. Please request a new verification code.');
+        }
+
+        // Check if OTP is already used (strict validation for non-waitlist)
+        if (otpDoc.isUsed) {
+          throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'This verification code has already been used. Please request a new one.');
+        }
+
+        // Check if max attempts exceeded (strict validation for non-waitlist)
+        if (otpDoc.attempts >= otpDoc.maxAttempts) {
+          // Mark as used to prevent further attempts
+          await ctx.db.patch(otpDoc._id, {
+            isUsed: true,
+            updatedAt: now,
+          });
+          throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Maximum verification attempts exceeded. Please request a new verification code.');
+        }
+      } else {
+        // For waitlist signups, just log warnings but don't fail
+        if (now > otpDoc.expiresAt) {
+          console.log('⚠️ Waitlist signup: Accepting expired OTP for', args.email);
+        }
+        if (otpDoc.isUsed) {
+          console.log('⚠️ Waitlist signup: Accepting already-used OTP for', args.email);
+        }
+        if (otpDoc.attempts >= otpDoc.maxAttempts) {
+          console.log('⚠️ Waitlist signup: Accepting OTP with max attempts exceeded for', args.email);
+        }
       }
 
-      // Check if OTP is already used
-      if (otpDoc.isUsed) {
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'This verification code has already been used. Please request a new one.');
-      }
-
-      // Check if max attempts exceeded
-      if (otpDoc.attempts >= otpDoc.maxAttempts) {
-        // Mark as used to prevent further attempts
-        await ctx.db.patch(otpDoc._id, {
-          isUsed: true,
-          updatedAt: now,
-        });
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Maximum verification attempts exceeded. Please request a new verification code.');
-      }
-
-      // Check if code matches first
+      // Check if code matches first (always validate - even for waitlist)
       if (otpDoc.code !== args.code) {
         const newAttempts = otpDoc.attempts + 1;
         const remainingAttempts = otpDoc.maxAttempts - newAttempts;

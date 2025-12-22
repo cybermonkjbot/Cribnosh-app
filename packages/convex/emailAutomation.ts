@@ -1,6 +1,6 @@
-import { query, mutation, internalQuery, internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
-import { internal, api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
+import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 
 // ============================================================================
 // EMAIL AUTOMATION PROCESSING
@@ -18,24 +18,24 @@ export const processEmailAutomation = internalAction({
     const automation = await ctx.runQuery(internal.emailAutomation.getAutomationById, {
       automationId: args.automationId,
     });
-    
+
     if (!automation || !automation.isActive) {
       console.log(`Automation ${args.automationId} not found or inactive`);
       return null;
     }
-    
+
     // Check if automation is within schedule
     const now = Date.now();
     if (now < automation.schedule.startDate) {
       console.log(`Automation ${args.automationId} not yet started`);
       return null;
     }
-    
+
     if (automation.schedule.endDate && now > automation.schedule.endDate) {
       console.log(`Automation ${args.automationId} has ended`);
       return null;
     }
-    
+
     // Process each trigger
     for (const trigger of automation.triggers) {
       if (await evaluateTriggerConditions(trigger, args.eventData)) {
@@ -49,7 +49,7 @@ async function evaluateTriggerConditions(trigger: any, eventData: any): Promise<
   // Simple condition evaluation - can be enhanced with more complex logic
   for (const condition of trigger.conditions) {
     const fieldValue = getNestedValue(eventData, condition.field);
-    
+
     switch (condition.operator) {
       case "equals":
         if (fieldValue !== condition.value) return false;
@@ -80,7 +80,7 @@ async function evaluateTriggerConditions(trigger: any, eventData: any): Promise<
         return false;
     }
   }
-  
+
   return true;
 }
 
@@ -101,12 +101,12 @@ async function processTrigger(
     key: rateLimitKey,
     limits: automation.limits,
   });
-  
+
   if (!rateLimit.allowed) {
     console.log(`Rate limit exceeded for automation ${automation.automationId} and user ${userId}`);
     return;
   }
-  
+
   // Process each template in the automation
   for (const templateConfig of automation.templates) {
     // Check template-specific conditions
@@ -116,14 +116,14 @@ async function processTrigger(
     )) {
       continue;
     }
-    
+
     // Get user data for email
     const user = await ctx.runQuery(internal.emailAutomation.getUserData, { userId });
     if (!user) {
       console.log(`User ${userId} not found`);
       continue;
     }
-    
+
     // Merge template data with user data
     const emailData = {
       ...templateConfig.data,
@@ -134,10 +134,10 @@ async function processTrigger(
         name: automation.name,
       },
     };
-    
+
     // Schedule email with delay
     const scheduledFor = Date.now() + (trigger.delay * 1000); // Convert seconds to milliseconds
-    
+
     await ctx.runMutation(internal.emailAutomation.scheduleEmail, {
       templateId: templateConfig.templateId,
       recipientEmail: user.email,
@@ -161,7 +161,7 @@ export const getAutomationById = internalQuery({
       .query("emailAutomations")
       .withIndex("by_automation_id", (q) => q.eq("automationId", args.automationId))
       .first();
-    
+
     return automation;
   },
 });
@@ -183,7 +183,7 @@ export const checkRateLimit = internalQuery({
     const now = Date.now();
     const dayStart = new Date(now).setHours(0, 0, 0, 0);
     const hourStart = new Date(now).setMinutes(0, 0, 0);
-    
+
     // Check daily limit
     const dailyCount = await ctx.db
       .query("emailQueue")
@@ -191,14 +191,14 @@ export const checkRateLimit = internalQuery({
       .filter((q) => q.gte(q.field("scheduledFor"), dayStart))
       .collect()
       .then(emails => emails.length);
-    
+
     if (dailyCount >= args.limits.maxEmailsPerDay) {
       return {
         allowed: false,
         resetTime: dayStart + 24 * 60 * 60 * 1000, // Next day
       };
     }
-    
+
     // Check hourly limit
     const hourlyCount = await ctx.db
       .query("emailQueue")
@@ -206,14 +206,14 @@ export const checkRateLimit = internalQuery({
       .filter((q) => q.gte(q.field("scheduledFor"), hourStart))
       .collect()
       .then(emails => emails.length);
-    
+
     if (hourlyCount >= args.limits.maxEmailsPerHour) {
       return {
         allowed: false,
         resetTime: hourStart + 60 * 60 * 1000, // Next hour
       };
     }
-    
+
     return {
       allowed: true,
       resetTime: 0,
@@ -256,7 +256,7 @@ export const scheduleEmail = internalMutation({
       attempts: 0,
       maxAttempts: 3,
     });
-    
+
     return queueId;
   },
 });
@@ -290,7 +290,7 @@ export const getActiveAutomations = query({
       .query("emailAutomations")
       .withIndex("by_active", (q) => q.eq("isActive", true))
       .collect();
-    
+
     return automations;
   },
 });
@@ -303,9 +303,9 @@ export const getAutomationsByEvent = query({
       .query("emailAutomations")
       .withIndex("by_active", (q) => q.eq("isActive", true))
       .collect();
-    
+
     // Filter automations that have triggers for this event
-    return automations.filter(automation => 
+    return automations.filter(automation =>
       automation.triggers.some((trigger: any) => trigger.event === args.event)
     );
   },
@@ -323,13 +323,13 @@ export const processEmailQueue = internalAction({
   handler: async (ctx, args) => {
     const batchSize = args.batchSize || 10;
     const now = Date.now();
-    
+
     // Get pending emails that are ready to be sent
     const pendingEmails = await ctx.runQuery(internal.emailAutomation.getPendingEmails, {
       limit: batchSize,
       currentTime: now,
     });
-    
+
     for (const email of pendingEmails) {
       try {
         // Update status to processing
@@ -338,7 +338,7 @@ export const processEmailQueue = internalAction({
           status: "processing",
           lastAttempt: now,
         });
-        
+
         // Send email (this would integrate with your email service)
         await ctx.runAction(internal.emailAutomation.sendEmail, {
           templateId: email.templateId,
@@ -346,13 +346,13 @@ export const processEmailQueue = internalAction({
           recipientData: email.recipientData,
           trackingId: email.trackingId,
         });
-        
+
         // Update status to sent
         await ctx.runMutation(internal.emailAutomation.updateEmailStatus, {
           emailId: email._id,
           status: "sent",
         });
-        
+
         // Record analytics event
         await ctx.runMutation(internal.emailAutomation.recordEmailEvent, {
           emailId: email.trackingId || email._id,
@@ -364,14 +364,14 @@ export const processEmailQueue = internalAction({
             priority: email.priority,
           },
         });
-        
+
       } catch (error) {
         console.error(`Failed to send email ${email._id}:`, error);
-        
+
         // Update attempt count
         const newAttempts = email.attempts + 1;
         const shouldRetry = newAttempts < email.maxAttempts;
-        
+
         await ctx.runMutation(internal.emailAutomation.updateEmailStatus, {
           emailId: email._id,
           status: shouldRetry ? "pending" : "failed",
@@ -379,7 +379,7 @@ export const processEmailQueue = internalAction({
           errorMessage: String(error),
           lastAttempt: now,
         });
-        
+
         if (shouldRetry) {
           // Schedule retry with exponential backoff
           const retryDelay = Math.pow(2, newAttempts) * 60 * 1000; // Exponential backoff in minutes
@@ -406,7 +406,7 @@ export const getPendingEmails = internalQuery({
       .filter((q) => q.lte(q.field("scheduledFor"), args.currentTime))
       .order("asc")
       .take(args.limit);
-    
+
     return emails;
   },
 });
@@ -428,19 +428,19 @@ export const updateEmailStatus = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const updates: any = { status: args.status };
-    
+
     if (args.attempts !== undefined) {
       updates.attempts = args.attempts;
     }
-    
+
     if (args.errorMessage !== undefined) {
       updates.errorMessage = args.errorMessage;
     }
-    
+
     if (args.lastAttempt !== undefined) {
       updates.lastAttempt = args.lastAttempt;
     }
-    
+
     await ctx.db.patch(args.emailId, updates);
   },
 });
@@ -453,7 +453,7 @@ export const scheduleRetry = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const newScheduledFor = Date.now() + args.delay;
-    
+
     await ctx.db.patch(args.emailId, {
       scheduledFor: newScheduledFor,
     });
@@ -470,24 +470,24 @@ export const sendEmail = internalAction({
   returns: v.string(), // Return email ID
   handler: async (ctx, args): Promise<string> => {
     // Get the template configuration
-    let template: any = await ctx.runQuery(api.queries.emailConfig.getTemplate, { 
-      templateId: args.templateId 
+    let template: any = await ctx.runQuery(api.queries.emailConfig.getTemplate, {
+      templateId: args.templateId
     });
-    
+
     // Auto-create campaign-template if it doesn't exist
     if (!template && args.templateId === "campaign-template") {
       console.log("Campaign template not found, creating it...");
       try {
         await ctx.runMutation(api.mutations.email.initializeCampaignTemplate, {});
         // Try to get it again
-        template = await ctx.runQuery(api.queries.emailConfig.getTemplate, { 
-          templateId: args.templateId 
+        template = await ctx.runQuery(api.queries.emailConfig.getTemplate, {
+          templateId: args.templateId
         });
       } catch (error) {
         console.error("Failed to auto-create campaign template:", error);
       }
     }
-    
+
     if (!template) {
       throw new Error(`Template ${args.templateId} not found`);
     }
@@ -504,7 +504,7 @@ export const sendEmail = internalAction({
       }
       return String(value);
     };
-    
+
     // Helper to escape HTML for subject (which should be plain text)
     const escapeHtml = (text: string): string => {
       const map: Record<string, string> = {
@@ -516,12 +516,12 @@ export const sendEmail = internalAction({
       };
       return text.replace(/[&<>"']/g, (m) => map[m]);
     };
-    
+
     const renderedSubject: string = template.subject.replace(/\{\{(\w+)\}\}/g, (match: string, key: string) => {
       const value = getValue(args.recipientData, key);
       return value ? escapeHtml(value) : match;
     });
-    
+
     // For HTML content, support both {{key}} (escaped) and {{{key}}} (unescaped/raw HTML)
     let renderedHtml: string = template.htmlContent;
     // First handle triple braces (raw HTML) - these should not be escaped
@@ -578,7 +578,7 @@ export const recordEmailEvent = internalMutation({
       timestamp: Date.now(),
       metadata: args.metadata,
     });
-    
+
     return eventId;
   },
 });
@@ -617,17 +617,17 @@ export const getAutomationStats = query({
         })
         .filter((q) => q.eq(q.field("recipientData.automation.id"), args.automationId!))
         .collect();
-      
+
       // Calculate stats
       const totalEmails = emails.length;
       const sentEmails = emails.filter(e => e.status === "sent").length;
       const failedEmails = emails.filter(e => e.status === "failed").length;
-      
+
       // Calculate real email rates from emailQueue data
       const openRate = 0;
       const clickRate = 0;
       const bounceRate = 0;
-      
+
       return {
         totalEmails,
         sentEmails,
@@ -637,23 +637,23 @@ export const getAutomationStats = query({
         bounceRate,
       };
     }
-    
+
     if (args.automationId) {
       const emails = await ctx.db
         .query("emailQueue")
         .filter((q) => q.eq(q.field("recipientData.automation.id"), args.automationId!))
         .collect();
-      
+
       // Calculate stats
       const totalEmails = emails.length;
       const sentEmails = emails.filter(e => e.status === "sent").length;
       const failedEmails = emails.filter(e => e.status === "failed").length;
-      
+
       // Calculate real email rates from emailQueue data
       const openRate = 0;
       const clickRate = 0;
       const bounceRate = 0;
-      
+
       return {
         totalEmails,
         sentEmails,
@@ -663,7 +663,7 @@ export const getAutomationStats = query({
         bounceRate,
       };
     }
-    
+
     if (args.startDate || args.endDate) {
       const emails = await ctx.db
         .query("emailQueue")
@@ -678,17 +678,17 @@ export const getAutomationStats = query({
           return q;
         })
         .collect();
-      
+
       // Calculate stats
       const totalEmails = emails.length;
       const sentEmails = emails.filter(e => e.status === "sent").length;
       const failedEmails = emails.filter(e => e.status === "failed").length;
-      
+
       // Calculate real email rates from emailQueue data
       const openRate = 0;
       const clickRate = 0;
       const bounceRate = 0;
-      
+
       return {
         totalEmails,
         sentEmails,
@@ -698,26 +698,26 @@ export const getAutomationStats = query({
         bounceRate,
       };
     }
-    
+
     const emails = await ctx.db.query("emailQueue").collect();
-    
+
     const totalEmails = emails.length;
     const sentEmails = emails.filter(e => e.status === "sent").length;
     const failedEmails = emails.filter(e => e.status === "failed").length;
-    
+
     // Get analytics data for open/click rates
     const analyticsQuery = ctx.db.query("emailAnalyticsData");
     if (args.automationId) {
-      analyticsQuery.filter((q) => 
+      analyticsQuery.filter((q) =>
         q.eq(q.field("metadata.automationId"), args.automationId)
       );
     }
-    
+
     const analyticsData = await analyticsQuery.collect();
     const opens = analyticsData.filter(a => a.eventType === "opened").length;
     const clicks = analyticsData.filter(a => a.eventType === "clicked").length;
     const bounces = analyticsData.filter(a => a.eventType === "bounced").length;
-    
+
     return {
       totalEmails,
       sentEmails,
