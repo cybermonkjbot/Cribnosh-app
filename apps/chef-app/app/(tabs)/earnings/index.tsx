@@ -26,8 +26,8 @@ export default function EarningsScreen() {
 
   const analytics = useQuery(
     api.queries.analytics.getChefAnalytics,
-    chef?._id
-      ? { chefId: chef._id, timeRange }
+    chef?._id && sessionToken
+      ? { chefId: chef._id, timeRange, sessionToken }
       : 'skip'
   ) as any;
 
@@ -59,7 +59,7 @@ export default function EarningsScreen() {
     const labels = [];
     const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     const count = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
-    
+
     if (count === 7) {
       return days;
     } else {
@@ -566,7 +566,7 @@ const DailyRevenueChart: React.FC<DailyRevenueChartProps> = ({
   return (
     <View style={chartStyles.container}>
       <Text style={chartStyles.title}>Daily Revenue</Text>
-      
+
       <View style={chartStyles.separator} />
 
       <View style={chartStyles.chartSection}>
@@ -584,8 +584,8 @@ const DailyRevenueChart: React.FC<DailyRevenueChartProps> = ({
             {/* Daily Bars */}
             <View style={chartStyles.barsContainer}>
               {displayData.map((revenue, index) => {
-                const animatedHeight = maxRevenue > 0 
-                  ? barHeight(revenue) * barsProgressState 
+                const animatedHeight = maxRevenue > 0
+                  ? barHeight(revenue) * barsProgressState
                   : 0;
                 return (
                   <Animated.View

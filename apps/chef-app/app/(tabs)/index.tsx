@@ -77,8 +77,8 @@ export default function ChefDashboard() {
   // Get chef analytics for earnings
   const analytics = useQuery(
     api.queries.analytics.getChefAnalytics,
-    chef?._id
-      ? { chefId: chef._id, timeRange: '30d' }
+    chef?._id && sessionToken
+      ? { chefId: chef._id, timeRange: '30d', sessionToken }
       : 'skip'
   );
 
@@ -158,7 +158,7 @@ export default function ChefDashboard() {
 
 
   if (!chef) {
-  return (
+    return (
       <GradientBackground>
         <EmptyState
           title="Loading..."
@@ -177,21 +177,21 @@ export default function ChefDashboard() {
         <Animated.View style={logoAnimatedStyle}>
           <CribNoshLogo size={isSticky ? 88 : 120} variant="default" />
         </Animated.View>
-        
+
         <View style={styles.iconsContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => setIsNotificationsSheetVisible(true)}
             style={styles.iconButton}
           >
             <Bell size={24} color="#374151" />
           </TouchableOpacity>
         </View>
-        </View>
+      </View>
 
       {!isSticky && (
         <>
-          <PremiumHeader 
-            title="Chef Dashboard" 
+          <PremiumHeader
+            title="Chef Dashboard"
             showInfoButton={false}
           />
           <Animated.View style={welcomeAnimatedStyle}>
@@ -269,13 +269,13 @@ export default function ChefDashboard() {
         {/* Online/Offline Toggle */}
         {chef?._id && isAuthenticated && (
           <View style={styles.toggleContainer}>
-          <OnlineOfflineToggle
-            chefId={chef._id}
-            isOnline={chef.isAvailable || false}
-            sessionToken={sessionToken || undefined}
-            onShowSetup={() => setIsSetupSheetVisible(true)}
-          />
-        </View>
+            <OnlineOfflineToggle
+              chefId={chef._id}
+              isOnline={chef.isAvailable || false}
+              sessionToken={sessionToken || undefined}
+              onShowSetup={() => setIsSetupSheetVisible(true)}
+            />
+          </View>
         )}
 
         {/* Earnings Summary - Only show when authenticated */}
@@ -283,10 +283,10 @@ export default function ChefDashboard() {
           <View style={styles.earningsCard}>
             <View style={styles.earningsHeader}>
               <View style={styles.earningsInfo}>
-            <Text style={styles.earningsLabel}>Revenue</Text>
-            <Text style={styles.earningsValue}>
-              £{analytics ? (analytics.totalRevenue / 100).toFixed(2) : '0.00'}
-            </Text>
+                <Text style={styles.earningsLabel}>Revenue</Text>
+                <Text style={styles.earningsValue}>
+                  £{analytics ? (analytics.totalRevenue / 100).toFixed(2) : '0.00'}
+                </Text>
               </View>
               <TouchableOpacity
                 onPress={() => router.push('/(tabs)/earnings')}
@@ -302,63 +302,63 @@ export default function ChefDashboard() {
         {/* Recent Orders - Only show when authenticated */}
         {isAuthenticated && (
           <View style={styles.ordersSection}>
-                    <View style={styles.sectionHeader}>
-                      <Text style={styles.sectionTitle}>Recent Orders</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Orders</Text>
               {recentOrders && recentOrders.length > 0 && (
-                      <TouchableOpacity onPress={() => router.push('/(tabs)/orders')}>
-                        <Text style={styles.viewAllText}>View All</Text>
-                      </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push('/(tabs)/orders')}>
+                  <Text style={styles.viewAllText}>View All</Text>
+                </TouchableOpacity>
               )}
-                    </View>
+            </View>
             {recentOrders && recentOrders.length > 0 ? (
-            recentOrders.map((order: any) => {
-              const statusStyle = getOrderStatusStyle(order.order_status || 'pending');
-              return (
-                <TouchableOpacity
-                  key={order._id}
-                  onPress={() => router.push(`/(tabs)/orders/${order._id}`)}
-                >
-                <Card
-                  style={styles.orderCard}
-                >
-                  <View style={styles.orderInfo}>
-                    <View style={styles.orderLeft}>
-                      <Text style={styles.orderNumber}>
-                        Order #{order.order_id || order.orderNumber || order._id.slice(-8)}
-                      </Text>
-                      <Text style={styles.orderDate}>
-                        {new Date(order.createdAt || Date.now()).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </Text>
-                    </View>
-                    <View style={[styles.orderStatusBadge, { backgroundColor: `${statusStyle.color}20` }]}>
-                      <Text style={[styles.orderStatusText, { color: statusStyle.color }]}>
-                        {order.order_status || 'pending'}
-                      </Text>
-                    </View>
-                  </View>
-                  {order.total_amount && (
-                    <View style={styles.orderAmount}>
-                      <Text style={styles.orderAmountText}>
-                        £{(order.total_amount / 100).toFixed(2)}
-                      </Text>
-                    </View>
-                  )}
-              </Card>
-              </TouchableOpacity>
-              );
-            })
-          ) : (
-            <EmptyState
-              title="No recent orders"
-              subtitle="You haven't received any orders yet. Start accepting orders to see them here."
-              icon="receipt-outline"
-              style={{ paddingVertical: 40 }}
-            />
+              recentOrders.map((order: any) => {
+                const statusStyle = getOrderStatusStyle(order.order_status || 'pending');
+                return (
+                  <TouchableOpacity
+                    key={order._id}
+                    onPress={() => router.push(`/(tabs)/orders/${order._id}`)}
+                  >
+                    <Card
+                      style={styles.orderCard}
+                    >
+                      <View style={styles.orderInfo}>
+                        <View style={styles.orderLeft}>
+                          <Text style={styles.orderNumber}>
+                            Order #{order.order_id || order.orderNumber || order._id.slice(-8)}
+                          </Text>
+                          <Text style={styles.orderDate}>
+                            {new Date(order.createdAt || Date.now()).toLocaleDateString('en-GB', {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </Text>
+                        </View>
+                        <View style={[styles.orderStatusBadge, { backgroundColor: `${statusStyle.color}20` }]}>
+                          <Text style={[styles.orderStatusText, { color: statusStyle.color }]}>
+                            {order.order_status || 'pending'}
+                          </Text>
+                        </View>
+                      </View>
+                      {order.total_amount && (
+                        <View style={styles.orderAmount}>
+                          <Text style={styles.orderAmountText}>
+                            £{(order.total_amount / 100).toFixed(2)}
+                          </Text>
+                        </View>
+                      )}
+                    </Card>
+                  </TouchableOpacity>
+                );
+              })
+            ) : (
+              <EmptyState
+                title="No recent orders"
+                subtitle="You haven't received any orders yet. Start accepting orders to see them here."
+                icon="receipt-outline"
+                style={{ paddingVertical: 40 }}
+              />
             )}
           </View>
         )}
@@ -366,28 +366,28 @@ export default function ChefDashboard() {
         {/* Quick Actions - Only show when authenticated */}
         {isAuthenticated && (
           <View style={styles.quickActionsSection}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsRow}>
-            <TouchableOpacity 
-              style={styles.quickActionCard}
-              onPress={() => router.push('/(tabs)/orders')}
-            >
-              <Text style={styles.quickActionText}>Orders</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.quickActionCard}
-              onPress={() => router.push('/(tabs)/meals')}
-            >
-              <Text style={styles.quickActionText}>Meals</Text>
-            </TouchableOpacity>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <View style={styles.quickActionsRow}>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => router.push('/(tabs)/orders')}
+              >
+                <Text style={styles.quickActionText}>Orders</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => router.push('/(tabs)/meals')}
+              >
+                <Text style={styles.quickActionText}>Meals</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
         )}
       </Animated.ScrollView>
 
       {/* Floating Action Button */}
       {isAuthenticated && (
-        <FloatingActionButton 
+        <FloatingActionButton
           bottomPosition={2}
           onCameraPress={() => {
             setAutoShowLiveStreamSetup(false);
@@ -415,7 +415,7 @@ export default function ChefDashboard() {
           statusBarTranslucent={true}
           hardwareAccelerated={true}
         >
-          <CameraModalScreen 
+          <CameraModalScreen
             onClose={() => {
               setIsCameraVisible(false);
               setAutoShowLiveStreamSetup(false);
@@ -428,7 +428,7 @@ export default function ChefDashboard() {
                 router.push(`/(tabs)/chef/live/${liveSessionId}` as any);
                 showSuccess('Live Session Started', 'Your live session is now live!');
               } else {
-              showSuccess('Live Session Started', 'Your live session has been created successfully!');
+                showSuccess('Live Session Started', 'Your live session has been created successfully!');
               }
             }}
             autoShowLiveStreamSetup={autoShowLiveStreamSetup}

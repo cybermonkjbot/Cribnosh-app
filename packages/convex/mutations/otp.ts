@@ -1,6 +1,5 @@
 import { v } from 'convex/values';
 import {
-  ErrorCode,
   ErrorFactory,
   safeConvexOperation,
   withConvexErrorHandling
@@ -258,9 +257,9 @@ export const verifyOTP = mutation({
       });
 
       if (remainingAttempts <= 0) {
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Invalid verification code. Maximum attempts exceeded. Please request a new verification code.');
+        throw ErrorFactory.validation('Invalid verification code. Maximum attempts exceeded. Please request a new verification code.', { operation: 'verify_otp', identifier });
       } else {
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, `Invalid verification code. ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.`);
+        throw ErrorFactory.validation(`Invalid verification code. ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.`, { operation: 'verify_otp', identifier, remainingAttempts });
       }
     }
 
@@ -328,19 +327,19 @@ export const createEmailOTP = mutation({
 
       // Validate input
       if (!args.email || !args.code) {
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Email and OTP code are required');
+        throw ErrorFactory.validation('Email and OTP code are required', { operation: 'create_email_otp' });
       }
 
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(args.email)) {
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Invalid email address format');
+        throw ErrorFactory.validation('Invalid email address format', { operation: 'create_email_otp', email: args.email });
       }
 
       if (args.code.length !== 6 || !/^\d{6}$/.test(args.code)) {
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'OTP code must be a 6-digit number');
+        throw ErrorFactory.validation('OTP code must be a 6-digit number', { operation: 'create_email_otp' });
       }
 
       if (maxAttempts < 1 || maxAttempts > 10) {
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Max attempts must be between 1 and 10');
+        throw ErrorFactory.validation('Max attempts must be between 1 and 10', { operation: 'create_email_otp', maxAttempts });
       }
 
       // Add user to waitlist before sending OTP
@@ -400,7 +399,7 @@ export const createEmailOTP = mutation({
       if (error instanceof Error) {
         throw error;
       }
-      throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Failed to create verification code. Please try again.');
+      throw ErrorFactory.validation('Failed to create verification code. Please try again.', { operation: 'create_email_otp' });
     }
   }),
 });
@@ -422,11 +421,11 @@ export const verifyEmailOTP = mutation({
 
       // Validate input
       if (!args.email || !args.code) {
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Email and OTP code are required');
+        throw ErrorFactory.validation('Email and OTP code are required', { operation: 'verify_email_otp' });
       }
 
       if (args.code.length !== 6 || !/^\d{6}$/.test(args.code)) {
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'OTP code must be a 6-digit number');
+        throw ErrorFactory.validation('OTP code must be a 6-digit number', { operation: 'verify_email_otp' });
       }
 
       // Find the OTP for this email
@@ -437,7 +436,7 @@ export const verifyEmailOTP = mutation({
         .first();
 
       if (!otp) {
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'No OTP found for this email. Please request a new verification code.');
+        throw ErrorFactory.notFound('No OTP found for this email. Please request a new verification code.', { operation: 'verify_email_otp', email: args.email });
       }
 
       // At this point, otp is guaranteed to be non-null
@@ -449,12 +448,12 @@ export const verifyEmailOTP = mutation({
         if (now > otpDoc.expiresAt) {
           // Clean up expired OTP
           await ctx.db.delete(otpDoc._id);
-          throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'OTP has expired. Please request a new verification code.');
+          throw ErrorFactory.validation('OTP has expired. Please request a new verification code.', { operation: 'verify_email_otp', email: args.email });
         }
 
         // Check if OTP is already used (strict validation for non-waitlist)
         if (otpDoc.isUsed) {
-          throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'This verification code has already been used. Please request a new one.');
+          throw ErrorFactory.conflict('This verification code has already been used. Please request a new one.', { operation: 'verify_email_otp', email: args.email });
         }
 
         // Check if max attempts exceeded (strict validation for non-waitlist)
@@ -464,7 +463,7 @@ export const verifyEmailOTP = mutation({
             isUsed: true,
             updatedAt: now,
           });
-          throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Maximum verification attempts exceeded. Please request a new verification code.');
+          throw ErrorFactory.validation('Maximum verification attempts exceeded. Please request a new verification code.', { operation: 'verify_email_otp', email: args.email });
         }
       } else {
         // For waitlist signups, just log warnings but don't fail
@@ -491,9 +490,9 @@ export const verifyEmailOTP = mutation({
         });
 
         if (remainingAttempts <= 0) {
-          throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Invalid verification code. Maximum attempts exceeded. Please request a new verification code.');
+          throw ErrorFactory.validation('Invalid verification code. Maximum attempts exceeded. Please request a new verification code.', { operation: 'verify_email_otp', email: args.email });
         } else {
-          throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, `Invalid verification code. ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.`);
+          throw ErrorFactory.validation(`Invalid verification code. ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.`, { operation: 'verify_email_otp', email: args.email, remainingAttempts });
         }
       }
 
@@ -533,7 +532,7 @@ export const verifyEmailOTP = mutation({
       if (error instanceof Error) {
         throw error;
       }
-      throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Verification failed. Please try again.');
+      throw ErrorFactory.validation('Verification failed. Please try again.', { operation: 'verify_email_otp' });
     }
   }),
 });
@@ -559,11 +558,11 @@ export const sendSMSOTP = mutation({
 
       // Validate input
       if (!args.phone || !args.code) {
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Phone number and OTP code are required');
+        throw ErrorFactory.validation('Phone number and OTP code are required', { operation: 'send_sms_otp' });
       }
 
       if (args.code.length !== 6 || !/^\d{6}$/.test(args.code)) {
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'OTP code must be a 6-digit number');
+        throw ErrorFactory.validation('OTP code must be a 6-digit number', { operation: 'send_sms_otp' });
       }
 
       // Validate provider
@@ -581,7 +580,7 @@ export const sendSMSOTP = mutation({
         .collect();
 
       if (recentOtps.length >= SMS_CONFIG.rateLimit.maxOTPsPerPhone) {
-        throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Too many OTP requests. Please wait before requesting another code.');
+        throw ErrorFactory.validation('Too many OTP requests. Please wait before requesting another code.', { operation: 'send_sms_otp', phone: args.phone });
       }
 
       // Delete any existing OTPs for this phone
@@ -650,7 +649,7 @@ export const sendSMSOTP = mutation({
       if (error instanceof Error) {
         throw error;
       }
-      throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'Failed to send SMS OTP. Please try again.');
+      throw ErrorFactory.validation('Failed to send SMS OTP. Please try again.', { operation: 'send_sms_otp' });
     }
   }),
 });

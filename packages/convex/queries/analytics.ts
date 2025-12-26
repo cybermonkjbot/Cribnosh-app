@@ -1,12 +1,12 @@
-import { requireStaff } from "../utils/auth";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { query } from "../_generated/server";
+import { isStaff, requireAuth, requireStaff } from "../utils/auth";
 
 // Helper function to get meal name
 async function getMealName(ctx: any, mealId: any): Promise<string | null> {
   try {
     if (!mealId) return null;
-    
+
     const meal = await ctx.db.get(mealId);
     return meal?.name || meal?.title || null;
   } catch (error) {
@@ -53,10 +53,10 @@ export const getDashboardMetrics = query({
   }),
   handler: async (ctx, args) => {
     await requireStaff(ctx, args.sessionToken);
-    const daysInRange = args.timeRange === "7d" ? 7 : 
-                       args.timeRange === "30d" ? 30 : 
-                       args.timeRange === "90d" ? 90 : 365;
-    
+    const daysInRange = args.timeRange === "7d" ? 7 :
+      args.timeRange === "30d" ? 30 :
+        args.timeRange === "90d" ? 90 : 365;
+
     const startTime = Date.now() - (daysInRange * 24 * 60 * 60 * 1000);
     const previousStartTime = startTime - (daysInRange * 24 * 60 * 60 * 1000);
 
@@ -108,11 +108,11 @@ export const getDashboardMetrics = query({
     const activeChefs = currentChefs.filter(chef => chef.status === "active").length;
     const totalOrders = currentOrders.length;
     const totalRevenue = currentOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    
+
     // Calculate average rating from reviews
     const reviews = await ctx.db.query("reviews").collect();
-    const averageRating = reviews.length > 0 
-      ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length 
+    const averageRating = reviews.length > 0
+      ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length
       : 0;
 
     // Get unique cities from orders delivery addresses
@@ -124,18 +124,18 @@ export const getDashboardMetrics = query({
     });
 
     // Calculate growth percentages
-    const userGrowth = previousUsers.length > 0 
-      ? ((totalUsers - previousUsers.length) / previousUsers.length) * 100 
+    const userGrowth = previousUsers.length > 0
+      ? ((totalUsers - previousUsers.length) / previousUsers.length) * 100
       : 0;
-    const chefGrowth = previousChefs.length > 0 
-      ? ((activeChefs - previousChefs.length) / previousChefs.length) * 100 
+    const chefGrowth = previousChefs.length > 0
+      ? ((activeChefs - previousChefs.length) / previousChefs.length) * 100
       : 0;
-    const orderGrowth = previousOrders.length > 0 
-      ? ((totalOrders - previousOrders.length) / previousOrders.length) * 100 
+    const orderGrowth = previousOrders.length > 0
+      ? ((totalOrders - previousOrders.length) / previousOrders.length) * 100
       : 0;
     const previousRevenue = previousOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    const revenueGrowth = previousRevenue > 0 
-      ? ((totalRevenue - previousRevenue) / previousRevenue) * 100 
+    const revenueGrowth = previousRevenue > 0
+      ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
       : 0;
 
     // Get top locations from real order data
@@ -145,7 +145,7 @@ export const getDashboardMetrics = query({
         cityCounts[order.delivery_address.city] = (cityCounts[order.delivery_address.city] || 0) + 1;
       }
     });
-    
+
     const topLocations = Object.entries(cityCounts)
       .map(([city, count]) => ({ city, count }))
       .sort((a, b) => b.count - a.count)
@@ -181,11 +181,11 @@ export const getDashboardMetrics = query({
       const dayStart = date.getTime();
       const dayEnd = dayStart + (24 * 60 * 60 * 1000);
 
-      const dayUsers = currentUsers.filter(user => 
+      const dayUsers = currentUsers.filter(user =>
         user._creationTime >= dayStart && user._creationTime < dayEnd
       ).length;
 
-      const dayOrders = currentOrders.filter(order => 
+      const dayOrders = currentOrders.filter(order =>
         order.createdAt >= dayStart && order.createdAt < dayEnd
       );
 
@@ -296,7 +296,21 @@ export const getChefAnalytics = query({
     })),
   }),
   handler: async (ctx, args) => {
-    await requireStaff(ctx, args.sessionToken);
+    const user = await requireAuth(ctx, args.sessionToken);
+    const chef = await ctx.db.get(args.chefId);
+
+    if (!chef) {
+      throw new ConvexError("Chef not found");
+    }
+
+    // Allow access if user is the chef themselves OR if they are staff
+    const isOwner = user._id === chef.userId;
+    const staff = isStaff(user);
+
+    if (!isOwner && !staff) {
+      throw new ConvexError("Unauthorized access to chef analytics");
+    }
+
     const daysInRange = args.timeRange === "7d" ? 7 : args.timeRange === "30d" ? 30 : 90;
     const startTime = Date.now() - (daysInRange * 24 * 60 * 60 * 1000);
 
@@ -321,8 +335,8 @@ export const getChefAnalytics = query({
     // Calculate metrics
     const totalOrders = orders.length;
     const totalRevenue = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    const averageRating = reviews.length > 0 
-      ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length 
+    const averageRating = reviews.length > 0
+      ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length
       : 0;
 
     // Get previous period for growth calculation
@@ -336,12 +350,12 @@ export const getChefAnalytics = query({
       ))
       .collect();
 
-    const orderGrowth = previousOrders.length > 0 
-      ? ((totalOrders - previousOrders.length) / previousOrders.length) * 100 
+    const orderGrowth = previousOrders.length > 0
+      ? ((totalOrders - previousOrders.length) / previousOrders.length) * 100
       : 0;
     const previousRevenue = previousOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    const revenueGrowth = previousRevenue > 0 
-      ? ((totalRevenue - previousRevenue) / previousRevenue) * 100 
+    const revenueGrowth = previousRevenue > 0
+      ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
       : 0;
 
     // Get top meals
@@ -379,7 +393,7 @@ export const getChefAnalytics = query({
       const dayStart = date.getTime();
       const dayEnd = dayStart + (24 * 60 * 60 * 1000);
 
-      const dayOrders = orders.filter(order => 
+      const dayOrders = orders.filter(order =>
         order.createdAt >= dayStart && order.createdAt < dayEnd
       );
 
@@ -464,10 +478,10 @@ export const getRevenueAnalytics = query({
   }),
   handler: async (ctx, args) => {
     await requireStaff(ctx, args.sessionToken);
-    const daysInRange = args.timeRange === "7d" ? 7 : 
-                       args.timeRange === "30d" ? 30 : 
-                       args.timeRange === "90d" ? 90 : 365;
-    
+    const daysInRange = args.timeRange === "7d" ? 7 :
+      args.timeRange === "30d" ? 30 :
+        args.timeRange === "90d" ? 90 : 365;
+
     const startTime = Date.now() - (daysInRange * 24 * 60 * 60 * 1000);
     const previousStartTime = startTime - (daysInRange * 24 * 60 * 60 * 1000);
 
@@ -489,8 +503,8 @@ export const getRevenueAnalytics = query({
     // Calculate basic metrics
     const totalRevenue = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
     const previousRevenue = previousOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    const revenueGrowth = previousRevenue > 0 
-      ? ((totalRevenue - previousRevenue) / previousRevenue) * 100 
+    const revenueGrowth = previousRevenue > 0
+      ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
       : 0;
     const averageOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
 
@@ -501,7 +515,7 @@ export const getRevenueAnalytics = query({
       .collect();
 
     // Calculate refunds from payment analytics
-    const refundEvents = paymentAnalyticsData.filter(e => 
+    const refundEvents = paymentAnalyticsData.filter(e =>
       e.eventType === "charge.refunded" || e.eventType === "refund.succeeded"
     );
     const refunds = refundEvents.reduce((sum, e) => sum + e.amount, 0) / 100; // Convert from cents to dollars
@@ -509,7 +523,7 @@ export const getRevenueAnalytics = query({
     // Calculate payment methods from backend analytics
     const paymentMethodData: Record<string, { revenue: number; count: number }> = {};
     const successfulPayments = paymentAnalyticsData.filter(e => e.eventType === "payment_intent.succeeded");
-    
+
     successfulPayments.forEach((event) => {
       const method = event.paymentMethod || "unknown";
       if (!paymentMethodData[method]) {
@@ -530,14 +544,14 @@ export const getRevenueAnalytics = query({
     // Calculate monthly revenue data from actual orders
     const monthlyRevenueMap: Record<string, { revenue: number; sortKey: string }> = {};
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    
+
     orders.forEach(order => {
       const orderDate = new Date(order.createdAt);
       const year = orderDate.getFullYear();
       const month = orderDate.getMonth();
       const monthLabel = `${monthNames[month]} ${year.toString().slice(-2)}`;
       const sortKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-      
+
       if (!monthlyRevenueMap[monthLabel]) {
         monthlyRevenueMap[monthLabel] = { revenue: 0, sortKey };
       }
@@ -557,7 +571,7 @@ export const getRevenueAnalytics = query({
       const dayStart = date.getTime();
       const dayEnd = dayStart + (24 * 60 * 60 * 1000);
 
-      const dayOrders = orders.filter(order => 
+      const dayOrders = orders.filter(order =>
         order.createdAt >= dayStart && order.createdAt < dayEnd
       );
 
@@ -593,7 +607,7 @@ export const getRevenueAnalytics = query({
         order.order_items.forEach((item: any) => {
           const productName = item.name || "Unknown Product";
           const itemRevenue = (item.price || 0) * (item.quantity || 0);
-          
+
           if (!productRevenue[productName]) {
             productRevenue[productName] = { revenue: 0, orders: 0, name: productName };
           }
@@ -660,7 +674,7 @@ export const getRevenueAnalytics = query({
       dailyRevenue,
     };
   },
-}); 
+});
 
 // Get order analytics
 export const getOrderAnalytics = query({
@@ -867,15 +881,15 @@ function groupOrdersByDay(orders: any[]) {
 
 function groupOrdersByWeek(orders: any[]) {
   const weeklyData: Record<string, any> = {};
-  
+
   orders.forEach(order => {
     const orderDate = new Date(order.createdAt || order._creationTime);
     const weekStart = new Date(orderDate);
     weekStart.setDate(orderDate.getDate() - orderDate.getDay()); // Start of week (Sunday)
     weekStart.setHours(0, 0, 0, 0);
-    
+
     const weekKey = weekStart.toISOString().split('T')[0];
-    
+
     if (!weeklyData[weekKey]) {
       weeklyData[weekKey] = {
         week: weekKey,
@@ -885,29 +899,29 @@ function groupOrdersByWeek(orders: any[]) {
         averageOrderValue: 0
       };
     }
-    
+
     weeklyData[weekKey].orders.push(order);
     weeklyData[weekKey].revenue += order.total_amount || 0;
     weeklyData[weekKey].count += 1;
   });
-  
+
   // Calculate averages
   Object.values(weeklyData).forEach((week: any) => {
     week.averageOrderValue = week.count > 0 ? week.revenue / week.count : 0;
   });
-  
-  return Object.values(weeklyData).sort((a: any, b: any) => 
+
+  return Object.values(weeklyData).sort((a: any, b: any) =>
     new Date(a.week).getTime() - new Date(b.week).getTime()
   );
 }
 
 function groupOrdersByMonth(orders: any[]) {
   const monthlyData: Record<string, any> = {};
-  
+
   orders.forEach(order => {
     const orderDate = new Date(order.createdAt || order._creationTime);
     const monthKey = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}`;
-    
+
     if (!monthlyData[monthKey]) {
       monthlyData[monthKey] = {
         month: monthKey,
@@ -917,18 +931,18 @@ function groupOrdersByMonth(orders: any[]) {
         averageOrderValue: 0
       };
     }
-    
+
     monthlyData[monthKey].orders.push(order);
     monthlyData[monthKey].revenue += order.total_amount || 0;
     monthlyData[monthKey].count += 1;
   });
-  
+
   // Calculate averages
   Object.values(monthlyData).forEach((month: any) => {
     month.averageOrderValue = month.count > 0 ? month.revenue / month.count : 0;
   });
-  
-  return Object.values(monthlyData).sort((a: any, b: any) => 
+
+  return Object.values(monthlyData).sort((a: any, b: any) =>
     new Date(a.month).getTime() - new Date(b.month).getTime()
   );
 }
@@ -1017,7 +1031,7 @@ function generatePerformanceReport(orders: any[], includeDetails: boolean) {
 
   const avgPrepTime = orders
     .filter(order => order.estimated_prep_time_minutes)
-    .reduce((sum, order) => sum + (order.estimated_prep_time_minutes || 0), 0) / 
+    .reduce((sum, order) => sum + (order.estimated_prep_time_minutes || 0), 0) /
     orders.filter(order => order.estimated_prep_time_minutes).length;
 
   return {
@@ -1035,26 +1049,26 @@ function generatePerformanceReport(orders: any[], includeDetails: boolean) {
 
 function generateTrendsReport(orders: any[], includeDetails: boolean) {
   const dailyTrends = groupOrdersByDay(orders);
-  
+
   // Calculate trend direction from actual data
   let trendDirection: 'up' | 'down' | 'stable' = 'stable';
   if (dailyTrends.details && dailyTrends.details.length >= 2) {
-    const sortedDetails = [...dailyTrends.details].sort((a: any, b: any) => 
+    const sortedDetails = [...dailyTrends.details].sort((a: any, b: any) =>
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
     const firstHalf = sortedDetails.slice(0, Math.floor(sortedDetails.length / 2));
     const secondHalf = sortedDetails.slice(Math.floor(sortedDetails.length / 2));
-    
+
     const firstHalfAvg = firstHalf.reduce((sum: number, day: any) => sum + day.revenue, 0) / firstHalf.length;
     const secondHalfAvg = secondHalf.reduce((sum: number, day: any) => sum + day.revenue, 0) / secondHalf.length;
-    
+
     if (secondHalfAvg > firstHalfAvg * 1.05) {
       trendDirection = 'up';
     } else if (secondHalfAvg < firstHalfAvg * 0.95) {
       trendDirection = 'down';
     }
   }
-  
+
   return {
     reportType: 'trends',
     summary: {
@@ -1127,19 +1141,19 @@ function generateChefsReport(orders: any[], includeDetails: boolean) {
 
 function generateDeliveryReport(orders: any[], includeDetails: boolean) {
   const deliveredOrders = orders.filter(order => order.order_status === 'delivered' || order.order_status === 'completed');
-  
+
   // Calculate average delivery time from actual delivery data
-  const ordersWithDeliveryTime = deliveredOrders.filter(order => 
+  const ordersWithDeliveryTime = deliveredOrders.filter(order =>
     order.delivered_at && order.createdAt
   );
-  
+
   const averageDeliveryTime = ordersWithDeliveryTime.length > 0
     ? ordersWithDeliveryTime.reduce((sum, order) => {
-        const deliveryTime = (order.delivered_at - order.createdAt) / (1000 * 60); // Convert to minutes
-        return sum + deliveryTime;
-      }, 0) / ordersWithDeliveryTime.length
+      const deliveryTime = (order.delivered_at - order.createdAt) / (1000 * 60); // Convert to minutes
+      return sum + deliveryTime;
+    }, 0) / ordersWithDeliveryTime.length
     : 0;
-  
+
   return {
     reportType: 'delivery',
     summary: {
@@ -1165,7 +1179,7 @@ export const getReports = query({
         .filter((q: any) => q.eq(q.field("type"), "report_generated"))
         .order("desc")
         .collect();
-      
+
       // Transform to report format
       return reports.map((report: any) => {
         const details = report.metadata?.details || {};
@@ -1180,7 +1194,7 @@ export const getReports = query({
           downloadUrl: details.downloadUrl || `/reports/${report._id}.pdf`
         };
       });
-      
+
     } catch (error) {
       console.error('Failed to fetch reports:', error);
       // Return empty array on error
@@ -1207,7 +1221,7 @@ export const getUserAnalytics = query({
   handler: async (ctx: any, args: any) => {
     await requireStaff(ctx, args.sessionToken);
     const timeRange = args.timeRange || "30d";
-    
+
     try {
       // Calculate time ranges
       const now = Date.now();
@@ -1236,8 +1250,8 @@ export const getUserAnalytics = query({
       const newUserSignups = currentUsers.length;
 
       // Calculate user growth
-      const userGrowth = previousUsers.length > 0 
-        ? ((currentUsers.length - previousUsers.length) / previousUsers.length) * 100 
+      const userGrowth = previousUsers.length > 0
+        ? ((currentUsers.length - previousUsers.length) / previousUsers.length) * 100
         : 0;
 
       // Calculate average session duration from user sessions
@@ -1245,7 +1259,7 @@ export const getUserAnalytics = query({
         .query("userSessions")
         .filter((q: any) => q.gte(q.field("createdAt"), rangeStart))
         .collect();
-      
+
       const averageSessionDuration = userSessions.length > 0
         ? userSessions.reduce((sum: number, session: any) => sum + (session.duration || 0), 0) / userSessions.length / 60 // Convert to minutes
         : 0;
@@ -1275,8 +1289,8 @@ export const getUserAnalytics = query({
       for (let i = 5; i >= 0; i--) {
         const monthStart = new Date(now - (i * 30 * 24 * 60 * 60 * 1000));
         const monthEnd = new Date(monthStart.getTime() + (30 * 24 * 60 * 60 * 1000));
-        
-        const monthUsers = allUsers.filter((user: any) => 
+
+        const monthUsers = allUsers.filter((user: any) =>
           user._creationTime >= monthStart.getTime() && user._creationTime < monthEnd.getTime()
         ).length;
 
@@ -1292,7 +1306,7 @@ export const getUserAnalytics = query({
       for (let i = 6; i >= 0; i--) {
         const dayStart = now - (i * 24 * 60 * 60 * 1000);
         const dayEnd = dayStart + (24 * 60 * 60 * 1000);
-        
+
         const dayUsers = await ctx.db
           .query("orders")
           .filter((q: any) => q.and(
@@ -1376,7 +1390,7 @@ export const getUserAnalytics = query({
         registrationSources: registrationSourcesArray,
         topLocations,
         userGrowthChart: monthlyGrowth,
-    };
+      };
     } catch (error) {
       console.error('Error getting user analytics:', error);
       return {
@@ -1405,15 +1419,15 @@ export const getWaitlistStats = query({
   handler: async (ctx: any, args) => {
     await requireStaff(ctx, args.sessionToken);
     const entries = await ctx.db.query("waitlist").collect();
-    
+
     const total = entries.length;
     const pending = entries.filter((e: any) => e.status === 'pending').length;
     const approved = entries.filter((e: any) => e.status === 'approved').length;
     const rejected = entries.filter((e: any) => e.status === 'rejected').length;
     const converted = entries.filter((e: any) => e.status === 'converted').length;
-    
+
     const conversionRate = total > 0 ? (converted / total) * 100 : 0;
-    
+
     // Calculate top locations
     const locationCounts: Record<string, number> = {};
     entries.forEach((entry: any) => {
@@ -1421,24 +1435,24 @@ export const getWaitlistStats = query({
         locationCounts[entry.location] = (locationCounts[entry.location] || 0) + 1;
       }
     });
-    
+
     const topLocations = Object.entries(locationCounts)
       .map(([location, count]) => ({ location, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
-    
+
     // Calculate top sources
     const sourceCounts: Record<string, number> = {};
     entries.forEach((entry: any) => {
       const source = entry.source || 'unknown';
       sourceCounts[source] = (sourceCounts[source] || 0) + 1;
     });
-    
+
     const topSources = Object.entries(sourceCounts)
       .map(([source, count]) => ({ source, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
-    
+
     return {
       total,
       pending,
