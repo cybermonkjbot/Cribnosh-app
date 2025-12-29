@@ -1,6 +1,8 @@
-import { AlertCircle, RefreshCw } from 'lucide-react-native';
+import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
+import { AlertCircle, ArrowUpCircle, RefreshCw } from 'lucide-react-native';
 import React, { Component, ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -14,6 +16,8 @@ interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
   errorInfo: React.ErrorInfo | null;
+  isUpdateAvailable: boolean;
+  isCheckingUpdate: boolean;
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -21,17 +25,29 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      isUpdateAvailable: false,
+      isCheckingUpdate: false
+    };
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error, errorInfo: null };
+    return {
+      hasError: true,
+      error,
+      errorInfo: null,
+      isUpdateAvailable: false,
+      isCheckingUpdate: false
+    };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.warn('ErrorBoundary caught an error:', error, errorInfo);
     this.setState({ errorInfo });
-    
+
     if (this.props.onError) {
       try {
         this.props.onError(error, errorInfo);
@@ -39,7 +55,49 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         console.warn('Error in error handler:', handlerError);
       }
     }
+
+    // Check for updates when an error occurs in production
+    this.checkForUpdates();
   }
+
+  checkForUpdates = async () => {
+    // Only check for updates in production builds
+    if (__DEV__ || Constants.executionEnvironment === 'storeClient') {
+      return;
+    }
+
+    // Check if Updates is available and enabled
+    if (!Updates.isEnabled || typeof Updates.checkForUpdateAsync !== 'function') {
+      return;
+    }
+
+    try {
+      this.setState({ isCheckingUpdate: true });
+      const update = await Updates.checkForUpdateAsync();
+
+      if (update.isAvailable) {
+        this.setState({ isUpdateAvailable: true });
+        // Fetch it in the background immediately
+        await Updates.fetchUpdateAsync();
+      }
+    } catch (error) {
+      console.warn('ErrorBoundary: Update check failed:', error);
+    } finally {
+      this.setState({ isCheckingUpdate: false });
+    }
+  };
+
+  handleUpdateAndRestart = async () => {
+    try {
+      // If we already detected an update, it should be fetched by now
+      // but let's double check before reloading
+      await Updates.reloadAsync();
+    } catch (error) {
+      console.error('ErrorBoundary: Failed to reload app:', error);
+      // Fallback to resetting the error boundary if reload fails
+      this.resetErrorBoundary();
+    }
+  };
 
   componentDidUpdate(prevProps: ErrorBoundaryProps) {
     const { resetOnPropsChange, resetKeys } = this.props;
@@ -49,7 +107,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       const hasResetKeyChanged = resetKeys.some(
         (resetKey, idx) => prevProps.resetKeys![idx] !== resetKey
       );
-      
+
       if (hasResetKeyChanged) {
         this.resetErrorBoundary();
       }
@@ -96,7 +154,24 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <RefreshCw size={16} color="#fff" />
             <Text style={styles.buttonText}>Try Again</Text>
           </Pressable>
-          
+
+          {this.state.isUpdateAvailable && (
+            <Pressable
+              onPress={this.handleUpdateAndRestart}
+              style={[styles.button, styles.updateButton]}
+            >
+              <ArrowUpCircle size={16} color="#fff" />
+              <Text style={styles.buttonText}>Update & Restart</Text>
+            </Pressable>
+          )}
+
+          {this.state.isCheckingUpdate && !this.state.isUpdateAvailable && (
+            <View style={styles.checkingContainer}>
+              <ActivityIndicator size="small" color="#094327" />
+              <Text style={styles.checkingText}>Checking for fixes...</Text>
+            </View>
+          )}
+
           {__DEV__ && this.state.error && (
             <View style={styles.errorDetails}>
               <Text style={styles.errorText}>
@@ -155,6 +230,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'Inter',
+  },
+  updateButton: {
+    backgroundColor: '#094327',
+    marginTop: 12,
+  },
+  checkingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    gap: 8,
+  },
+  checkingText: {
+    fontSize: 14,
+    color: '#6B7280',
     fontFamily: 'Inter',
   },
   errorDetails: {
