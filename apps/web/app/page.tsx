@@ -67,7 +67,7 @@ export default function Home() {
         {/* Content layer */}
         <div className="relative z-10 flex-1">
           <div className="space-y-0">
-            <HeroBrand className="!mb-0" />
+            {isFeatureEnabled('home_hero_brand') && <HeroBrand className="!mb-0" />}
             {isFeatureEnabled('home_hero_geometric') && (
               <HeroGeometric
                 title1="Every Meal"

@@ -40,6 +40,13 @@ export const seed = mutation({
         const flags = [
             // Web Home Screen
             {
+                key: 'home_hero_brand',
+                label: 'Hero Brand (Logo)',
+                description: 'Top branding section with logo',
+                value: true,
+                group: 'web_home'
+            },
+            {
                 key: 'home_hero_geometric',
                 label: 'Hero Section (Geometric)',
                 description: 'The main hero section with geometric background',
