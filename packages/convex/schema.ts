@@ -89,7 +89,7 @@ export default defineSchema({
     .index("by_date", ["scheduled_start_time"])
     .index("by_session_id", ["session_id"])
     .index("by_location", ["location.city"]),
-    
+
   // System Health table
   systemHealth: defineTable({
     service: v.string(),
@@ -290,7 +290,7 @@ export default defineSchema({
     .index("by_reporter", ["reporterId"])
     .index("by_status", ["status"])
     .index("by_session", ["sessionId"]),
-    
+
   // Live chat mutes
   liveChatMutes: defineTable({
     userId: v.id("users"),
@@ -312,7 +312,7 @@ export default defineSchema({
     synced: v.boolean(),
     timestamp: v.number(),
   }),
-  
+
 
   // Chefs table
   chefs: defineTable({
@@ -322,8 +322,8 @@ export default defineSchema({
     specialties: v.array(v.string()),
     rating: v.number(),
     status: v.union(
-      v.literal("active"), 
-      v.literal("inactive"), 
+      v.literal("active"),
+      v.literal("inactive"),
       v.literal("suspended"),
       v.literal("pending_verification")
     ),
@@ -414,7 +414,7 @@ export default defineSchema({
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: 1536,
-      filter: (q) => q.eq(q.field("status"), "available"),
+      filterFields: ["status"],
     }),
   // Bookings table
   bookings: defineTable({
@@ -533,9 +533,9 @@ export default defineSchema({
     twoFactorSecret: v.optional(v.string()), // Encrypted
     twoFactorBackupCodes: v.optional(v.array(v.string())), // Hashed
   })
-  .index('by_email', ['email'])
-  .index('by_phone', ['phone_number'])
-  .index('by_oauth_provider', ['primaryOAuthProvider']),
+    .index('by_email', ['email'])
+    .index('by_phone', ['phone_number'])
+    .index('by_oauth_provider', ['primaryOAuthProvider']),
   // Waitlist table
   waitlist: defineTable({
     email: v.string(),
@@ -595,6 +595,18 @@ export default defineSchema({
     description: v.string(),
     image: v.optional(v.string()),
   }),
+  // Feature Flags table
+  featureFlags: defineTable({
+    key: v.string(), // e.g., 'home_hero_section'
+    label: v.string(), // e.g., 'Hero Section'
+    description: v.optional(v.string()),
+    value: v.boolean(), // true/false
+    group: v.string(), // 'web_home', 'mobile_home', 'system'
+    lastUpdated: v.number(),
+    updatedBy: v.optional(v.id("users")),
+  }).index("by_key", ["key"])
+    .index("by_group", ["group"]),
+
   // Analytics table
   analytics: defineTable({
     eventType: v.string(),
@@ -931,7 +943,7 @@ export default defineSchema({
     description: v.string(),
     storageId: v.id('_storage'),
   }),
-  
+
   // Work Email Requests table
   workEmailRequests: defineTable({
     userId: v.id("users"),
@@ -948,7 +960,7 @@ export default defineSchema({
   }).index("by_user", ["userId", "submittedAt"])
     .index("by_status", ["status"])
     .index("by_department", ["department"]),
-  
+
   // Leave Requests table
   leaveRequests: defineTable({
     userId: v.id("users"),
@@ -967,7 +979,7 @@ export default defineSchema({
   }).index("by_user", ["userId", "submittedAt"])
     .index("by_status", ["status"])
     .index("by_date_range", ["startDate", "endDate"]),
-  
+
   // Work IDs table
   workIds: defineTable({
     userId: v.id("users"),
@@ -1004,8 +1016,8 @@ export default defineSchema({
     rewardTier: v.optional(v.string()), // e.g. '1', '3', '5', '10', '20'
     status: v.union(v.literal("pending"), v.literal("completed"), v.literal("invalid")),
   })
-    .index("by_referrer", ["referrerId"]) 
-    .index("by_referrer_and_device", ["referrerId", "deviceId"]) 
+    .index("by_referrer", ["referrerId"])
+    .index("by_referrer_and_device", ["referrerId", "deviceId"])
     .index("by_referrer_device_ip", ["referrerId", "deviceId", "ip"])
     .index("by_referred_user", ["referredUserId"]),
   waitlistSessions: defineTable({
@@ -1041,7 +1053,7 @@ export default defineSchema({
     .index('by_staffId', ['staffId'])
     .index('by_bucket', ['bucket'])
     .index('by_user_bucket', ['user', 'bucket']),
-  
+
   // Work Sessions (for time tracking and overtime calculation)
   workSessions: defineTable({
     staffId: v.id('users'),
@@ -1080,7 +1092,7 @@ export default defineSchema({
     .index('by_lastMessageAt', ['lastMessageAt']),
 
 
-    
+
   // Live session viewers
 
 
@@ -2924,7 +2936,7 @@ export default defineSchema({
     .index("by_created_at", ["createdAt"]),
 
   // NOSH HEAVEN VIDEO FEED SYSTEM
-  
+
   // Video Posts table
   videoPosts: defineTable({
     creatorId: v.id("users"), // Must be chef or food creator
@@ -3242,32 +3254,32 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_employee_year", ["employeeId", "taxYear"]),
 
-    // Staff Email Campaigns table
-    staffEmailCampaigns: defineTable({
-      name: v.string(),
-      subject: v.string(),
-      content: v.string(),
-      status: v.union(
-        v.literal("draft"),
-        v.literal("sending"),
-        v.literal("sent"),
-        v.literal("failed")
-      ),
-      recipientType: v.union(
-        v.literal("all_waitlist"),
-        v.literal("pending_waitlist"),
-        v.literal("approved_waitlist"),
-        v.literal("converted_users"),
-        v.literal("all_users")
-      ),
-      recipientCount: v.number(),
-      sentCount: v.number(),
-      createdAt: v.number(),
-      sentAt: v.optional(v.number()),
-    })
-      .index("by_status", ["status"])
-      .index("by_created", ["createdAt"])
-      .index("by_recipient_type", ["recipientType"]),
+  // Staff Email Campaigns table
+  staffEmailCampaigns: defineTable({
+    name: v.string(),
+    subject: v.string(),
+    content: v.string(),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("sending"),
+      v.literal("sent"),
+      v.literal("failed")
+    ),
+    recipientType: v.union(
+      v.literal("all_waitlist"),
+      v.literal("pending_waitlist"),
+      v.literal("approved_waitlist"),
+      v.literal("converted_users"),
+      v.literal("all_users")
+    ),
+    recipientCount: v.number(),
+    sentCount: v.number(),
+    createdAt: v.number(),
+    sentAt: v.optional(v.number()),
+  })
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_recipient_type", ["recipientType"]),
 
   // Payment Methods table
   paymentMethods: defineTable({

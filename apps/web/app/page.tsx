@@ -1,11 +1,12 @@
-
 "use client";
 
 import { HeroBrand } from '@/components/hero-brand';
 import HeroGeometric from '@/components/hero-geometric';
-import { CitiesSection, AppStoreCTA, HowItWorksSection, CommunitySpotlightSection, SustainabilityCommitmentSection, FeaturesSwapSection, DoomScrollSection } from '@/components/sections';
-import { useEffect, useState } from 'react';
+import { AppStoreCTA, CitiesSection, CommunitySpotlightSection, DoomScrollSection, FeaturesSwapSection, HowItWorksSection, SustainabilityCommitmentSection } from '@/components/sections';
 import { ParallaxGroup, ParallaxLayer } from '@/components/ui/parallax';
+import { api } from '@/convex/_generated/api';
+import { useQuery } from 'convex/react';
+import { useEffect, useState } from 'react';
 // import CertifiedKitchensFloat from '@/components/ui/certified-kitchens-float';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
 import { useScroll, useTransform } from 'motion/react';
@@ -21,6 +22,17 @@ export default function Home() {
   const { scrollYProgress } = useScroll();
   const [isClient, setIsClient] = useState(false);
   const isMobile = useMobileDevice();
+
+  // Fetch feature flags
+  const featureFlags = useQuery(api.featureFlags.get, { group: 'web_home' });
+
+  // Helper to check if a feature is enabled
+  // Default to true if flags aren't loaded yet to prevent layout shift or empty screen
+  const isFeatureEnabled = (key: string) => {
+    if (!featureFlags) return true;
+    const flag = featureFlags.find((f: any) => f.key === key);
+    return flag ? flag.value : true; // Default to true if flag missing
+  };
 
   useEffect(() => {
     setIsClient(true);
@@ -42,7 +54,7 @@ export default function Home() {
         <ParallaxLayer asBackground speed={isMobile ? 0.02 : 0.2} className="z-0">
           <div className="fixed inset-0 bg-gradient-to-br from-[#ff3b30] to-[#ff5e54] opacity-90" />
         </ParallaxLayer>
-        
+
         {!isMobile && (
           <ParallaxLayer asBackground speed={0.4} className="z-0 pointer-events-none">
             <div className="fixed inset-0">
@@ -56,71 +68,85 @@ export default function Home() {
         <div className="relative z-10 flex-1">
           <div className="space-y-0">
             <HeroBrand className="!mb-0" />
-            <HeroGeometric 
-              title1="Every Meal"
-              title2="Tells Your Story"
-              subtitle="Where food meets its lovers"
-              className="!mt-0"
-            />
+            {isFeatureEnabled('home_hero_geometric') && (
+              <HeroGeometric
+                title1="Every Meal"
+                title2="Tells Your Story"
+                subtitle="Where food meets its lovers"
+                className="!mt-0"
+              />
+            )}
           </div>
 
           {/* Content section */}
           <div className="relative">
-            <section 
-              data-section-theme="dark" 
+            <section
+              data-section-theme="dark"
               className={`bg-gray-900/${isMobile ? '95' : '80'} ${!isMobile ? 'backdrop-blur-sm' : ''} text-white full-screen-section`}
             >
               {/* Hero section */}
             </section>
-            
-            <section 
-              id="features" 
-              data-section-theme="light" 
-              className={`bg-white/${isMobile ? '95' : '90'} ${!isMobile ? 'backdrop-blur-sm' : ''} text-gray-900 full-screen-section`}
-            >
-              <FeaturesSwapSection />
-              <DoomScrollSection />
-            </section>
-            
-            <section 
-              id="how-it-works" 
-              data-section-theme="light" 
-              className={`bg-white/${isMobile ? '95' : '90'} ${!isMobile ? 'backdrop-blur-sm' : ''} text-gray-900 full-screen-section`}
-            >
-              <HowItWorksSection />
-            </section>
-            
-            <section 
-              id="cities" 
-              data-section-theme="light" 
-              className={`bg-white/${isMobile ? '95' : '90'} ${!isMobile ? 'backdrop-blur-sm' : ''} text-gray-900 full-screen-section`}
-            >
-              <CitiesSection isHome />
-            </section>
-            
-            <section 
-              id="sustainability" 
-              data-section-theme="light" 
-              className="w-screen relative -mx-[calc((100vw-100%)/2)] px-0"
-            >
-              <div className="absolute inset-0 bg-gradient-to-b from-white via-white to-gray-50   " />
-              <SustainabilityCommitmentSection />
-            </section>
-            
-            <section 
-              id="community" 
-              data-section-theme="light" 
-              className={`bg-white/${isMobile ? '95' : '90'} ${!isMobile ? 'backdrop-blur-sm' : ''} text-gray-900 full-screen-section`}
-            >
-              <CommunitySpotlightSection />
-            </section>
-            
-            <section 
-              data-section-theme="brand" 
-              className={`bg-[#ff3b30]/${isMobile ? '95' : '90'} ${!isMobile ? 'backdrop-blur-sm' : ''} text-white full-screen-section`}
-            >
-              <AppStoreCTA />
-            </section>
+
+            {isFeatureEnabled('home_features') && (
+              <section
+                id="features"
+                data-section-theme="light"
+                className={`bg-white/${isMobile ? '95' : '90'} ${!isMobile ? 'backdrop-blur-sm' : ''} text-gray-900 full-screen-section`}
+              >
+                <FeaturesSwapSection />
+                <DoomScrollSection />
+              </section>
+            )}
+
+            {isFeatureEnabled('home_how_it_works') && (
+              <section
+                id="how-it-works"
+                data-section-theme="light"
+                className={`bg-white/${isMobile ? '95' : '90'} ${!isMobile ? 'backdrop-blur-sm' : ''} text-gray-900 full-screen-section`}
+              >
+                <HowItWorksSection />
+              </section>
+            )}
+
+            {isFeatureEnabled('home_cities') && (
+              <section
+                id="cities"
+                data-section-theme="light"
+                className={`bg-white/${isMobile ? '95' : '90'} ${!isMobile ? 'backdrop-blur-sm' : ''} text-gray-900 full-screen-section`}
+              >
+                <CitiesSection isHome />
+              </section>
+            )}
+
+            {isFeatureEnabled('home_sustainability') && (
+              <section
+                id="sustainability"
+                data-section-theme="light"
+                className="w-screen relative -mx-[calc((100vw-100%)/2)] px-0"
+              >
+                <div className="absolute inset-0 bg-gradient-to-b from-white via-white to-gray-50   " />
+                <SustainabilityCommitmentSection />
+              </section>
+            )}
+
+            {isFeatureEnabled('home_community') && (
+              <section
+                id="community"
+                data-section-theme="light"
+                className={`bg-white/${isMobile ? '95' : '90'} ${!isMobile ? 'backdrop-blur-sm' : ''} text-gray-900 full-screen-section`}
+              >
+                <CommunitySpotlightSection />
+              </section>
+            )}
+
+            {isFeatureEnabled('home_app_store') && (
+              <section
+                data-section-theme="brand"
+                className={`bg-[#ff3b30]/${isMobile ? '95' : '90'} ${!isMobile ? 'backdrop-blur-sm' : ''} text-white full-screen-section`}
+              >
+                <AppStoreCTA />
+              </section>
+            )}
           </div>
         </div>
 

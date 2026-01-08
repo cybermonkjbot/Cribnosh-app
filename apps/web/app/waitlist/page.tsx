@@ -353,6 +353,35 @@ export default function WaitlistPage() {
     }
   };
 
+  const featureFlags = useQuery(api.featureFlags.get, { group: 'web_home' });
+  const isFeatureEnabled = (key: string) => {
+    if (!featureFlags) return true;
+    const flag = featureFlags.find((f: any) => f.key === key);
+    return flag ? flag.value : true;
+  };
+
+  const isWaitlistEnabled = isFeatureEnabled('web_waitlist');
+
+  if (!isWaitlistEnabled) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex items-center justify-center">
+        <MasonryBackground className="z-0" />
+        <div className="relative z-10 text-center p-8 bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl max-w-md mx-4">
+          <h1 className="font-asgard text-3xl mb-4 text-gray-900">Waitlist Closed</h1>
+          <p className="font-satoshi text-gray-600">
+            We are currently not accepting new signups for the waitlist. Please check back later or follow us on social media for updates.
+          </p>
+          <div className="mt-6 flex justify-center gap-4">
+            {/* Simple social links or just back to home */}
+            <Link href="/" className="px-6 py-2 bg-gray-900 text-white rounded-full font-satoshi hover:bg-gray-800 transition">
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       {/* Animated CTA - top right on mobile, bottom right on desktop */}

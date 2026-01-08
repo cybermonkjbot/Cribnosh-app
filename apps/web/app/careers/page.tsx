@@ -1,12 +1,12 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { useState, useMemo } from "react";
-import { motion } from "motion/react";
+import { JobCard } from "@/components/ui/job-card";
 import { MasonryBackground } from "@/components/ui/masonry-background";
 import { ParallaxContent } from "@/components/ui/parallax-section";
-import { JobCard } from "@/components/ui/job-card";
+import { api } from "@/convex/_generated/api";
+import { useQuery } from "convex/react";
+import { motion } from "motion/react";
+import { useMemo, useState } from "react";
 
 const departments = [
   "Engineering",
@@ -16,24 +16,23 @@ const departments = [
 
 const jobTypes = ["Full-time", "Remote"];
 
-const FilterButton = ({ 
-  label, 
-  value, 
-  selected, 
-  onChange 
-}: { 
-  label: string; 
-  value: string; 
-  selected: boolean; 
+const FilterButton = ({
+  label,
+  value,
+  selected,
+  onChange
+}: {
+  label: string;
+  value: string;
+  selected: boolean;
   onChange: (value: string | null) => void;
 }) => (
   <button
     onClick={() => onChange(selected ? null : value)}
-    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-satoshi transition-all duration-300 whitespace-nowrap flex-shrink-0 ${
-      selected 
-        ? "bg-[#ff3b30] text-white shadow-md" 
+    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-satoshi transition-all duration-300 whitespace-nowrap flex-shrink-0 ${selected
+        ? "bg-[#ff3b30] text-white shadow-md"
         : "bg-white/70 text-gray-600 hover:bg-white/90"
-    }`}
+      }`}
   >
     {label}
   </button>
@@ -48,20 +47,42 @@ export default function CareersPage() {
     if (!jobs) return [];
     return jobs.filter((job: any) => {
       const matchesDepartment = !selectedDepartment || job.department === selectedDepartment;
-      const matchesType = !selectedType || 
+      const matchesType = !selectedType ||
         (selectedType === "Full-time" && job.type === "Full-time") ||
         (selectedType === "Remote" && job.location === "Remote");
       return matchesDepartment && matchesType;
     });
   }, [jobs, selectedDepartment, selectedType]);
 
+  const featureFlags = useQuery(api.featureFlags.get, { group: 'web_home' });
+  const isFeatureEnabled = (key: string) => {
+    if (!featureFlags) return true;
+    const flag = featureFlags.find((f: any) => f.key === key);
+    return flag ? flag.value : true;
+  };
+
+  const isCareersEnabled = isFeatureEnabled('web_careers');
+
+  if (!isCareersEnabled) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex items-center justify-center">
+        <div className="text-center p-8">
+          <h1 className="font-asgard text-3xl mb-4 text-gray-900">Careers at CribNosh</h1>
+          <p className="font-satoshi text-gray-600 max-w-md mx-auto">
+            We are not currently accepting applications. Please check back later for new opportunities.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <MasonryBackground className="z-0 opacity-50" />
-      
+
       <div className="relative z-10">
         {/* Hero Section */}
-        <section 
+        <section
           data-section-theme="light"
           className="pt-20 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-6 lg:px-8"
         >
@@ -99,7 +120,7 @@ export default function CareersPage() {
         </section>
 
         {/* Filters Section */}
-        <section 
+        <section
           data-section-theme="light"
           className="py-4 sm:py-6 px-3 sm:px-6 lg:px-8 sticky top-0 bg-white/90 backdrop-blur-lg z-20 border-y border-gray-100 shadow-sm"
         >
@@ -128,7 +149,7 @@ export default function CareersPage() {
         </section>
 
         {/* Job Listings */}
-        <section 
+        <section
           data-section-theme="light"
           className="py-12 px-4 sm:px-6 lg:px-8"
         >
@@ -151,7 +172,7 @@ export default function CareersPage() {
                 </div>
               ) : filteredJobs.length === 0 ? (
                 // No results state
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="text-center py-16"

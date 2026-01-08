@@ -32,6 +32,7 @@ import {
   Settings,
   Shield,
   ShoppingCart,
+  ToggleLeft,
   TrendingUp,
   Truck,
   UserCheck,
@@ -332,6 +333,12 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
           href: '/admin/system',
           icon: Database,
           description: 'System configuration',
+        },
+        {
+          name: 'Feature Flags',
+          href: '/admin/feature-flags',
+          icon: ToggleLeft,
+          description: 'Manage feature flags',
         },
       ]
     },

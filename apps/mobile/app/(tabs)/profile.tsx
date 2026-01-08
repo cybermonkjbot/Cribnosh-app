@@ -1,6 +1,7 @@
 import { api } from '@/convex/_generated/api';
-import * as Haptics from 'expo-haptics';
+import { useQuery } from 'convex/react';
 import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -11,7 +12,6 @@ import Animated, {
   interpolate,
   runOnJS,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withSpring,
@@ -29,7 +29,6 @@ import { QueryStateWrapper } from '../../components/ui/QueryStateWrapper';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { getSessionToken } from '../../lib/convexClient';
-import { useQuery } from 'convex/react';
 import { getAbsoluteImageUrl } from '../../utils/imageUrl';
 import { navigateToSignIn } from '../../utils/signInNavigationGuard';
 
@@ -43,7 +42,7 @@ const VELOCITY_THRESHOLD = 500;
 // ForkPrint PNG component - memoized to prevent recreation
 const ForkPrintImage = React.memo(() => {
   return (
-    <Image 
+    <Image
       source={require('../../assets/images/ForkPrint.png')}
       style={styles.forkPrintImage}
       contentFit="contain"
@@ -86,7 +85,7 @@ export default function ProfileScreen() {
 
   // Get session token for reactive queries
   const [sessionToken, setSessionToken] = useState<string | null>(null);
-  
+
   useEffect(() => {
     const loadToken = async () => {
       if (isAuthenticated) {
@@ -98,6 +97,14 @@ export default function ProfileScreen() {
     };
     loadToken();
   }, [isAuthenticated]);
+  // Feature Flags
+  const featureFlags = useQuery(api.featureFlags.get, { group: 'mobile_home' });
+  const isFeatureEnabled = (key: string) => {
+    if (!featureFlags) return true;
+    const flag = featureFlags.find((f: any) => f.key === key);
+    return flag ? flag.value : true;
+  };
+  const isNoshPointsEnabled = isFeatureEnabled('mobile_nosh_points');
 
   // Get user by session token (reactive query)
   const user = useQuery(
@@ -148,35 +155,35 @@ export default function ProfileScreen() {
     if (!profileData?.data) {
       return undefined;
     }
-    
+
     // Check multiple possible locations for the picture
-    const picture = 
-      profileData.data.picture || 
-      (profileData.data as any)?.user?.picture || 
+    const picture =
+      profileData.data.picture ||
+      (profileData.data as any)?.user?.picture ||
       (profileData.data as any)?.user?.avatar ||
       (profileData.data as any)?.avatar;
-    
+
     if (picture) {
       const absoluteUrl = getAbsoluteImageUrl(picture);
       return absoluteUrl;
     }
-    
+
     return undefined;
   }, [profileData?.data]);
 
 
-  const { 
-    getRewardsPoints, 
-    getNutritionProgress, 
-    getMonthlyOverview, 
+  const {
+    getRewardsPoints,
+    getNutritionProgress,
+    getMonthlyOverview,
     getWeeklySummary,
-        isLoading: _analyticsLoading
-      } = useAnalytics();
+    isLoading: _analyticsLoading
+  } = useAnalytics();
   const [noshPointsData, setNoshPointsData] = useState<any>(null);
   const [caloriesProgressData, setCaloriesProgressData] = useState<any>(null);
   const [monthlyOverviewData, setMonthlyOverviewData] = useState<any>(null);
   const [weeklySummaryData, setWeeklySummaryData] = useState<any>(null);
-  
+
   const [noshPointsLoading, setNoshPointsLoading] = useState(false);
   const [caloriesProgressLoading, setCaloriesProgressLoading] = useState(false);
   const [monthlyOverviewLoading, setMonthlyOverviewLoading] = useState(false);
@@ -325,10 +332,10 @@ export default function ProfileScreen() {
       }
     })();
   }, [getWeeklySummary]);
-  
+
   // Simplified state management
   const isAnimating = useRef(false);
-  
+
   // Animation values
   const headerOpacity = useSharedValue(0);
   const scoreScale = useSharedValue(0.8);
@@ -336,7 +343,7 @@ export default function ProfileScreen() {
   const cardsOpacity = useSharedValue(0);
   const braggingCardsTranslateY = useSharedValue(50);
   const braggingCardsOpacity = useSharedValue(0);
-  
+
   // Sheet animation values - persistent sheet using height (like BottomSearchDrawer)
   const sheetHeight = useSharedValue(SHEET_COLLAPSED_HEIGHT); // Start collapsed (always visible)
   const currentSnapPoint = useSharedValue<'collapsed' | 'expanded'>('collapsed');
@@ -360,18 +367,18 @@ export default function ProfileScreen() {
   }));
 
 
-  
+
   // Sheet animated styles - height-based like BottomSearchDrawer
   const sheetAnimatedStyle = useAnimatedStyle(() => {
     'worklet';
-    const safeHeight = isFinite(sheetHeight.value) && sheetHeight.value >= 0 
-      ? sheetHeight.value 
+    const safeHeight = isFinite(sheetHeight.value) && sheetHeight.value >= 0
+      ? sheetHeight.value
       : SHEET_COLLAPSED_HEIGHT;
     return {
       height: safeHeight,
     };
   });
-  
+
   const sheetBackgroundAnimatedStyle = useAnimatedStyle(() => {
     'worklet';
     const height = sheetHeight.value;
@@ -445,7 +452,7 @@ export default function ProfileScreen() {
 
   // Sheet gesture handler - height-based like BottomSearchDrawer
   const springConfig = { damping: 50, stiffness: 400, mass: 0.8 };
-  
+
   const sheetGesture = Gesture.Pan()
     .onStart(() => {
       'worklet';
@@ -463,7 +470,7 @@ export default function ProfileScreen() {
       // Dragging down (positive translationY) collapses sheet (increases height toward collapsed)
       const heightDelta = -safeTranslationY; // Negative translation = expand
       const newHeight = Math.max(
-        SHEET_COLLAPSED_HEIGHT, 
+        SHEET_COLLAPSED_HEIGHT,
         Math.min(SHEET_EXPANDED_HEIGHT, startHeight + heightDelta)
       );
       sheetHeight.value = newHeight;
@@ -475,18 +482,18 @@ export default function ProfileScreen() {
       const currentHeight = isFinite(sheetHeight.value) ? sheetHeight.value : SHEET_COLLAPSED_HEIGHT;
       const heightDelta = currentHeight - SHEET_COLLAPSED_HEIGHT;
       const hasSignificantVelocity = Math.abs(safeVelocityY) > VELOCITY_THRESHOLD;
-      
+
       // Determine target snap point
       let targetHeight: number;
       let targetSnap: 'collapsed' | 'expanded';
-      
+
       if (hasSignificantVelocity) {
         // Use velocity to determine direction
         if (safeVelocityY < 0) {
           // Swiping up - expand
           targetHeight = SHEET_EXPANDED_HEIGHT;
           targetSnap = 'expanded';
-      } else {
+        } else {
           // Swiping down - collapse
           targetHeight = SHEET_COLLAPSED_HEIGHT;
           targetSnap = 'collapsed';
@@ -502,14 +509,14 @@ export default function ProfileScreen() {
           targetSnap = 'collapsed';
         }
       }
-      
+
       currentSnapPoint.value = targetSnap;
       sheetHeight.value = withSpring(targetHeight, springConfig);
-      
+
       if (targetSnap === 'expanded') {
         runOnJS(safeHapticFeedback)(Haptics.ImpactFeedbackStyle.Medium);
       }
-  });
+    });
 
 
   // Simple mount effect - removed unnecessary dependencies (shared values don't change)
@@ -547,13 +554,13 @@ export default function ProfileScreen() {
         cuisines: [],
       };
     }
-      const weeklyData = weeklySummaryData.data;
+    const weeklyData = weeklySummaryData.data;
     return {
-        weekMeals: weeklyData.week_meals || [],
-        avgMeals: weeklyData.avg_meals || 0,
-        kcalToday: weeklyData.kcal_today || 0,
-        kcalYesterday: weeklyData.kcal_yesterday || 0,
-        cuisines: weeklyData.cuisines || [],
+      weekMeals: weeklyData.week_meals || [],
+      avgMeals: weeklyData.avg_meals || 0,
+      kcalToday: weeklyData.kcal_today || 0,
+      kcalYesterday: weeklyData.kcal_yesterday || 0,
+      cuisines: weeklyData.cuisines || [],
     };
   }, [weeklySummaryData]);
 
@@ -588,200 +595,226 @@ export default function ProfileScreen() {
   return (
     <ProfileScreenBackground>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        <Animated.ScrollView 
+        <Animated.ScrollView
           {...scrollViewProps}
           scrollEnabled={isAuthenticated || authLoading}
         >
-            {/* Header */}
-            <Animated.View style={headerAnimatedStyle}>
-              <View style={styles.headerContainer}>
-                <Image 
-                  source={require('../../assets/images/white-greenlogo.png')}
-                  style={styles.headerLogo}
-                  contentFit="contain"
-                />
-                {isAuthenticated && (
-                  <TouchableOpacity onPress={() => router.push('/account-details')}>
-                    <Avatar 
-                      size="md"
-                      source={profilePictureUrl ? { uri: profilePictureUrl } : undefined}
-                    />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </Animated.View>
-
-            {/* ForkPrint Score and Tastemaker Section */}
-            <Animated.View style={scoreAnimatedStyle}>
-              <View style={styles.scoreSectionContainer}>
-                <QueryStateWrapper
-                  isLoading={!isAuthenticated || forkPrintLoading}
-                  error={forkPrintError}
-                  isEmpty={!extractForkPrintScoreData(forkPrintData)}
-                  errorTitle="Unable to Load ForkPrint Score"
-                  errorSubtitle="Failed to load your ForkPrint score. Please try again."
-                  onRetry={() => {
-                    // Query will automatically refetch when dependencies change
-                    // Force a refresh by navigating away and back, or just reload
-                    if (user) {
-                      // The useQuery hook will automatically refetch
-                      // This is a no-op since convex queries are reactive
-                    }
-                  }}
-                >
-                  {(() => {
-                    const scoreData = extractForkPrintScoreData(forkPrintData);
-                    if (!scoreData) return null;
-                    
-                          return (
-                            <>
-                              <View style={styles.scoreRow}>
-                                <View style={styles.scoreContent}>
-                            <Text style={styles.scoreLabel}>Score</Text>
-                                  <ForkPrintImage />
-                            <Text style={styles.scoreValue}>{scoreData.score}</Text>
-                                </View>
-                              </View>
-                              
-                              <View style={styles.mascotContainer}>
-                                <Mascot 
-                                  emotion="happy" 
-                                  size={280}
-                                  style={styles.mascotImage}
-                                />
-                                <ThemedText style={styles.mascotStatus}>
-                            {scoreData.status}
-                                </ThemedText>
-                                <ThemedText style={styles.mascotSubtext}>
-                            {scoreData.pointsToNext} Points to {scoreData.nextLevel}
-                                </ThemedText>
-                              </View>
-                            </>
-                          );
-                    })()}
-                </QueryStateWrapper>
-                  </View>
-                </Animated.View>
-
-            {/* Data Cards */}
-            <Animated.View style={cardsAnimatedStyle}>
-              <View style={styles.dataCardsContainer}>
-                <QueryStateWrapper
-                  isLoading={!isAuthenticated || caloriesProgressLoading || noshPointsLoading}
-                  error={caloriesProgressError || noshPointsError}
-                  isEmpty={!caloriesProgressData?.data || !noshPointsData?.data}
-                  errorTitle="Unable to Load Progress Data"
-                  errorSubtitle="Failed to load calories and Nosh Points progress. Please try again."
-                  onRetry={() => {
-                            refetchCaloriesProgress();
-                            refetchNoshPoints();
-                        }}
-                >
-                      <CaloriesNoshPointsCards 
-                        caloriesProgress={caloriesProgressData?.data?.progress_percentage ?? 0}
-                        noshPointsProgress={noshPointsData?.data?.progress_percentage ?? 0}
-                        availableCoins={noshPointsData?.data?.available_points}
-                      />
-                </QueryStateWrapper>
-                  </View>
-                </Animated.View>
-
-            {/* KPI Cards */}
-            <Animated.View style={cardsAnimatedStyle}>
-              <View style={styles.kpiCardsContainer}>
-                <QueryStateWrapper
-                  isLoading={!isAuthenticated || monthlyOverviewLoading}
-                  error={monthlyOverviewError}
-                  isEmpty={!monthlyOverviewData?.data}
-                  errorTitle="Unable to Load Monthly Overview"
-                  errorSubtitle="Failed to load your monthly statistics. Please try again."
-                  onRetry={() => refetchMonthlyOverview()}
-                >
-                      <KPICards
-                        mealsLogged={monthlyOverviewData?.data?.meals?.count?.toString()}
-                        caloriesTracked={monthlyOverviewData?.data?.calories?.tracked?.toString()}
-                        streakDays={monthlyOverviewData?.data?.streak?.current?.toString()}
-                      />
-                </QueryStateWrapper>
-                  </View>
-                </Animated.View>
-
-            {/* Extra bottom padding for proper scrolling */}
-            <View style={styles.bottomPadding} />
-          </Animated.ScrollView>
-
-          {/* Blur overlay - appears when sheet is expanded */}
-          <Animated.View style={[styles.blurOverlay, blurOverlayStyle]} pointerEvents="none">
-            <BlurView 
-              intensity={50} 
-              tint="light" 
-              style={StyleSheet.absoluteFill}
-            />
+          {/* Header */}
+          <Animated.View style={headerAnimatedStyle}>
+            <View style={styles.headerContainer}>
+              <Image
+                source={require('../../assets/images/white-greenlogo.png')}
+                style={styles.headerLogo}
+                contentFit="contain"
+              />
+              {isAuthenticated && (
+                <TouchableOpacity onPress={() => router.push('/account-details')}>
+                  <Avatar
+                    size="md"
+                    source={profilePictureUrl ? { uri: profilePictureUrl } : undefined}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
           </Animated.View>
 
-          {/* Bragging Cards Section - Sheet (Positioned absolutely at bottom) */}
-            <GestureDetector gesture={sheetGesture}>
-            <Animated.View style={[styles.sheetContainer, sheetAnimatedStyle]}>
-                <Animated.View style={[styles.sheetContent, sheetBackgroundAnimatedStyle]}>
-                  <>
-                    {/* Handlebar - Always visible */}
-                    <View style={styles.handlebarContainer}>
-                      <Animated.View style={handlebarStyle} />
-                    </View>
+          {/* ForkPrint Score and Tastemaker Section */}
+          <Animated.View style={scoreAnimatedStyle}>
+            <View style={styles.scoreSectionContainer}>
+              <QueryStateWrapper
+                isLoading={!isAuthenticated || forkPrintLoading}
+                error={forkPrintError}
+                isEmpty={!extractForkPrintScoreData(forkPrintData)}
+                errorTitle="Unable to Load ForkPrint Score"
+                errorSubtitle="Failed to load your ForkPrint score. Please try again."
+                onRetry={() => {
+                  // Query will automatically refetch when dependencies change
+                  // Force a refresh by navigating away and back, or just reload
+                  if (user) {
+                    // The useQuery hook will automatically refetch
+                    // This is a no-op since convex queries are reactive
+                  }
+                }}
+              >
+                {(() => {
+                  const scoreData = extractForkPrintScoreData(forkPrintData);
+                  if (!scoreData) return null;
 
-                    {/* Header - Only visible when expanded */}
-                    <Animated.View style={[styles.sheetHeader, headerOpacityStyle]}>
-                        <Text style={styles.sheetTitle}>
-                          Your Food Stats
-                        </Text>
-                    </Animated.View>
-                      
-                    <ScrollView
-                      style={styles.sheetScrollView}
-                      contentContainerStyle={styles.sheetScrollContent}
-                      showsVerticalScrollIndicator={false}
-                      nestedScrollEnabled={true}
-                    >
-                      <QueryStateWrapper
-                        isLoading={weeklySummaryLoading}
-                        error={weeklySummaryError}
-                        isEmpty={(braggingData.weekMeals?.length ?? 0) === 0 && (braggingData.cuisines?.length ?? 0) === 0}
-                        errorTitle="Unable to Load Weekly Summary"
-                        errorSubtitle="Failed to load your weekly food statistics. Please try again."
-                        onRetry={() => refetchWeeklySummary()}
-                      >
-                          {/* Individual Bragging Cards */}
-                          <MealsLoggedCard
-                            weekMeals={braggingData.weekMeals}
-                            avgMeals={braggingData.avgMeals}
-                            onPress={handleMealsPress}
-                          />
-                          
-                          <CalorieCompareCard
-                            kcalToday={braggingData.kcalToday}
-                            kcalYesterday={braggingData.kcalYesterday}
-                            onPress={handleCaloriesPress}
-                          />
-                          
-                          <CuisineScoreCard
-                            cuisines={braggingData.cuisines}
-                            onPress={handleCuisinePress}
-                          />
-                      </QueryStateWrapper>
-                    </ScrollView>
-                  </>
-                </Animated.View>
-              </Animated.View>
-            </GestureDetector>
+                  return (
+                    <>
+                      <View style={styles.scoreRow}>
+                        <View style={styles.scoreContent}>
+                          <Text style={styles.scoreLabel}>Score</Text>
+                          <ForkPrintImage />
+                          <Text style={styles.scoreValue}>{scoreData.score}</Text>
+                        </View>
+                      </View>
 
-          {/* Not Logged In Indicator - Pill shaped at bottom center */}
-          {!isAuthenticated && !authLoading && (
-            <View style={[styles.notLoggedInIndicator, { bottom: Math.max(insets.bottom, 20) + 100 }]}>
-              <Text style={styles.notLoggedInText}>Not logged in</Text>
+                      <View style={styles.mascotContainer}>
+                        <Mascot
+                          emotion="happy"
+                          size={280}
+                          style={styles.mascotImage}
+                        />
+                        <ThemedText style={styles.mascotStatus}>
+                          {scoreData.status}
+                        </ThemedText>
+                        <ThemedText style={styles.mascotSubtext}>
+                          {scoreData.pointsToNext} Points to {scoreData.nextLevel}
+                        </ThemedText>
+                      </View>
+                    </>
+                  );
+                })()}
+              </QueryStateWrapper>
             </View>
-          )}
-        </SafeAreaView>
-      </ProfileScreenBackground>
+          </Animated.View>
+
+          {/* Data Cards */}
+          <Animated.View style={cardsAnimatedStyle}>
+            <View style={styles.dataCardsContainer}>
+              <QueryStateWrapper
+                isLoading={!isAuthenticated || caloriesProgressLoading || (isNoshPointsEnabled && noshPointsLoading)}
+                error={caloriesProgressError || (isNoshPointsEnabled && noshPointsError)}
+                isEmpty={!caloriesProgressData?.data || (isNoshPointsEnabled && !noshPointsData?.data)}
+                errorTitle="Unable to Load Progress Data"
+                errorSubtitle="Failed to load calories and Nosh Points progress. Please try again."
+                onRetry={() => {
+                  refetchCaloriesProgress();
+                  if (isNoshPointsEnabled) refetchNoshPoints();
+                }}
+              >
+                {isNoshPointsEnabled ? (
+                  <CaloriesNoshPointsCards
+                    caloriesProgress={caloriesProgressData?.data?.progress_percentage ?? 0}
+                    noshPointsProgress={noshPointsData?.data?.progress_percentage ?? 0}
+                    availableCoins={noshPointsData?.data?.available_points}
+                  />
+                ) : (
+                  // If Nosh Points disabled, maybe just show Calories or nothing? 
+                  // For now, let's assume if disabled we hide the whole card or modify it.
+                  // But CaloriesNoshPointsCards likely combines them. 
+                  // Check if we can just pass null/hidden props or if we should hide the component.
+                  // For safety/simplicity, if the flag is off, we might want to hide it, 
+                  // but "Calories" might be important.
+                  // Let's assume the user wants to hide the "Nosh Points" part.
+                  // If the component doesn't support hiding just points, might need to wrap the component.
+                  // Re-reading styling... it seems they are paired.
+                  // Let's hide the entire card if points are disabled FOR NOW, 
+                  // as "Nosh Points" is a major feature. 
+                  // OR, better, conditionally render just the points part if the component allows.
+                  // Checking imports: `CaloriesNoshPointsCards`.
+                  // Since I cannot see the inner code of `CaloriesNoshPointsCards` easily right now without reading it,
+                  // I will wrap the whole thing but note if it affects Calories. 
+                  // Actually, looking at the code, it takes both props.
+                  // If I pass undefined/null, maybe it handles it?
+                  // Let's wrap the logic:
+                  <CaloriesNoshPointsCards
+                    caloriesProgress={caloriesProgressData?.data?.progress_percentage ?? 0}
+                    noshPointsProgress={isNoshPointsEnabled ? (noshPointsData?.data?.progress_percentage ?? 0) : 0}
+                    availableCoins={isNoshPointsEnabled ? noshPointsData?.data?.available_points : undefined}
+                  />
+                )}
+              </QueryStateWrapper>
+            </View>
+          </Animated.View>
+
+          {/* KPI Cards */}
+          <Animated.View style={cardsAnimatedStyle}>
+            <View style={styles.kpiCardsContainer}>
+              <QueryStateWrapper
+                isLoading={!isAuthenticated || monthlyOverviewLoading}
+                error={monthlyOverviewError}
+                isEmpty={!monthlyOverviewData?.data}
+                errorTitle="Unable to Load Monthly Overview"
+                errorSubtitle="Failed to load your monthly statistics. Please try again."
+                onRetry={() => refetchMonthlyOverview()}
+              >
+                <KPICards
+                  mealsLogged={monthlyOverviewData?.data?.meals?.count?.toString()}
+                  caloriesTracked={monthlyOverviewData?.data?.calories?.tracked?.toString()}
+                  streakDays={monthlyOverviewData?.data?.streak?.current?.toString()}
+                />
+              </QueryStateWrapper>
+            </View>
+          </Animated.View>
+
+          {/* Extra bottom padding for proper scrolling */}
+          <View style={styles.bottomPadding} />
+        </Animated.ScrollView>
+
+        {/* Blur overlay - appears when sheet is expanded */}
+        <Animated.View style={[styles.blurOverlay, blurOverlayStyle]} pointerEvents="none">
+          <BlurView
+            intensity={50}
+            tint="light"
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+
+        {/* Bragging Cards Section - Sheet (Positioned absolutely at bottom) */}
+        <GestureDetector gesture={sheetGesture}>
+          <Animated.View style={[styles.sheetContainer, sheetAnimatedStyle]}>
+            <Animated.View style={[styles.sheetContent, sheetBackgroundAnimatedStyle]}>
+              <>
+                {/* Handlebar - Always visible */}
+                <View style={styles.handlebarContainer}>
+                  <Animated.View style={handlebarStyle} />
+                </View>
+
+                {/* Header - Only visible when expanded */}
+                <Animated.View style={[styles.sheetHeader, headerOpacityStyle]}>
+                  <Text style={styles.sheetTitle}>
+                    Your Food Stats
+                  </Text>
+                </Animated.View>
+
+                <ScrollView
+                  style={styles.sheetScrollView}
+                  contentContainerStyle={styles.sheetScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  nestedScrollEnabled={true}
+                >
+                  <QueryStateWrapper
+                    isLoading={weeklySummaryLoading}
+                    error={weeklySummaryError}
+                    isEmpty={(braggingData.weekMeals?.length ?? 0) === 0 && (braggingData.cuisines?.length ?? 0) === 0}
+                    errorTitle="Unable to Load Weekly Summary"
+                    errorSubtitle="Failed to load your weekly food statistics. Please try again."
+                    onRetry={() => refetchWeeklySummary()}
+                  >
+                    {/* Individual Bragging Cards */}
+                    <MealsLoggedCard
+                      weekMeals={braggingData.weekMeals}
+                      avgMeals={braggingData.avgMeals}
+                      onPress={handleMealsPress}
+                    />
+
+                    <CalorieCompareCard
+                      kcalToday={braggingData.kcalToday}
+                      kcalYesterday={braggingData.kcalYesterday}
+                      onPress={handleCaloriesPress}
+                    />
+
+                    <CuisineScoreCard
+                      cuisines={braggingData.cuisines}
+                      onPress={handleCuisinePress}
+                    />
+                  </QueryStateWrapper>
+                </ScrollView>
+              </>
+            </Animated.View>
+          </Animated.View>
+        </GestureDetector>
+
+        {/* Not Logged In Indicator - Pill shaped at bottom center */}
+        {!isAuthenticated && !authLoading && (
+          <View style={[styles.notLoggedInIndicator, { bottom: Math.max(insets.bottom, 20) + 100 }]}>
+            <Text style={styles.notLoggedInText}>Not logged in</Text>
+          </View>
+        )}
+      </SafeAreaView>
+    </ProfileScreenBackground>
   );
 }
 

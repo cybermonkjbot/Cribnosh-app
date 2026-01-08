@@ -1,4 +1,6 @@
+import { api } from "@/convex/_generated/api";
 import { useAppContext } from "@/utils/AppContext";
+import { useQuery } from "convex/react";
 import Constants from "expo-constants";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
@@ -8,13 +10,13 @@ import { Filter, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Modal, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
-    runOnJS,
-    runOnUI,
-    useAnimatedReaction,
-    useAnimatedScrollHandler,
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming
+  runOnJS,
+  runOnUI,
+  useAnimatedReaction,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming
 } from "react-native-reanimated";
 import { useAuthContext } from "../../contexts/AuthContext";
 
@@ -24,16 +26,15 @@ import { useUserLocation } from "../../hooks/useUserLocation";
 import { getDirections } from "../../utils/appleMapsService";
 import { UserBehavior } from "../../utils/hiddenSections";
 import {
-    OrderingContext,
-    getCurrentTimeContext,
-    getOrderedSectionsWithHidden,
+  OrderingContext,
+  getCurrentTimeContext,
+  getOrderedSectionsWithHidden,
 } from "../../utils/sectionOrdering";
 import { NotLoggedInNotice } from "../NotLoggedInNotice";
 import { AIChatDrawer } from "./AIChatDrawer";
 import { BottomSearchDrawer } from "./BottomSearchDrawer";
 import { CameraModalScreen } from "./CameraModalScreen";
 import { CategoryFilterChips } from "./CategoryFilterChips";
-import { NoshHeavenFilterChips, NoshHeavenCategory } from "./NoshHeavenFilterChips";
 import { CategoryFullDrawer } from "./CategoryFullDrawer";
 import { CuisineCategoriesSection } from "./CuisineCategoriesSection";
 import { CuisinesSection } from "./CuisinesSection";
@@ -51,6 +52,7 @@ import LiveContent from "./LiveContent";
 import { MapBottomSheet } from "./MapBottomSheet";
 import { MealItemDetails } from "./MealItemDetails";
 import { MultiStepLoader } from "./MultiStepLoader";
+import { NoshHeavenCategory, NoshHeavenFilterChips } from "./NoshHeavenFilterChips";
 import { NoshHeavenPostModal } from "./NoshHeavenPostModal";
 import { NotificationsSheet } from "./NotificationsSheet";
 import { OrderAgainSection } from "./OrderAgainSection";
@@ -75,7 +77,6 @@ import { TooFreshToWasteDrawer } from "./TooFreshToWasteDrawer";
 import { TopKebabs } from "./TopKebabs";
 
 // Customer API imports
-import { api } from '@/convex/_generated/api';
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useCart } from "@/hooks/useCart";
 import { useChefs } from "@/hooks/useChefs";
@@ -87,16 +88,16 @@ import { Chef, Cuisine } from "@/types/customer";
 
 // Global toast imports
 import {
-    showError,
-    showInfo,
-    showSuccess,
-    showWarning,
+  showError,
+  showInfo,
+  showSuccess,
+  showWarning,
 } from "../../lib/GlobalToastManager";
 import { navigateToSignIn } from "../../utils/signInNavigationGuard";
 
 export function MainScreen() {
-  const { 
-    activeHeaderTab, 
+  const {
+    activeHeaderTab,
     registerScrollToTopCallback,
     activeCategoryFilter,
     setActiveCategoryFilter,
@@ -112,6 +113,14 @@ export function MainScreen() {
     token,
     refreshAuthState,
   } = useAuthContext();
+
+  // Feature Flags
+  const featureFlags = useQuery(api.featureFlags.get, { group: 'mobile_home' });
+  const isFeatureEnabled = useCallback((key: string) => {
+    if (featureFlags === undefined) return true; // Default to enabled while loading to prevent flicker
+    const flag = featureFlags.find((f: any) => f.key === key);
+    return flag ? flag.value : true; // Default to true if flag defined but missing (or new)
+  }, [featureFlags]);
 
   // Cuisines using useCuisines hook
   const { getCuisines } = useCuisines();
@@ -155,7 +164,7 @@ export function MainScreen() {
   const refetchCuisines = loadCuisines;
 
   // Popular chefs using useChefs hook
-  const { getPopularChefs } = useChefs(); 
+  const { getPopularChefs } = useChefs();
   const [chefsData, setChefsData] = useState<any>(null);
   const [chefsLoading, setChefsLoading] = useState(false);
   const [chefsError, setChefsError] = useState<any>(null);
@@ -196,14 +205,14 @@ export function MainScreen() {
       const result = await getRandomMeals(50, locationState.location || null);
       if (result.success) {
         // Transform to match expected format
-        setPopularMealsData({ 
-          success: true, 
-          data: { 
+        setPopularMealsData({
+          success: true,
+          data: {
             popular: result.data.meals.map((meal: any) => ({
               meal,
               chef: meal.chef || null,
             }))
-          } 
+          }
         });
         // Clear error on successful load
         setMealsError(null);
@@ -471,10 +480,10 @@ export function MainScreen() {
     // Check if offersData has the expected structure
     if (offersData?.success && offersData.data) {
       // Handle both array and object with offers property
-      const offersArray = Array.isArray(offersData.data) 
-        ? offersData.data 
+      const offersArray = Array.isArray(offersData.data)
+        ? offersData.data
         : offersData.data.offers || [];
-      
+
       if (Array.isArray(offersArray)) {
         const transformedOffers = offersArray
           .map(transformOfferData)
@@ -490,7 +499,7 @@ export function MainScreen() {
     // Normalize cuisine name to match filter category format
     // Handles variations like "Italian" -> "italian", "Thai Food" -> "thai"
     const normalized = cuisineName.toLowerCase().trim();
-    
+
     // Map common variations
     const variations: Record<string, string> = {
       'italian': 'italian',
@@ -508,14 +517,14 @@ export function MainScreen() {
       'moroccan': 'all',
       'korean': 'all',
     };
-    
+
     // Check if normalized name matches any variation key
     for (const [key, value] of Object.entries(variations)) {
       if (normalized.includes(key)) {
         return value;
       }
     }
-    
+
     return normalized;
   }, []);
 
@@ -524,7 +533,7 @@ export function MainScreen() {
     if (activeCategoryFilter === 'all') {
       return kitchens;
     }
-    
+
     return kitchens.filter((kitchen) => {
       const cuisineNormalized = normalizeCuisineForFilter(kitchen.cuisine || '');
       return cuisineNormalized === activeCategoryFilter || cuisineNormalized === 'all';
@@ -536,7 +545,7 @@ export function MainScreen() {
     if (activeCategoryFilter === 'all') {
       return meals;
     }
-    
+
     // Filter meals by matching cuisine to the active category filter
     return meals.filter((meal: any) => {
       // First try to match by meal's cuisine if available
@@ -546,7 +555,7 @@ export function MainScreen() {
           return true;
         }
       }
-      
+
       // Fallback: match by kitchen name to filtered kitchens
       const filteredKitchenNames = new Set(filteredKitchens.map(k => k.name.toLowerCase()));
       return filteredKitchenNames.has(meal.kitchen.toLowerCase());
@@ -558,7 +567,7 @@ export function MainScreen() {
     if (activeCategoryFilter === 'all') {
       return cuisines;
     }
-    
+
     return cuisines.filter((cuisine) => {
       const cuisineNormalized = normalizeCuisineForFilter(cuisine.name || '');
       return cuisineNormalized === activeCategoryFilter || cuisineNormalized === 'all';
@@ -581,9 +590,9 @@ export function MainScreen() {
   // This helps add top padding to the first visible section
   // Since sections return null when they have no data, we check sections in render order
   // and mark the first one that might have data as first
-  const firstSectionId = useMemo((): 
-    | 'cuisines' 
-    | 'cuisineCategories' 
+  const firstSectionId = useMemo(():
+    | 'cuisines'
+    | 'cuisineCategories'
     | 'featuredKitchens'
     | 'popularMeals'
     | 'recommendedMeals'
@@ -600,7 +609,7 @@ export function MainScreen() {
     | 'filteredPopularMeals'
     | null => {
     // Skip NotLoggedInNotice, loading, error views, and OrderAgainSection per plan notes
-    
+
     if (activeCategoryFilter === 'all') {
       // Normal view - check sections in render order
       // Check if CuisinesSection has data (it uses cuisinesData or fetches internally)
@@ -668,10 +677,10 @@ export function MainScreen() {
 
   // Filter state for Top Kebabs drawer
   const [topKebabsFilters, setTopKebabsFilters] = useState<string[]>([]);
-  
+
   // Selected cuisine category for category drawer
   const [selectedCuisineCategory, setSelectedCuisineCategory] = useState<any>(null);
-  
+
   // Handle filter changes for Top Kebabs
   const handleTopKebabsFilterChange = useCallback((filterId: string) => {
     setTopKebabsFilters(prev => {
@@ -703,7 +712,7 @@ export function MainScreen() {
   const [isCameraVisible, setIsCameraVisible] = useState(false);
   const [isNoshHeavenPostModalVisible, setIsNoshHeavenPostModalVisible] = useState(false);
   const [noshHeavenCategory, setNoshHeavenCategory] = useState<NoshHeavenCategory>('all');
-  
+
   // Map state management
   const [isMapVisible, setIsMapVisible] = useState(false);
   const [mapChefs, setMapChefs] = useState<ChefMarker[]>([]);
@@ -724,7 +733,7 @@ export function MainScreen() {
 
   // Hidden sections state
   const [orderedSections, setOrderedSections] = useState<any[]>([]);
-  
+
   // Fetch user behavior data from API
   // User behavior using useAnalytics hook
   const { getUserBehavior } = useAnalytics();
@@ -777,7 +786,7 @@ export function MainScreen() {
         freeFoodPreferences: [], // Will be populated from preferences if needed
       };
     }
-    
+
     // Fallback to empty/default values when not authenticated or no data
     return {
       totalOrders: 0,
@@ -812,7 +821,7 @@ export function MainScreen() {
   const [hasInitialLoadCompleted, setHasInitialLoadCompleted] = useState(false);
   const hasInitialLoadCompletedRef = useRef(false);
   const savedScrollPositionRef = useRef<number | null>(null);
-  
+
   // Mark initial load as complete once any data has been loaded
   // Use a ref to ensure this only happens once and doesn't reset
   // This ref persists across re-renders and navigation
@@ -825,23 +834,23 @@ export function MainScreen() {
       }
     }
   }, [isAuthenticated, cuisinesData, chefsData, popularMealsData]);
-  
+
   // Ensure hasInitialLoadCompleted stays true once set, even if component re-renders
   useEffect(() => {
     if (hasInitialLoadCompletedRef.current && !hasInitialLoadCompleted) {
       setHasInitialLoadCompleted(true);
     }
   }, [hasInitialLoadCompleted]);
-  
+
   // Refs to track all setTimeout calls for proper cleanup
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const layoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
+
   // Flag to track when scroll position is being restored (prevents scroll handler conflicts)
   const isRestoringScrollPositionRef = useRef(false);
-  
+
   // Debounce ref for scroll-to-top to prevent rapid successive calls
   const scrollToTopDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastScrollToTopCallRef = useRef<number>(0);
@@ -894,23 +903,23 @@ export function MainScreen() {
       if (isNavigatingRef.current) {
         return;
       }
-      
+
       // Don't scroll to top if we're restoring scroll position
       // Use ref for JS thread check to avoid reading shared value during render
       if (isRestoringScrollPositionRef.current) {
         return;
       }
-      
+
       // Debounce scroll-to-top calls (prevent rapid successive calls)
       const now = Date.now();
       const timeSinceLastCall = now - lastScrollToTopCallRef.current;
       const DEBOUNCE_DELAY = 300; // 300ms debounce
-      
+
       // Clear any existing debounce timeout
       if (scrollToTopDebounceRef.current) {
         clearTimeout(scrollToTopDebounceRef.current);
       }
-      
+
       // If called too soon after last call, debounce it
       if (timeSinceLastCall < DEBOUNCE_DELAY) {
         scrollToTopDebounceRef.current = setTimeout(() => {
@@ -918,16 +927,16 @@ export function MainScreen() {
         }, DEBOUNCE_DELAY - timeSinceLastCall);
         return;
       }
-      
+
       lastScrollToTopCallRef.current = now;
-      
+
       if (scrollViewRef.current) {
         // Set shared value first to prevent race conditions with scroll handler
         isHeaderStickyShared.value = false;
-        
+
         // Update ref and state immediately for responsive pointerEvents
         updateHeaderStickyState(false);
-        
+
         // Scroll to top with smooth animation
         // The scroll handler will detect the position change and update accordingly
         scrollViewRef.current.scrollTo({ y: 0, animated: true });
@@ -949,7 +958,7 @@ export function MainScreen() {
     };
 
     registerScrollToTopCallback(scrollToTop);
-    
+
     // Cleanup debounce timeout on unmount
     return () => {
       if (scrollToTopDebounceRef.current) {
@@ -1073,7 +1082,7 @@ export function MainScreen() {
     }
 
     const savedPos = savedScrollPositionRef.current;
-    
+
     // Only restore if position is valid
     if (savedPos <= 0) {
       savedScrollPositionRef.current = null;
@@ -1083,12 +1092,12 @@ export function MainScreen() {
     // Mark that we're restoring to prevent conflicts (both ref and shared value)
     isRestoringScrollPositionRef.current = true;
     isRestoringScrollPositionShared.value = true;
-    
+
     // Clear any existing layout timeout
     if (layoutTimeoutRef.current) {
       clearTimeout(layoutTimeoutRef.current);
     }
-    
+
     // Small delay to ensure layout is complete
     layoutTimeoutRef.current = setTimeout(() => {
       if (
@@ -1114,32 +1123,32 @@ export function MainScreen() {
       if (hasInitialLoadCompletedRef.current) {
         setHasInitialLoadCompleted(true);
       }
-      
+
       // Reset navigation flags when screen comes into focus
       // This ensures flags are cleared even if navigation timeout didn't fire
       // Use ref for JS thread check to avoid reading shared value during render
       if (isNavigatingRef.current) {
         isNavigatingRef.current = false;
         isNavigatingShared.value = false;
-        
+
         // Clear navigation timeout if it exists
         if (navigationTimeoutRef.current) {
           clearTimeout(navigationTimeoutRef.current);
           navigationTimeoutRef.current = null;
         }
       }
-      
+
       // Clear any existing focus timeout
       if (focusTimeoutRef.current) {
         clearTimeout(focusTimeoutRef.current);
       }
-      
+
       // Small delay to ensure screen is fully focused before restoring
       focusTimeoutRef.current = setTimeout(() => {
         restoreScrollPosition();
         focusTimeoutRef.current = null;
       }, 100);
-      
+
       return () => {
         if (focusTimeoutRef.current) {
           clearTimeout(focusTimeoutRef.current);
@@ -1169,7 +1178,7 @@ export function MainScreen() {
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
     }
-    
+
     // Show loader immediately without any delays
     setShowLoader(true);
     setRefreshing(true);
@@ -1191,11 +1200,11 @@ export function MainScreen() {
           // Check if Updates is available (not available in Expo Go)
           if (Updates.isEnabled && Updates.checkForUpdateAsync) {
             const update = await Updates.checkForUpdateAsync();
-            
+
             if (update.isAvailable) {
               // Fetch the update in the background
               await Updates.fetchUpdateAsync();
-              
+
               // Show modal to user asking if they want to update
               setShowUpdateModal(true);
             }
@@ -1217,7 +1226,7 @@ export function MainScreen() {
 
         // Fade in the content
         contentFadeAnim.value = withTiming(1, { duration: 300 });
-        
+
         refreshTimeoutRef.current = null;
       }, 2000); // Reduced to 2 seconds for better UX
     } catch {
@@ -1277,20 +1286,20 @@ export function MainScreen() {
           if (isNavigatingShared.value) {
             return;
           }
-          
+
           // Don't process scroll events if we're restoring scroll position
           // This prevents the handler from interfering with programmatic scrolls
           if (isRestoringScrollPositionShared.value) {
             return;
           }
-          
+
           const scrollPosition = event.contentOffset.y;
           scrollY.value = scrollPosition;
-          
+
           // Track if user is scrolling - use runOnJS to update ref from JS thread
           // We need to check and set this on the JS thread to avoid ref access in worklet
           runOnJS(setScrollingState)(true);
-          
+
           // Reset scrolling state after scroll ends
           runOnJS(resetScrollingState)();
 
@@ -1346,7 +1355,7 @@ export function MainScreen() {
       setScrollingState,
     ]
   );
-  
+
   // Expo 54: Keep useAnimatedReaction as backup to ensure state stays in sync
   // This ensures state updates happen even if scroll handler misses an update
   useAnimatedReaction(
@@ -1441,7 +1450,7 @@ export function MainScreen() {
 
     try {
       const directions = await getDirections(locationState.location, chef.location, 'driving');
-      
+
       if (directions.success) {
         const route = directions.data.routes[0];
         showInfo(
@@ -1465,7 +1474,7 @@ export function MainScreen() {
         isFirstMapLoad.current = false;
         return;
       }
-      
+
       try {
         const result = await getNearbyChefsFromHook({
           latitude: locationState.location.latitude,
@@ -1474,13 +1483,13 @@ export function MainScreen() {
           limit: 20,
           page: 1,
         });
-        
+
         if (result.success && result.data) {
           setMapChefs(result.data.chefs || []);
-          
+
           // Map updated silently - no toast needed
         }
-        
+
         // Mark that initial load is complete
         isFirstMapLoad.current = false;
       } catch (error) {
@@ -1500,7 +1509,7 @@ export function MainScreen() {
   const handleMealPress = useCallback((meal: any) => {
     // Ensure we have a valid meal ID - use _id if id is missing
     const mealId = meal.id || meal._id || meal.mealId || `meal-${Date.now()}`;
-    
+
     // MealItemDetails will fetch the data itself using the mealId
     // Only pass minimal data if available for initial render
     const mealData = meal.name || meal.kitchen ? {
@@ -1618,35 +1627,35 @@ export function MainScreen() {
   // Handle kitchen name press from meal details
   const handleKitchenNamePressFromMeal = useCallback((kitchenName: string, kitchenId?: string, foodcreatorId?: string) => {
     // Try to find kitchen in kitchens data by name or ID
-    const foundKitchen = kitchens.find(k => 
-      k.name === kitchenName || 
+    const foundKitchen = kitchens.find(k =>
+      k.name === kitchenName ||
       k.name === `${kitchenName}'s Kitchen` ||
       k.id === kitchenId
     );
-    
+
     // Create kitchen object with all necessary properties
-    const kitchen: any = foundKitchen 
+    const kitchen: any = foundKitchen
       ? {
-          ...foundKitchen,
-          kitchenId: kitchenId || foundKitchen.id,
-          foodcreatorId: foodcreatorId,
-          ownerId: foodcreatorId,
-          userId: foodcreatorId,
-        }
+        ...foundKitchen,
+        kitchenId: kitchenId || foundKitchen.id,
+        foodcreatorId: foodcreatorId,
+        ownerId: foodcreatorId,
+        userId: foodcreatorId,
+      }
       : {
-          id: kitchenId || `kitchen-${kitchenName.toLowerCase().replace(/\s+/g, '-')}`,
-          name: kitchenName,
-          cuisine: "Nigerian",
-          deliveryTime: "30-45 Mins",
-          distance: "0.8 km",
-          image: undefined,
-          sentiment: "elite" as const,
-          kitchenId: kitchenId,
-          foodcreatorId: foodcreatorId,
-          ownerId: foodcreatorId,
-          userId: foodcreatorId,
-        };
-    
+        id: kitchenId || `kitchen-${kitchenName.toLowerCase().replace(/\s+/g, '-')}`,
+        name: kitchenName,
+        cuisine: "Nigerian",
+        deliveryTime: "30-45 Mins",
+        distance: "0.8 km",
+        image: undefined,
+        sentiment: "elite" as const,
+        kitchenId: kitchenId,
+        foodcreatorId: foodcreatorId,
+        ownerId: foodcreatorId,
+        userId: foodcreatorId,
+      };
+
     setSelectedKitchen(kitchen);
     setIsKitchenMainScreenVisible(true);
     // Close meal details modal
@@ -1715,22 +1724,22 @@ export function MainScreen() {
 
   // Update ordered sections with hidden sections (memoized computation)
   const orderedSectionsMemoized = useMemo(() => {
-      const timeContext = getCurrentTimeContext();
-      const context: OrderingContext = {
-        timeContext,
-        userBehavior,
-        currentLocation: locationState.location ? {
-          latitude: locationState.location.latitude,
-          longitude: locationState.location.longitude,
-        } : undefined, // Use real location from locationState
-        weather: weatherData?.success && weatherData.data
-          ? {
-              condition: weatherData.data.condition,
-              temperature: weatherData.data.temperature,
-            }
-          : undefined, // Use real weather data from API
-        appState: "active",
-      };
+    const timeContext = getCurrentTimeContext();
+    const context: OrderingContext = {
+      timeContext,
+      userBehavior,
+      currentLocation: locationState.location ? {
+        latitude: locationState.location.latitude,
+        longitude: locationState.location.longitude,
+      } : undefined, // Use real location from locationState
+      weather: weatherData?.success && weatherData.data
+        ? {
+          condition: weatherData.data.condition,
+          temperature: weatherData.data.temperature,
+        }
+        : undefined, // Use real weather data from API
+      appState: "active",
+    };
     return getOrderedSectionsWithHidden(context);
   }, [userBehavior, locationState.location, weatherData?.success, weatherData?.data]);
 
@@ -1749,9 +1758,9 @@ export function MainScreen() {
         } : undefined, // Use real location from locationState
         weather: weatherData?.success && weatherData.data
           ? {
-              condition: weatherData.data.condition,
-              temperature: weatherData.data.temperature,
-            }
+            condition: weatherData.data.condition,
+            temperature: weatherData.data.temperature,
+          }
           : undefined, // Use real weather data from API
         appState: "active",
       };
@@ -1890,7 +1899,7 @@ export function MainScreen() {
               if (hasInitialLoadCompletedRef.current) {
                 setHasInitialLoadCompleted(true);
               }
-              
+
               // Use consolidated restore function instead of duplicate logic
               // Only restore if not already restoring and conditions are met
               if (
@@ -1919,65 +1928,77 @@ export function MainScreen() {
               )}
 
               {/* Error handling for API data - only show if there's an error AND no data */}
-              {(cuisinesError || chefsError || mealsError) && 
-               isAuthenticated && 
-               !cuisinesLoading && 
-               !chefsLoading && 
-               !mealsLoading &&
-               !cuisinesData && 
-               !chefsData && 
-               !popularMealsData && (
-                <View style={{ padding: 20, alignItems: "center" }}>
-                  <Text style={{ color: "#FF3B30", fontSize: 16 }}>
-                    Failed to load content. Pull to refresh.
-                  </Text>
-                </View>
-              )}
+              {(cuisinesError || chefsError || mealsError) &&
+                isAuthenticated &&
+                !cuisinesLoading &&
+                !chefsLoading &&
+                !mealsLoading &&
+                !cuisinesData &&
+                !chefsData &&
+                !popularMealsData && (
+                  <View style={{ padding: 20, alignItems: "center" }}>
+                    <Text style={{ color: "#FF3B30", fontSize: 16 }}>
+                      Failed to load content. Pull to refresh.
+                    </Text>
+                  </View>
+                )}
 
               {/* <SharedOrderingButton /> */}
-              
+
               {/* OrderAgainSection - Always render to maintain hook consistency */}
               {/* The component itself handles visibility based on activeCategoryFilter */}
-              <OrderAgainSection
-                isHeaderSticky={isHeaderSticky}
-                isAuthenticated={isAuthenticated}
-                shouldShow={activeCategoryFilter === 'all'}
-                hasInitialLoadCompleted={hasInitialLoadCompleted}
-                onAddItem={handleAddItemFromOrderAgain}
-                onAddEntireOrder={handleAddEntireOrderFromOrderAgain}
-              />
-              
+              {/* OrderAgainSection - Always render to maintain hook consistency */}
+              {/* The component itself handles visibility based on activeCategoryFilter */}
+              {isFeatureEnabled('mobile_order_again_section') && (
+                <OrderAgainSection
+                  isHeaderSticky={isHeaderSticky}
+                  isAuthenticated={isAuthenticated}
+                  shouldShow={activeCategoryFilter === 'all'}
+                  hasInitialLoadCompleted={hasInitialLoadCompleted}
+                  onAddItem={handleAddItemFromOrderAgain}
+                  onAddEntireOrder={handleAddEntireOrderFromOrderAgain}
+                />
+              )}
+
               {/* Conditional Rendering: Normal View vs Filtered View */}
               {activeCategoryFilter === 'all' ? (
                 // Normal View - Show all sections when filter is 'all'
                 <>
-                  <CuisinesSection 
-                    onCuisinePress={handleCuisinePress} 
-                    onSeeAllPress={handleOpenCuisinesDrawer}
-                    hasInitialLoadCompleted={hasInitialLoadCompleted}
-                    isFirstSection={firstSectionId === 'cuisines'}
-                  />
-                  <CuisineCategoriesSection
-                    onCuisinePress={handleCuisinePress}
-                    onSeeAllPress={handleOpenCuisineCategoriesDrawer}
-                    useBackend={true}
-                    hasInitialLoadCompleted={hasInitialLoadCompleted}
-                    isFirstSection={firstSectionId === 'cuisineCategories'}
-                  />
-                  <FeaturedKitchensSection
-                    onKitchenPress={handleFeaturedKitchenPress}
-                    onSeeAllPress={handleOpenFeaturedKitchensDrawer}
-                    useBackend={true}
-                    hasInitialLoadCompleted={hasInitialLoadCompleted}
-                    isFirstSection={firstSectionId === 'featuredKitchens'}
-                  />
-                  <PopularMealsSection
-                    onMealPress={handleMealPress}
-                    onSeeAllPress={handleOpenPopularMealsDrawer}
-                    hasInitialLoadCompleted={hasInitialLoadCompleted}
-                    isFirstSection={firstSectionId === 'popularMeals'}
-                  />
-                  
+                  {isFeatureEnabled('mobile_cuisines_section') && (
+                    <CuisinesSection
+                      onCuisinePress={handleCuisinePress}
+                      onSeeAllPress={handleOpenCuisinesDrawer}
+                      hasInitialLoadCompleted={hasInitialLoadCompleted}
+                      isFirstSection={firstSectionId === 'cuisines'}
+                    />
+                  )}
+                  {isFeatureEnabled('mobile_cuisine_categories_section') && (
+                    <CuisineCategoriesSection
+                      onCuisinePress={handleCuisinePress}
+                      onSeeAllPress={handleOpenCuisineCategoriesDrawer}
+                      useBackend={true}
+                      hasInitialLoadCompleted={hasInitialLoadCompleted}
+                      isFirstSection={firstSectionId === 'cuisineCategories'}
+                    />
+                  )}
+                  {isFeatureEnabled('mobile_featured_kitchens_section') && (
+                    <FeaturedKitchensSection
+                      onKitchenPress={handleFeaturedKitchenPress}
+                      onSeeAllPress={handleOpenFeaturedKitchensDrawer}
+                      useBackend={true}
+                      hasInitialLoadCompleted={hasInitialLoadCompleted}
+                      isFirstSection={firstSectionId === 'featuredKitchens'}
+                    />
+                  )}
+                  {isFeatureEnabled('mobile_popular_meals_section') && (
+                    <PopularMealsSection
+                      onMealPress={handleMealPress}
+                      onSeeAllPress={handleOpenPopularMealsDrawer}
+                      hasInitialLoadCompleted={hasInitialLoadCompleted}
+                      isFirstSection={firstSectionId === 'popularMeals'}
+                    />
+                  )}
+
                   {/* Recommended For You Section */}
                   <RecommendedMealsSection
                     onMealPress={handleMealPress}
@@ -1988,53 +2009,65 @@ export function MainScreen() {
 
                   {/* Hidden Sections - dynamically shown based on conditions */}
                   {orderedSections.some((section) => section.isHidden) && (
-                    <HiddenSections 
+                    <HiddenSections
                       userBehavior={userBehavior}
                       hasInitialLoadCompleted={hasInitialLoadCompleted}
                       isFirstSection={firstSectionId === 'hiddenSections'}
                     />
                   )}
 
-                  <SpecialOffersSection
-                    onOfferPress={handleOfferPress}
-                    onSeeAllPress={handleOpenSpecialOffersDrawer}
-                    hasInitialLoadCompleted={hasInitialLoadCompleted}
-                    isFirstSection={firstSectionId === 'specialOffers'}
-                  />
-                  <KitchensNearMe 
-                    onKitchenPress={handleFeaturedKitchenPress}
-                    onMapPress={handleMapToggle}
-                    hasInitialLoadCompleted={hasInitialLoadCompleted}
-                    isFirstSection={firstSectionId === 'kitchensNearMe'}
-                  />
-                  <TopKebabs 
-                    onOpenDrawer={handleOpenTopKebabsDrawer}
-                    hasInitialLoadCompleted={hasInitialLoadCompleted}
-                    isFirstSection={firstSectionId === 'topKebabs'}
-                    onKebabPress={(kebab) => {
-                      // Filter by kebab cuisine
-                      handleCuisinePress({ id: kebab.id, name: kebab.name, image: kebab.image });
-                    }}
-                  />
-                  <TakeAways 
-                    onOpenDrawer={handleOpenTakeawayDrawer}
-                    hasInitialLoadCompleted={hasInitialLoadCompleted}
-                    isFirstSection={firstSectionId === 'takeAways'}
-                  />
-                  <TooFreshToWaste
-                    onOpenDrawer={handleOpenTooFreshDrawer}
-                    onOpenSustainability={handleOpenSustainabilityDrawer}
-                    hasInitialLoadCompleted={hasInitialLoadCompleted}
-                    isFirstSection={firstSectionId === 'tooFreshToWaste'}
-                    onItemPress={(item) => {
-                      // Navigate to meal details from sustainability item
-                      handleMealPress({ id: item.id, name: item.name, kitchen: item.cuisine, price: '£0.00', image: { uri: item.image } });
-                    }}
-                  />
-                  <EventBanner 
-                    onPress={() => router.push('/event-chef-request')} 
-                    isFirstSection={firstSectionId === 'eventBanner'}
-                  />
+                  {isFeatureEnabled('mobile_special_offers_section') && (
+                    <SpecialOffersSection
+                      onOfferPress={handleOfferPress}
+                      onSeeAllPress={handleOpenSpecialOffersDrawer}
+                      hasInitialLoadCompleted={hasInitialLoadCompleted}
+                      isFirstSection={firstSectionId === 'specialOffers'}
+                    />
+                  )}
+                  {isFeatureEnabled('mobile_kitchens_near_me') && (
+                    <KitchensNearMe
+                      onKitchenPress={handleFeaturedKitchenPress}
+                      onMapPress={handleMapToggle}
+                      hasInitialLoadCompleted={hasInitialLoadCompleted}
+                      isFirstSection={firstSectionId === 'kitchensNearMe'}
+                    />
+                  )}
+                  {isFeatureEnabled('mobile_top_kebabs') && (
+                    <TopKebabs
+                      onOpenDrawer={handleOpenTopKebabsDrawer}
+                      hasInitialLoadCompleted={hasInitialLoadCompleted}
+                      isFirstSection={firstSectionId === 'topKebabs'}
+                      onKebabPress={(kebab) => {
+                        // Filter by kebab cuisine
+                        handleCuisinePress({ id: kebab.id, name: kebab.name, image: kebab.image });
+                      }}
+                    />
+                  )}
+                  {isFeatureEnabled('mobile_takeaways') && (
+                    <TakeAways
+                      onOpenDrawer={handleOpenTakeawayDrawer}
+                      hasInitialLoadCompleted={hasInitialLoadCompleted}
+                      isFirstSection={firstSectionId === 'takeAways'}
+                    />
+                  )}
+                  {isFeatureEnabled('mobile_too_fresh_to_waste') && (
+                    <TooFreshToWaste
+                      onOpenDrawer={handleOpenTooFreshDrawer}
+                      onOpenSustainability={handleOpenSustainabilityDrawer}
+                      hasInitialLoadCompleted={hasInitialLoadCompleted}
+                      isFirstSection={firstSectionId === 'tooFreshToWaste'}
+                      onItemPress={(item) => {
+                        // Navigate to meal details from sustainability item
+                        handleMealPress({ id: item.id, name: item.name, kitchen: item.cuisine, price: '£0.00', image: { uri: item.image } });
+                      }}
+                    />
+                  )}
+                  {isFeatureEnabled('mobile_event_banner') && (
+                    <EventBanner
+                      onPress={() => router.push('/event-chef-request')}
+                      isFirstSection={firstSectionId === 'eventBanner'}
+                    />
+                  )}
                 </>
               ) : (
                 // Filtered View - Show only filtered sections when filter is active
@@ -2086,7 +2119,7 @@ export function MainScreen() {
                   ) : (
                     <View style={{ marginHorizontal: 12 }}>
                       {/* Continuous filtered content without section headers */}
-                      {filteredCuisines.length > 0 && (
+                      {filteredCuisines.length > 0 && isFeatureEnabled('mobile_cuisine_categories_section') && (
                         <CuisineCategoriesSection
                           cuisines={filteredCuisines}
                           onCuisinePress={handleCuisinePress}
@@ -2096,7 +2129,7 @@ export function MainScreen() {
                           isFirstSection={firstSectionId === 'filteredCuisineCategories'}
                         />
                       )}
-                      {filteredKitchens.length > 0 && (
+                      {filteredKitchens.length > 0 && isFeatureEnabled('mobile_featured_kitchens_section') && (
                         <FeaturedKitchensSection
                           kitchens={filteredKitchens}
                           onKitchenPress={handleFeaturedKitchenPress}
@@ -2106,7 +2139,7 @@ export function MainScreen() {
                           isFirstSection={firstSectionId === 'filteredFeaturedKitchens'}
                         />
                       )}
-                      {filteredMeals.length > 0 && (
+                      {filteredMeals.length > 0 && isFeatureEnabled('mobile_popular_meals_section') && (
                         <PopularMealsSection
                           meals={filteredMeals}
                           onMealPress={handleMealPress}
@@ -2162,7 +2195,7 @@ export function MainScreen() {
 
       {/* Floating Action Button - Only show when authenticated */}
       {isAuthenticated && (
-        <FloatingActionButton 
+        <FloatingActionButton
           onCameraPress={() => setIsCameraVisible(true)}
           onRecipePress={() => setIsNoshHeavenPostModalVisible(true)}
         />
