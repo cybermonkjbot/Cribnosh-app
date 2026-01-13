@@ -562,7 +562,8 @@ export default defineSchema({
     onboardingCompletedAt: v.optional(v.number()),
     lastNotifiedAt: v.optional(v.number()), // Last email notification
     updatedAt: v.optional(v.number()), // Last update timestamp
-  }).index("by_token", ["token"]),
+  }).index("by_token", ["token"])
+    .index("by_email", ["email"]),
   // Reviews table
   reviews: defineTable({
     user_id: v.id("users"),

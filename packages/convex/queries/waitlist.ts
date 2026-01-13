@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { Infer, v } from "convex/values";
 import { Doc } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { requireStaff } from "../utils/auth";
@@ -91,10 +91,10 @@ export const getWaitlistDetails = query({
     }
 
     // Sort by joinedAt desc (newest first)
-    waitlist.sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0));
+    waitlist.sort((a: Doc<"waitlist">, b: Doc<"waitlist">) => (b.joinedAt || 0) - (a.joinedAt || 0));
 
     // Apply pagination
-    const mapped = waitlist.map((entry: Doc<"waitlist">) => ({
+    const mapped: Infer<typeof waitlistDetailsValidator>[] = waitlist.map((entry: Doc<"waitlist">) => ({
       _id: entry._id,
       email: entry.email,
       name: entry.name,
@@ -119,21 +119,23 @@ export const getWaitlistDetails = query({
   },
 });
 
+const waitlistEmailCampaignsValidator = v.object({
+  _id: v.id("emailCampaigns"),
+  name: v.string(),
+  status: v.string(),
+  subject: v.string(),
+  sentCount: v.number(),
+  openRate: v.number(),
+  clickRate: v.number(),
+  createdAt: v.number(),
+  lastSent: v.optional(v.number()),
+  template: v.string(),
+  targetSegment: v.string(),
+});
+
 export const getWaitlistEmailCampaigns = query({
   args: { sessionToken: v.optional(v.string()) },
-  returns: v.array(v.object({
-    _id: v.id("emailCampaigns"),
-    name: v.string(),
-    status: v.string(),
-    subject: v.string(),
-    sentCount: v.number(),
-    openRate: v.number(),
-    clickRate: v.number(),
-    createdAt: v.number(),
-    lastSent: v.optional(v.number()),
-    template: v.string(),
-    targetSegment: v.string(),
-  })),
+  returns: v.array(waitlistEmailCampaignsValidator),
   handler: async (ctx, args: { sessionToken?: string }) => {
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
@@ -142,7 +144,7 @@ export const getWaitlistEmailCampaigns = query({
     const campaigns = await ctx.db.query("emailCampaigns").collect();
 
     // Map campaigns to match the expected return format
-    return campaigns.map((campaign: Doc<"emailCampaigns">) => ({
+    const mapped: Infer<typeof waitlistEmailCampaignsValidator>[] = campaigns.map((campaign: Doc<"emailCampaigns">) => ({
       _id: campaign._id,
       name: campaign.name,
       status: campaign.status,
@@ -155,6 +157,8 @@ export const getWaitlistEmailCampaigns = query({
       template: campaign.name.toLowerCase().replace(/\s+/g, '-'), // Derive template name from campaign name
       targetSegment: campaign.recipientType
     }));
+
+    return mapped;
   },
 });
 
@@ -201,7 +205,7 @@ export const getAll = query({
     const allEntries = await ctx.db.query("waitlist").collect();
 
     // Sort by joinedAt desc (newest first)
-    allEntries.sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0));
+    allEntries.sort((a: Doc<"waitlist">, b: Doc<"waitlist">) => (b.joinedAt || 0) - (a.joinedAt || 0));
 
     // Apply pagination
     if (limit !== undefined) {
@@ -236,7 +240,7 @@ export const getByEmail = query({
     // This is safe as it only returns basic info
     return await ctx.db
       .query("waitlist")
-      .filter((q) => q.eq(q.field("email"), args.email))
+      .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
   },
 });
@@ -336,8 +340,10 @@ export const getWaitlistEntries = query({
     // Get total count before pagination
     const total = entries.length;
 
+    type WaitlistEntry = Infer<typeof waitlistEntriesResultValidator>["entries"][0];
+
     // Map entries to match the return type
-    const mappedEntries = entries.map((entry: Doc<"waitlist">) => ({
+    const mappedEntries: WaitlistEntry[] = entries.map((entry: Doc<"waitlist">) => ({
       _id: entry._id,
       _creationTime: entry._creationTime,
       email: entry.email,

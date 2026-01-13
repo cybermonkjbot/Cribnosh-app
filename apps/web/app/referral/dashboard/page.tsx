@@ -267,12 +267,12 @@ export default function ReferralDashboard() {
   );
   const referralHistory = useQuery(
     api.queries.users.getUserReferralHistory,
-    userId ? { userId, sessionToken: sessionToken || undefined } : "skip"
+    userId && sessionToken ? { userId, sessionToken } : "skip"
   );
   const paged = useQuery(
     api.queries.users.getUserReferralHistoryPaginated,
-    userId
-      ? { userId, paginationOpts: { numItems: 5, cursor: null }, sessionToken: sessionToken || undefined }
+    userId && sessionToken
+      ? { userId, paginationOpts: { numItems: 5, cursor: null }, sessionToken }
       : "skip"
   );
 

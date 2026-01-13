@@ -363,11 +363,17 @@ export const getUserReferralHistory = query({
     status: v.optional(v.string())
   })),
   handler: async (ctx, args) => {
-    // Require authentication
-    const user = await requireAuth(ctx, args.sessionToken);
+    // Check authentication
+    const user = await getAuthenticatedUser(ctx, args.sessionToken);
+
+    // If not authenticated, return empty array
+    if (!user) {
+      return [];
+    }
 
     // Users can access their own history, staff/admin can access any
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
+      // If valid user but accessing someone else's data, throw error
       throw new Error('Access denied');
     }
     try {
@@ -419,8 +425,17 @@ export const getUserReferralHistoryPaginated = query({
     splitCursor: v.optional(v.union(v.string(), v.null())),
   }),
   handler: async (ctx, args) => {
-    // Require authentication
-    const user = await requireAuth(ctx, args.sessionToken);
+    // Check authentication
+    const user = await getAuthenticatedUser(ctx, args.sessionToken);
+
+    // If not authenticated, return empty pagination result
+    if (!user) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: null,
+      };
+    }
 
     // Users can access their own history, staff/admin can access any
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {

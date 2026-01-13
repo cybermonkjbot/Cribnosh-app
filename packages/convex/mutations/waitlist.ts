@@ -351,6 +351,10 @@ export const submitWaitlistOnboarding = mutation({
       throw new Error("Invalid onboarding token");
     }
 
+    if (entry.onboardingCompletedAt) {
+      throw new Error("Onboarding already completed");
+    }
+
     await ctx.db.patch(entry._id, {
       creatorType: args.creatorType,
       needsFbaAssistance: args.needsFbaAssistance,
