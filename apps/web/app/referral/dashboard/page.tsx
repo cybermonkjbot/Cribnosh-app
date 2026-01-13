@@ -166,8 +166,8 @@ function HistorySection({ referralHistory }: { referralHistory: any[] }) {
                 </div>
                 <div className="text-right">
                   <div className={`px-2 py-1 text-xs font-satoshi rounded-full ${item.status === 'completed'
-                      ? 'text-white bg-gray-900'
-                      : 'text-gray-900 bg-gray-100'
+                    ? 'text-white bg-gray-900'
+                    : 'text-gray-900 bg-gray-100'
                     }`}>
                     {item.status}
                   </div>
@@ -314,7 +314,7 @@ export default function ReferralDashboard() {
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -355,7 +355,7 @@ export default function ReferralDashboard() {
         </motion.div>
 
         {/* Stats grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
           <StatCard
             icon={Users}
             title="Weekly Signups"
@@ -371,7 +371,7 @@ export default function ReferralDashboard() {
         </div>
 
         {/* Main layout */}
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="space-y-6">
           <ReferralLinkSection referralLink={userStats.referralLink || ""} />
           <HistorySection referralHistory={referralHistory} />
           {userId && <LoadMoreHistory userId={userId as Id<'users'>} />}
