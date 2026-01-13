@@ -1,11 +1,11 @@
-import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { Doc, Id } from "./_generated/dataModel";
+import { mutation, query } from "./_generated/server";
 
 // ============================================================================
 // EMAIL TEMPLATE CONFIGURATIONS
 // ============================================================================
 
+/*
 export const getEmailTemplates = query({
   args: {
     limit: v.optional(v.number()),
@@ -16,7 +16,7 @@ export const getEmailTemplates = query({
     if (args.activeOnly) {
       const templates = await ctx.db
         .query("emailTemplates")
-        .withIndex("by_active", (q) => q.eq("isActive", true))
+        // .withIndex("by_active", (q) => q.eq("isActive", true)) // Schema changed
         .order("desc")
         .take(args.limit || 50);
       return templates;
@@ -35,12 +35,13 @@ export const getEmailTemplate = query({
   args: { templateId: v.string() },
   returns: v.union(v.any(), v.null()),
   handler: async (ctx, args) => {
-    const template = await ctx.db
-      .query("emailTemplates")
-      .withIndex("by_template_id", (q) => q.eq("templateId", args.templateId))
-      .first();
+    // Schema changed, templateId no longer exists
+    // const template = await ctx.db
+    //   .query("emailTemplates")
+    //   .withIndex("by_template_id", (q) => q.eq("templateId", args.templateId))
+    //   .first();
     
-    return template;
+    return null; // template;
   },
 });
 
@@ -98,51 +99,52 @@ export const createEmailTemplate = mutation({
     }),
     changedBy: v.string(),
   },
-  returns: v.id("emailTemplates"),
+  returns: v.string(), // v.id("emailTemplates"),
   handler: async (ctx, args) => {
-    const now = Date.now();
+      throw new Error("Deprecated");
+    // const now = Date.now();
     
-    // Check if template ID already exists
-    const existing = await ctx.db
-      .query("emailTemplates")
-      .withIndex("by_template_id", (q) => q.eq("templateId", args.templateId))
-      .first();
+    // // Check if template ID already exists
+    // const existing = await ctx.db
+    //   .query("emailTemplates")
+    //   .withIndex("by_template_id", (q) => q.eq("templateId", args.templateId))
+    //   .first();
     
-    if (existing) {
-      throw new Error(`Template with ID ${args.templateId} already exists`);
-    }
+    // if (existing) {
+    //   throw new Error(`Template with ID ${args.templateId} already exists`);
+    // }
     
-    const templateId = await ctx.db.insert("emailTemplates", {
-      templateId: args.templateId,
-      name: args.name,
-      isActive: args.isActive,
-      subject: args.subject,
-      previewText: args.previewText,
-      senderName: args.senderName,
-      senderEmail: args.senderEmail,
-      replyToEmail: args.replyToEmail,
-      htmlContent: args.htmlContent,
-      fromEmail: args.fromEmail,
-      customFields: args.customFields,
-      styling: args.styling,
-      scheduling: args.scheduling,
-      targeting: args.targeting,
-      testing: args.testing,
-      lastModified: now,
-      version: 1,
-    });
+    // const templateId = await ctx.db.insert("emailTemplates", {
+    //   templateId: args.templateId,
+    //   name: args.name,
+    //   isActive: args.isActive,
+    //   subject: args.subject,
+    //   previewText: args.previewText,
+    //   senderName: args.senderName,
+    //   senderEmail: args.senderEmail,
+    //   replyToEmail: args.replyToEmail,
+    //   htmlContent: args.htmlContent,
+    //   fromEmail: args.fromEmail,
+    //   customFields: args.customFields,
+    //   styling: args.styling,
+    //   scheduling: args.scheduling,
+    //   targeting: args.targeting,
+    //   testing: args.testing,
+    //   lastModified: now,
+    //   version: 1,
+    // });
     
-    // Log configuration change
-    await ctx.db.insert("emailConfigHistory", {
-      configType: "template",
-      configId: args.templateId,
-      action: "created",
-      newConfig: args,
-      changedBy: args.changedBy,
-      timestamp: now,
-    });
+    // // Log configuration change
+    // await ctx.db.insert("emailConfigHistory", {
+    //   configType: "template",
+    //   configId: args.templateId,
+    //   action: "created",
+    //   newConfig: args,
+    //   changedBy: args.changedBy,
+    //   timestamp: now,
+    // });
     
-    return templateId;
+    // return templateId;
   },
 });
 
@@ -155,35 +157,36 @@ export const updateEmailTemplate = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("emailTemplates")
-      .withIndex("by_template_id", (q) => q.eq("templateId", args.templateId))
-      .first();
+      throw new Error("Deprecated");
+    // const existing = await ctx.db
+    //   .query("emailTemplates")
+    //   .withIndex("by_template_id", (q) => q.eq("templateId", args.templateId))
+    //   .first();
     
-    if (!existing) {
-      throw new Error(`Template with ID ${args.templateId} not found`);
-    }
+    // if (!existing) {
+    //   throw new Error(`Template with ID ${args.templateId} not found`);
+    // }
     
-    const now = Date.now();
-    const newVersion = (existing.version || 1) + 1;
+    // const now = Date.now();
+    // const newVersion = (existing.version || 1) + 1;
     
-    await ctx.db.patch(existing._id, {
-      ...args.updates,
-      lastModified: now,
-      version: newVersion,
-    });
+    // await ctx.db.patch(existing._id, {
+    //   ...args.updates,
+    //   lastModified: now,
+    //   version: newVersion,
+    // });
     
-    // Log configuration change
-    await ctx.db.insert("emailConfigHistory", {
-      configType: "template",
-      configId: args.templateId,
-      action: "updated",
-      previousConfig: existing,
-      newConfig: args.updates,
-      changedBy: args.changedBy,
-      changeReason: args.changeReason,
-      timestamp: now,
-    });
+    // // Log configuration change
+    // await ctx.db.insert("emailConfigHistory", {
+    //   configType: "template",
+    //   configId: args.templateId,
+    //   action: "updated",
+    //   previousConfig: existing,
+    //   newConfig: args.updates,
+    //   changedBy: args.changedBy,
+    //   changeReason: args.changeReason,
+    //   timestamp: now,
+    // });
   },
 });
 
@@ -195,29 +198,31 @@ export const deleteEmailTemplate = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("emailTemplates")
-      .withIndex("by_template_id", (q) => q.eq("templateId", args.templateId))
-      .first();
+      throw new Error("Deprecated");
+    // const existing = await ctx.db
+    //   .query("emailTemplates")
+    //   .withIndex("by_template_id", (q) => q.eq("templateId", args.templateId))
+    //   .first();
     
-    if (!existing) {
-      throw new Error(`Template with ID ${args.templateId} not found`);
-    }
+    // if (!existing) {
+    //   throw new Error(`Template with ID ${args.templateId} not found`);
+    // }
     
-    await ctx.db.delete(existing._id);
+    // await ctx.db.delete(existing._id);
     
-    // Log configuration change
-    await ctx.db.insert("emailConfigHistory", {
-      configType: "template",
-      configId: args.templateId,
-      action: "deleted",
-      previousConfig: existing,
-      changedBy: args.changedBy,
-      changeReason: args.changeReason,
-      timestamp: Date.now(),
-    });
+    // // Log configuration change
+    // await ctx.db.insert("emailConfigHistory", {
+    //   configType: "template",
+    //   configId: args.templateId,
+    //   action: "deleted",
+    //   previousConfig: existing,
+    //   changedBy: args.changedBy,
+    //   changeReason: args.changeReason,
+    //   timestamp: Date.now(),
+    // });
   },
 });
+*/
 
 // ============================================================================
 // EMAIL AUTOMATION CONFIGURATIONS
@@ -238,12 +243,12 @@ export const getEmailAutomations = query({
         .take(args.limit || 50);
       return automations;
     }
-    
+
     const automations = await ctx.db
       .query("emailAutomations")
       .order("desc")
       .take(args.limit || 50);
-    
+
     return automations;
   },
 });
@@ -256,7 +261,7 @@ export const getEmailAutomation = query({
       .query("emailAutomations")
       .withIndex("by_automation_id", (q) => q.eq("automationId", args.automationId))
       .first();
-    
+
     return automation;
   },
 });
@@ -316,17 +321,17 @@ export const createEmailAutomation = mutation({
   returns: v.id("emailAutomations"),
   handler: async (ctx, args) => {
     const now = Date.now();
-    
+
     // Check if automation ID already exists
     const existing = await ctx.db
       .query("emailAutomations")
       .withIndex("by_automation_id", (q) => q.eq("automationId", args.automationId))
       .first();
-    
+
     if (existing) {
       throw new Error(`Automation with ID ${args.automationId} already exists`);
     }
-    
+
     const automationId = await ctx.db.insert("emailAutomations", {
       automationId: args.automationId,
       name: args.name,
@@ -339,7 +344,7 @@ export const createEmailAutomation = mutation({
       lastModified: now,
       version: 1,
     });
-    
+
     // Log configuration change
     await ctx.db.insert("emailConfigHistory", {
       configType: "automation",
@@ -349,7 +354,7 @@ export const createEmailAutomation = mutation({
       changedBy: args.changedBy,
       timestamp: now,
     });
-    
+
     return automationId;
   },
 });
@@ -367,20 +372,20 @@ export const updateEmailAutomation = mutation({
       .query("emailAutomations")
       .withIndex("by_automation_id", (q) => q.eq("automationId", args.automationId))
       .first();
-    
+
     if (!existing) {
       throw new Error(`Automation with ID ${args.automationId} not found`);
     }
-    
+
     const now = Date.now();
     const newVersion = (existing.version || 1) + 1;
-    
+
     await ctx.db.patch(existing._id, {
       ...args.updates,
       lastModified: now,
       version: newVersion,
     });
-    
+
     // Log configuration change
     await ctx.db.insert("emailConfigHistory", {
       configType: "automation",
@@ -407,13 +412,13 @@ export const deleteEmailAutomation = mutation({
       .query("emailAutomations")
       .withIndex("by_automation_id", (q) => q.eq("automationId", args.automationId))
       .first();
-    
+
     if (!existing) {
       throw new Error(`Automation with ID ${args.automationId} not found`);
     }
-    
+
     await ctx.db.delete(existing._id);
-    
+
     // Log configuration change
     await ctx.db.insert("emailConfigHistory", {
       configType: "automation",
@@ -445,7 +450,7 @@ export const getEmailBranding = query({
         .first();
       return branding;
     }
-    
+
     if (args.defaultOnly) {
       const branding = await ctx.db
         .query("emailBranding")
@@ -453,13 +458,13 @@ export const getEmailBranding = query({
         .first();
       return branding;
     }
-    
+
     // Return first branding config if no specific criteria
     const branding = await ctx.db
       .query("emailBranding")
       .order("desc")
       .first();
-    
+
     return branding;
   },
 });
@@ -524,19 +529,19 @@ export const createEmailBranding = mutation({
   returns: v.id("emailBranding"),
   handler: async (ctx, args) => {
     const now = Date.now();
-    
+
     // If setting as default, unset other defaults
     if (args.isDefault) {
       const existingDefaults = await ctx.db
         .query("emailBranding")
         .withIndex("by_default", (q) => q.eq("isDefault", true))
         .collect();
-      
+
       for (const existing of existingDefaults) {
         await ctx.db.patch(existing._id, { isDefault: false });
       }
     }
-    
+
     const brandingId = await ctx.db.insert("emailBranding", {
       brandId: args.brandId,
       name: args.name,
@@ -549,7 +554,7 @@ export const createEmailBranding = mutation({
       lastModified: now,
       version: 1,
     });
-    
+
     // Log configuration change
     await ctx.db.insert("emailConfigHistory", {
       configType: "branding",
@@ -559,7 +564,7 @@ export const createEmailBranding = mutation({
       changedBy: args.changedBy,
       timestamp: now,
     });
-    
+
     return brandingId;
   },
 });
@@ -582,7 +587,7 @@ export const getEmailDelivery = query({
         .first();
       return delivery;
     }
-    
+
     if (args.activeOnly) {
       const delivery = await ctx.db
         .query("emailDelivery")
@@ -590,13 +595,13 @@ export const getEmailDelivery = query({
         .first();
       return delivery;
     }
-    
+
     // Return first delivery config if no specific criteria
     const delivery = await ctx.db
       .query("emailDelivery")
       .order("desc")
       .first();
-    
+
     return delivery;
   },
 });
@@ -618,13 +623,13 @@ export const getEmailAnalytics = query({
         .first();
       return analytics;
     }
-    
+
     // Return first analytics config if no specific ID
     const analytics = await ctx.db
       .query("emailAnalytics")
       .order("desc")
       .first();
-    
+
     return analytics;
   },
 });
@@ -646,13 +651,13 @@ export const getEmailCompliance = query({
         .first();
       return compliance;
     }
-    
+
     // Return first compliance config if no specific ID
     const compliance = await ctx.db
       .query("emailCompliance")
       .order("desc")
       .first();
-    
+
     return compliance;
   },
 });
@@ -685,7 +690,7 @@ export const getEmailConfigHistory = query({
         .take(args.limit || 100);
       return history;
     }
-    
+
     if (args.configType) {
       const history = await ctx.db
         .query("emailConfigHistory")
@@ -694,7 +699,7 @@ export const getEmailConfigHistory = query({
         .take(args.limit || 100);
       return history;
     }
-    
+
     if (args.configId) {
       const history = await ctx.db
         .query("emailConfigHistory")
@@ -703,12 +708,12 @@ export const getEmailConfigHistory = query({
         .take(args.limit || 100);
       return history;
     }
-    
+
     const history = await ctx.db
       .query("emailConfigHistory")
       .order("desc")
       .take(args.limit || 100);
-    
+
     return history;
   },
 });
@@ -745,7 +750,7 @@ export const getEmailQueue = query({
         .take(args.limit || 100);
       return queue;
     }
-    
+
     if (args.status) {
       const queue = await ctx.db
         .query("emailQueue")
@@ -754,7 +759,7 @@ export const getEmailQueue = query({
         .take(args.limit || 100);
       return queue;
     }
-    
+
     if (args.priority) {
       const queue = await ctx.db
         .query("emailQueue")
@@ -763,12 +768,12 @@ export const getEmailQueue = query({
         .take(args.limit || 100);
       return queue;
     }
-    
+
     const queue = await ctx.db
       .query("emailQueue")
       .order("asc")
       .take(args.limit || 100);
-    
+
     return queue;
   },
 });
@@ -799,7 +804,7 @@ export const addToEmailQueue = mutation({
       attempts: 0,
       maxAttempts: args.maxAttempts || 3,
     });
-    
+
     return queueId;
   },
 });
@@ -835,7 +840,7 @@ export const getEmailAnalyticsData = query({
         .take(args.limit || 1000);
       return data;
     }
-    
+
     if (args.templateId) {
       const data = await ctx.db
         .query("emailAnalyticsData")
@@ -844,7 +849,7 @@ export const getEmailAnalyticsData = query({
         .take(args.limit || 1000);
       return data;
     }
-    
+
     if (args.eventType) {
       const data = await ctx.db
         .query("emailAnalyticsData")
@@ -853,7 +858,7 @@ export const getEmailAnalyticsData = query({
         .take(args.limit || 1000);
       return data;
     }
-    
+
     if (args.startDate || args.endDate) {
       const data = await ctx.db
         .query("emailAnalyticsData")
@@ -871,12 +876,12 @@ export const getEmailAnalyticsData = query({
         .take(args.limit || 1000);
       return data;
     }
-    
+
     const data = await ctx.db
       .query("emailAnalyticsData")
       .order("desc")
       .take(args.limit || 1000);
-    
+
     return data;
   },
 });
@@ -925,7 +930,7 @@ export const recordEmailEvent = mutation({
       deviceInfo: args.deviceInfo,
       locationInfo: args.locationInfo,
     });
-    
+
     return eventId;
   },
 });
@@ -956,7 +961,7 @@ export const getEmailTestResults = query({
         .take(args.limit || 100);
       return results;
     }
-    
+
     if (args.templateId) {
       const results = await ctx.db
         .query("emailTestResults")
@@ -965,7 +970,7 @@ export const getEmailTestResults = query({
         .take(args.limit || 100);
       return results;
     }
-    
+
     if (args.testType) {
       const results = await ctx.db
         .query("emailTestResults")
@@ -974,12 +979,12 @@ export const getEmailTestResults = query({
         .take(args.limit || 100);
       return results;
     }
-    
+
     const results = await ctx.db
       .query("emailTestResults")
       .order("desc")
       .take(args.limit || 100);
-    
+
     return results;
   },
 });
@@ -1016,7 +1021,7 @@ export const recordEmailTestResult = mutation({
       testedBy: args.testedBy,
       timestamp: Date.now(),
     });
-    
+
     return resultId;
   },
 });

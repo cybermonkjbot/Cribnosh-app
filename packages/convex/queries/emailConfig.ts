@@ -1,5 +1,5 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
+import { query } from "../_generated/server";
 
 // Get email template by ID
 export const getTemplate = query({
@@ -11,7 +11,7 @@ export const getTemplate = query({
       .query("emailTemplates")
       .filter((q) => q.eq(q.field("templateId"), args.templateId))
       .first();
-    
+
     return template;
   },
 });
@@ -24,7 +24,7 @@ export const getAllTemplates = query({
       .query("emailTemplates")
       .order("desc")
       .collect();
-    
+
     return templates;
   },
 });
@@ -39,7 +39,7 @@ export const getTemplateByName = query({
       .query("emailTemplates")
       .filter((q) => q.eq(q.field("name"), args.name))
       .first();
-    
+
     return template;
   },
 });

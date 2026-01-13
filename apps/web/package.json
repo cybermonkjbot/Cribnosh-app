@@ -100,6 +100,7 @@
     "js-yaml": "^4.1.1",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^3.0.4",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.523.0",
     "minio": "^8.0.6",
     "motion": "^12.23.26",

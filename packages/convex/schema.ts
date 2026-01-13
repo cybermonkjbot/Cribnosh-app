@@ -2138,63 +2138,24 @@ export default defineSchema({
     .index("by_created", ["createdAt"]),
 
   // Email Template Configurations
+  // Email Template Configurations
   emailTemplates: defineTable({
-    templateId: v.string(),
-    name: v.string(),
-    isActive: v.boolean(),
-    subject: v.string(),
-    previewText: v.string(),
-    senderName: v.string(),
-    senderEmail: v.string(),
-    replyToEmail: v.string(),
-    htmlContent: v.string(),
-    fromEmail: v.optional(v.string()),
-    customFields: v.record(v.string(), v.any()),
-    styling: v.object({
-      primaryColor: v.string(),
-      secondaryColor: v.string(),
-      accent: v.string(),
-      fontFamily: v.string(),
-      logoUrl: v.string(),
-      footerText: v.string(),
-    }),
-    scheduling: v.object({
-      timezone: v.string(),
-      sendTime: v.string(),
-      frequency: v.union(
-        v.literal("immediate"),
-        v.literal("scheduled"),
-        v.literal("recurring")
-      ),
-    }),
-    targeting: v.object({
-      audience: v.union(
-        v.literal("all"),
-        v.literal("segment"),
-        v.literal("custom")
-      ),
-      segmentId: v.optional(v.string()),
-      customFilters: v.optional(
-        v.array(
-          v.object({
-            field: v.string(),
-            operator: v.string(),
-            value: v.any(),
-          })
-        )
-      ),
-    }),
-    testing: v.object({
-      testEmails: v.array(v.string()),
-      testData: v.record(v.string(), v.any()),
-      previewMode: v.boolean(),
-    }),
-    lastModified: v.optional(v.number()),
-    version: v.optional(v.number()),
-  })
-    .index("by_template_id", ["templateId"])
-    .index("by_active", ["isActive"])
-    .index("by_audience", ["targeting.audience"]),
+    name: v.string(),              // Internal name
+    description: v.optional(v.string()),
+    emailType: v.optional(v.string()), // Maps to system events
+    subject: v.string(),           // Email subject line
+    htmlContent: v.string(),       // The raw HTML
+    assets: v.optional(v.array(v.object({
+      originalName: v.string(),
+      storageId: v.id("_storage"),
+      url: v.string(),
+    }))), // Linked assets (images)
+    previewImageStorageId: v.optional(v.id("_storage")),
+    isSystem: v.optional(v.boolean()), // Protects base templates
+    updatedBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_type", ["emailType"]),
 
   // Email Automation Configurations
   emailAutomations: defineTable({
