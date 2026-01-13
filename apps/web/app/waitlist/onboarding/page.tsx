@@ -23,24 +23,18 @@ export default function WaitlistManualOnboardingPage() {
         setError(null);
 
         try {
-            const entry = await convex.query(api.queries.waitlist.getByEmail, {
+            // Use mutation to ensure a token exists (generates one if missing)
+            const token = await convex.mutation(api.mutations.waitlist.ensureWaitlistToken, {
                 email: email.trim().toLowerCase()
             });
 
-            if (!entry) {
+            if (!token) {
                 setError("This email is not on our waitlist. Please sign up first!");
                 return;
             }
 
-            if (!entry.token) {
-                // This should technically rarely happen for invited users, but handling it just in case
-                setError("Your spot isn't ready just yet! We'll email you when it's your turn.");
-                return;
-            }
-
-            // If already completed, redirect to the token page which handles the "All Set" state
-            // The token page component checks waitlistEntry.onboardingCompletedAt
-            router.push(`/waitlist/onboarding/${entry.token}`);
+            // Redirect to the token page
+            router.push(`/waitlist/onboarding/${token}`);
         } catch (err) {
             console.error("Error looking up waitlist entry:", err);
             setError("Something went wrong. Please try again.");

@@ -428,10 +428,12 @@ export default defineSchema({
   users: defineTable({
     name: v.string(),
     email: v.string(),
+    username: v.optional(v.string()), // Added for provisional users
+    source: v.optional(v.string()), // Added to track origin (e.g. 'waitlist')
     phone_number: v.optional(v.string()),
-    password: v.string(), // Hashed password
+    password: v.optional(v.string()), // Hashed password (optional for provisional/oauth)
     roles: v.optional(v.array(v.string())), // e.g. ['admin', 'staff']
-    status: v.optional(v.union(v.literal("active"), v.literal("inactive"), v.literal("suspended"))),
+    status: v.optional(v.union(v.literal("active"), v.literal("inactive"), v.literal("suspended"), v.literal("provisional"))),
     lastLogin: v.optional(v.number()),
     lastModified: v.optional(v.number()),
     preferences: v.optional(v.object({
@@ -534,12 +536,14 @@ export default defineSchema({
     twoFactorBackupCodes: v.optional(v.array(v.string())), // Hashed
   })
     .index('by_email', ['email'])
+    .index('by_username', ['username'])
     .index('by_phone', ['phone_number'])
     .index('by_oauth_provider', ['primaryOAuthProvider']),
   // Waitlist table
   waitlist: defineTable({
     email: v.string(),
     name: v.optional(v.string()),
+    username: v.optional(v.string()),
     phone: v.optional(v.string()),
     city: v.optional(v.string()),
     company: v.optional(v.string()),
@@ -563,7 +567,8 @@ export default defineSchema({
     lastNotifiedAt: v.optional(v.number()), // Last email notification
     updatedAt: v.optional(v.number()), // Last update timestamp
   }).index("by_token", ["token"])
-    .index("by_email", ["email"]),
+    .index("by_email", ["email"])
+    .index("by_username", ["username"]),
   // Reviews table
   reviews: defineTable({
     user_id: v.id("users"),

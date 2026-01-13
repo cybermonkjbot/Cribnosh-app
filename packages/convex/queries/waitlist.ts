@@ -36,7 +36,7 @@ export const getWaitlistStats = query({
       converted,
       inactive,
       conversionRate: total > 0 ? (converted / total) * 100 : 0
-    };
+    } as any;
   },
 });
 
@@ -45,6 +45,7 @@ const waitlistDetailsValidator = v.object({
   _id: v.id("waitlist"),
   email: v.string(),
   name: v.optional(v.string()),
+  username: v.optional(v.string()), // Added for provisional users
   phone: v.optional(v.string()),
   location: v.optional(v.string()),
   referralCode: v.optional(v.string()),
@@ -98,6 +99,7 @@ export const getWaitlistDetails = query({
       _id: entry._id,
       email: entry.email,
       name: entry.name,
+      username: entry.username,
       phone: entry.phone,
       location: entry.location as string | undefined, // Cast location to string if it matches validator
       referralCode: entry.referralCode,
@@ -112,10 +114,10 @@ export const getWaitlistDetails = query({
     }));
 
     if (limit !== undefined) {
-      return mapped.slice(offset, offset + limit);
+      return mapped.slice(offset, offset + limit) as any;
     }
 
-    return mapped.slice(offset);
+    return mapped.slice(offset) as any;
   },
 });
 
@@ -158,7 +160,7 @@ export const getWaitlistEmailCampaigns = query({
       targetSegment: campaign.recipientType
     }));
 
-    return mapped;
+    return mapped as any;
   },
 });
 
@@ -168,6 +170,7 @@ const waitlistDocValidator = v.object({
   _creationTime: v.number(),
   email: v.string(),
   name: v.optional(v.string()),
+  username: v.optional(v.string()),
   phone: v.optional(v.string()),
   city: v.optional(v.string()),
   company: v.optional(v.string()),
@@ -209,11 +212,11 @@ export const getAll = query({
 
     // Apply pagination
     if (limit !== undefined) {
-      return allEntries.slice(offset, offset + limit);
+      return allEntries.slice(offset, offset + limit) as any;
     }
 
     // If no limit, return all from offset
-    return allEntries.slice(offset);
+    return allEntries.slice(offset) as any;
   },
 });
 
@@ -227,7 +230,7 @@ export const getById = query({
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
 
-    return await ctx.db.get(args.id);
+    return await ctx.db.get(args.id) as any;
   },
 });
 
@@ -241,7 +244,7 @@ export const getByEmail = query({
     return await ctx.db
       .query("waitlist")
       .withIndex("by_email", (q) => q.eq("email", args.email))
-      .first();
+      .first() as any;
   },
 });
 
@@ -253,7 +256,7 @@ export const getByToken = query({
     return await ctx.db
       .query("waitlist")
       .withIndex("by_token", (q) => q.eq("token", args.token))
-      .first();
+      .first() as any;
   },
 });
 
@@ -265,7 +268,7 @@ export const getWaitlistCount = query({
     await requireStaff(ctx, args.sessionToken);
 
     const entries = await ctx.db.query("waitlist").collect();
-    return entries.length;
+    return entries.length as any;
   },
 });
 
@@ -275,6 +278,7 @@ const waitlistEntriesResultValidator = v.object({
     _creationTime: v.number(),
     email: v.string(),
     name: v.optional(v.string()),
+    username: v.optional(v.string()),
     phone: v.optional(v.string()),
     location: v.optional(v.any()),
     source: v.optional(v.string()),
@@ -348,6 +352,7 @@ export const getWaitlistEntries = query({
       _creationTime: entry._creationTime,
       email: entry.email,
       name: entry.name,
+      username: entry.username,
       phone: entry.phone,
       location: entry.location,
       source: entry.source,
@@ -375,6 +380,6 @@ export const getWaitlistEntries = query({
     return {
       entries: paginatedEntries,
       total,
-    };
+    } as any;
   },
 });

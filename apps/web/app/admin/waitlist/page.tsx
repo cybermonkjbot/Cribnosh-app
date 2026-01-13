@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Copy,
   Download,
   Edit,
   Eye,
@@ -402,6 +403,117 @@ export default function AdminWaitlistPage() {
     }
   }, [filteredWaitlist, filteredEntries, activeTab, toast]);
 
+  const formatEntriesForExport = useCallback((entries: WaitlistEntry[]) => {
+    const headers = "Email Address, First Name, Last Name, Address";
+    const rows = entries.map(entry => {
+      const email = entry.email || "";
+
+      // Split name into first and last
+      let firstName = "";
+      let lastName = "";
+      if (entry.name) {
+        const nameParts = entry.name.split(" ");
+        if (nameParts.length > 0) {
+          firstName = nameParts[0];
+          lastName = nameParts.slice(1).join(" ");
+        }
+      }
+
+      // Format address
+      let address = "";
+      if (entry.location) {
+        if (typeof entry.location === 'string') {
+          address = entry.location;
+        } else {
+          // Try to construct a meaningful address string from the object
+          const loc = entry.location as any;
+          const parts = [];
+
+          if (loc.address) parts.push(loc.address);
+          if (loc.city) parts.push(loc.city);
+          if (loc.region || loc.state) parts.push(loc.region || loc.state);
+          if (loc.postalCode || loc.zipCode) parts.push(loc.postalCode || loc.zipCode);
+          if (loc.country || loc.country_name) parts.push(loc.country || loc.country_name);
+
+          if (parts.length > 0) {
+            address = parts.join(" ");
+          } else {
+            // Fallback to whatever properties might exist if the standard ones don't
+            if (loc.ip) address += `IP: ${loc.ip} `;
+          }
+        }
+      }
+      // If no address found, try city
+      if (!address && entry.city) {
+        address = entry.city;
+      }
+
+
+      return `${email}, ${firstName}, ${lastName}, ${address}`;
+    });
+
+    return [headers, ...rows].join("\n");
+  }, []);
+
+
+  const handleCopyLabels = useCallback(() => {
+    const dataToExport = activeTab === "list" ? filteredWaitlist : filteredEntries;
+    if (!dataToExport || dataToExport.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "There are no entries matching your current filters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formattedText = formatEntriesForExport(dataToExport);
+    navigator.clipboard.writeText(formattedText).then(() => {
+      toast({
+        title: "Copied to clipboard",
+        description: `Copied ${dataToExport.length} entries for labels.`,
+        variant: "success",
+      });
+    }).catch(() => {
+      toast({
+        title: "Copy failed",
+        description: "Failed to copy to clipboard.",
+        variant: "destructive",
+      });
+    });
+
+  }, [filteredWaitlist, filteredEntries, activeTab, toast, formatEntriesForExport]);
+
+  const handleDownloadLabels = useCallback(() => {
+    const dataToExport = activeTab === "list" ? filteredWaitlist : filteredEntries;
+    if (!dataToExport || dataToExport.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "There are no entries matching your current filters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formattedText = formatEntriesForExport(dataToExport);
+    const blob = new Blob([formattedText], { type: "text/plain;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `waitlist-labels-${new Date().toISOString().split("T")[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Download started",
+      description: `Downloading labels for ${dataToExport.length} entries.`,
+      variant: "success",
+    });
+
+  }, [filteredWaitlist, filteredEntries, formatEntriesForExport, activeTab, toast]);
+
   const handleApprove = async (entryId: Id<"waitlist">) => {
     setIsApproving(entryId);
     try {
@@ -507,14 +619,33 @@ export default function AdminWaitlistPage() {
           <p className="text-gray-600 font-satoshi mt-1">Manage and analyze waitlist entries</p>
         </div>
 
-        <Button
-          onClick={handleExportCSV}
-          className="w-full sm:w-auto min-h-[44px]"
-          disabled={activeTab === "list" ? (!filteredWaitlist || filteredWaitlist.length === 0) : (!filteredEntries || filteredEntries.length === 0)}
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Export CSV
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              className="w-full sm:w-auto min-h-[44px]"
+              disabled={activeTab === "list" ? (!filteredWaitlist || filteredWaitlist.length === 0) : (!filteredEntries || filteredEntries.length === 0)}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Export Options</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleExportCSV}>
+              <Table2 className="w-4 h-4 mr-2" />
+              Export to CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleCopyLabels}>
+              <Copy className="w-4 h-4 mr-2" />
+              Copy for Labels
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleDownloadLabels}>
+              <FileText className="w-4 h-4 mr-2" />
+              Download .txt for Labels
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
 

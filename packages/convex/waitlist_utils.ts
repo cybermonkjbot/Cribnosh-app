@@ -40,15 +40,15 @@ export async function addToWaitlistInternal(
         .filter((q) => q.eq(q.field("email"), args.email))
         .first();
 
-    if (existing) {
+    if (existing || existingUser) {
         return {
             success: true,
-            waitlistId: existing._id,
+            waitlistId: existing?._id ?? ("existing_user" as Id<"waitlist">),
             isExisting: true,
             userId: existingUser?._id,
             // existing entries might not have a token if created before this change
             // we could generate one here if needed, but for now let's assume new flow only
-            token: existing.token,
+            token: existing?.token,
         };
     }
 
@@ -78,7 +78,7 @@ export async function addToWaitlistInternal(
         success: true,
         waitlistId,
         isExisting: false,
-        userId: existingUser?._id,
+        userId: undefined,
         token,
     };
 }
