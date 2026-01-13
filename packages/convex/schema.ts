@@ -2153,8 +2153,23 @@ export default defineSchema({
     previewImageStorageId: v.optional(v.id("_storage")),
     isSystem: v.optional(v.boolean()), // Protects base templates
     updatedBy: v.optional(v.id("users")),
-    createdAt: v.number(),
-    updatedAt: v.number(),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+    // Legacy/Extra fields found in data
+    templateId: v.optional(v.string()),
+    isActive: v.optional(v.boolean()),
+    lastModified: v.optional(v.number()),
+    version: v.optional(v.number()),
+    previewText: v.optional(v.string()),
+    senderName: v.optional(v.string()),
+    senderEmail: v.optional(v.string()),
+    replyToEmail: v.optional(v.string()),
+    fromEmail: v.optional(v.string()),
+    customFields: v.optional(v.record(v.string(), v.any())),
+    styling: v.optional(v.any()),
+    scheduling: v.optional(v.any()),
+    targeting: v.optional(v.any()),
+    testing: v.optional(v.any()),
   }).index("by_type", ["emailType"]),
 
   // Email Automation Configurations

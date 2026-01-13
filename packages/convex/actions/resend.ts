@@ -2,7 +2,7 @@
 
 import { v } from "convex/values";
 import { Resend } from "resend";
-import { api, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
 import { EMAIL_TYPES } from "../emailTemplates";
 
@@ -56,6 +56,45 @@ async function validateAndSanitizeHtml(html: string): Promise<string> {
   return html;
 }
 
+// Helper function to avoid circular action calls and deep type recursion
+async function sendEmailInternal(args: {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+  replyTo?: string;
+  headers?: Record<string, string>;
+  tags?: { name: string; value: string }[];
+}) {
+  let sanitizedHtml = args.html;
+  try {
+    sanitizedHtml = await validateAndSanitizeHtml(args.html);
+  } catch (error) {
+    console.error('Error validating images in email:', error);
+    sanitizedHtml = args.html;
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const { data, error } = await resend.emails.send({
+    from: args.from,
+    to: args.to,
+    subject: args.subject,
+    html: sanitizedHtml,
+    text: args.text,
+    replyTo: args.replyTo,
+    headers: args.headers,
+    tags: args.tags,
+  });
+
+  if (error) {
+    throw new Error(`Failed to send email: ${error.message}`);
+  }
+
+  return data?.id || '';
+}
+
 // Send email using Resend
 export const sendEmail = action({
   args: {
@@ -73,34 +112,7 @@ export const sendEmail = action({
   },
   returns: v.string(),
   handler: async (ctx, args) => {
-    // Validate and sanitize images before sending
-    let sanitizedHtml = args.html;
-    try {
-      sanitizedHtml = await validateAndSanitizeHtml(args.html);
-    } catch (error) {
-      console.error('Error validating images in email:', error);
-      // Continue with original HTML if validation fails
-      sanitizedHtml = args.html;
-    }
-
-    const resend = new Resend(process.env.RESEND_API_KEY);
-
-    const { data, error } = await resend.emails.send({
-      from: args.from,
-      to: args.to,
-      subject: args.subject,
-      html: sanitizedHtml,
-      text: args.text,
-      replyTo: args.replyTo,
-      headers: args.headers,
-      tags: args.tags,
-    });
-
-    if (error) {
-      throw new Error(`Failed to send email: ${error.message}`);
-    }
-
-    return data?.id || '';
+    return await sendEmailInternal(args);
   },
 });
 
@@ -133,7 +145,6 @@ export const sendTemplateEmail = action({
   },
   handler: async (ctx, args) => {
     // 1. Fetch Template & Context from queries
-    // Use queries.emailConfig as it is already in api.d.ts
     const { template, appConfig } = await ctx.runQuery(internal.queries.emailConfig.getTemplateAndContext, {
       emailType: args.emailType
     });
@@ -167,8 +178,8 @@ export const sendTemplateEmail = action({
       subject = subject.replace(regex, value);
     });
 
-    // 5. Send via Resend (using the export within this file)
-    await ctx.runAction(api.actions.resend.sendEmail, {
+    // 5. Send via Resend (using helper function to avoid recursion)
+    await sendEmailInternal({
       to: args.to,
       subject: subject,
       html: html,

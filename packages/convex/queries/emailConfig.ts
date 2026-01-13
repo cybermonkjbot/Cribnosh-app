@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
+import { internalQuery, query } from "../_generated/server";
 
 // Get email template by ID
 export const getTemplate = query({
@@ -41,5 +41,32 @@ export const getTemplateByName = query({
       .first();
 
     return template;
+  },
+});
+
+// List all templates for the admin UI
+export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("emailTemplates").collect();
+  },
+});
+
+// Internal query to get template and context for sending emails
+export const getTemplateAndContext = internalQuery({
+  args: { emailType: v.string() },
+  handler: async (ctx, args) => {
+    const template = await ctx.db
+      .query("emailTemplates")
+      .withIndex("by_type", (q) => q.eq("emailType", args.emailType))
+      .first();
+
+    // Mock app config for now, or fetch from a config table if it exists
+    const appConfig = {
+      companyAddress: "123 Nosh Lane, Food City",
+      logoUrl: "https://cribnosh.com/logo.svg",
+    };
+
+    return { template, appConfig };
   },
 });
