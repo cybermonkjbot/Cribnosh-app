@@ -1,29 +1,28 @@
 "use client";
 
-import { GlassCard } from "@/components/ui/glass-card";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { CopyButtonWithFeedback } from "@/components/ui/copy-button";
-import { useEffect, useState } from "react";
+import { GlassCard } from "@/components/ui/glass-card";
+import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { 
-  Gift, 
-  TrendingUp, 
-  Link2, 
-  Users,
+import { useQuery } from "convex/react";
+import {
+  Calendar,
   CheckCircle,
   Clock,
+  Gift,
+
+  Link2,
   Sparkles,
-  Calendar,
-  Target
+  Users,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { useEffect, useState } from "react";
 
 // Simple, clean bar chart
 function SimpleBarChart({ data }: { data: number[] }) {
   const max = Math.max(...data, 1);
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-  
+
   return (
     <div className="flex items-end justify-between h-16 gap-1 mt-6">
       {data.map((value, index) => (
@@ -47,12 +46,12 @@ function SimpleBarChart({ data }: { data: number[] }) {
 }
 
 // Clean stat card
-function StatCard({ 
-  icon: Icon, 
-  title, 
-  value, 
+function StatCard({
+  icon: Icon,
+  title,
+  value,
   subtitle,
-  trend 
+  trend
 }: {
   icon: any;
   title: string;
@@ -97,7 +96,7 @@ function ReferralLinkSection({ referralLink }: { referralLink: string }) {
       <GlassCard className="p-6 bg-white border border-gray-200">
         <div className="flex items-center gap-2 mb-4">
           <Link2 className="w-5 h-5 text-gray-900" />
-             <h3 className="font-asgard text-lg text-gray-900">Your referral link</h3>
+          <h3 className="font-asgard text-lg text-gray-900">Your referral link</h3>
         </div>
         <div className="relative">
           <input
@@ -125,7 +124,7 @@ function HistorySection({ referralHistory }: { referralHistory: any[] }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.3 }}
     >
-       <GlassCard className="bg-white border border-gray-200">
+      <GlassCard className="bg-white border border-gray-200">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <Gift className="w-5 h-5 text-gray-900" />
@@ -135,7 +134,7 @@ function HistorySection({ referralHistory }: { referralHistory: any[] }) {
             {referralHistory.length} total
           </span>
         </div>
-        
+
         <div className="divide-y divide-primary-100">
           {referralHistory.length === 0 ? (
             <div className="px-6 py-12 text-center">
@@ -166,11 +165,10 @@ function HistorySection({ referralHistory }: { referralHistory: any[] }) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className={`px-2 py-1 text-xs font-satoshi rounded-full ${
-                    item.status === 'completed'
+                  <div className={`px-2 py-1 text-xs font-satoshi rounded-full ${item.status === 'completed'
                       ? 'text-white bg-gray-900'
                       : 'text-gray-900 bg-gray-100'
-                  }`}>
+                    }`}>
                     {item.status}
                   </div>
                   {/* Removed currency display to avoid hardcoding values */}
@@ -229,9 +227,8 @@ function LoadMoreHistory({ userId }: { userId: Id<'users'> }) {
               </div>
             </div>
             <div>
-              <span className={`px-2 py-1 text-xs font-satoshi rounded-full ${
-                item.status === 'completed' ? 'text-white bg-gray-900' : 'text-gray-900 bg-gray-100'
-              }`}>
+              <span className={`px-2 py-1 text-xs font-satoshi rounded-full ${item.status === 'completed' ? 'text-white bg-gray-900' : 'text-gray-900 bg-gray-100'
+                }`}>
                 {item.status}
               </span>
             </div>
@@ -253,59 +250,7 @@ function LoadMoreHistory({ userId }: { userId: Id<'users'> }) {
 }
 
 // Resources section
-function ResourcesSection() {
-  const resources = [
-    {
-      title: "Affiliate Guide",
-      description: "Learn how to maximize earnings",
-      href: "/referral/guide",
-      icon: Target
-    },
-    {
-      title: "Referral Tips",
-      description: "Proven strategies from top affiliates",
-      href: "/referral/tips",
-      icon: TrendingUp
-    },
-    {
-      title: "FAQ",
-      description: "Common questions answered",
-      href: "/referral/faq",
-      icon: Users
-    }
-  ];
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.4 }}
-    >
-      <GlassCard className="p-6 bg-white/90 border border-primary-100">
-        <h3 className="font-asgard text-lg text-gray-900 mb-4">Resources</h3>
-        <div className="space-y-3">
-          {resources.map((resource, index) => (
-            <a
-              key={resource.href}
-              href={resource.href}
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary-50/70 transition-colors group"
-            >
-              <resource.icon className="w-5 h-5 text-primary-700" />
-              <div>
-                <div className="font-satoshi text-sm font-medium text-gray-900 group-hover:text-primary-800">
-                  {resource.title}
-                </div>
-                <div className="font-satoshi text-xs text-gray-600">
-                  {resource.description}
-                </div>
-              </div>
-            </a>
-          ))}
-        </div>
-      </GlassCard>
-    </motion.div>
-  );
-}
 
 export default function ReferralDashboard() {
   const [userId, setUserId] = useState<Id<"users"> | null>(null);
@@ -321,11 +266,11 @@ export default function ReferralDashboard() {
   }, []);
 
   const userStats = useQuery(
-    api.queries.users.getUserReferralStats, 
+    api.queries.users.getUserReferralStats,
     userId ? { userId, sessionToken: sessionToken || undefined } : "skip"
   );
   const referralHistory = useQuery(
-    api.queries.users.getUserReferralHistory, 
+    api.queries.users.getUserReferralHistory,
     userId ? { userId, sessionToken: sessionToken || undefined } : "skip"
   );
   const paged = useQuery(
@@ -352,7 +297,7 @@ export default function ReferralDashboard() {
   // Calculate stats
   const completedReferrals = referralHistory.filter((r: any) => r.status === "completed");
   const weeklySignups = Math.round(completedReferrals.length / 4);
-  
+
   // Bar chart data
   const dealsPerMonth = Array(6).fill(0);
   completedReferrals.forEach((r: any) => {
@@ -394,7 +339,7 @@ export default function ReferralDashboard() {
           <GlassCard className="p-8 bg-white border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-asgard text-xl text-gray-900 font-bold">Referrals overview</h2>
-          </div>
+            </div>
 
             <div className="mb-6">
               <div className="font-asgard text-5xl sm:text-6xl text-gray-900 font-bold mb-2">
@@ -404,7 +349,7 @@ export default function ReferralDashboard() {
                 Completed referrals (last 6 months)
               </p>
             </div>
-            
+
             <SimpleBarChart data={dealsPerMonth} />
           </GlassCard>
         </motion.div>
@@ -425,19 +370,11 @@ export default function ReferralDashboard() {
           />
         </div>
 
-        {/* Two column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left column */}
-          <div className="lg:col-span-2 space-y-6">
-            <ReferralLinkSection referralLink={userStats.referralLink || ""} />
-            <HistorySection referralHistory={referralHistory} />
-            {userId && <LoadMoreHistory userId={userId as Id<'users'>} />}
-          </div>
-          
-          {/* Right column */}
-          <div>
-            <ResourcesSection />
-          </div>
+        {/* Main layout */}
+        <div className="max-w-4xl mx-auto space-y-6">
+          <ReferralLinkSection referralLink={userStats.referralLink || ""} />
+          <HistorySection referralHistory={referralHistory} />
+          {userId && <LoadMoreHistory userId={userId as Id<'users'>} />}
         </div>
       </div>
     </main>
