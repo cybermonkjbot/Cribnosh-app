@@ -21,6 +21,7 @@ export const addToWaitlist = mutation({
     waitlistId: v.id("waitlist"),
     isExisting: v.boolean(),
     userId: v.optional(v.id("users")),
+    token: v.optional(v.string()),
   }),
   handler: async (ctx, args) => {
     return await addToWaitlistInternal(ctx, args);
@@ -331,5 +332,46 @@ export const addBulkWaitlistEntries = mutation({
     }
 
     return { success: true, added: addedCount, existing: existingCount };
+  },
+});
+
+export const submitWaitlistOnboarding = mutation({
+  args: {
+    token: v.string(),
+    creatorType: v.string(), // 'taste_creator', 'content_creator', or 'both'
+    needsFbaAssistance: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const entry = await ctx.db
+      .query("waitlist")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .first();
+
+    if (!entry) {
+      throw new Error("Invalid onboarding token");
+    }
+
+    await ctx.db.patch(entry._id, {
+      creatorType: args.creatorType,
+      needsFbaAssistance: args.needsFbaAssistance,
+      onboardingCompletedAt: Date.now(),
+    });
+
+    // Queue the welcome email
+    await ctx.db.insert("emailQueue", {
+      templateId: "welcome-beta-access",
+      recipientEmail: entry.email,
+      recipientData: {
+        name: entry.name || "Creator",
+        email: entry.email,
+      },
+      priority: "high",
+      scheduledFor: Date.now(),
+      status: "pending",
+      attempts: 0,
+      maxAttempts: 3,
+    });
+
+    return { success: true };
   },
 });

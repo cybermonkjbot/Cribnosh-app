@@ -42,19 +42,25 @@ const headings = [
  * @param className - Optional CSS class for the container element
  * @param highlightClassName - Optional CSS class for highlighted text segments
  */
-export function RotatingHeading({ className = "", highlightClassName = "text-[#ff3b30]" }: { className?: string, highlightClassName?: string }) {
+export interface RotatingHeadingProps {
+  className?: string;
+  highlightClassName?: string;
+  items?: typeof headings;
+}
+
+export function RotatingHeading({ className = "", highlightClassName = "text-[#ff3b30]", items = headings }: RotatingHeadingProps) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setIndex((prev) => (prev + 1) % headings.length);
+      setIndex((prev) => (prev + 1) % items.length);
     }, 2500);
     return () => clearInterval(interval);
-  }, []);
+  }, [items.length]);
 
   return (
     <span className={className}>
-      {headings[index].text.map((part, i) =>
+      {items[index].text.map((part, i) =>
         part.highlight ? (
           <span key={i} className={highlightClassName}>{part.value}</span>
         ) : (

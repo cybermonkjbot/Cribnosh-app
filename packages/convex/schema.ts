@@ -555,9 +555,14 @@ export default defineSchema({
     referrer: v.optional(v.id("waitlist")), // Reference to referrer
     notes: v.optional(v.string()), // Admin notes
     convertedAt: v.optional(v.number()), // When converted
+    waitlistId: v.optional(v.string()), // Deprecated, use _id
+    token: v.optional(v.string()), // Auth token for onboarding
+    creatorType: v.optional(v.string()), // 'taste_creator', 'content_creator', or 'both'
+    needsFbaAssistance: v.optional(v.boolean()),
+    onboardingCompletedAt: v.optional(v.number()),
     lastNotifiedAt: v.optional(v.number()), // Last email notification
     updatedAt: v.optional(v.number()), // Last update timestamp
-  }),
+  }).index("by_token", ["token"]),
   // Reviews table
   reviews: defineTable({
     user_id: v.id("users"),

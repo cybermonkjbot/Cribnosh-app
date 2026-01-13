@@ -29,7 +29,7 @@ export const getWaitlistStats = query({
     const active = waitlist.filter((entry: Doc<"waitlist">) => entry.status === 'active').length;
     const converted = waitlist.filter((entry: Doc<"waitlist">) => entry.status === 'converted').length;
     const inactive = waitlist.filter((entry: Doc<"waitlist">) => entry.status === 'inactive').length;
-    
+
     return {
       total,
       active,
@@ -40,6 +40,24 @@ export const getWaitlistStats = query({
   },
 });
 
+// Validator for waitlist details
+const waitlistDetailsValidator = v.object({
+  _id: v.id("waitlist"),
+  email: v.string(),
+  name: v.optional(v.string()),
+  phone: v.optional(v.string()),
+  location: v.optional(v.string()),
+  referralCode: v.optional(v.string()),
+  referrer: v.optional(v.id("waitlist")),
+  status: v.union(v.literal("active"), v.literal("converted"), v.literal("inactive")),
+  joinedAt: v.number(),
+  convertedAt: v.optional(v.number()),
+  lastNotifiedAt: v.optional(v.number()),
+  notes: v.optional(v.string()),
+  source: v.string(),
+  priority: v.string(),
+});
+
 export const getWaitlistDetails = query({
   args: {
     status: v.optional(v.string()),
@@ -48,58 +66,43 @@ export const getWaitlistDetails = query({
     offset: v.optional(v.number()),
     sessionToken: v.optional(v.string())
   },
-  returns: v.array(v.object({
-    _id: v.id("waitlist"),
-    email: v.string(),
-    name: v.optional(v.string()),
-    phone: v.optional(v.string()),
-    location: v.optional(v.string()),
-    referralCode: v.optional(v.string()),
-    referrer: v.optional(v.id("waitlist")),
-    status: v.union(v.literal("active"), v.literal("converted"), v.literal("inactive")),
-    joinedAt: v.number(),
-    convertedAt: v.optional(v.number()),
-    lastNotifiedAt: v.optional(v.number()),
-    notes: v.optional(v.string()),
-    source: v.string(),
-    priority: v.string(),
-  })),
+  returns: v.array(waitlistDetailsValidator),
   handler: async (ctx, args) => {
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
-    
+
     const { limit, offset = 0 } = args;
-    
+
     // Use database-level filtering for status (more efficient than in-memory)
     let query = ctx.db.query("waitlist");
     if (args.status) {
       query = query.filter((q) => q.eq(q.field("status"), args.status));
     }
     let waitlist = await query.collect();
-    
+
     // Search filtering must be done in memory (Convex doesn't support full-text search)
     if (args.search) {
       const searchLower = args.search.toLowerCase();
-      waitlist = waitlist.filter((entry: Doc<"waitlist">) => 
+      waitlist = waitlist.filter((entry: Doc<"waitlist">) =>
         entry.email.toLowerCase().includes(searchLower) ||
         entry.name?.toLowerCase().includes(searchLower) ||
         entry.referralCode?.toLowerCase().includes(searchLower)
       );
     }
-    
+
     // Sort by joinedAt desc (newest first)
     waitlist.sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0));
-    
+
     // Apply pagination
     const mapped = waitlist.map((entry: Doc<"waitlist">) => ({
       _id: entry._id,
       email: entry.email,
       name: entry.name,
       phone: entry.phone,
-      location: entry.location,
+      location: entry.location as string | undefined, // Cast location to string if it matches validator
       referralCode: entry.referralCode,
       referrer: entry.referrer,
-      status: entry.status as 'active' | 'converted' | 'inactive',
+      status: (entry.status || 'active') as 'active' | 'converted' | 'inactive',
       joinedAt: entry.joinedAt,
       convertedAt: entry.convertedAt,
       lastNotifiedAt: entry.lastNotifiedAt,
@@ -107,11 +110,11 @@ export const getWaitlistDetails = query({
       source: entry.source || 'unknown',
       priority: entry.priority || 'normal'
     }));
-    
+
     if (limit !== undefined) {
       return mapped.slice(offset, offset + limit);
     }
-    
+
     return mapped.slice(offset);
   },
 });
@@ -134,10 +137,10 @@ export const getWaitlistEmailCampaigns = query({
   handler: async (ctx, args: { sessionToken?: string }) => {
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
-    
+
     // Query actual email campaigns from database
     const campaigns = await ctx.db.query("emailCampaigns").collect();
-    
+
     // Map campaigns to match the expected return format
     return campaigns.map((campaign: Doc<"emailCampaigns">) => ({
       _id: campaign._id,
@@ -182,7 +185,7 @@ const waitlistDocValidator = v.object({
 
 // Additional functions needed by frontend
 export const getAll = query({
-  args: { 
+  args: {
     sessionToken: v.optional(v.string()),
     limit: v.optional(v.number()),
     offset: v.optional(v.number())
@@ -191,20 +194,20 @@ export const getAll = query({
   handler: async (ctx, args: { sessionToken?: string; limit?: number; offset?: number }) => {
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
-    
+
     const { limit, offset = 0 } = args;
-    
+
     // Fetch all waitlist entries (will be optimized with index in schema if needed)
     const allEntries = await ctx.db.query("waitlist").collect();
-    
+
     // Sort by joinedAt desc (newest first)
     allEntries.sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0));
-    
+
     // Apply pagination
     if (limit !== undefined) {
       return allEntries.slice(offset, offset + limit);
     }
-    
+
     // If no limit, return all from offset
     return allEntries.slice(offset);
   },
@@ -219,7 +222,7 @@ export const getById = query({
   handler: async (ctx, args) => {
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
-    
+
     return await ctx.db.get(args.id);
   },
 });
@@ -238,16 +241,55 @@ export const getByEmail = query({
   },
 });
 
+export const getByToken = query({
+  args: {
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("waitlist")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .first();
+  },
+});
+
 export const getWaitlistCount = query({
   args: { sessionToken: v.optional(v.string()) },
   returns: v.number(),
   handler: async (ctx, args: { sessionToken?: string }) => {
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
-    
+
     const entries = await ctx.db.query("waitlist").collect();
     return entries.length;
   },
+});
+
+const waitlistEntriesResultValidator = v.object({
+  entries: v.array(v.object({
+    _id: v.id("waitlist"),
+    _creationTime: v.number(),
+    email: v.string(),
+    name: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    location: v.optional(v.any()),
+    source: v.optional(v.string()),
+    status: v.optional(v.string()),
+    priority: v.optional(v.string()),
+    joinedAt: v.number(),
+    notes: v.optional(v.string()),
+    addedBy: v.optional(v.id("users")),
+    addedByName: v.optional(v.string()),
+    referralCode: v.optional(v.string()),
+    referrer: v.optional(v.id("waitlist")),
+    convertedAt: v.optional(v.number()),
+    lastNotifiedAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+    city: v.optional(v.string()),
+    company: v.optional(v.string()),
+    teamSize: v.optional(v.string()),
+  })),
+  total: v.number(),
 });
 
 export const getWaitlistEntries = query({
@@ -259,51 +301,26 @@ export const getWaitlistEntries = query({
     addedBy: v.optional(v.id("users")), // Filter by staff member who added the entry
     sessionToken: v.optional(v.string())
   },
-  returns: v.object({
-    entries: v.array(v.object({
-      _id: v.id("waitlist"),
-      _creationTime: v.number(),
-      email: v.string(),
-      name: v.optional(v.string()),
-      phone: v.optional(v.string()),
-      location: v.optional(v.any()),
-      source: v.optional(v.string()),
-      status: v.optional(v.string()),
-      priority: v.optional(v.string()),
-      joinedAt: v.number(),
-      notes: v.optional(v.string()),
-      addedBy: v.optional(v.id("users")),
-      addedByName: v.optional(v.string()),
-      referralCode: v.optional(v.string()),
-      referrer: v.optional(v.id("waitlist")),
-      convertedAt: v.optional(v.number()),
-      lastNotifiedAt: v.optional(v.number()),
-      updatedAt: v.optional(v.number()),
-      city: v.optional(v.string()),
-      company: v.optional(v.string()),
-      teamSize: v.optional(v.string()),
-    })),
-    total: v.number(), // Total count of entries matching filters
-  }),
+  returns: waitlistEntriesResultValidator,
   handler: async (ctx, args) => {
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
-    
+
     // Use database-level filtering where possible (more efficient than in-memory)
     let query = ctx.db.query("waitlist");
-    
+
     // Filter by staff member who added the entry (if provided) - database level
     if (args.addedBy) {
       query = query.filter((q) => q.eq(q.field("addedBy"), args.addedBy));
     }
-    
+
     // Filter by status - database level
     if (args.status && args.status !== 'all') {
       query = query.filter((q) => q.eq(q.field("status"), args.status));
     }
-    
+
     let entries = await query.collect();
-    
+
     // Search filtering must be done in memory (Convex doesn't support full-text search)
     if (args.search) {
       const searchLower = args.search.toLowerCase();
@@ -312,13 +329,13 @@ export const getWaitlistEntries = query({
         (entry.name && entry.name.toLowerCase().includes(searchLower))
       );
     }
-    
+
     // Sort by joinedAt descending (newest first)
     entries.sort((a: Doc<"waitlist">, b: Doc<"waitlist">) => (b.joinedAt || 0) - (a.joinedAt || 0));
-    
+
     // Get total count before pagination
     const total = entries.length;
-    
+
     // Map entries to match the return type
     const mappedEntries = entries.map((entry: Doc<"waitlist">) => ({
       _id: entry._id,
@@ -343,12 +360,12 @@ export const getWaitlistEntries = query({
       company: entry.company,
       teamSize: entry.teamSize,
     }));
-    
+
     // Apply pagination
     const limit = args.limit || 50;
     const offset = args.offset || 0;
     const paginatedEntries = mappedEntries.slice(offset, offset + limit);
-    
+
     return {
       entries: paginatedEntries,
       total,

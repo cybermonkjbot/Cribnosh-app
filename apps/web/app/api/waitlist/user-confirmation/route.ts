@@ -1,11 +1,7 @@
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { EmailService } from '@/lib/email/email.service';
 import { addToBroadcastList } from '@/lib/email/addToBroadcastList';
-import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { EmailService } from '@/lib/email/email.service';
+import { NextRequest } from 'next/server';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_EQsb5GpW_HkaiK9VCCYjwAYH2Jd8xP5VN';
 
@@ -101,7 +97,7 @@ export async function POST(request: NextRequest) {
     to: email,
     from: 'earlyaccess@emails.cribnosh.com',
     subject: 'You are on the waitlist!',
-    text: `Thank you for joining the CribNosh waitlist! We will notify you as soon as we launch in your area.`,
+    text: `Thank you for joining the CribNosh waitlist! We will notify you as soon as we launch in your area.\n\nPlease complete your onboarding here: ${process.env.NEXT_PUBLIC_APP_URL || 'https://cribnosh.com'}/waitlist/onboarding/${data.token}`,
   };
   try {
     await emailService.send(payload);

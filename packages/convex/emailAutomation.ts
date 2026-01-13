@@ -488,6 +488,62 @@ export const sendEmail = internalAction({
       }
     }
 
+    // Auto-create welcome-beta-access template if it doesn't exist
+    if (!template && args.templateId === "welcome-beta-access") {
+      console.log("Welcome beta access template not found, creating it...");
+      try {
+        await ctx.runMutation(api.mutations.email.createEmailTemplate, {
+          templateId: "welcome-beta-access",
+          name: "Welcome Beta Access",
+          isActive: true,
+          subject: "Welcome to CribNosh Beta! 🚀",
+          previewText: "You are in! Get ready for beta access.",
+          senderName: "CribNosh",
+          senderEmail: "welcome@cribnosh.com",
+          replyToEmail: "support@cribnosh.com",
+          htmlContent: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+              <h1>Welcome to the family, {{name}}!</h1>
+              <p>You've officially secured your spot for CribNosh beta access.</p>
+              <p>We are thrilled to have you join us.</p>
+              <p>We will reach out soon with your login credentials and next steps.</p>
+              <br/>
+              <p>Cheers,<br/>The CribNosh Team</p>
+            </div>
+          `,
+          customFields: {},
+          styling: {
+            primaryColor: "#ff3b30",
+            secondaryColor: "#000000",
+            accent: "#ffffff",
+            fontFamily: "sans-serif",
+            logoUrl: "",
+            footerText: "CribNosh Inc.",
+          },
+          scheduling: {
+            timezone: "UTC",
+            sendTime: "immediate",
+            frequency: "immediate",
+          },
+          targeting: {
+            audience: "all",
+          },
+          testing: {
+            testEmails: [],
+            testData: {},
+            previewMode: false,
+          },
+          changedBy: "system",
+        });
+        // Try to get it again
+        template = await ctx.runQuery(api.queries.emailConfig.getTemplate, {
+          templateId: args.templateId
+        });
+      } catch (error) {
+        console.error("Failed to auto-create welcome template:", error);
+      }
+    }
+
     if (!template) {
       throw new Error(`Template ${args.templateId} not found`);
     }

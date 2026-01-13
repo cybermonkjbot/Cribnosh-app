@@ -1,6 +1,6 @@
+import { withSentryConfig } from '@sentry/nextjs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { withSentryConfig } from '@sentry/nextjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -13,10 +13,10 @@ const nextConfig = {
     // In production, all TypeScript errors must be fixed
     ignoreBuildErrors: process.env.NODE_ENV === 'development',
   },
-  
+
   // Server-side initialization
   serverExternalPackages: ['winston'],
-  
+
   // Image optimization
   images: {
     // Enable image optimization
@@ -34,10 +34,11 @@ const nextConfig = {
       },
     ],
   },
-  
+
   // Transpile packages for better compatibility
   transpilePackages: ['convex'],
-  
+
+  /*
   // Turbopack configuration for faster development
   turbopack: {
     // Configure Turbopack for better performance
@@ -61,18 +62,19 @@ const nextConfig = {
     // Turbopack should automatically read tsconfig.json paths
     // This ensures proper path resolution for monorepo structure
   },
-  
+  */
+
   // Output configuration
   output: 'standalone',
-  
+
   // Enable source maps in production for error tracking (Sentry can use them)
   productionBrowserSourceMaps: true,
-  
+
   // Compiler options
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
-  
+
   // Webpack configuration - minimal and clean
   webpack: (config, { dev, isServer }) => {
     // Ensure proper module resolution for path aliases
@@ -82,19 +84,19 @@ const nextConfig = {
       const convexPathSymlink = resolve(__dirname, './convex');
       const convexPathMonorepo = resolve(__dirname, '../../packages/convex/convex');
       const convexPathDocker = resolve(__dirname, './packages/convex/convex');
-      
+
       // In Docker builds, files are copied to apps/web/packages/convex/convex/_generated/
       // Check which path exists using fs.existsSync
       let convexPath = convexPathSymlink;
       try {
         const fs = require('fs');
         const path = require('path');
-        
+
         // Check symlink first (for local development)
         const symlinkGeneratedPath = path.join(convexPathSymlink, '_generated');
         const dockerGeneratedPath = path.join(convexPathDocker, '_generated');
         const monorepoGeneratedPath = path.join(convexPathMonorepo, '_generated');
-        
+
         if (fs.existsSync(symlinkGeneratedPath)) {
           convexPath = convexPathSymlink;
           console.log('Using symlink path for Convex:', convexPath);
@@ -113,7 +115,7 @@ const nextConfig = {
         console.log('Error checking Convex paths, defaulting to symlink:', e.message);
         convexPath = convexPathSymlink;
       }
-      
+
       // Only add the alias if it doesn't already exist (preserves local behavior)
       if (!config.resolve.alias?.['@/convex']) {
         config.resolve.alias = {
@@ -121,7 +123,7 @@ const nextConfig = {
           '@/convex': convexPath,
         };
       }
-      
+
       // Also add module resolution fallback to help webpack find the files
       if (!config.resolve.modules) {
         config.resolve.modules = ['node_modules'];
@@ -139,7 +141,7 @@ const nextConfig = {
         }
       }
     }
-    
+
     // Only add essential webpack modifications
     if (dev && !isServer) {
       // Ensure proper module resolution
@@ -153,7 +155,7 @@ const nextConfig = {
         },
       };
     }
-    
+
     return config;
   },
 }

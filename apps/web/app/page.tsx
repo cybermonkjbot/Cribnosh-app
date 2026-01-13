@@ -28,10 +28,10 @@ export default function Home() {
 
   // Helper to check if a feature is enabled
   // Default to true if flags aren't loaded yet to prevent layout shift or empty screen
-  const isFeatureEnabled = (key: string) => {
-    if (!featureFlags) return true;
+  const isFeatureEnabled = (key: string, defaultValue = true) => {
+    if (!featureFlags) return defaultValue;
     const flag = featureFlags.find((f: any) => f.key === key);
-    return flag ? flag.value : true; // Default to true if flag missing
+    return flag ? flag.value : defaultValue; // Default to provided defaultValue if flag missing
   };
 
   useEffect(() => {
@@ -94,7 +94,7 @@ export default function Home() {
                 className={`bg-white/${isMobile ? '95' : '90'} ${!isMobile ? 'backdrop-blur-sm' : ''} text-gray-900 full-screen-section`}
               >
                 <FeaturesSwapSection />
-                <DoomScrollSection />
+                {isFeatureEnabled('home_doom_scroll', false) && <DoomScrollSection />}
               </section>
             )}
 

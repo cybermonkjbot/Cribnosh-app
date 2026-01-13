@@ -210,6 +210,19 @@ export default function WaitlistPage() {
 
       // Send admin notification (only for new signups)
       if (!(result as any).isExisting) {
+        // Send confirmation email with onboarding token
+        await fetch('/api/waitlist/user-confirmation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
+          },
+          body: JSON.stringify({
+            email: contact,
+            token: (result as any).token
+          }),
+        });
+
         await fetch('/api/waitlist', {
           method: 'POST',
           headers: {

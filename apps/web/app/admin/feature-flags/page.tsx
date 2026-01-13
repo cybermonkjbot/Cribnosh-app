@@ -37,14 +37,14 @@ export default function FeatureFlagsPage() {
     }
 
     // Group flags by their 'group' property
-    const groupedFlags = featureFlags.reduce((acc, flag) => {
+    const groupedFlags = featureFlags.reduce((acc: Record<string, any[]>, flag: any) => {
         const group = flag.group || "other";
         if (!acc[group]) {
             acc[group] = [];
         }
         acc[group].push(flag);
         return acc;
-    }, {} as Record<string, typeof featureFlags>);
+    }, {} as Record<string, any[]>);
 
     return (
         <div className="container py-10 space-y-8">
@@ -67,7 +67,7 @@ export default function FeatureFlagsPage() {
                 {Object.entries(groupedFlags).map(([group, flags]) => (
                     <TabsContent key={group} value={group} className="space-y-4">
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {flags.map((flag) => (
+                            {(flags as any[]).map((flag) => (
                                 <Card key={flag._id} className={!flag.value ? "opacity-75 bg-muted/20" : ""}>
                                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                         <CardTitle className="text-sm font-medium">

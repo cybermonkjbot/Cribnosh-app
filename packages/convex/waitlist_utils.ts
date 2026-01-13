@@ -18,6 +18,7 @@ export interface WaitlistResult {
     waitlistId: Id<"waitlist">;
     isExisting: boolean;
     userId?: Id<"users">;
+    token?: string;
 }
 
 /**
@@ -45,8 +46,13 @@ export async function addToWaitlistInternal(
             waitlistId: existing._id,
             isExisting: true,
             userId: existingUser?._id,
+            // existing entries might not have a token if created before this change
+            // we could generate one here if needed, but for now let's assume new flow only
+            token: existing.token,
         };
     }
+
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
     const waitlistId = await ctx.db.insert("waitlist", {
         email: args.email,
@@ -65,6 +71,7 @@ export async function addToWaitlistInternal(
         priority: "normal",
         addedBy: args.addedBy,
         addedByName: args.addedByName,
+        token: token,
     });
 
     return {
@@ -72,5 +79,6 @@ export async function addToWaitlistInternal(
         waitlistId,
         isExisting: false,
         userId: existingUser?._id,
+        token,
     };
 }
