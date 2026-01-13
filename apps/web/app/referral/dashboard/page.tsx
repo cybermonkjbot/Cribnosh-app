@@ -183,22 +183,18 @@ function HistorySection({ referralHistory }: { referralHistory: any[] }) {
 }
 
 // Paginated loader
-function LoadMoreHistory({ userId }: { userId: Id<'users'> }) {
+function LoadMoreHistory({ userId, sessionToken }: { userId: Id<'users'>, sessionToken: string | null }) {
   const [cursor, setCursor] = useState<string | null>(null);
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedSessionToken = localStorage.getItem("cribnosh_waitlist_session");
-      if (storedSessionToken) setSessionToken(storedSessionToken);
-    }
-  }, []);
-
-  const page = useQuery(api.queries.users.getUserReferralHistoryPaginated, {
-    userId,
-    paginationOpts: { numItems: 5, cursor },
-    sessionToken: sessionToken || undefined,
-  });
+  const page = useQuery(api.queries.users.getUserReferralHistoryPaginated,
+    sessionToken
+      ? {
+        userId,
+        paginationOpts: { numItems: 5, cursor },
+        sessionToken,
+      }
+      : "skip"
+  );
 
   if (!page) return null;
 
@@ -374,7 +370,7 @@ export default function ReferralDashboard() {
         <div className="space-y-6">
           <ReferralLinkSection referralLink={userStats.referralLink || ""} />
           <HistorySection referralHistory={referralHistory} />
-          {userId && <LoadMoreHistory userId={userId as Id<'users'>} />}
+          {userId && <LoadMoreHistory userId={userId as Id<'users'>} sessionToken={sessionToken} />}
         </div>
       </div>
     </main>
