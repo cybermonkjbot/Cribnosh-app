@@ -1,19 +1,18 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { motion } from "motion/react";
-import Link from "next/link";
 import { MasonryBackground } from "@/components/ui/masonry-background";
+import { api } from "@/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function JobPostingPage() {
   const params = useParams();
   const router = useRouter();
-  const job = useQuery(api.queries.careers.getJobBySlug, { 
-    slug: params.slug as string 
-  });
+  const job = useQuery(api.queries.careers.getJobBySlug,
+    params.slug ? { slug: params.slug as string } : "skip"
+  );
   const submitApplication = useMutation(api.mutations.careers.submitJobApplication);
 
   const [formData, setFormData] = useState({
@@ -83,10 +82,10 @@ export default function JobPostingPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <MasonryBackground className="z-0" />
-      
+
       <div className="relative z-10">
         {/* Back Button */}
-        <div 
+        <div
           data-section-theme="light"
           className="pt-8 px-4 sm:px-6 lg:px-8"
         >
@@ -104,7 +103,7 @@ export default function JobPostingPage() {
         </div>
 
         {/* Job Details */}
-        <section 
+        <section
           data-section-theme="light"
           className="pt-8 pb-16 px-4 sm:px-6 lg:px-8"
         >
@@ -114,7 +113,7 @@ export default function JobPostingPage() {
               <div className="lg:col-span-2">
                 <div className="bg-white/70 sm:bg-white backdrop-blur-sm sm:backdrop-blur-none rounded-xl p-6 sm:p-8 shadow-sm">
                   <h1 className="font-asgard text-3xl sm:text-4xl text-gray-900 mb-4">{job.title}</h1>
-                  
+
                   <div className="flex flex-wrap gap-4 mb-8">
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-satoshi bg-red-50 text-[#ff3b30]">
                       {job.department}
@@ -276,9 +275,8 @@ export default function JobPostingPage() {
                         <button
                           type="submit"
                           disabled={isSubmitting}
-                          className={`w-full px-6 py-3 bg-[#ff3b30] text-white rounded-lg hover:bg-[#ff5e54] transition-all duration-300 font-satoshi relative overflow-hidden ${
-                            isSubmitting ? "opacity-75 cursor-not-allowed" : ""
-                          }`}
+                          className={`w-full px-6 py-3 bg-[#ff3b30] text-white rounded-lg hover:bg-[#ff5e54] transition-all duration-300 font-satoshi relative overflow-hidden ${isSubmitting ? "opacity-75 cursor-not-allowed" : ""
+                            }`}
                         >
                           {isSubmitting ? (
                             <span className="flex items-center justify-center">

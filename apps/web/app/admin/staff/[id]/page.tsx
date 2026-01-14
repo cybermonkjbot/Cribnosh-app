@@ -33,7 +33,7 @@ export default function AdminStaffDetailPage() {
 
   const sessions = useQuery(
     api.queries.workSessions.listSessionsAdmin,
-    sessionToken ? {
+    (sessionToken && staffId) ? {
       staffId,
       startDate: rangeStart,
       endDate: rangeEnd,
@@ -65,8 +65,8 @@ export default function AdminStaffDetailPage() {
         <nav className="flex gap-4 text-sm">
           <button
             className={`px-3 py-2 border-b-2 transition-colors ${activeTab === 'profile'
-                ? 'border-primary-600 text-primary-700'
-                : 'border-transparent hover:border-gray-300'
+              ? 'border-primary-600 text-primary-700'
+              : 'border-transparent hover:border-gray-300'
               }`}
             onClick={() => setActiveTab('profile')}
           >
@@ -74,8 +74,8 @@ export default function AdminStaffDetailPage() {
           </button>
           <button
             className={`px-3 py-2 border-b-2 transition-colors ${activeTab === 'documents'
-                ? 'border-primary-600 text-primary-700'
-                : 'border-transparent hover:border-gray-300'
+              ? 'border-primary-600 text-primary-700'
+              : 'border-transparent hover:border-gray-300'
               }`}
             onClick={() => setActiveTab('documents')}
           >
@@ -83,8 +83,8 @@ export default function AdminStaffDetailPage() {
           </button>
           <button
             className={`px-3 py-2 border-b-2 transition-colors ${activeTab === 'time'
-                ? 'border-primary-600 text-primary-700'
-                : 'border-transparent hover:border-gray-300'
+              ? 'border-primary-600 text-primary-700'
+              : 'border-transparent hover:border-gray-300'
               }`}
             onClick={() => setActiveTab('time')}
           >

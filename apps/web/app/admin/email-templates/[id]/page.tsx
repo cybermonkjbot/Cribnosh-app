@@ -26,7 +26,7 @@ export default function EditEmailTemplatePage() {
     const router = useRouter();
     const templateId = params.id as Id<"emailTemplates">;
 
-    const template = useQuery(api.queries.emailConfig.get, { id: templateId });
+    const template = useQuery(api.queries.emailConfig.get, templateId ? { id: templateId } : "skip");
     const updateTemplate = useMutation(api.mutations.emailTemplates.update);
     const generateUploadUrl = useMutation(api.mutations.emailTemplates.requestUploadUrl);
 
