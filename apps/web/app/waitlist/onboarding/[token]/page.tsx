@@ -24,6 +24,19 @@ export default function WaitlistOnboardingPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [error, setError] = useState<string | null>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) {
+        return (
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <div className="animate-pulse text-gray-400 font-sans">Loading...</div>
+            </div>
+        );
+    }
 
     // Pre-fill name if available when data loads
     useEffect(() => {
