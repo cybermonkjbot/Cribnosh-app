@@ -10,8 +10,9 @@ import { useState } from "react";
 export default function JobPostingPage() {
   const params = useParams();
   const router = useRouter();
+  const slug = (params?.slug as string) || undefined;
   const job = useQuery(api.queries.careers.getJobBySlug,
-    params.slug ? { slug: params.slug as string } : "skip"
+    slug ? { slug } : "skip"
   );
   const submitApplication = useMutation(api.mutations.careers.submitJobApplication);
 

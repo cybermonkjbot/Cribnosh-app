@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 
 export default function WaitlistOnboardingPage() {
     const params = useParams();
-    const token = params.token as string;
+    const token = (params?.token as string) || undefined;
     const router = useRouter();
 
     const waitlistEntry = useQuery(api.queries.waitlist.getByToken, token ? { token } : "skip");
