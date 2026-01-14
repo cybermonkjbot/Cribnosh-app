@@ -188,6 +188,10 @@ const waitlistDocValidator = v.object({
   convertedAt: v.optional(v.number()),
   lastNotifiedAt: v.optional(v.number()),
   updatedAt: v.optional(v.number()),
+  token: v.optional(v.string()),
+  creatorType: v.optional(v.string()), // 'taste_creator', 'content_creator', or 'both'
+  needsFbaAssistance: v.optional(v.boolean()),
+  onboardingCompletedAt: v.optional(v.number()),
 });
 
 // Additional functions needed by frontend
