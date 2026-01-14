@@ -3,7 +3,7 @@
 import { GlassCard } from "@/components/ui/glass-card";
 import { MasonryBackground } from "@/components/ui/masonry-background";
 import { api } from "@/convex/_generated/api";
-import { useAction, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { AnimatePresence, motion } from "motion/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,7 +14,7 @@ export default function WaitlistOnboardingPage() {
     const router = useRouter();
 
     const waitlistEntry = useQuery(api.queries.waitlist.getByToken, { token });
-    const submitOnboarding = useAction(api.mutations.waitlist.submitWaitlistOnboarding);
+    const submitOnboarding = useMutation(api.mutations.waitlist.submitWaitlistOnboarding);
 
     const [step, setStep] = useState(1);
     const [name, setName] = useState("");
