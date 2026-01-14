@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { ErrorFactory, ErrorCode } from '../errors';
+import { ErrorCode, ErrorFactory } from '../errors';
 
 // Lazy initialization to avoid errors during code analysis
 let resendInstance: Resend | null = null;
@@ -27,7 +27,7 @@ export async function sendBroadcastEmail({
   try {
     // Get template configuration from environment or database
     const templateConfig = getTemplateConfig(templateId);
-    
+
     // Prepare dynamic data for template
     const templateData = {
       user_name: user.name || 'there',
@@ -43,7 +43,7 @@ export async function sendBroadcastEmail({
     if (templateConfig.useResendTemplate) {
       // Generate HTML from template configuration for template-based emails
       const htmlContent = generateEmailHTML(templateConfig, templateData);
-      
+
       return await getResendClient().emails.send({
         from: templateConfig.from || 'CribNosh <noreply@cribnosh.com>',
         to: user.email,
@@ -57,7 +57,7 @@ export async function sendBroadcastEmail({
     } else {
       // Generate HTML from template configuration
       const htmlContent = generateEmailHTML(templateConfig, templateData);
-      
+
       return await getResendClient().emails.send({
         from: templateConfig.from || 'CribNosh <noreply@cribnosh.com>',
         to: user.email,
@@ -103,7 +103,7 @@ function getTemplateConfig(templateId: string): any {
       template: 'announcement'
     }
   };
-  
+
   return templates[templateId] || {
     subject: 'Update from CribNosh',
     from: 'CribNosh <noreply@cribnosh.com>',
@@ -116,13 +116,16 @@ function getTemplateConfig(templateId: string): any {
 function generateEmailHTML(templateConfig: any, data: any): string {
   const baseStyles = `
     <style>
-      body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
-      .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-      .header { background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; padding: 30px; text-align: center; }
-      .content { padding: 30px; }
-      .footer { background-color: #2c3e50; color: white; padding: 20px; text-align: center; font-size: 12px; }
-      .button { display: inline-block; background-color: #ff6b6b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
-      .unsubscribe { color: #95a5a6; font-size: 11px; }
+      body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #ffffff; color: #1A1A1A; }
+      .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+      .header { background-color: #ffffff; color: #1A1A1A; padding: 40px 30px; text-align: center; border-bottom: 1px solid #F3F4F6; }
+      .content { padding: 30px; line-height: 1.6; }
+      .footer { background-color: #ffffff; color: #6B7280; padding: 30px; text-align: center; font-size: 12px; border-top: 1px solid #F3F4F6; }
+      .button { display: inline-block; background-color: #ff3b30; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: 500; }
+      .unsubscribe { color: #9CA3AF; font-size: 11px; margin-top: 20px; }
+      h1 { margin: 0; font-size: 24px; font-weight: 700; color: #1A1A1A; }
+      h2 { margin: 0 0 16px 0; font-size: 20px; font-weight: 600; color: #1A1A1A; }
+      p { margin: 0 0 16px 0; }
     </style>
   `;
 
@@ -152,7 +155,7 @@ function generateEmailHTML(templateConfig: any, data: any): string {
         </body>
         </html>
       `;
-    
+
     case 'newsletter':
       return `
         <!DOCTYPE html>
@@ -177,7 +180,7 @@ function generateEmailHTML(templateConfig: any, data: any): string {
         </body>
         </html>
       `;
-    
+
     default:
       return `
         <!DOCTYPE html>
@@ -192,7 +195,7 @@ function generateEmailHTML(templateConfig: any, data: any): string {
               <h2>Hello ${data.user_name}!</h2>
               <p>Here's an update from CribNosh.</p>
               ${Object.entries(data).filter(([key]) => !['user_name', 'user_email', 'unsubscribe_url', 'company_name', 'company_address', 'current_year'].includes(key))
-                .map(([key, value]) => `<p><strong>${key.replace(/_/g, ' ')}:</strong> ${value}</p>`).join('')}
+          .map(([key, value]) => `<p><strong>${key.replace(/_/g, ' ')}:</strong> ${value}</p>`).join('')}
               <p>Best regards,<br>The CribNosh Team</p>
             </div>
             <div class="footer">

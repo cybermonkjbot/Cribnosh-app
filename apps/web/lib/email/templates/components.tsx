@@ -1,17 +1,17 @@
 import {
-  Section,
-  Text,
-  Link,
-  Img,
-  Container,
-  Row,
+  Body,
   Column,
+  Container,
+  Font,
+  Head,
   Hr,
   Html,
-  Head,
+  Img,
+  Link,
   Preview,
-  Body,
-  Font,
+  Row,
+  Section,
+  Text,
 } from '@react-email/components';
 import { emailUrls } from '../utils/urls';
 
@@ -22,7 +22,7 @@ export const colors = {
   primaryDark: '#ed1d12',
   secondary: '#1A1A1A', // Deep Black for contrast
   accent: '#FFD700', // Gold accent for highlights
-  
+
   // Status Colors
   success: '#10B981',
   successLight: '#D1FAE5',
@@ -32,28 +32,28 @@ export const colors = {
   errorLight: '#FEE2E2',
   info: '#3B82F6',
   infoLight: '#DBEAFE',
-  
+
   // Text Colors - Following brand voice
   text: '#1A1A1A',
   textSecondary: '#4B5563',
   textMuted: '#6B7280',
   textLight: '#9CA3AF',
-  
+
   // Background Colors
   background: '#FFFFFF',
-  backgroundSecondary: '#F9FAFB',
-  backgroundTertiary: '#F3F4F6',
-  
+  backgroundSecondary: '#FFFFFF',
+  backgroundTertiary: '#FAFAFA',
+
   // Border Colors
   border: '#E5E7EB',
   borderLight: '#F3F4F6',
   borderDark: '#D1D5DB',
-  
+
   // Interactive Colors
   link: '#ff3b30',
   linkHover: '#ed1d12',
   buttonHover: '#ed1d12',
-  
+
   // Shadow and Effects
   shadow: 'rgba(0, 0, 0, 0.08)',
   shadowLight: 'rgba(0, 0, 0, 0.04)',
@@ -80,51 +80,51 @@ export const spacing = {
 // Enhanced Typography System - Following CribNosh brand guidelines
 export const typography = {
   heading: {
-    h1: { 
-      fontSize: '36px', 
-      lineHeight: '1.1', 
+    h1: {
+      fontSize: '36px',
+      lineHeight: '1.1',
       fontWeight: '700',
       letterSpacing: '-0.02em',
       fontFamily: fontFamily.asgard
     },
-    h2: { 
-      fontSize: '30px', 
-      lineHeight: '1.2', 
+    h2: {
+      fontSize: '30px',
+      lineHeight: '1.2',
       fontWeight: '600',
       letterSpacing: '-0.01em',
       fontFamily: fontFamily.asgard
     },
-    h3: { 
-      fontSize: '24px', 
-      lineHeight: '1.3', 
+    h3: {
+      fontSize: '24px',
+      lineHeight: '1.3',
       fontWeight: '600',
       fontFamily: fontFamily.asgard
     },
-    h4: { 
-      fontSize: '20px', 
-      lineHeight: '1.4', 
+    h4: {
+      fontSize: '20px',
+      lineHeight: '1.4',
       fontWeight: '500',
       fontFamily: fontFamily.asgard
     },
   },
   body: {
-    large: { 
-      fontSize: '18px', 
+    large: {
+      fontSize: '18px',
       lineHeight: '1.6',
       fontFamily: fontFamily.satoshi
     },
-    medium: { 
-      fontSize: '16px', 
+    medium: {
+      fontSize: '16px',
       lineHeight: '1.6',
       fontFamily: fontFamily.satoshi
     },
-    small: { 
-      fontSize: '14px', 
+    small: {
+      fontSize: '14px',
       lineHeight: '1.5',
       fontFamily: fontFamily.satoshi
     },
-    xs: { 
-      fontSize: '12px', 
+    xs: {
+      fontSize: '12px',
       lineHeight: '1.4',
       fontFamily: fontFamily.satoshi
     },
@@ -140,14 +140,14 @@ export const typography = {
   }
 } as const;
 
-export const Logo = ({ 
-  width = 155, 
-  height = 40, 
-  alt = "CribNosh Logo" 
-}: { 
-  width?: number; 
-  height?: number; 
-  alt?: string; 
+export const Logo = ({
+  width = 155,
+  height = 40,
+  alt = "CribNosh Logo"
+}: {
+  width?: number;
+  height?: number;
+  alt?: string;
 }) => (
   <Img
     src={`${emailUrls.base}/logo.svg`}
@@ -162,14 +162,14 @@ export const Logo = ({
 );
 
 // Enhanced Header with better typography and spacing
-export const HeaderSection = ({ 
-  title, 
-  subtitle, 
-  showLogo = true 
-}: { 
-  title: string; 
-  subtitle?: string; 
-  showLogo?: boolean; 
+export const HeaderSection = ({
+  title,
+  subtitle,
+  showLogo = true
+}: {
+  title: string;
+  subtitle?: string;
+  showLogo?: boolean;
 }) => (
   <Section style={{ padding: `${spacing.xl} 0`, textAlign: 'center' }}>
     {showLogo && <Logo />}
@@ -214,40 +214,40 @@ export const EmailButton = ({
   disabled?: boolean;
 }) => {
   const variants = {
-    primary: { 
-      bg: `linear-gradient(135deg, #ffffff 0%, ${colors.primary}15 30%, ${colors.primary}25 100%)`, 
-      color: colors.text, 
-      border: colors.primary 
+    primary: {
+      bg: `linear-gradient(135deg, #ffffff 0%, ${colors.primary}15 30%, ${colors.primary}25 100%)`,
+      color: colors.text,
+      border: colors.primary
     },
-    secondary: { 
-      bg: `linear-gradient(135deg, ${colors.secondary} 0%, #000000 100%)`, 
-      color: colors.background, 
-      border: colors.secondary 
+    secondary: {
+      bg: `linear-gradient(135deg, ${colors.secondary} 0%, #000000 100%)`,
+      color: colors.background,
+      border: colors.secondary
     },
-    outline: { 
-      bg: 'transparent', 
-      color: colors.primary, 
-      border: colors.primary 
+    outline: {
+      bg: 'transparent',
+      color: colors.primary,
+      border: colors.primary
     },
-    ghost: { 
-      bg: `linear-gradient(135deg, ${colors.backgroundSecondary} 0%, ${colors.backgroundTertiary} 100%)`, 
-      color: colors.text, 
-      border: 'transparent' 
+    ghost: {
+      bg: `linear-gradient(135deg, ${colors.backgroundSecondary} 0%, ${colors.backgroundTertiary} 100%)`,
+      color: colors.text,
+      border: 'transparent'
     },
-    success: { 
-      bg: `linear-gradient(135deg, ${colors.success} 0%, #059669 100%)`, 
-      color: colors.background, 
-      border: colors.success 
+    success: {
+      bg: `linear-gradient(135deg, ${colors.success} 0%, #059669 100%)`,
+      color: colors.background,
+      border: colors.success
     },
-    warning: { 
-      bg: `linear-gradient(135deg, ${colors.warning} 0%, #D97706 100%)`, 
-      color: colors.background, 
-      border: colors.warning 
+    warning: {
+      bg: `linear-gradient(135deg, ${colors.warning} 0%, #D97706 100%)`,
+      color: colors.background,
+      border: colors.warning
     },
-    error: { 
-      bg: `linear-gradient(135deg, ${colors.error} 0%, #DC2626 100%)`, 
-      color: colors.background, 
-      border: colors.error 
+    error: {
+      bg: `linear-gradient(135deg, ${colors.error} 0%, #DC2626 100%)`,
+      color: colors.background,
+      border: colors.error
     },
   };
 
@@ -328,13 +328,13 @@ export const ContentText = ({
   style?: React.CSSProperties;
 }) => (
   <Text
-      style={{
-        ...typography.body[variant],
-        color: colors[color],
-        textAlign: align,
-        margin: '0 0 16px 0',
-        ...style,
-      }}
+    style={{
+      ...typography.body[variant],
+      color: colors[color],
+      textAlign: align,
+      margin: '0 0 16px 0',
+      ...style,
+    }}
   >
     {children}
   </Text>
@@ -381,10 +381,10 @@ export const CardSection = ({
 );
 
 // Enhanced Divider with variants
-export const Divider = ({ 
+export const Divider = ({
   variant = 'default',
-  spacing: dividerSpacing = 'lg' 
-}: { 
+  spacing: dividerSpacing = 'lg'
+}: {
   variant?: 'default' | 'light' | 'thick';
   spacing?: keyof typeof spacing;
 }) => {
@@ -491,7 +491,7 @@ export const FooterSection = ({
         {companyName}
       </Text>
     )}
-    
+
     <Text
       style={{
         ...typography.body.xs,
@@ -614,7 +614,7 @@ export const Alert = ({
     <Container
       style={{
         backgroundColor: style.bg,
-        border: `1px solid ${style.border}`,
+        border: `1px solid ${colors.border}`,
         borderRadius: '8px',
         padding: spacing.md,
         margin: `${spacing.md} 0`,
@@ -646,12 +646,12 @@ export const Alert = ({
 };
 
 // Professional Email wrapper component with enhanced structure
-export const EmailWrapper = ({ 
-  children, 
+export const EmailWrapper = ({
+  children,
   previewText,
   title = "CribNosh Email",
   backgroundColor = colors.backgroundSecondary
-}: { 
+}: {
   children: React.ReactNode;
   previewText?: string;
   title?: string;
@@ -684,9 +684,9 @@ export const EmailWrapper = ({
       />
     </Head>
     {previewText && <Preview>{previewText}</Preview>}
-    <Body style={{ 
-      background: `linear-gradient(135deg, ${colors.backgroundSecondary} 0%, ${colors.backgroundTertiary} 100%)`, 
-      margin: '0', 
+    <Body style={{
+      background: colors.background,
+      margin: '0',
       padding: '0',
       lineHeight: '1.6',
       color: colors.text
@@ -695,10 +695,10 @@ export const EmailWrapper = ({
         style={{
           maxWidth: '600px',
           margin: '0 auto',
-          background: `linear-gradient(135deg, ${colors.background} 0%, ${colors.backgroundSecondary} 100%)`,
+          background: colors.background,
           borderRadius: '16px',
           overflow: 'hidden',
-          boxShadow: `0 8px 32px ${colors.shadow}`,
+          boxShadow: `0 4px 12px ${colors.shadow}`,
           border: `1px solid ${colors.borderLight}`,
         }}
       >
@@ -709,33 +709,34 @@ export const EmailWrapper = ({
 );
 
 // Professional Email Header with enhanced branding
-export const ProfessionalHeader = ({ 
-  title, 
-  subtitle, 
+export const ProfessionalHeader = ({
+  title,
+  subtitle,
   showLogo = true,
   backgroundColor = colors.primary,
   textColor = colors.background
-}: { 
-  title: string; 
-  subtitle?: string; 
+}: {
+  title: string;
+  subtitle?: string;
   showLogo?: boolean;
   backgroundColor?: string;
   textColor?: string;
 }) => (
-  <Section style={{ 
-    padding: `${spacing['2xl']} ${spacing.xl}`, 
+  <Section style={{
+    padding: `${spacing['2xl']} ${spacing.xl}`,
     textAlign: 'center',
-    background: `linear-gradient(135deg, #ffffff 0%, ${colors.primary}20 30%, ${colors.primary}35 100%)`,
+    background: colors.background,
     position: 'relative',
+    borderBottom: `1px solid ${colors.borderLight}`,
   }}>
-    {/* Gradient overlay for depth */}
+    {/* minimal gradient for depth */}
     <div style={{
       position: 'absolute',
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      background: `radial-gradient(circle at 20% 80%, ${colors.primaryLight}20 0%, transparent 50%), radial-gradient(circle at 80% 20%, ${colors.primary}40 0%, transparent 50%)`,
+      background: `radial-gradient(circle at 50% 100%, ${colors.primary}05 0%, transparent 100%)`,
       pointerEvents: 'none',
     }} />
     {showLogo && (
@@ -746,9 +747,8 @@ export const ProfessionalHeader = ({
     <Text
       style={{
         ...typography.heading.h1,
-        color: textColor,
+        color: colors.text,
         margin: '0 0 8px 0',
-        textShadow: '0 2px 4px rgba(0,0,0,0.1)',
         position: 'relative',
         zIndex: 1,
       }}
@@ -759,9 +759,8 @@ export const ProfessionalHeader = ({
       <Text
         style={{
           ...typography.body.large,
-          color: textColor,
+          color: colors.textSecondary,
           margin: '0',
-          opacity: 0.9,
           position: 'relative',
           zIndex: 1,
         }}
@@ -906,7 +905,7 @@ export const CallToActionSection = ({
     style={{
       padding: `${spacing['2xl']} ${spacing.xl}`,
       textAlign: 'center',
-      background: variant === 'primary' 
+      background: variant === 'primary'
         ? `linear-gradient(135deg, #ffffff 0%, ${colors.primary}10 30%, ${colors.primary}15 100%)`
         : `linear-gradient(135deg, ${colors.backgroundSecondary} 0%, ${colors.backgroundTertiary} 100%)`,
       position: 'relative',
@@ -919,7 +918,7 @@ export const CallToActionSection = ({
       left: 0,
       right: 0,
       bottom: 0,
-      background: variant === 'primary' 
+      background: variant === 'primary'
         ? `radial-gradient(circle at 30% 30%, ${colors.primary}10 0%, transparent 60%)`
         : `radial-gradient(circle at 70% 70%, ${colors.primary}05 0%, transparent 60%)`,
       pointerEvents: 'none',
@@ -1063,11 +1062,11 @@ export const ProgressBar = ({
       }} />
     </div>
     {showPercentage && (
-      <Text style={{ 
-        ...typography.body.xs, 
-        color: colors.textMuted, 
-        textAlign: 'right', 
-        marginTop: spacing.xs 
+      <Text style={{
+        ...typography.body.xs,
+        color: colors.textMuted,
+        textAlign: 'right',
+        marginTop: spacing.xs
       }}>
         {Math.round(progress)}%
       </Text>
@@ -1088,7 +1087,7 @@ export const CountdownTimer = ({
   const target = new Date(targetDate).getTime();
   const now = new Date().getTime();
   const difference = target - now;
-  
+
   if (difference <= 0) {
     return (
       <Container style={{
@@ -1174,7 +1173,7 @@ export const RatingStars = ({
   for (let i = 1; i <= maxRating; i++) {
     const isFilled = i <= rating;
     const isHalfFilled = i - 0.5 <= rating && i > rating;
-    
+
     stars.push(
       <span
         key={i}
@@ -1365,9 +1364,9 @@ export const SocialProof = ({
 }) => (
   <Container style={{ margin: `${spacing.xl} 0` }}>
     {stats && (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-around', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-around',
         marginBottom: spacing.xl,
         flexWrap: 'wrap',
         gap: spacing.md,
@@ -1384,12 +1383,12 @@ export const SocialProof = ({
         ))}
       </div>
     )}
-    
+
     {testimonials && (
       <div>
-        <Text style={{ 
-          ...typography.heading.h3, 
-          textAlign: 'center', 
+        <Text style={{
+          ...typography.heading.h3,
+          textAlign: 'center',
           marginBottom: spacing.lg,
           color: colors.text,
         }}>
@@ -1411,17 +1410,7 @@ export const SocialProof = ({
 
 // Export everything for backward compatibility
 export {
-  Section,
-  Text,
-  Link,
-  Img,
-  Container,
-  Row,
-  Column,
-  Hr,
-  Html,
-  Head,
-  Preview,
-  Body,
-  Font,
+  Body, Column, Container, Font, Head, Hr,
+  Html, Img, Link, Preview, Row, Section,
+  Text
 };

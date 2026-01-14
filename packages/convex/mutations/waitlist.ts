@@ -559,7 +559,7 @@ async function ensureWaitlistInvitationTemplate(ctx: any) {
     }
     .cta-button {
       display: inline-block;
-      background-color: #111827;
+      background-color: #ff3b30;
       color: #ffffff;
       padding: 16px 32px;
       border-radius: 6px;

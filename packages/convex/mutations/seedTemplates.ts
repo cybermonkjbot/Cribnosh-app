@@ -9,12 +9,14 @@ const MASTER_LAYOUT = `
 <html>
 <head>
     <style>
-        body { font-family: sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #f8f9fa; padding: 20px; text-align: center; }
-        .content { padding: 20px; }
-        .footer { text-align: center; font-size: 12px; color: #999; margin-top: 20px; }
-        .btn { display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+        body { font-family: sans-serif; line-height: 1.6; color: #1A1A1A; background-color: #ffffff; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; padding: 0; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .header { background-color: #ffffff; padding: 32px 20px; text-align: center; border-bottom: 1px solid #F3F4F6; }
+        .content { padding: 32px 24px; background-color: #ffffff; }
+        .footer { text-align: center; font-size: 12px; color: #6B7280; margin-top: 20px; padding: 20px; border-top: 1px solid #F3F4F6; }
+        .btn { display: inline-block; padding: 12px 24px; background-color: #ff3b30; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; }
+        h1 { margin: 0; font-size: 24px; color: #1A1A1A; }
+        p { margin: 0 0 16px 0; }
     </style>
 </head>
 <body>
@@ -24,13 +26,15 @@ const MASTER_LAYOUT = `
         </div>
         <div class="content">
             {{bodyContent}}
-            <br><br>
+            <br>
             {{#if actionUrl}}
-            <a href="{{actionUrl}}" class="btn">{{actionButtonText}}</a>
+            <div style="text-align: center; margin-top: 24px;">
+                <a href="{{actionUrl}}" class="btn">{{actionButtonText}}</a>
+            </div>
             {{/if}}
         </div>
         <div class="footer">
-            <p>&copy; 2024 CribNosh. All rights reserved.</p>
+            <p>&copy; {{year}} CribNosh. All rights reserved.</p>
         </div>
     </div>
 </body>
