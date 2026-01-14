@@ -10,7 +10,7 @@ import { useMutation } from 'convex/react';
 import { Bike, Car, ChevronLeft } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
-;
+
 
 const vehicleTypes = [
   {

@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
     }
     const batchId = data.batchId;
     const convex = getConvexClientFromRequest(req)
-    const sessionToken = getSessionTokenFromRequest(req);;
+    const sessionToken = getSessionTokenFromRequest(req);
     
     // Get staff user first
     const staff = await convex.query(api.queries.users.getUserByNameOrEmail, {

@@ -189,8 +189,8 @@ export default function StaffPortal() {
                 )}
                 <GlassCard className="p-6">
                   <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-lg ${Boolean(safeStaffMember.onboarding) ? 'bg-[#F23E2E]/10' : 'bg-gray-100'}`}>
-                      {Boolean(safeStaffMember.onboarding) ? (
+                    <div className={`p-2 rounded-lg ${safeStaffMember.onboarding ? 'bg-[#F23E2E]/10' : 'bg-gray-100'}`}>
+                      {safeStaffMember.onboarding ? (
                         <CheckCircle className="w-6 h-6 text-[#F23E2E]" />
                       ) : (
                         <Clock className="w-6 h-6 text-gray-900" />
@@ -198,8 +198,8 @@ export default function StaffPortal() {
                     </div>
                     <div>
                       <p className="text-sm font-satoshi text-gray-800">Onboarding Status</p>
-                      <p className={`font-medium font-satoshi ${Boolean(safeStaffMember.onboarding) ? 'text-[#F23E2E]' : 'text-gray-900'}`}>
-                        {Boolean(safeStaffMember.onboarding) ? 'Complete' : 'In Progress'}
+                      <p className={`font-medium font-satoshi ${safeStaffMember.onboarding ? 'text-[#F23E2E]' : 'text-gray-900'}`}>
+                        {safeStaffMember.onboarding ? 'Complete' : 'In Progress'}
                       </p>
                     </div>
                   </div>

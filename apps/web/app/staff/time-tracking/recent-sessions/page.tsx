@@ -8,17 +8,21 @@ import { useQuery } from 'convex/react';
 import { format } from 'date-fns';
 import { ArrowLeft, Calendar, CheckCircle2, Clock, Clock12, Clock4 } from 'lucide-react';
 import Link from 'next/link';
+import { useMemo } from 'react';
 
 export default function RecentSessionsPage() {
   const { user } = useSession();
-  
+
   // Fetch recent work sessions (last 30 days by default)
+  // Use useMemo to prevent date from changing on every render
+  const startDate = useMemo(() => Date.now() - 30 * 24 * 60 * 60 * 1000, []);
+
   const recentSessions = useQuery(
-    api.queries.workSessions.getWorkSessions, 
-    user?._id ? { 
+    api.queries.workSessions.getWorkSessions,
+    user?._id ? {
       staffId: user._id as Id<"users">,
       limit: 100, // Increase limit to show more sessions
-      startDate: Date.now() - 30 * 24 * 60 * 60 * 1000, // Last 30 days
+      startDate, // Last 30 days
     } : 'skip'
   );
 
@@ -82,7 +86,7 @@ export default function RecentSessionsPage() {
             </div>
           </div>
         </div>
-        
+
         <div className="divide-y divide-gray-200">
           {recentSessions?.length === 0 ? (
             <div className="px-4 sm:px-6 py-8 sm:py-12 text-center">
@@ -92,8 +96,8 @@ export default function RecentSessionsPage() {
             </div>
           ) : (
             recentSessions?.map((session: any) => (
-              <Link 
-                key={session._id} 
+              <Link
+                key={session._id}
                 href={`/staff/time-tracking/sessions/${session._id}`}
                 className="block hover:bg-gray-50 active:bg-gray-100 transition-colors"
               >

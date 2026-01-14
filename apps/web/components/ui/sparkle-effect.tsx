@@ -1,8 +1,8 @@
 "use client";
 
-import { motion } from "motion/react";
-import { useEffect, useState, ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { motion } from "motion/react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 
 interface SparkleEffectProps {
   children: ReactNode;
@@ -11,8 +11,9 @@ interface SparkleEffectProps {
 }
 
 export function SparkleEffect({ children, className, color = "#ff3b30" }: SparkleEffectProps) {
-  const [sparkles, setSparkles] = useState<Array<{ id: number; x: number; y: number; created: number }>>([]);
-  const idCounterRef = useState({ current: 0 })[0];
+  const [sparkles, setSparkles] = useState<Array<{ id: number; x: number; y: number; created: number; targetX?: number; targetY?: number }>>([]);
+  // Use a ref for the counter to avoid re-renders and direct state mutation
+  const idCounterRef = useRef(0);
 
   // Memoize the sparkle SVG for performance
   const SparkleSVG = (
@@ -42,14 +43,16 @@ export function SparkleEffect({ children, className, color = "#ff3b30" }: Sparkl
           id: idCounterRef.current++,
           x: Math.random() * 100 - 50,
           y: Math.random() * 100 - 50,
-          created: now
+          created: now,
+          targetX: Math.random() * 20 - 10,
+          targetY: Math.random() * 20 - 10
         };
         return [...filtered, newSparkle];
       });
     }, 300);
 
     return () => clearInterval(interval);
-  }, [idCounterRef]);
+  }, []);
 
   return (
     <div className={cn("relative", className)}>
@@ -66,8 +69,8 @@ export function SparkleEffect({ children, className, color = "#ff3b30" }: Sparkl
             animate={{
               opacity: [0, 1, 0],
               scale: [0, 1, 0],
-              x: sparkle.x + (Math.random() * 20 - 10),
-              y: sparkle.y + (Math.random() * 20 - 10)
+              x: sparkle.x + (sparkle.targetX || 0),
+              y: sparkle.y + (sparkle.targetY || 0)
             }}
             transition={{ duration: 1 }}
             className="absolute left-1/2 top-1/2"

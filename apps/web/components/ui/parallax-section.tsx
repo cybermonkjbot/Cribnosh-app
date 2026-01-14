@@ -24,23 +24,20 @@ export function ParallaxSection({
     offset: ["start end", "end start"],
   });
 
-  // Calculate transform based on direction
-  const getTransform = () => {
-    switch (direction) {
-      case "up":
-        return useTransform(scrollYProgress, [0, 1], [offset, -offset]);
-      case "down":
-        return useTransform(scrollYProgress, [0, 1], [-offset, offset]);
-      case "left":
-        return useTransform(scrollYProgress, [0, 1], [offset, -offset]);
-      case "right":
-        return useTransform(scrollYProgress, [0, 1], [-offset, offset]);
-      default:
-        return useTransform(scrollYProgress, [0, 1], [offset, -offset]);
-    }
-  };
+  // Calculate transform based on direction directly in component body to obey rules of hooks
+  const yUp = useTransform(scrollYProgress, [0, 1], [offset, -offset]);
+  const yDown = useTransform(scrollYProgress, [0, 1], [-offset, offset]);
+  // Reusing same logic for left/right for now based on original code, 
+  // ensuring hooks are called unconditionally.
 
-  const transform = getTransform();
+  let transform;
+  switch (direction) {
+    case "up": transform = yUp; break;
+    case "down": transform = yDown; break;
+    case "left": transform = yUp; break; // Original code used same offset logic
+    case "right": transform = yDown; break; // Original code used same offset logic
+    default: transform = yUp;
+  }
   const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.6, 1, 1, 0.6]);
 
   return (

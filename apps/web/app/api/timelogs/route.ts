@@ -117,7 +117,7 @@ async function postHandler(req: NextRequest) {
       return ResponseFactory.badRequest("Validation error");
     }
     const convex = getConvexClientFromRequest(req)
-    const sessionToken = getSessionTokenFromRequest(req);;
+    const sessionToken = getSessionTokenFromRequest(req);
     const staff = await convex.query(api.queries.users.getUserByNameOrEmail, {
       identifier: data.user,
       sessionToken: sessionToken || undefined

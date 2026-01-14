@@ -52,7 +52,7 @@ export function getOrCreateDeviceName(): string {
 
   try {
     // Check if user has set a custom device name
-    let deviceName = localStorage.getItem(DEVICE_NAME_KEY);
+    const deviceName = localStorage.getItem(DEVICE_NAME_KEY);
     
     if (deviceName) {
       return deviceName;

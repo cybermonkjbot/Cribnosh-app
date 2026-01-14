@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
   try {
     const { events } = await req.json();
     const convex = getConvexClientFromRequest(req)
-    const sessionToken = getSessionTokenFromRequest(req);;
+    const sessionToken = getSessionTokenFromRequest(req);
     const saveAnalyticsEvent = getApiFunction('mutations/analytics', 'saveAnalyticsEvent') as any;
 
     // Process events in parallel with a concurrency limit

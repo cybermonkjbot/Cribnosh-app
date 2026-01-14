@@ -2,9 +2,9 @@
 
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { logger } from '@/lib/utils/logger';
 import { useQuery } from 'convex/react';
 import { useEffect, useState } from 'react';
-import { logger } from '@/lib/utils/logger';
 
 type User = {
   _id: string;
@@ -46,7 +46,7 @@ export function useSession() {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [hasCheckedToken, setHasCheckedToken] = useState(false);
   const [userId, setUserId] = useState<Id<'users'> | null>(null);
-  
+
   // Get session token from cookies on client side
   useEffect(() => {
     const getCookie = (name: string) => {
@@ -59,11 +59,11 @@ export function useSession() {
       }
       return null;
     };
-    
+
     const token = getCookie('convex-auth-token');
     if (token) {
       setSessionToken(token);
-      
+
       // SessionToken doesn't need decoding - it's validated server-side
       // JWT fallback: If it's a JWT token (backward compatibility), extract user_id
       if (isJWT(token)) {
@@ -80,29 +80,33 @@ export function useSession() {
     }
     setHasCheckedToken(true);
   }, []);
-  
+
   // Fetch user data - prefer sessionToken query (faster), fallback to userId if JWT
   const userDataBySessionToken = useQuery(
-    api.queries.users.getUserBySessionToken, 
+    api.queries.users.getUserBySessionToken,
     sessionToken && !userId ? { sessionToken } : 'skip'
   ) as User | null;
-  
+
   const userDataById = useQuery(
     api.queries.users.getById,
     userId && !userDataBySessionToken ? { userId, sessionToken: sessionToken || undefined } : 'skip'
   ) as User | null;
-  
+
   // Prefer sessionToken-based query, fallback to userId-based query (JWT legacy)
   const userData = userDataBySessionToken || userDataById;
-  
+
   // Check if session is expired
-  const isExpired = userData?.sessionExpiry 
-    ? userData.sessionExpiry < Date.now()
-    : false;
-  
+  const [isExpired, setIsExpired] = useState(false);
+
+  useEffect(() => {
+    if (userData?.sessionExpiry) {
+      setIsExpired(userData.sessionExpiry < Date.now());
+    }
+  }, [userData?.sessionExpiry]);
+
   // Only show loading if we haven't checked for token yet, or if we have a token and are waiting for user data
   const isLoading = !hasCheckedToken || (sessionToken && !userData && !isExpired);
-  
+
   return {
     user: isExpired ? null : userData,
     isLoading,

@@ -171,7 +171,7 @@ export async function GET(req: NextRequest) {
   const key = searchParams.get('key') || undefined;
   // Use api.queries.emotionsEngine.getEmotionsEngineSettings directly
   const { getConvexClient } = await import('@/lib/conxed-client')
-  const sessionToken = getSessionTokenFromRequest(req);;
+  const sessionToken = getSessionTokenFromRequest(req);
   const convex = getConvexClient();
   const settings = await convex.query(api.queries.emotionsEngine.getEmotionsEngineSettings, {
     key,

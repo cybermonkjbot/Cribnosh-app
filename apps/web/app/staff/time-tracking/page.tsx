@@ -22,6 +22,7 @@ export default function TimeTrackingPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsActivityWatchSetup(localStorage.getItem('activityWatchSetupComplete') === 'true');
       // Only check ActivityWatch connection if setup is complete
       const isMobile = /Mobi|Android/i.test(navigator.userAgent);
@@ -118,8 +119,8 @@ export default function TimeTrackingPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <ClockInCard 
-            staffId={profile._id} 
+          <ClockInCard
+            staffId={profile._id}
             staffName={profile.name || profile.email || 'Staff Member'}
             sessionToken={sessionToken}
           />

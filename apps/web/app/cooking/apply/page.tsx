@@ -71,7 +71,7 @@ export interface ChefApplicationData {
     error?: string;
     notionPageId?: string;
   };
-};
+}
 
 const initialFormData: ChefApplicationData = {
   personalInfo: {

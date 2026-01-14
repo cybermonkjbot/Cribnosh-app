@@ -59,7 +59,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       sessionToken: sessionToken || undefined
     });
 
-    let context: {
+    const context: {
       category?: string;
       recentMessages?: string[];
     } = {};

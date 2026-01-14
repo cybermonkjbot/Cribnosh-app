@@ -11,7 +11,7 @@ const nextConfig = {
   typescript: {
     // Only ignore TypeScript errors in development
     // In production, all TypeScript errors must be fixed
-    ignoreBuildErrors: process.env.NODE_ENV === 'development',
+    ignoreBuildErrors: false,
   },
 
   // Server-side initialization

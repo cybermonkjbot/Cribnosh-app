@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
     return ResponseFactory.forbidden('Forbidden: Only admins can access this endpoint.');
   }
   const { getConvexClient } = await import('@/lib/conxed-client')
-  const sessionToken = getSessionTokenFromRequest(req);;
+  const sessionToken = getSessionTokenFromRequest(req);
   const convex = getConvexClient();
   const all = await convex.query(api.queries.emotionsEngine.getAllLogs, {
     sessionToken: sessionToken || undefined

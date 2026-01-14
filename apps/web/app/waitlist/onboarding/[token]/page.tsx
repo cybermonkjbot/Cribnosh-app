@@ -30,6 +30,13 @@ export default function WaitlistOnboardingPage() {
         setMounted(true);
     }, []);
 
+    // Pre-fill name if available when data loads
+    useEffect(() => {
+        if (waitlistEntry?.name && !name) {
+            setName(waitlistEntry.name);
+        }
+    }, [waitlistEntry, name]);
+
     if (!mounted) {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center">
@@ -37,13 +44,6 @@ export default function WaitlistOnboardingPage() {
             </div>
         );
     }
-
-    // Pre-fill name if available when data loads
-    useEffect(() => {
-        if (waitlistEntry?.name && !name) {
-            setName(waitlistEntry.name);
-        }
-    }, [waitlistEntry, name]);
 
     const handleSubmit = async () => {
         if (!creatorType || needsFbaAssistance === null || !name || !username) return;
@@ -99,9 +99,9 @@ export default function WaitlistOnboardingPage() {
             <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex items-center justify-center p-4">
                 <MasonryBackground className="z-0" />
                 <div className="relative z-20 p-8 bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl max-w-md text-center border border-white/20">
-                    <h1 className="text-3xl font-asgard text-green-600 mb-4">You're All Set!</h1>
+                    <h1 className="text-3xl font-asgard text-green-600 mb-4">You&apos;re All Set!</h1>
                     <p className="font-satoshi text-gray-600 mb-6">
-                        You have already completed your onboarding. We'll be in touch soon!
+                        You have already completed your onboarding. We&apos;ll be in touch soon!
                     </p>
                     <button
                         onClick={() => router.push('/')}
@@ -139,7 +139,7 @@ export default function WaitlistOnboardingPage() {
                                     What should we call you?
                                 </h1>
                                 <p className="font-satoshi text-xl text-gray-600">
-                                    Let's get to know each other.
+                                    Let&apos;s get to know each other.
                                 </p>
                             </div>
 
@@ -327,10 +327,10 @@ export default function WaitlistOnboardingPage() {
                             className="text-center space-y-6"
                         >
                             <h2 className="font-asgard text-4xl text-gray-900">
-                                You're in!
+                                You&apos;re in!
                             </h2>
                             <p className="font-satoshi text-xl text-gray-600 max-w-lg mx-auto">
-                                Thanks for completing your profile, {name}. We'll be in touch soon!
+                                Thanks for completing your profile, {name}. We&apos;ll be in touch soon!
                             </p>
                             <button
                                 onClick={() => router.push('/')}
