@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import Image, { type ImageProps } from 'next/image';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
 import { cn } from '@/lib/utils';
+import Image, { type ImageProps } from 'next/image';
+import { useEffect, useState } from 'react';
 
 interface ResponsiveImageProps extends Omit<ImageProps, 'src'> {
   src: string;
@@ -33,6 +33,7 @@ export function ResponsiveImage({
   useEffect(() => {
     // Determine appropriate source based on device
     if (isMobile && mobileSrc) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentSrc(mobileSrc);
     } else if (isTablet && tabletSrc) {
       setCurrentSrc(tabletSrc);
@@ -51,13 +52,13 @@ export function ResponsiveImage({
 
   const qualityMap = {
     low: { quality: 60, sizes: '100vw' },
-    medium: { 
-      quality: 75, 
-      sizes: '(max-width: 480px) 95vw, (max-width: 768px) 85vw, (max-width: 1024px) 50vw, 33vw' 
+    medium: {
+      quality: 75,
+      sizes: '(max-width: 480px) 95vw, (max-width: 768px) 85vw, (max-width: 1024px) 50vw, 33vw'
     },
-    high: { 
-      quality: 85, 
-      sizes: '(max-width: 480px) 100vw, (max-width: 768px) 90vw, (max-width: 1024px) 50vw, 33vw' 
+    high: {
+      quality: 85,
+      sizes: '(max-width: 480px) 100vw, (max-width: 768px) 90vw, (max-width: 1024px) 50vw, 33vw'
     },
   };
 
@@ -68,7 +69,7 @@ export function ResponsiveImage({
       {isLoading && (
         <div className="absolute inset-0 bg-gray-100  animate-pulse rounded-lg" />
       )}
-      
+
       <Image
         src={currentSrc}
         alt={alt}

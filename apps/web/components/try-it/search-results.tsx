@@ -44,7 +44,7 @@ function toRadians(degrees: number): number {
 function calculatePrepTime(meal: any): string {
   // Base prep time based on meal complexity
   let baseTime = 30; // Default 30 minutes
-  
+
   // Adjust based on meal characteristics
   if (meal.cuisine && meal.cuisine.includes('Italian')) {
     baseTime = 25; // Pasta dishes are typically faster
@@ -59,7 +59,7 @@ function calculatePrepTime(meal: any): string {
   // Add variation for freshness and complexity
   const variation = Math.floor(Math.random() * 10) - 5; // ±5 minutes
   const finalTime = Math.max(15, baseTime + variation); // Minimum 15 minutes
-  
+
   return `${finalTime}-${finalTime + 10} min`;
 }
 
@@ -87,25 +87,25 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
   const [decidedResult, setDecidedResult] = useState<number | null>(null);
   const [selectedSubItems, setSelectedSubItems] = useState<string[]>([]);
   const [showAssistant, setShowAssistant] = useState(false);
-  const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number } | null>(null);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const convex = useConvex();
   const { user, isAuthenticated } = useSession();
   const userId = user?._id as Id<'users'> | undefined;
   const router = useRouter();
   const addToCart = useAddToCart();
-  
+
   // Set data-section-theme on mount and clean up on unmount
   useEffect(() => {
     // Store the original data-section-theme if any
     const mainElement = document.querySelector('main');
     const originalTheme = mainElement?.getAttribute('data-section-theme') || '';
-    
+
     // Set the theme to light for the header
     if (mainElement) {
       mainElement.setAttribute('data-section-theme', 'light');
     }
-    
+
     // Clean up on unmount
     return () => {
       if (mainElement) {
@@ -172,7 +172,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
   // Real data fetching for search results with user preferences
   const { data: searchResults = [], isLoading, error } = useQuery({
     queryKey: ['search-meals', query, userId],
-    queryFn: () => convex.query((api as any).queries.meals.searchMeals, { 
+    queryFn: () => convex.query((api as any).queries.meals.searchMeals, {
       query: query,
       userId,
       filters: {
@@ -189,7 +189,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
     queryKey: ['recommended-meals', userId],
     queryFn: async () => {
       if (!userId) return { recommendations: [] };
-      
+
       try {
         const response = await fetch('/api/customer/meals/recommended?limit=6', {
           credentials: 'include',
@@ -234,7 +234,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
   ];
 
   // Get real suggested sub-items from the selected meal
-  const suggestedSubItems = decidedResult !== null && searchResults[decidedResult] 
+  const suggestedSubItems = decidedResult !== null && searchResults[decidedResult]
     ? (searchResults[decidedResult] as any)['suggestedItems'] || []
     : [];
 
@@ -252,21 +252,21 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
     setIsDeciding(true);
     setDecisionStage(0);
     setDecidedResult(null);
-    
+
     // Simulate the decision process with stages
     const stageInterval = setInterval(() => {
       setDecisionStage(prev => {
         // If we've reached the last stage, clear the interval and set the result
         if (prev >= decisionStages.length - 1) {
           clearInterval(stageInterval);
-          
+
           // Pick a random result
           setTimeout(() => {
             const randomIndex = Math.floor(Math.random() * results.length);
             setDecidedResult(randomIndex);
             setIsDeciding(false);
           }, 800);
-          
+
           return prev;
         }
         return prev + 1;
@@ -276,7 +276,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
 
   // Handle adding or removing sub-items
   const toggleSubItem = (itemName: string) => {
-    setSelectedSubItems(prev => 
+    setSelectedSubItems(prev =>
       prev.includes(itemName)
         ? prev.filter(item => item !== itemName)
         : [...prev, itemName]
@@ -325,7 +325,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
     >
       {/* Main site header placeholder - 64px height */}
       <div className="h-16"></div>
-      
+
       {/* Fixed header that attaches below the main header */}
       <div className="sticky top-16 left-0 right-0 h-16 bg-white/90  backdrop-blur-sm border-b border-slate-200  z-40">
         <div className="container mx-auto px-4 h-full flex items-center justify-between">
@@ -342,15 +342,14 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
               <h2 className="text-lg font-semibold text-[#ff3b30]">{query}</h2>
             </div>
           </div>
-          
+
           <button
             onClick={handleDecideForMe}
             disabled={isDeciding || decidedResult !== null}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors ${
-              isDeciding || decidedResult !== null 
-                ? 'bg-slate-200  text-slate-500  cursor-not-allowed' 
+            className={`px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors ${isDeciding || decidedResult !== null
+                ? 'bg-slate-200  text-slate-500  cursor-not-allowed'
                 : 'bg-[#ff3b30] text-white hover:bg-[#ff5e54]'
-            }`}
+              }`}
           >
             {isDeciding ? (
               <>
@@ -419,8 +418,8 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
             // Error state
             <div className="flex flex-col items-center justify-center py-12">
               <p className="text-slate-600 mb-4">Failed to load search results</p>
-              <button 
-                onClick={() => window.location.reload()} 
+              <button
+                onClick={() => window.location.reload()}
                 className="px-4 py-2 bg-[#ff3b30] text-white rounded-lg hover:bg-[#ff5e54] transition-colors"
               >
                 Try Again
@@ -437,9 +436,9 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                 >
                   <Check size={24} className="text-white" />
                 </motion.div>
-                <h3 className="text-2xl font-display font-bold">We've decided for you!</h3>
+                <h3 className="text-2xl font-display font-bold">We&apos;ve decided for you!</h3>
               </div>
-              
+
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
                 {/* Left side - The decided meal */}
                 <motion.div
@@ -457,7 +456,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                       className="transition-transform duration-700 hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end p-6">
-                      <motion.div 
+                      <motion.div
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.3 }}
@@ -466,7 +465,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                         <ChefHat size={18} className="text-white mr-2" />
                         <span className="text-white font-medium">{results[decidedResult].chef}</span>
                       </motion.div>
-                      <motion.h4 
+                      <motion.h4
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.4 }}
@@ -474,7 +473,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                       >
                         {results[decidedResult].title}
                       </motion.h4>
-                      <motion.div 
+                      <motion.div
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.5 }}
@@ -499,10 +498,10 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                       </div>
                       <span className="text-2xl font-display font-bold text-[#ff3b30]">{results[decidedResult].price}</span>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-2 mb-6">
                       {results[decidedResult].tags.map((tag: any, index: number) => (
-                        <span 
+                        <span
                           key={index}
                           className="px-3 py-1.5 bg-slate-100/80  backdrop-blur-sm rounded-full text-sm font-medium"
                         >
@@ -518,8 +517,8 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                           {selectedSubItems.map((item) => {
                             const subItem = suggestedSubItems.find((si: any) => si.name === item);
                             return (
-                              <motion.div 
-                                key={item} 
+                              <motion.div
+                                key={item}
                                 initial={{ opacity: 0, y: 5 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="flex items-center justify-between px-3 py-2 bg-slate-50/80  backdrop-blur-sm rounded-lg"
@@ -543,8 +542,8 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                         </div>
                       </div>
                     )}
-                    
-                    <button 
+
+                    <button
                       className="w-full py-3.5 bg-linear-to-r from-[#ff3b30] to-[#ff5e54] text-white rounded-lg font-medium hover:from-[#ff2a1f] hover:to-[#ff4a40] transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                       aria-label="Order this meal now"
                     >
@@ -568,23 +567,22 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                 >
                   {/* AI Decision Process */}
                   <AiDecisionProcess reasoningPoints={aiReasoningPoints} />
-                  
+
                   {/* Suggested Sub-items */}
                   <div className="bg-white/70  backdrop-blur-md rounded-2xl overflow-hidden shadow-lg border border-slate-200/50  p-5 md:p-6">
                     <h4 className="text-lg font-display font-semibold mb-3">Perfect Complements</h4>
                     <p className="text-sm text-slate-600  mb-5">
                       Elevate your culinary journey with these thoughtfully paired additions
                     </p>
-                    
+
                     <div className="space-y-3">
                       {suggestedSubItems.map((item: any) => (
                         <motion.button
                           key={item.id}
-                          className={`w-full p-3 border rounded-xl cursor-pointer transition-all duration-300 ${
-                            selectedSubItems.includes(item.name)
+                          className={`w-full p-3 border rounded-xl cursor-pointer transition-all duration-300 ${selectedSubItems.includes(item.name)
                               ? 'border-[#ff3b30] bg-[#ff3b30]/5 shadow-md'
                               : 'border-slate-200  hover:border-[#ff3b30]/50 hover:shadow-sm'
-                          }`}
+                            }`}
                           onClick={() => toggleSubItem(item.name)}
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
@@ -593,11 +591,10 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center text-left">
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 transition-colors ${
-                                selectedSubItems.includes(item.name)
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 transition-colors ${selectedSubItems.includes(item.name)
                                   ? 'bg-[#ff3b30]'
                                   : 'bg-slate-100 '
-                              }`}>
+                                }`}>
                                 {selectedSubItems.includes(item.name) ? (
                                   <Check size={14} className="text-white" />
                                 ) : (
@@ -614,13 +611,13 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                         </motion.button>
                       ))}
                     </div>
-                    
+
                     {selectedSubItems.length > 0 && (
                       <div className="mt-4 pt-3 border-t border-slate-200  flex justify-between items-center">
                         <span className="text-sm font-medium text-slate-600 ">
                           {selectedSubItems.length} {selectedSubItems.length === 1 ? 'item' : 'items'} selected
                         </span>
-                        <button 
+                        <button
                           onClick={() => setSelectedSubItems([])}
                           className="text-xs font-medium text-[#ff3b30] hover:text-[#ff5e54] transition-colors"
                           aria-label="Clear all selected items"
@@ -719,7 +716,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                   ))}
                 </div>
               </div>
-              
+
               <div>
                 <h3 className="text-2xl font-display font-bold mb-8">Recommended For You</h3>
                 {isLoadingRecommendations && userId ? (

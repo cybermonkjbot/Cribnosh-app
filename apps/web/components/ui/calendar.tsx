@@ -1,15 +1,15 @@
 "use client"
 
-import * as React from "react"
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "lucide-react"
+import * as React from "react"
 import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
 
-import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 function Calendar({
   className,
@@ -23,6 +23,7 @@ function Calendar({
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
 }) {
+  // eslint-disable-next-line react/prop-types
   const defaultClassNames = getDefaultClassNames()
 
   return (
@@ -208,6 +209,21 @@ function CalendarDayButton({
       {...props}
     />
   )
+}
+
+Calendar.propTypes = {
+  className: PropTypes.string,
+  classNames: PropTypes.object,
+  showOutsideDays: PropTypes.bool,
+  captionLayout: PropTypes.string,
+  buttonVariant: PropTypes.string,
+  formatters: PropTypes.object,
+  components: PropTypes.object,
+  rootRef: PropTypes.oneOfType([
+    PropTypes.func,
+    PropTypes.shape({ current: PropTypes.any })
+  ]),
+  orientation: PropTypes.string,
 }
 
 export { Calendar, CalendarDayButton }

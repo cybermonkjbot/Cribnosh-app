@@ -1,9 +1,9 @@
 "use client";
 
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface MasonryBackgroundProps {
   className?: string;
@@ -18,48 +18,49 @@ export function MasonryBackground({ className }: MasonryBackgroundProps) {
     {
       src: "/backgrounds/masonry-1.jpg",
       alt: "Kitchen background",
-      position: { 
-        top: isDesktop ? "25vh" : "15vh", 
+      position: {
+        top: isDesktop ? "25vh" : "15vh",
         left: isDesktop ? undefined : "5vw",
         right: isDesktop ? "5vw" : undefined
       },
-      size: { 
-        width: isDesktop ? "25vw" : "30vw", 
-        height: isDesktop ? "30vh" : "20vh" 
+      size: {
+        width: isDesktop ? "25vw" : "30vw",
+        height: isDesktop ? "30vh" : "20vh"
       },
       delay: 0.2,
     },
     {
       src: "/backgrounds/masonry-2.jpg",
       alt: "Cooking background",
-      position: { 
-        top: isDesktop ? "45vh" : "40vh", 
+      position: {
+        top: isDesktop ? "45vh" : "40vh",
         left: isDesktop ? undefined : "35vw",
         right: isDesktop ? "15vw" : undefined
       },
-      size: { 
-        width: isDesktop ? "20vw" : "30vw", 
-        height: isDesktop ? "35vh" : "20vh" 
+      size: {
+        width: isDesktop ? "20vw" : "30vw",
+        height: isDesktop ? "35vh" : "20vh"
       },
       delay: 0.3,
     },
     {
       src: "/backgrounds/masonry-3.jpg",
       alt: "Food background",
-      position: { 
-        top: isDesktop ? "70vh" : "70vh", 
+      position: {
+        top: isDesktop ? "70vh" : "70vh",
         left: isDesktop ? undefined : "60vw",
         right: isDesktop ? "8vw" : "5vw"
       },
-      size: { 
-        width: isDesktop ? "22vw" : "30vw", 
-        height: isDesktop ? "25vh" : "20vh" 
+      size: {
+        width: isDesktop ? "22vw" : "30vw",
+        height: isDesktop ? "25vh" : "20vh"
       },
       delay: 0.4,
     },
   ];
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
     setDimensions({
       width: window.innerWidth,
@@ -74,7 +75,7 @@ export function MasonryBackground({ className }: MasonryBackgroundProps) {
     };
 
     window.addEventListener("resize", handleResize);
-    
+
     return () => {
       window.removeEventListener("resize", handleResize);
     };
@@ -83,9 +84,9 @@ export function MasonryBackground({ className }: MasonryBackgroundProps) {
   if (!isMounted) return null;
 
   return (
-    <div 
+    <div
       className={`fixed top-0 right-0 md:w-[45vw] w-[60vw] h-screen ${className}`}
-      style={{ 
+      style={{
         zIndex: 1, // Lower z-index to ensure it stays in background
         pointerEvents: "none"
       }}
@@ -112,11 +113,11 @@ export function MasonryBackground({ className }: MasonryBackgroundProps) {
               rotateY: !isDesktop && index === 1 ? '15deg' : 0,
             }}
             initial={{ opacity: 0, y: 20 }}
-            animate={{ 
+            animate={{
               opacity: 0.9 - (index * 0.05),
               y: 0,
             }}
-            transition={{ 
+            transition={{
               duration: 0.4,
               delay: image.delay,
             }}
@@ -141,7 +142,7 @@ export function MasonryBackground({ className }: MasonryBackgroundProps) {
         ))}
 
         {/* Decorative gradient overlay */}
-        <div 
+        <div
           className="absolute inset-0 bg-gradient-to-l from-white/50 to-transparent"
           style={{ pointerEvents: "none" }}
         />

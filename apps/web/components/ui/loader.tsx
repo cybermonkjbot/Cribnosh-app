@@ -1,7 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const CheckIcon = ({ className }: { className?: string }) => {
   return (
@@ -67,8 +67,9 @@ const LoaderCore = ({ loadingStates, value = 0 }: LoaderCoreProps) => {
   useEffect(() => {
     // Check if user has visited before
     const hasVisited = localStorage.getItem('cribnosh_visited');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsReturningUser(!!hasVisited);
-    
+
     // Set the flag for future visits
     if (!hasVisited) {
       localStorage.setItem('cribnosh_visited', 'true');
@@ -105,7 +106,7 @@ const LoaderCore = ({ loadingStates, value = 0 }: LoaderCoreProps) => {
                     className={cn(
                       "text-[#ff3b30] ",
                       value === index &&
-                        "text-[#ff3b30]  opacity-100"
+                      "text-[#ff3b30]  opacity-100"
                     )}
                   />
                 )}
@@ -123,14 +124,14 @@ const LoaderCore = ({ loadingStates, value = 0 }: LoaderCoreProps) => {
         })}
       </div>
 
-      <motion.div 
+      <motion.div
         className="flex flex-col gap-2 mt-12 sm:mt-16"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
         <div className="relative h-12 w-auto sm:h-16">
-          <img 
+          <img
             src="/logo.svg"
             alt="Cribnosh Logo"
             className="h-full w-auto"
@@ -141,8 +142,8 @@ const LoaderCore = ({ loadingStates, value = 0 }: LoaderCoreProps) => {
             {isReturningUser ? "Welcome Back to CribNosh" : "Welcome to CribNosh"}
           </h2>
           <p className="text-sm sm:text-base text-neutral-600  mt-2 font-satoshi">
-            {isReturningUser 
-              ? "Continuing your personalized culinary journey" 
+            {isReturningUser
+              ? "Continuing your personalized culinary journey"
               : "Your personalized culinary journey begins here"}
           </p>
         </div>
@@ -160,7 +161,7 @@ export const MultiStepLoader = ({
 }: MultiStepLoaderProps) => {
   const [currentState, setCurrentState] = useState(0);
   const [hasShownLoader, setHasShownLoader] = useState(false);
-  
+
   const updateState = useCallback(() => {
     setCurrentState((prevState) => {
       const nextState = loop
@@ -168,14 +169,14 @@ export const MultiStepLoader = ({
           ? 0
           : prevState + 1
         : Math.min(prevState + 1, loadingStates.length - 1);
-      
+
       if (!loop && nextState === loadingStates.length - 1) {
         setTimeout(() => {
           setHasShownLoader(true);
           onComplete?.();
         }, 1000);
       }
-      
+
       return nextState;
     });
   }, [loop, loadingStates.length, onComplete]);
@@ -186,6 +187,7 @@ export const MultiStepLoader = ({
     if (loading && !hasShownLoader) {
       timeoutId = setTimeout(updateState, duration);
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentState(0);
     }
 

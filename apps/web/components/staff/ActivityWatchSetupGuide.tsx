@@ -1,23 +1,22 @@
 "use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Download, 
-  Settings, 
-  Monitor, 
-  CheckCircle, 
-  AlertCircle, 
-  ExternalLink,
-  Code,
-  FileText,
-  Terminal,
-  Globe,
-  Shield,
-  Clock
-} from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
+import {
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Code,
+  Download,
+  ExternalLink,
+  Globe,
+  Monitor,
+  Settings,
+  Shield,
+  Terminal
+} from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 interface ActivityWatchSetupGuideProps {
   staffEmail?: string;
@@ -75,7 +74,7 @@ export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatc
     const newCompleted = new Set(completedSteps);
     newCompleted.add(step);
     setCompletedSteps(newCompleted);
-    
+
     if (step === 'complete' && onComplete) {
       onComplete();
     }
@@ -101,7 +100,7 @@ export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatc
                 ActivityWatch automatically tracks your computer usage and syncs with CribNosh for accurate time tracking.
               </p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <GlassCard className="p-4 text-center">
                 <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3">
@@ -110,7 +109,7 @@ export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatc
                 <h4 className="font-semibold text-gray-900 mb-1">Privacy First</h4>
                 <p className="text-sm text-gray-600">All data stays on your machine and is only synced when you choose</p>
               </GlassCard>
-              
+
               <GlassCard className="p-4 text-center">
                 <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3">
                   <Clock className="w-6 h-6 text-blue-600" />
@@ -118,7 +117,7 @@ export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatc
                 <h4 className="font-semibold text-gray-900 mb-1">Automatic Tracking</h4>
                 <p className="text-sm text-gray-600">Tracks active windows, applications, and browser tabs automatically</p>
               </GlassCard>
-              
+
               <GlassCard className="p-4 text-center">
                 <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-3">
                   <Globe className="w-6 h-6 text-purple-600" />
@@ -134,7 +133,7 @@ export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatc
                 <div>
                   <h4 className="font-semibold text-amber-900 mb-1">Important Note</h4>
                   <p className="text-sm text-amber-800">
-                    ActivityWatch runs locally on your machine and only syncs data when you manually trigger it or when the sync agent runs. 
+                    ActivityWatch runs locally on your machine and only syncs data when you manually trigger it or when the sync agent runs.
                     Your privacy is protected as no data is automatically sent to our servers.
                   </p>
                 </div>
@@ -150,7 +149,7 @@ export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatc
               <h3 className="text-xl font-asgard text-gray-900 mb-2">Download ActivityWatch</h3>
               <p className="text-gray-600">Choose your operating system to download the latest version</p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <GlassCard className="p-6 text-center hover:bg-white/20 transition-colors cursor-pointer">
                 <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -168,7 +167,7 @@ export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatc
                   <span>Download</span>
                 </a>
               </GlassCard>
-              
+
               <GlassCard className="p-6 text-center hover:bg-white/20 transition-colors cursor-pointer">
                 <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Download className="w-8 h-8 text-gray-600" />
@@ -185,7 +184,7 @@ export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatc
                   <span>Download</span>
                 </a>
               </GlassCard>
-              
+
               <GlassCard className="p-6 text-center hover:bg-white/20 transition-colors cursor-pointer">
                 <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Download className="w-8 h-8 text-green-600" />
@@ -210,8 +209,8 @@ export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatc
                 <div>
                   <h4 className="font-semibold text-blue-900 mb-1">Alternative Installation</h4>
                   <p className="text-sm text-blue-800">
-                    You can also install ActivityWatch via package managers: 
-                    <code className="bg-blue-100 px-2 py-1 rounded text-xs ml-2">pip install activitywatch</code> or 
+                    You can also install ActivityWatch via package managers:
+                    <code className="bg-blue-100 px-2 py-1 rounded text-xs ml-2">pip install activitywatch</code> or
                     <code className="bg-blue-100 px-2 py-1 rounded text-xs ml-2">brew install activitywatch</code>
                   </p>
                 </div>
@@ -227,7 +226,7 @@ export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatc
               <h3 className="text-xl font-asgard text-gray-900 mb-2">Install ActivityWatch</h3>
               <p className="text-gray-600">Follow these steps to install and start ActivityWatch</p>
             </div>
-            
+
             <div className="space-y-4">
               <GlassCard className="p-6">
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
@@ -244,7 +243,7 @@ export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatc
                       <p className="text-sm text-gray-600">Unzip the downloaded archive to a folder of your choice</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start space-x-3">
                     <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-xs font-bold text-blue-600">2</span>
@@ -254,7 +253,7 @@ export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatc
                       <p className="text-sm text-gray-600">Double-click <code className="bg-gray-100 px-1 rounded">aw-qt</code> or run from terminal</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start space-x-3">
                     <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-xs font-bold text-blue-600">3</span>
@@ -264,13 +263,13 @@ export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatc
                       <p className="text-sm text-gray-600">Allow ActivityWatch to monitor your activity when prompted</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start space-x-3">
                     <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-xs font-bold text-blue-600">4</span>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">Verify it's running</p>
+                      <p className="font-medium text-gray-900">Verify it&apos;s running</p>
                       <p className="text-sm text-gray-600">You should see the ActivityWatch icon in your system tray</p>
                     </div>
                   </div>
@@ -301,14 +300,14 @@ export function ActivityWatchSetupGuide({ staffEmail, onComplete }: ActivityWatc
               <h3 className="text-xl font-asgard text-gray-900 mb-2">Configure Sync</h3>
               <p className="text-gray-600">Set up ActivityWatch to sync with CribNosh time tracking</p>
             </div>
-            
+
             <div className="space-y-4">
               <GlassCard className="p-6">
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
                   <Code className="w-5 h-5 mr-2" />
                   Sync Configuration
                 </h4>
-                
+
                 <div className="space-y-4">
                   <div>
                     <h5 className="font-medium text-gray-900 mb-2">1. Create Sync Script</h5>
@@ -335,7 +334,7 @@ curl -X POST $API_URL \\
 echo "Sync completed at $(date)"`}</pre>
                     </div>
                   </div>
-                  
+
                   <div>
                     <h5 className="font-medium text-gray-900 mb-2">2. Set up Auto-Sync (Optional)</h5>
                     <p className="text-sm text-gray-600 mb-3">
@@ -354,7 +353,7 @@ echo "Sync completed at $(date)"`}</pre>
                   <div>
                     <h4 className="font-semibold text-amber-900 mb-1">Manual Sync Option</h4>
                     <p className="text-sm text-amber-800">
-                      You can also manually sync your data through the ActivityWatch web interface at 
+                      You can also manually sync your data through the ActivityWatch web interface at
                       <code className="bg-amber-100 px-1 rounded ml-1">http://localhost:5600</code> and export data as needed.
                     </p>
                   </div>
@@ -371,35 +370,35 @@ echo "Sync completed at $(date)"`}</pre>
               <h3 className="text-xl font-asgard text-gray-900 mb-2">Verify Setup</h3>
               <p className="text-gray-600">Test that ActivityWatch is working correctly</p>
             </div>
-            
+
             <div className="space-y-4">
               <GlassCard className="p-6">
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
                   <CheckCircle className="w-5 h-5 mr-2" />
                   Verification Checklist
                 </h4>
-                
+
                 <div className="space-y-3">
                   <label className="flex items-center space-x-3 cursor-pointer">
                     <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
                     <span className="text-gray-900">ActivityWatch is running (icon in system tray)</span>
                   </label>
-                  
+
                   <label className="flex items-center space-x-3 cursor-pointer">
                     <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
                     <span className="text-gray-900">Web interface accessible at localhost:5600</span>
                   </label>
-                  
+
                   <label className="flex items-center space-x-3 cursor-pointer">
                     <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
                     <span className="text-gray-900">Data is being collected (check web interface)</span>
                   </label>
-                  
+
                   <label className="flex items-center space-x-3 cursor-pointer">
                     <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
                     <span className="text-gray-900">Sync script runs without errors</span>
                   </label>
-                  
+
                   <label className="flex items-center space-x-3 cursor-pointer">
                     <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
                     <span className="text-gray-900">Data appears in CribNosh time tracking</span>
@@ -413,7 +412,7 @@ echo "Sync completed at $(date)"`}</pre>
                   <div>
                     <h4 className="font-semibold text-blue-900 mb-1">Need Help?</h4>
                     <p className="text-sm text-blue-800">
-                      Visit the <a href="https://activitywatch.net/docs/" target="_blank" rel="noopener noreferrer" className="underline">ActivityWatch documentation</a> or 
+                      Visit the <a href="https://activitywatch.net/docs/" target="_blank" rel="noopener noreferrer" className="underline">ActivityWatch documentation</a> or
                       contact your IT administrator for assistance with setup.
                     </p>
                   </div>
@@ -435,15 +434,15 @@ echo "Sync completed at $(date)"`}</pre>
                 <CheckCircle className="w-10 h-10 text-white" />
               </div>
             </motion.div>
-            
+
             <div>
               <h3 className="text-2xl font-asgard text-gray-900 mb-2">Setup Complete!</h3>
               <p className="text-gray-600 max-w-md mx-auto">
-                ActivityWatch is now configured and will automatically track your work activity. 
+                ActivityWatch is now configured and will automatically track your work activity.
                 Your time tracking data will be synced with CribNosh for accurate reporting.
               </p>
             </div>
-            
+
             <div className="bg-green-50 border border-green-200 rounded-xl p-4 max-w-md mx-auto">
               <h4 className="font-semibold text-green-900 mb-2">What happens next?</h4>
               <ul className="text-sm text-green-800 space-y-1 text-left">
@@ -496,13 +495,12 @@ echo "Sync completed at $(date)"`}</pre>
             <div key={step.key} className="flex items-center">
               <button
                 onClick={() => setCurrentStep(step.key)}
-                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                  currentStep === step.key
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${currentStep === step.key
                     ? 'bg-blue-100 text-blue-700'
                     : completedSteps.has(step.key)
-                    ? 'bg-green-100 text-green-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
+                      ? 'bg-green-100 text-green-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
               >
                 <step.icon className="w-4 h-4" />
                 <span className="hidden sm:inline text-sm font-medium">{step.title}</span>
@@ -542,7 +540,7 @@ echo "Sync completed at $(date)"`}</pre>
         >
           Previous
         </button>
-        
+
         <div className="flex items-center space-x-2">
           {currentStep !== 'complete' && (
             <button
@@ -552,7 +550,7 @@ echo "Sync completed at $(date)"`}</pre>
               Mark Complete
             </button>
           )}
-          
+
           {currentStep !== 'complete' && (
             <button
               onClick={() => {
@@ -570,6 +568,6 @@ echo "Sync completed at $(date)"`}</pre>
       </div>
     </GlassCard>
   );
-} 
+}
 
 export default ActivityWatchSetupGuide; 

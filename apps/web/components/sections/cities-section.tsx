@@ -1,9 +1,9 @@
 "use client";
 
-import React, { JSX } from "react";
-import Link from "next/link";
 import { motion } from "motion/react";
 import Image from "next/image";
+import Link from "next/link";
+import { JSX } from "react";
 
 interface CityData {
   title: string;
@@ -65,7 +65,7 @@ const cities: CityData[] = [
     ctaLink: "#",
     content: () => (
       <>
-        <p>Birmingham is a major city in England's West Midlands region. It was a powerhouse of the Industrial Revolution and continues to be a major economic center.</p>
+        <p>Birmingham is a major city in England&apos;s West Midlands region. It was a powerhouse of the Industrial Revolution and continues to be a major economic center.</p>
         <ul className="list-disc pl-4">
           <li>Population: 2.6+ million</li>
           <li>Key Areas: Jewellery Quarter, Digbeth, Brindleyplace</li>
@@ -104,7 +104,7 @@ export function CitiesSection({ isHome = false }: { isHome?: boolean } = {}) {
               className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300"
             >
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent z-10" />
-              
+
               <Image
                 src={city.src}
                 alt={`${city.title} - CribNosh location`}
@@ -115,7 +115,7 @@ export function CitiesSection({ isHome = false }: { isHome?: boolean } = {}) {
                 className="w-full h-64 object-cover transform group-hover:scale-105 transition-transform duration-500"
                 priority={index === 0}
               />
-              
+
               <div className="absolute inset-0 z-20 flex flex-col justify-end p-6">
                 <h3 className="text-2xl font-display font-bold text-white mb-2">
                   {city.title}
@@ -123,21 +123,21 @@ export function CitiesSection({ isHome = false }: { isHome?: boolean } = {}) {
                 <p className="text-white/80 text-sm">
                   {city.description}
                 </p>
-                <Link 
-                  href="/waitlist" 
+                <Link
+                  href="/waitlist"
                   className="mt-4 inline-flex items-center text-white hover:text-[#ff3b30] transition-colors"
                 >
                   <span>Join Waitlist</span>
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    viewBox="0 0 20 20" 
-                    fill="currentColor" 
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
                     className="w-5 h-5 ml-2"
                   >
-                    <path 
-                      fillRule="evenodd" 
-                      d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" 
-                      clipRule="evenodd" 
+                    <path
+                      fillRule="evenodd"
+                      d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z"
+                      clipRule="evenodd"
                     />
                   </svg>
                 </Link>

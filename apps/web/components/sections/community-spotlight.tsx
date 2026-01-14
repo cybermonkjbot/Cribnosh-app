@@ -196,7 +196,7 @@ export function CommunitySpotlightSection() {
       userImage: "/card-images/IMG_2262.png",
       mealName: "Abuela's Empanadas",
       mealImage: "/card-images/c846b65e-1de1-4595-9079-b2cfe134f414.jpeg",
-      story: "My grandmother's recipe brought to life by Chef Luis. Tasted just like home!",
+      story: "My grandmother&apos;s recipe brought to life by Chef Luis. Tasted just like home!",
       likes: 124,
     },
     {
@@ -327,7 +327,7 @@ export function CommunitySpotlightSection() {
                     </div>
 
                     <p className="text-sm sm:text-base text-gray-600  mb-5 font-['Satoshi'] leading-relaxed">
-                      "{post.story}"
+                      &quot;{post.story}&quot;
                     </p>
 
                     <div className="flex justify-between items-center">

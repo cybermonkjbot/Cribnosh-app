@@ -29,6 +29,7 @@ export function CookieSettingsPopup({ isOpen, onClose }: CookieSettingsPopupProp
     if (isOpen) {
       const savedSettings = localStorage.getItem("cookieSettings");
       if (savedSettings) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSettings({ ...JSON.parse(savedSettings), necessary: true });
       }
     }

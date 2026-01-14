@@ -1,8 +1,8 @@
 "use client";
 
+import { Bot, Brain, Check, Info, Shield, Sparkles, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
-import { X, Info, Shield, AlertTriangle, Brain, Sparkles, Check, Bot } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 
 interface Allergen {
   name: string;
@@ -84,17 +84,17 @@ export const AllergenSettingsModal = ({ onClose }: { onClose: () => void }) => {
 
   const handleSave = async () => {
     setIsProcessing(true);
-    
+
     // Simulate processing steps
     for (let i = 0; i < processingSteps.length; i++) {
       setProcessingStep(i);
       await new Promise(resolve => setTimeout(resolve, 1500)); // Each step takes 1.5s
     }
-    
+
     // Show success message
     setIsProcessing(false);
     setShowSuccess(true);
-    
+
     // Close modal after success message
     setTimeout(() => {
       setShowSuccess(false);
@@ -137,7 +137,7 @@ export const AllergenSettingsModal = ({ onClose }: { onClose: () => void }) => {
                       Select your dietary restrictions and allergies
                     </p>
                   </div>
-                  <button 
+                  <button
                     onClick={onClose}
                     className="rounded-full p-2 hover:bg-purple-100  transition-colors"
                     aria-label="Close modal"
@@ -152,20 +152,19 @@ export const AllergenSettingsModal = ({ onClose }: { onClose: () => void }) => {
                 <div className="bg-gradient-to-r from-purple-50 to-blue-50   rounded-lg p-4 flex items-start gap-3">
                   <Info className="text-[#ff3b30] flex-shrink-0 mt-1" />
                   <p className="text-sm text-gray-700  font-Satoshi">
-                    Your allergen settings help us customize your meal recommendations and ensure your safety. 
+                    Your allergen settings help us customize your meal recommendations and ensure your safety.
                     Our chefs will be notified of your restrictions.
                   </p>
                 </div>
 
                 <div className="grid gap-4">
                   {allergens.map((allergen) => (
-                    <div 
+                    <div
                       key={allergen.name}
-                      className={`relative rounded-xl p-4 transition-all duration-200 ${
-                        selectedAllergens.includes(allergen.name)
+                      className={`relative rounded-xl p-4 transition-all duration-200 ${selectedAllergens.includes(allergen.name)
                           ? 'bg-gradient-to-r from-purple-50 to-blue-50   border-purple-200 '
                           : 'bg-gray-50  border-gray-200 '
-                      } border hover:shadow-md`}
+                        } border hover:shadow-md`}
                     >
                       <div className="flex items-center gap-4">
                         <div className="text-2xl">{allergen.icon}</div>
@@ -232,7 +231,7 @@ export const AllergenSettingsModal = ({ onClose }: { onClose: () => void }) => {
                 <div className="absolute -left-4 -top-4 w-8 h-8 rounded-full bg-gradient-to-r from-purple-600 via-[#ff3b30] to-blue-500 flex items-center justify-center text-white shadow-lg">
                   <Bot size={16} />
                 </div>
-                
+
                 {/* Message Bubble */}
                 <motion.div
                   initial={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -258,8 +257,8 @@ export const AllergenSettingsModal = ({ onClose }: { onClose: () => void }) => {
                           Got it!
                         </h3>
                         <p className="text-gray-600  font-Satoshi">
-                          I'll take {selectedAllergens.length > 0 ? 
-                            `${selectedAllergens.join(", ")} out of` : 
+                          I&apos;ll take {selectedAllergens.length > 0 ?
+                            `${selectedAllergens.join(", ")} out of` :
                             "these into account for"} your food experience.
                         </p>
                       </motion.div>
@@ -289,7 +288,7 @@ export const AllergenSettingsModal = ({ onClose }: { onClose: () => void }) => {
                       <motion.div
                         key={index}
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ 
+                        animate={{
                           opacity: processingStep === index ? 1 : 0,
                           y: processingStep === index ? 0 : 20
                         }}
@@ -301,20 +300,19 @@ export const AllergenSettingsModal = ({ onClose }: { onClose: () => void }) => {
                     ))}
                   </div>
                 </motion.div>
-                
+
                 <div className="space-y-2">
                   {processingSteps.map((step, index) => (
                     <motion.p
                       key={index}
                       initial={{ opacity: 0 }}
-                      animate={{ 
+                      animate={{
                         opacity: processingStep === index ? 1 : 0.3
                       }}
-                      className={`text-lg font-Satoshi ${
-                        processingStep === index 
-                          ? 'text-gray-900 ' 
+                      className={`text-lg font-Satoshi ${processingStep === index
+                          ? 'text-gray-900 '
                           : 'text-gray-400 '
-                      }`}
+                        }`}
                     >
                       {step.text}
                     </motion.p>

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 
 type CityTextFlipProps = {
   words: string[];
@@ -35,21 +35,14 @@ export function CityTextFlip({
   const [isVisible, setIsVisible] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // For SEO and performance, allow static text mode
-  if (staticText || words.length <= 1) {
-    return (
-      <div className={cn("inline-block", className)}>
-        <span className={cn("text-current", textClassName)}>
-          {words[0] || ""}
-        </span>
-      </div>
-    );
-  }
-
   // Effect for word rotation
   useEffect(() => {
     // Skip animation for server-side rendering
     if (typeof window === "undefined") return;
+
+    // For SEO and performance, allow static text mode
+    // Don't setup interval if static or limited words
+    if (staticText || words.length <= 1) return;
 
     // Clear any existing interval
     if (intervalRef.current) {
@@ -59,7 +52,7 @@ export function CityTextFlip({
     // Set up the interval for word rotation
     intervalRef.current = setInterval(() => {
       setIsVisible(false);
-      
+
       // After exit animation completes, change the word and fade in
       setTimeout(() => {
         setCurrentIndex((prevIndex) => (prevIndex + 1) % words.length);
@@ -73,7 +66,18 @@ export function CityTextFlip({
         clearInterval(intervalRef.current);
       }
     };
-  }, [words, interval]);
+  }, [words, interval, staticText]);
+
+  // For SEO and performance, allow static text mode
+  if (staticText || words.length <= 1) {
+    return (
+      <div className={cn("inline-block", className)}>
+        <span className={cn("text-current", textClassName)}>
+          {words[0] || ""}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("inline-block overflow-hidden", className)}>

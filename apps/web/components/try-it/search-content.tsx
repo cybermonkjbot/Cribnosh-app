@@ -88,6 +88,7 @@ export default function SearchContent() {
   useEffect(() => {
     const query = searchParams.get('q');
     if (query) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSearchQuery(query);
       handleSearch(query);
     }
@@ -161,7 +162,7 @@ export default function SearchContent() {
             What do you want to eat today?
           </h1>
           <p className="text-lg md:text-xl text-slate-600  mb-12">
-            Tell me exactly what you want, and I'll find the perfect meal for you
+            Tell me exactly what you want, and I&apos;ll find the perfect meal for you
           </p>
 
           <TryItSearch

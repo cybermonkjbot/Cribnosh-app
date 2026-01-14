@@ -164,6 +164,12 @@ export const FollowPointer = ({
   );
   const isBrandTheme = currentSectionTheme === 'brand';
 
+  /* eslint-disable react-hooks/set-state-in-effect */
+  const [randomColor, setRandomColor] = useState(currentColors[0]);
+  useEffect(() => {
+    setRandomColor(currentColors[Math.floor(Math.random() * currentColors.length)]);
+  }, [currentColors]);
+
   return (
     <motion.div
       className="absolute z-[9999999] h-4 w-4 rounded-full following-pointer"
@@ -206,7 +212,7 @@ export const FollowPointer = ({
       </svg>
       <motion.div
         style={{
-          backgroundColor: useMemo(() => currentColors[Math.floor(Math.random() * currentColors.length)], [currentColors]),
+          backgroundColor: randomColor,
         }}
         initial={{
           scale: 0.5,

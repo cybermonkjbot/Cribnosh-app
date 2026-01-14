@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useTheme } from "next-themes";
-import { Sun, Moon } from "lucide-react";
-import { motion } from "motion/react";
-import { env } from "@/lib/config/env";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { env } from "@/lib/config/env";
+import { Moon, Sun } from "lucide-react";
+import { motion } from "motion/react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 /**
  * Renders a button that toggles between light and dark themes, with animated icon transitions.
@@ -21,6 +21,7 @@ export function ThemeSwitcher() {
 
   // Avoid hydration mismatch
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

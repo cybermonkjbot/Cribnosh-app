@@ -1,6 +1,5 @@
 'use client';
 
-import * as React from "react"
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -12,9 +11,11 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-} from "@tanstack/react-table"
+} from "@tanstack/react-table";
+import * as React from "react";
 
 // Custom input component
+// eslint-disable-next-line react/prop-types
 const Input = ({
   className = '',
   type = 'text',
@@ -142,7 +143,7 @@ export function DataTable<TData, TValue>({
           className="max-w-sm"
         />
       </div>
-      
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -154,9 +155,9 @@ export function DataTable<TData, TValue>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   )
                 })}
@@ -190,7 +191,7 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      
+
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="text-sm text-muted-foreground">
           Showing {table.getFilteredRowModel().rows.length} pay slip(s)

@@ -1,18 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Award, ShieldCheck, Home, ChefHat } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { useMobileDevice } from '@/hooks/use-mobile-device';
+import { Award, ChefHat, Home, ShieldCheck } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMobileDevice } from '@/hooks/use-mobile-device';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 const CertifiedKitchensFloat = () => {
-  if (process.env.NEXT_PUBLIC_DISABLE_CERTIFIED_KITCHENS_FLOAT === 'true') {
-    return null;
-  }
-
   const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -26,20 +22,20 @@ const CertifiedKitchensFloat = () => {
   });
 
   const colorMap = {
-    'dark': { 
-      text: 'text-white', 
+    'dark': {
+      text: 'text-white',
       border: 'border-white/30',
       background: 'bg-white/20',
       iconColor: 'text-[#ff3b30]'
     },
-    'light': { 
-      text: 'text-gray-900', 
+    'light': {
+      text: 'text-gray-900',
       border: 'border-gray-900/30',
       background: 'bg-gray-900/10',
       iconColor: 'text-[#ff3b30]'
     },
-    'brand': { 
-      text: 'text-white', 
+    'brand': {
+      text: 'text-white',
       border: 'border-[#ff5e54]/30',
       background: 'bg-white/20',
       iconColor: 'text-white'
@@ -58,7 +54,7 @@ const CertifiedKitchensFloat = () => {
   useEffect(() => {
     const handleScroll = () => {
       const sections = document.querySelectorAll<HTMLElement>('[data-section-theme]');
-      
+
       let currentTheme = 'dark'; // Default fallback
       sections.forEach(section => {
         const rect = section.getBoundingClientRect();
@@ -76,6 +72,10 @@ const CertifiedKitchensFloat = () => {
     handleScroll(); // Initial call
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  if (process.env.NEXT_PUBLIC_DISABLE_CERTIFIED_KITCHENS_FLOAT === 'true') {
+    return null;
+  }
 
   const handleClick = () => {
     if (isMobile) {
@@ -131,7 +131,7 @@ const CertifiedKitchensFloat = () => {
               <p className="text-gray-700 text-sm leading-relaxed">
                 Every Cribnosh kitchen is thoroughly vetted and regularly inspected to ensure the highest standards of food safety and quality.
               </p>
-              
+
               <div className="space-y-2.5">
                 <div className="flex items-center gap-3 text-sm text-gray-700">
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-50 to-green-100/50 backdrop-blur-sm flex items-center justify-center shadow-inner">
@@ -139,14 +139,14 @@ const CertifiedKitchensFloat = () => {
                   </div>
                   <span>Regular on-site hygiene inspections</span>
                 </div>
-                
+
                 <div className="flex items-center gap-3 text-sm text-gray-700">
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-50 to-blue-100/50 backdrop-blur-sm flex items-center justify-center shadow-inner">
                     <ShieldCheck className="w-4 h-4 text-blue-600" />
                   </div>
                   <span>Food safety certification required</span>
                 </div>
-                
+
                 <div className="flex items-center gap-3 text-sm text-gray-700">
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-amber-50 to-amber-100/50 backdrop-blur-sm flex items-center justify-center shadow-inner">
                     <Award className="w-4 h-4 text-amber-600" />
@@ -191,7 +191,7 @@ const CertifiedKitchensFloat = () => {
           before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/10 before:to-transparent before:pointer-events-none
           after:absolute after:inset-0 after:bg-gradient-to-t after:from-black/5 after:to-transparent after:pointer-events-none`}
       >
-        <Award 
+        <Award
           className={`w-5 h-5 ${themeStyle.iconColor} transition-colors relative z-10`}
           strokeWidth={2.5}
         />
@@ -201,7 +201,7 @@ const CertifiedKitchensFloat = () => {
       </button>
 
       {isExpanded && isMobile && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90]"
           onClick={() => setIsExpanded(false)}
         />
@@ -218,8 +218,8 @@ const CertifiedKitchensFloat = () => {
               border border-white/20 z-[95]"
           >
             <div className="flex items-center gap-2 mb-4">
-              <Award 
-                className="w-6 h-6 text-[#ff3b30]" 
+              <Award
+                className="w-6 h-6 text-[#ff3b30]"
                 strokeWidth={2.5}
               />
               <h3 className="text-lg font-semibold text-gray-900">Food Hygiene Rating</h3>
@@ -255,7 +255,7 @@ const CertifiedKitchensFloat = () => {
               <span className="relative z-10">View Certification Details</span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
-            
+
             <button
               onClick={() => setIsExpanded(false)}
               className="mt-3 block w-full text-gray-500 text-center py-2 active:opacity-60"

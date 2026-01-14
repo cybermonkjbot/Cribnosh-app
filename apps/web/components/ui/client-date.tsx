@@ -5,6 +5,7 @@ export default function ClientDate({ date }: { date: number | string }) {
   const [formatted, setFormatted] = useState("");
   useEffect(() => {
     const d = typeof date === "number" ? new Date(date) : new Date(Date.parse(date));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFormatted(d.toLocaleString());
   }, [date]);
   return <span className="ml-2 text-xs text-gray-600">{formatted}</span>;
