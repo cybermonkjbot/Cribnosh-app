@@ -37,7 +37,7 @@ export interface AuthenticatedUser {
 /**
  * Alias for backward compatibility
  */
-export interface AuthenticatedCustomer extends AuthenticatedUser {}
+export type AuthenticatedCustomer = AuthenticatedUser;
 
 /**
  * Extract session token from request (cookie or header)
@@ -79,9 +79,9 @@ export function extractSessionToken(request: NextRequest): string | null {
  */
 async function validateSessionToken(sessionToken: string): Promise<AuthenticatedUser | null> {
   const convex = getConvexClient();
-  // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
-  const user = await convex.query(api.queries.users.getUserBySessionToken, { 
-    sessionToken 
+  // @ts-expect-error - Type instantiation is excessively deep (Convex type inference issue)
+  const user = await convex.query(api.queries.users.getUserBySessionToken, {
+    sessionToken
   });
 
   if (!user) {
@@ -146,7 +146,7 @@ async function getAuthenticatedUserBase(
 ): Promise<AuthenticatedUser> {
   // Fast check: Fail immediately if no token exists (no Convex call)
   const sessionToken = extractSessionToken(request);
-  
+
   if (sessionToken) {
     const user = await validateSessionToken(sessionToken);
     if (user) {
@@ -192,7 +192,7 @@ export async function getAuthenticatedUser(
       throw new AuthenticationError('Missing or invalid authentication token');
     }
   }
-  
+
   return getAuthenticatedUserBase(request);
 }
 
@@ -223,7 +223,7 @@ export async function getAuthenticatedCustomer(
       throw new AuthenticationError('Missing or invalid authentication token');
     }
   }
-  
+
   const { user } = await getAuthenticatedUserBase(request);
   const convex = getConvexClient();
 
@@ -242,7 +242,7 @@ export async function getAuthenticatedCustomer(
       throw new AuthenticationError('Failed to extract session token for role update');
     }
 
-    const updatedUser = await convex.query(api.queries.users.getUserBySessionToken, { 
+    const updatedUser = await convex.query(api.queries.users.getUserBySessionToken, {
       sessionToken
     });
 

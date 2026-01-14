@@ -27,15 +27,15 @@ const ENCODING_FIXES = [
   { from: /â€'/g, to: '–' },
   { from: /â€"/g, to: '–' },
   { from: /â€'/g, to: '–' },
-  
+
   // Malformed apostrophes and quotes
   { from: /â€™/g, to: "'" },
   { from: /â€œ/g, to: '"' },
   { from: /â€/g, to: '"' },
-  
+
   // Malformed bullets
   { from: /â€¢/g, to: '•' },
-  
+
   // Malformed accented characters
   { from: /entrÃ©e/g, to: 'entrée' },
   { from: /Ã©/g, to: 'é' },
@@ -47,15 +47,15 @@ const ENCODING_FIXES = [
   { from: /Ã¹/g, to: 'ù' },
   { from: /Ã®/g, to: 'î' },
   { from: /Ã¯/g, to: 'ï' },
-  
+
   // Temperature symbols
   { from: /Â°C/g, to: '°C' },
   { from: /Â°F/g, to: '°F' },
-  
+
   // Other common issues
   { from: /â€¦/g, to: '…' },
   { from: /â€"/g, to: '–' },
-  
+
   // Invisible/zero-width characters (often used in email templates)
   { from: /â€Œ/g, to: '' },  // Zero-width non-joiner
   { from: /â€‹/g, to: '' },  // Zero-width space
@@ -63,7 +63,7 @@ const ENCODING_FIXES = [
   { from: /â€Ž/g, to: '' },  // Left-to-right mark
   { from: /â€/g, to: '' },   // Right-to-left mark
   { from: /ï»¿/g, to: '' },  // Zero-width no-break space (BOM)
-  
+
   // Additional invisible characters
   { from: /\u200B/g, to: '' },  // Zero-width space
   { from: /\u200C/g, to: '' },  // Zero-width non-joiner
@@ -196,7 +196,7 @@ export function sanitizeByUsPost(post: ByUsPost): ByUsPost {
  */
 export function validateContent(content: string): { isValid: boolean; issues: string[] } {
   const issues: string[] = [];
-  
+
   // Check for common malformed characters
   const malformedPatterns = [
     { pattern: /â€'|â€"|â€'/g, message: 'Malformed en-dash detected' },
@@ -206,6 +206,7 @@ export function validateContent(content: string): { isValid: boolean; issues: st
     { pattern: /Â°[CF]/g, message: 'Malformed temperature symbol detected' },
     { pattern: /Ã[aeiouàâäéèêëïîôùûüÿç]/g, message: 'Malformed accented character detected' },
     { pattern: /â€Œ|â€‹|â€|â€Ž|â€|ï»¿/g, message: 'Invisible character detected' },
+    // eslint-disable-next-line no-misleading-character-class
     { pattern: /[\u200B\u200C\u200D\u200E\u200F\uFEFF]/g, message: 'Invisible character detected' },
   ];
 

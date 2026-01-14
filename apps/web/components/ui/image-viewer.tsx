@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import { ScrollToTop } from "@/components/ui/scroll-to-top";
+import { useEffect, useState } from "react";
 
 interface ImageViewerProps {
   images: string[];
@@ -30,10 +29,21 @@ export function ImageViewer({ images, initialIndex = 0, isOpen, onClose }: Image
     };
   }, [isOpen]);
 
+  const navigateImages = (direction: "next" | "prev") => {
+    setLoading(true);
+    setDirection(direction === "next" ? 1 : -1);
+
+    if (direction === "next") {
+      setCurrentIndex(prev => (prev + 1) % images.length);
+    } else {
+      setCurrentIndex(prev => (prev - 1 + images.length) % images.length);
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
-      
+
       switch (e.key) {
         case "ArrowLeft":
           navigateImages("prev");
@@ -51,16 +61,7 @@ export function ImageViewer({ images, initialIndex = 0, isOpen, onClose }: Image
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, currentIndex, onClose]);
 
-  const navigateImages = (direction: "next" | "prev") => {
-    setLoading(true);
-    setDirection(direction === "next" ? 1 : -1);
-    
-    if (direction === "next") {
-      setCurrentIndex(prev => (prev + 1) % images.length);
-    } else {
-      setCurrentIndex(prev => (prev - 1 + images.length) % images.length);
-    }
-  };
+
 
   const slideVariants = {
     enter: (direction: number) => ({
@@ -97,8 +98,8 @@ export function ImageViewer({ images, initialIndex = 0, isOpen, onClose }: Image
             // Show close hint when mouse is near edges
             const { clientX, clientY } = e;
             const { innerWidth, innerHeight } = window;
-            const nearEdge = clientX < 50 || clientX > innerWidth - 50 || 
-                           clientY < 50 || clientY > innerHeight - 50;
+            const nearEdge = clientX < 50 || clientX > innerWidth - 50 ||
+              clientY < 50 || clientY > innerHeight - 50;
             setShowCloseHint(nearEdge);
           }}
         >

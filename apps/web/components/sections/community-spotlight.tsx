@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { motion } from "motion/react";
-import { DraggableCardContainer, DraggableCardBody } from "../ui/dragablecards";
-import Image from "next/image";
-import { ThoughtBubble } from "../ui/thought-bubble";
-import ExpandableCardDemo from "../ui/expandable-card-standard";
-import { ChatBubble } from "../ui/chat-bubble";
 import { Send } from "lucide-react";
-import { toast, Toaster } from 'sonner';
+import { motion } from "motion/react";
+import Image from "next/image";
 import Link from "next/link";
+import React, { useEffect, useRef, useState } from "react";
+import { toast, Toaster } from 'sonner';
+import { ChatBubble } from "../ui/chat-bubble";
+import { DraggableCardBody, DraggableCardContainer } from "../ui/dragablecards";
+import ExpandableCardDemo from "../ui/expandable-card-standard";
+import { ThoughtBubble } from "../ui/thought-bubble";
 
 interface Card {
   title: string;
@@ -19,6 +19,15 @@ interface Card {
   ctaLink: string;
   content: () => React.ReactNode;
 }
+
+// Deterministic rotation based on ID
+const getRotation = (id: string) => {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return (hash % 6) - 3;
+};
 
 interface CommunityPost {
   id: string;
@@ -47,14 +56,14 @@ const ShareThoughtCard = ({ onSubmit, onClose }: { onSubmit: (post: CommunityPos
         story: story.trim(),
         likes: 0
       };
-      
+
       // Show the toast notification
       toast.success('Story submitted!', {
         description: 'Your story will be reviewed and shared with the community soon.',
         duration: 5000,
         className: 'font-["Satoshi"]'
       });
-      
+
       onSubmit(newPost);
       onClose();
       setStep(0);
@@ -91,7 +100,7 @@ const ShareThoughtCard = ({ onSubmit, onClose }: { onSubmit: (post: CommunityPos
     <div className="space-y-6 p-4 relative z-[60]">
       <div className="space-y-6">
         {/* AI Message */}
-        <ChatBubble 
+        <ChatBubble
           message="Hi there! I'd love to hear your CribNosh story. Let's start with your name..."
           className="bg-gradient-to-br from-amber-50 to-orange-50  "
         />
@@ -136,7 +145,7 @@ const ShareThoughtCard = ({ onSubmit, onClose }: { onSubmit: (post: CommunityPos
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <ChatBubble 
+            <ChatBubble
               message={`Nice to meet you, ${name}! How has CribNosh impacted your culinary journey?`}
               className="bg-gradient-to-br from-amber-50 to-orange-50  "
             />
@@ -236,7 +245,7 @@ export function CommunitySpotlightSection() {
         </div>
 
         <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 mb-8 md:mb-12">
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
@@ -245,7 +254,7 @@ export function CommunitySpotlightSection() {
           >
             Our community is at the heart of everything we do. Drag the cards to explore stories from CribNosh users who have discovered new flavors and connected with their cultural roots.
           </motion.p>
-          
+
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -261,7 +270,7 @@ export function CommunitySpotlightSection() {
 
         <ExpandableCardDemo cards={shareThoughtCards} />
 
-        <motion.div 
+        <motion.div
           className="relative flex flex-wrap justify-center gap-3 md:gap-8"
           layout
         >
@@ -276,16 +285,16 @@ export function CommunitySpotlightSection() {
                 position: post.id.startsWith('post') ? 'relative' : 'absolute',
                 top: post.id.startsWith('post') ? 'auto' : '0',
                 zIndex: post.id.startsWith('post') ? 1 : 50,
-                transform: post.id.startsWith('post') ? 'none' : `rotate(${Math.random() * 6 - 3}deg)`,
+                transform: post.id.startsWith('post') ? 'none' : `rotate(${getRotation(post.id)}deg)`,
               }}
               className={post.id.startsWith('post') ? '' : 'hover:z-50 transition-all duration-300 hover:-translate-y-2'}
             >
               <DraggableCardContainer>
-                <DraggableCardBody 
+                <DraggableCardBody
                   className={`w-[calc(100vw-24px)] sm:w-[350px] bg-white/90  backdrop-blur-sm p-0 overflow-hidden ${!post.id.startsWith('post') ? 'shadow-xl' : ''}`}
                   data-cursor-text="Drag to explore this story"
                 >
-                  <div 
+                  <div
                     className="relative h-40 sm:h-48 w-full"
                     data-cursor-text={`📸 ${post.mealName} by @${post.username}`}
                   >
@@ -300,9 +309,9 @@ export function CommunitySpotlightSection() {
                       <h3 className="text-lg sm:text-xl font-bold font-['Asgard']">{post.mealName}</h3>
                     </div>
                   </div>
-                  
+
                   <div className="px-5 pt-5 pb-4 sm:p-5">
-                    <div 
+                    <div
                       className="flex items-center mb-4"
                       data-cursor-text={`Meet @${post.username}`}
                     >
@@ -316,13 +325,13 @@ export function CommunitySpotlightSection() {
                       </div>
                       <p className="font-medium text-sm sm:text-base font-['Satoshi']">@{post.username}</p>
                     </div>
-                    
+
                     <p className="text-sm sm:text-base text-gray-600  mb-5 font-['Satoshi'] leading-relaxed">
                       "{post.story}"
                     </p>
-                    
+
                     <div className="flex justify-between items-center">
-                      <div 
+                      <div
                         className="flex items-center gap-1.5"
                         data-cursor-text={`${post.likes} community members loved this`}
                       >
@@ -333,8 +342,8 @@ export function CommunitySpotlightSection() {
                           {post.likes}
                         </span>
                       </div>
-                      
-                      <Link 
+
+                      <Link
                         href={`/story/${post.id}`}
                         className="text-sm text-[#ff3b30] hover:text-[#ff5e54] font-medium font-['Satoshi'] flex items-center gap-1"
                         data-cursor-text="View full story"

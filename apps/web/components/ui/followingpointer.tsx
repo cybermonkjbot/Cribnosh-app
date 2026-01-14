@@ -1,12 +1,12 @@
 "use client";
 // Core component that receives mouse positions and renders pointer and content
 
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { motion, AnimatePresence, useMotionValue } from "motion/react";
-import { cn } from "@/lib/utils";
-import { useTheme } from "next-themes";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { env } from "@/lib/config/env";
+import { cn } from "@/lib/utils";
+import { AnimatePresence, motion, useMotionValue } from "motion/react";
+import { useTheme } from "next-themes";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 export const FollowerPointerCard = ({
   children,
@@ -125,7 +125,7 @@ export const FollowPointer = ({
       }
     `;
     document.head.appendChild(styleElement);
-    
+
     return () => {
       document.head.removeChild(styleElement);
     };
@@ -158,8 +158,8 @@ export const FollowPointer = ({
   // Memoize these values to prevent unnecessary recalculations
   const currentColors = useMemo(() => colors[currentSectionTheme], [currentSectionTheme]);
   // When dark mode is disabled, always use light theme styling but keep section theming
-  const isDarkTheme = useMemo(() => 
-    (env.DISABLE_DARK_MODE ? false : theme === 'dark') || currentSectionTheme === 'dark', 
+  const isDarkTheme = useMemo(() =>
+    (env.DISABLE_DARK_MODE ? false : theme === 'dark') || currentSectionTheme === 'dark',
     [theme, currentSectionTheme]
   );
   const isBrandTheme = currentSectionTheme === 'brand';
@@ -206,7 +206,7 @@ export const FollowPointer = ({
       </svg>
       <motion.div
         style={{
-          backgroundColor: currentColors[Math.floor(Math.random() * currentColors.length)],
+          backgroundColor: useMemo(() => currentColors[Math.floor(Math.random() * currentColors.length)], [currentColors]),
         }}
         initial={{
           scale: 0.5,

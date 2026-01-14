@@ -54,14 +54,14 @@ export default function OrderAnalyticsDashboard({
   groupBy = 'day'
 }: OrderAnalyticsDashboardProps) {
   const { sessionToken } = useAdminUser();
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState(() => ({
     startDate: startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: endDate || new Date().toISOString().split('T')[0],
     chefId: chefId || '',
     customerId: customerId || '',
     status: status || '',
     groupBy
-  });
+  }));
 
   // Get order analytics from Convex
   const analytics = useQuery(api.queries.analytics.getOrderAnalytics, sessionToken ? {

@@ -527,9 +527,9 @@ export default function WaitlistPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       </motion.div>
-                      <h2 className="font-asgard text-3xl text-gray-900 mb-4">You're on the list!</h2>
+                      <h2 className="font-asgard text-3xl text-gray-900 mb-4">You&apos;re on the list!</h2>
                       <p className="font-satoshi text-gray-600 mb-4">
-                        Thanks for joining our waitlist. We'll be in touch soon with exciting updates about our launch in your area.
+                        Thanks for joining our waitlist. We&apos;ll be in touch soon with exciting updates about our launch in your area.
                       </p>
                       {syncStatus === 'pending' && (
                         <p className="text-amber-600 text-sm">
@@ -543,7 +543,7 @@ export default function WaitlistPage() {
                       )}
                       {syncStatus === 'error' && (
                         <p className="text-red-600 text-sm">
-                          There was an issue syncing your information, but don't worry - you're still on the list!
+                          There was an issue syncing your information, but don&apos;t worry - you&apos;re still on the list!
                         </p>
                       )}
                       <SocialFollowPromo />
@@ -637,7 +637,7 @@ export default function WaitlistPage() {
                             transition={{ type: "spring", stiffness: 400 }}
                           >
                             <p className="text-sm text-amber-800">
-                              By joining our waitlist, you'll get <Link href="/early-access-perks" className="text-[#ff3b30] font-medium hover:underline">exclusive early access perks</Link> when we launch in your area.
+                              By joining our waitlist, you&apos;ll get <Link href="/early-access-perks" className="text-[#ff3b30] font-medium hover:underline">exclusive early access perks</Link> when we launch in your area.
                             </p>
                           </motion.div>
                         </div>
@@ -663,10 +663,10 @@ export default function WaitlistPage() {
                           >
                             <div className="flex items-center gap-2 mb-2">
                               <CheckCircle className="w-5 h-5 text-green-600" />
-                              <p className="text-green-800 font-semibold">You're already on our waitlist!</p>
+                              <p className="text-green-800 font-semibold">You&apos;re already on our waitlist!</p>
                             </div>
                             <p className="text-green-700 text-sm">
-                              Thanks for your interest! We'll notify you as soon as we launch in your area.
+                              Thanks for your interest! We&apos;ll notify you as soon as we launch in your area.
                               <Link href="/referral" className="text-[#ff3b30] font-medium hover:underline ml-1">
                                 Start earning rewards with referrals →
                               </Link>

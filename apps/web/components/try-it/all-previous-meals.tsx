@@ -9,7 +9,7 @@ import { useConvex } from "convex/react";
 import { ArrowLeft, ChefHat, Clock, Filter, Search, Star } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface AllPreviousMealsProps {
   onClose: () => void;
@@ -51,33 +51,38 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
   });
 
   // Transform meals for display with real data
-  const transformedMeals = (previousMeals as any[]).map((meal: any, index: number) => {
-    // Calculate real date based on creation time
-    const now = Date.now();
-    const mealDate = meal._creationTime || meal.createdAt || now;
-    const daysDiff = Math.floor((now - mealDate) / (1000 * 60 * 60 * 24));
-    
-    let dateString = "Recently";
-    if (daysDiff === 0) dateString = "Today";
-    else if (daysDiff === 1) dateString = "Yesterday";
-    else if (daysDiff < 7) dateString = `${daysDiff} days ago`;
-    else if (daysDiff < 14) dateString = "Last week";
-    else if (daysDiff < 30) dateString = `${Math.floor(daysDiff / 7)} weeks ago`;
-    else if (daysDiff < 365) dateString = `${Math.floor(daysDiff / 30)} months ago`;
-    else dateString = `${Math.floor(daysDiff / 365)} years ago`;
+  // Transform meals for display with real data
+  // Transform meals for display with real data
+  const transformedMeals = useMemo(() => {
+    const now = new Date().getTime();
+    return (previousMeals as any[]).map((meal: any, index: number) => {
+      // Calculate real date based on creation time
+      // Use a stable reference time for relative dates to avoid hydration mismatch
+      const mealDate = meal._creationTime || meal.createdAt || now;
+      const daysDiff = Math.floor((now - mealDate) / (1000 * 60 * 60 * 24));
 
-    return {
-      ...meal,
-      id: index + 1,
-      title: meal.name || 'Unknown Meal',
-      chef: meal.chef?.name || `Chef ${meal.chefId || 'Unknown'}`,
-      image: meal.images?.[0] || "/kitchenillus.png",
-      date: dateString,
-      rating: meal.averageRating || meal.rating || 4.5,
-      price: `$${(meal.price || 0).toFixed(2)}`,
-      category: meal.cuisine?.[0] || "Chef's Special"
-    };
-  });
+      let dateString = "Recently";
+      if (daysDiff === 0) dateString = "Today";
+      else if (daysDiff === 1) dateString = "Yesterday";
+      else if (daysDiff < 7) dateString = `${daysDiff} days ago`;
+      else if (daysDiff < 14) dateString = "Last week";
+      else if (daysDiff < 30) dateString = `${Math.floor(daysDiff / 7)} weeks ago`;
+      else if (daysDiff < 365) dateString = `${Math.floor(daysDiff / 30)} months ago`;
+      else dateString = `${Math.floor(daysDiff / 365)} years ago`;
+
+      return {
+        ...meal,
+        id: index + 1,
+        title: meal.name || 'Unknown Meal',
+        chef: meal.chef?.name || `Chef ${meal.chefId || 'Unknown'}`,
+        image: meal.images?.[0] || "/kitchenillus.png",
+        date: dateString,
+        rating: meal.averageRating || meal.rating || 4.5,
+        price: `$${(meal.price || 0).toFixed(2)}`,
+        category: meal.cuisine?.[0] || "Chef's Special"
+      };
+    });
+  }, [previousMeals]);
 
   // Group meals by month
   const groupedMeals = transformedMeals.reduce<Record<string, any[]>>((acc: Record<string, any[]>, meal: any) => {
@@ -102,7 +107,7 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
     >
       {/* Main site header placeholder - adjust for mobile */}
       <div className="h-14 md:h-16"></div>
-      
+
       {/* Fixed header - mobile optimized */}
       <div className="sticky top-0 left-0 right-0 h-14 md:h-16 bg-white/90  backdrop-blur-sm border-b border-slate-200  z-40">
         <div className="container mx-auto px-3 md:px-4 h-full flex items-center justify-between">
@@ -116,7 +121,7 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
             </button>
             <h2 className="text-lg md:text-xl font-semibold">Previous Meals</h2>
           </div>
-          
+
           <div className="flex items-center gap-1 md:gap-2">
             <button className="p-1.5 md:p-2 rounded-full hover:bg-slate-100  transition-colors active:scale-95">
               <Search size={isDesktop ? 20 : 18} className="text-slate-600 " />
@@ -140,8 +145,8 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
           // Error state
           <div className="flex flex-col items-center justify-center py-12">
             <p className="text-slate-600 mb-4">Failed to load previous meals</p>
-            <button 
-              onClick={() => window.location.reload()} 
+            <button
+              onClick={() => window.location.reload()}
               className="px-4 py-2 bg-[#ff3b30] text-white rounded-lg hover:bg-[#ff5e54] transition-colors"
             >
               Try Again
@@ -161,27 +166,26 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
                 {filterButtons.map((filter) => (
                   <button
                     key={filter}
-                    onClick={() => setActiveFilters(prev => 
+                    onClick={() => setActiveFilters(prev =>
                       prev.includes(filter) ? prev.filter(f => f !== filter) : [...prev, filter]
                     )}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors whitespace-nowrap ${
-                      activeFilters.includes(filter)
-                        ? "bg-[#ff3b30] text-white border-[#ff3b30]"
-                        : "bg-white  border-slate-200 "
-                    }`}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors whitespace-nowrap ${activeFilters.includes(filter)
+                      ? "bg-[#ff3b30] text-white border-[#ff3b30]"
+                      : "bg-white  border-slate-200 "
+                      }`}
                   >
                     <span>{filter}</span>
                   </button>
                 ))}
               </div>
             </div>
-        
-                         {/* Meal listings by month - mobile optimized */}
-             {Object.entries(groupedMeals).map(([month, meals]) => (
-               <div key={month} className="mb-6 md:mb-8">
-                 <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 px-1">{month}</h3>
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                   {meals.map((meal: any) => (
+
+            {/* Meal listings by month - mobile optimized */}
+            {Object.entries(groupedMeals).map(([month, meals]: [string, any[]]) => (
+              <div key={month} className="mb-6 md:mb-8">
+                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 px-1">{month}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                  {meals.map((meal: any) => (
                     <motion.div
                       key={meal.id}
                       className="bg-white  rounded-xl overflow-hidden shadow-sm border border-slate-200 "
@@ -212,7 +216,7 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
                             </div>
                             <span className="font-bold text-sm md:text-base text-[#ff3b30]">{meal.price}</span>
                           </div>
-                          
+
                           <div className="flex items-center justify-between mt-1 md:mt-2">
                             <div className="flex items-center">
                               <Clock size={12} className="mr-1 text-slate-500" />
@@ -225,7 +229,7 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="border-t border-slate-100  p-2 md:p-3 flex justify-between items-center">
                         <span className="text-xs bg-slate-100  px-2 py-0.5 rounded-full">
                           {meal.category}

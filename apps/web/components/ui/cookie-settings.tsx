@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useState } from "react";
 
 interface CookieSettings {
   necessary: boolean;
@@ -55,24 +55,7 @@ export function CookieSettingsPopup({ isOpen, onClose }: CookieSettingsPopupProp
     onClose();
   };
 
-  const Toggle = ({ checked, onChange, disabled = false }: { checked: boolean; onChange?: (checked: boolean) => void; disabled?: boolean }) => (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => !disabled && onChange?.(!checked)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-        checked ? 'bg-[#ff3b30]' : 'bg-gray-200'
-      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-      disabled={disabled}
-    >
-      <span
-        className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-          checked ? 'translate-x-6' : 'translate-x-1'
-        }`}
-      />
-    </button>
-  );
+
 
   return (
     <AnimatePresence>
@@ -179,4 +162,21 @@ export function CookieSettingsPopup({ isOpen, onClose }: CookieSettingsPopupProp
       )}
     </AnimatePresence>
   );
-} 
+}
+
+const Toggle = ({ checked, onChange, disabled = false }: { checked: boolean; onChange?: (checked: boolean) => void; disabled?: boolean }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    onClick={() => !disabled && onChange?.(!checked)}
+    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? 'bg-[#ff3b30]' : 'bg-gray-200'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+    disabled={disabled}
+  >
+    <span
+      className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'
+        }`}
+    />
+  </button>
+); 

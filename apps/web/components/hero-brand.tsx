@@ -2,6 +2,7 @@
 
 import { CategoryPreview } from "@/components/ui/category-preview";
 import { ContainerTextFlip } from "@/components/ui/containedtextflip";
+import { useMobileDevice } from "@/hooks/use-mobile-device";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion, useScroll, useTransform } from "motion/react";
 import Image from "next/image";
@@ -11,7 +12,7 @@ import { HeroBrandPage2 } from "./hero-brand-page-2";
 import { HeroBrandPage3 } from "./hero-brand-page-3";
 
 // Define the valid category types
-type CategoryType = 
+type CategoryType =
   | "Vibrant Flavors"
   | "Hygienic Standards"
   | "Cultural Roots"
@@ -24,12 +25,12 @@ export function HeroBrand({ className }: { className?: string }) {
   const [hoveredCategory, setHoveredCategory] = useState<CategoryType | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [currentPage, setCurrentPage] = useState<1 | 2 | 3>(1);
-  const [isMobile, setIsMobile] = useState(false);
+  const { isMobile } = useMobileDevice();
   const [touchTimeout, setTouchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [autoSwitchPaused, setAutoSwitchPaused] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [imageError, setImageError] = useState(false);
-  
+
   // Handle iPhone interactions
   const handleIPhoneInteractionStart = () => {
     setAutoSwitchPaused(true);
@@ -80,18 +81,7 @@ export function HeroBrand({ className }: { className?: string }) {
     }, 15000);
   };
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-    };
-  }, []);
+
 
   // Clear any existing touch timeout when component unmounts
   useEffect(() => {
@@ -153,43 +143,43 @@ export function HeroBrand({ className }: { className?: string }) {
     cursorText: string;
     href: string;
   }> = [
-    { 
-      text: "Vibrant Flavors", 
-      delay: isMobile ? 0.04 : 0.2,
-      cursorText: "Experience bold, authentic tastes from around the world",
-      href: "/values/vibrant-flavors"
-    },
-    { 
-      text: "Hygienic Standards", 
-      delay: isMobile ? 0.06 : 0.3,
-      cursorText: "Every kitchen certified to the highest safety standards",
-      href: "/values/hygienic-standards"
-    },
-    { 
-      text: "Cultural Roots", 
-      delay: isMobile ? 0.08 : 0.4,
-      cursorText: "Preserving authentic recipes and cooking traditions",
-      href: "/values/cultural-roots"
-    },
-    { 
-      text: "Family Traditions", 
-      delay: isMobile ? 0.1 : 0.5,
-      cursorText: "Recipes passed down through generations",
-      href: "/values/family-traditions"
-    },
-    { 
-      text: "Healthy Choices", 
-      delay: isMobile ? 0.12 : 0.6,
-      cursorText: "Nutritious meals tailored to your dietary needs",
-      href: "/values/healthy-choices"
-    },
-    { 
-      text: "Sustainable Practices", 
-      delay: isMobile ? 0.14 : 0.7,
-      cursorText: "Eco-friendly cooking with local ingredients",
-      href: "/values/sustainable-practices"
-    }
-  ];
+      {
+        text: "Vibrant Flavors",
+        delay: isMobile ? 0.04 : 0.2,
+        cursorText: "Experience bold, authentic tastes from around the world",
+        href: "/values/vibrant-flavors"
+      },
+      {
+        text: "Hygienic Standards",
+        delay: isMobile ? 0.06 : 0.3,
+        cursorText: "Every kitchen certified to the highest safety standards",
+        href: "/values/hygienic-standards"
+      },
+      {
+        text: "Cultural Roots",
+        delay: isMobile ? 0.08 : 0.4,
+        cursorText: "Preserving authentic recipes and cooking traditions",
+        href: "/values/cultural-roots"
+      },
+      {
+        text: "Family Traditions",
+        delay: isMobile ? 0.1 : 0.5,
+        cursorText: "Recipes passed down through generations",
+        href: "/values/family-traditions"
+      },
+      {
+        text: "Healthy Choices",
+        delay: isMobile ? 0.12 : 0.6,
+        cursorText: "Nutritious meals tailored to your dietary needs",
+        href: "/values/healthy-choices"
+      },
+      {
+        text: "Sustainable Practices",
+        delay: isMobile ? 0.14 : 0.7,
+        cursorText: "Eco-friendly cooking with local ingredients",
+        href: "/values/sustainable-practices"
+      }
+    ];
 
   // Track scroll position to hide/show navigation
   useEffect(() => {
@@ -201,7 +191,7 @@ export function HeroBrand({ className }: { className?: string }) {
   }, [scrollYProgress]);
 
   return (
-    <div 
+    <div
       className="relative"
       onMouseEnter={() => setAutoSwitchPaused(true)}
       onMouseLeave={() => {
@@ -215,11 +205,11 @@ export function HeroBrand({ className }: { className?: string }) {
     >
       <AnimatePresence mode="wait">
         {currentPage === 1 ? (
-          <motion.section 
+          <motion.section
             key="page1"
             data-section-theme="brand"
             className={cn(
-              "relative bg-gradient-to-br from-[#ff3b30] to-[#ff5e54] text-white min-h-screen w-full flex items-center justify-center overflow-hidden", 
+              "relative bg-gradient-to-br from-[#ff3b30] to-[#ff5e54] text-white min-h-screen w-full flex items-center justify-center overflow-hidden",
               className
             )}
             style={{ y, opacity, scale }}
@@ -230,18 +220,18 @@ export function HeroBrand({ className }: { className?: string }) {
           >
             {/* Background elements with independent parallax - conditionally render for mobile */}
             {!isMobile && (
-              <motion.div 
+              <motion.div
                 className="absolute inset-0 overflow-hidden z-0"
                 style={{ y: bgY1 }}
               >
-                <motion.div 
+                <motion.div
                   className="absolute -right-40 -bottom-40 w-[600px] h-[600px] rounded-full bg-[#ff7b72]/30"
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ duration: 1.5, ease: "easeOut" }}
                   style={{ y: bgY2 }}
                 />
-                <motion.div 
+                <motion.div
                   className="absolute -left-20 top-40 w-[300px] h-[300px] rounded-full bg-[#ff2920]/20"
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -257,7 +247,7 @@ export function HeroBrand({ className }: { className?: string }) {
             )}>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
                 <div>
-                  <motion.div 
+                  <motion.div
                     className="mb-6 sm:mb-8 inline-block"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -268,15 +258,15 @@ export function HeroBrand({ className }: { className?: string }) {
                     </span>
                   </motion.div>
 
-                  <motion.div 
+                  <motion.div
                     className="mb-6 sm:mb-8"
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: getAnimationDuration(), delay: getAnimationDelay(0.1) }}
                   >
                     {!isMobile && (
-                      <ContainerTextFlip 
-                        words={["Authentic", "Creative", "Inspired", "Personal"]} 
+                      <ContainerTextFlip
+                        words={["Authentic", "Creative", "Inspired", "Personal"]}
                         interval={2500}
                         className="!bg-[#ff3b30]/50 !shadow-none !text-white"
                         textClassName="font-display font-bold"
@@ -289,13 +279,13 @@ export function HeroBrand({ className }: { className?: string }) {
                     )}>Dining, Redefined</span>
                   </motion.div>
 
-                  <motion.p 
+                  <motion.p
                     className="text-lg sm:text-xl md:text-2xl text-white/80 mb-10 sm:mb-12 max-w-lg"
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: getAnimationDuration(), delay: getAnimationDelay(0.2) }}
                   >
-                    CribNosh is the home of <span className="text-[#00FF88] font-semibold bg-[#00FF88]/10 px-2 py-1 rounded-md transition-all duration-300 hover:text-[#00FF88]/80 hover:bg-[#00FF88]/30 hover:rotate-2 hover:px-3 hover:py-1.5 cursor-pointer" style={{ display: 'inline-block' }}>food creators</span> and <span className="text-[#00B4FF] font-semibold bg-[#00B4FF]/10 px-2 py-1 rounded-md transition-all duration-300 hover:text-[#00B4FF]/80 hover:bg-[#00B4FF]/30 hover:-rotate-1 hover:px-3 hover:py-1.5 cursor-pointer" style={{ display: 'inline-block' }}>foodies</span>, where food meets its lovers. 
+                    CribNosh is the home of <span className="text-[#00FF88] font-semibold bg-[#00FF88]/10 px-2 py-1 rounded-md transition-all duration-300 hover:text-[#00FF88]/80 hover:bg-[#00FF88]/30 hover:rotate-2 hover:px-3 hover:py-1.5 cursor-pointer" style={{ display: 'inline-block' }}>food creators</span> and <span className="text-[#00B4FF] font-semibold bg-[#00B4FF]/10 px-2 py-1 rounded-md transition-all duration-300 hover:text-[#00B4FF]/80 hover:bg-[#00B4FF]/30 hover:-rotate-1 hover:px-3 hover:py-1.5 cursor-pointer" style={{ display: 'inline-block' }}>foodies</span>, where food meets its lovers.
                     We're building the first meal platform where food is cooked in verified home kitchens and built around your identity, not the algorithm.
                   </motion.p>
 
@@ -366,7 +356,7 @@ export function HeroBrand({ className }: { className?: string }) {
                           onTouchMove={isMobile ? (e) => handleTouchMove(value.text, e) : undefined}
                           onTouchEnd={isMobile ? handleTouchEnd : undefined}
                         >
-                          <Link 
+                          <Link
                             href={value.href}
                             className="inline-block"
                             onMouseEnter={(e) => {
@@ -380,7 +370,7 @@ export function HeroBrand({ className }: { className?: string }) {
                             }}
                             onMouseLeave={() => setHoveredCategory(null)}
                           >
-                            <motion.h2 
+                            <motion.h2
                               className="inline-block text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display font-bold italic text-white/90 hover:text-white transition-colors"
                               whileHover={{
                                 scale: 1.05,
@@ -398,7 +388,7 @@ export function HeroBrand({ className }: { className?: string }) {
                       ))}
                     </div>
                   )}
-                  
+
                   <motion.div
                     className="absolute -bottom-10 -right-10 w-60 h-60 bg-[#ff2920]/10 rounded-full blur-xl"
                     initial={{ scale: 0, opacity: 0 }}
@@ -432,7 +422,7 @@ export function HeroBrand({ className }: { className?: string }) {
                     <div className="absolute inset-0 bg-gradient-to-r from-[#ff3b30]/20 via-purple-500/10 to-transparent blur-xl -z-10" />
                     <CategoryPreview category={hoveredCategory} />
                     {isMobile && (
-                      <Link 
+                      <Link
                         href={brandValues.find(v => v.text === hoveredCategory)?.href || '#'}
                         className="absolute bottom-3 right-3 bg-white/10 backdrop-blur-sm rounded-full p-2 pointer-events-auto"
                         onClick={(e) => {
@@ -462,16 +452,16 @@ export function HeroBrand({ className }: { className?: string }) {
             </AnimatePresence>
           </motion.section>
         ) : currentPage === 2 ? (
-          <HeroBrandPage2 
+          <HeroBrandPage2
             key="page2"
-            className={className} 
+            className={className}
             onInteractionStart={handleIPhoneInteractionStart}
             onInteractionEnd={handleIPhoneInteractionEnd}
           />
         ) : (
-          <HeroBrandPage3 
-            key="page3" 
-            className={className} 
+          <HeroBrandPage3
+            key="page3"
+            className={className}
           />
         )}
       </AnimatePresence>
@@ -479,7 +469,7 @@ export function HeroBrand({ className }: { className?: string }) {
       {/* Navigation Buttons */}
       <AnimatePresence>
         {isVisible && (
-          <motion.div 
+          <motion.div
             className="fixed bottom-24 right-4 sm:right-8 flex gap-4 z-[999]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

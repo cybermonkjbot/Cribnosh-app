@@ -1,9 +1,8 @@
 "use client";
 
-import React from "react";
-import { motion } from "motion/react";
 import { ParallaxGroup, ParallaxLayer } from "@/components/ui/parallax";
-import { Globe2, Heart, Users, Book, ChevronLeft, ArrowRight, Sparkles, Award, MapPin, Clock, Star } from "lucide-react";
+import { ArrowRight, Award, Book, ChevronLeft, Globe2, Heart, MapPin, Star, Users } from "lucide-react";
+import { motion } from "motion/react";
 import Link from "next/link";
 
 export default function CulturalRootsPage() {
@@ -83,7 +82,7 @@ export default function CulturalRootsPage() {
         <ParallaxLayer asBackground speed={0.2} className="z-0">
           <div className="fixed inset-0 bg-gradient-to-br from-[#6366f1] to-[#818cf8] opacity-90" />
         </ParallaxLayer>
-        
+
         <ParallaxLayer asBackground speed={0.4} className="z-0 pointer-events-none">
           <div className="fixed inset-0">
             <div className="absolute w-[500px] h-[500px] rounded-full bg-[#a5b4fc] blur-[120px] -top-20 -right-20 opacity-50" />
@@ -94,7 +93,7 @@ export default function CulturalRootsPage() {
         {/* Content layer */}
         <div className="relative z-10 min-h-screen">
           {/* Navigation */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="fixed top-0 left-0 right-0 bg-white/10 backdrop-blur-lg z-50 mt-[calc(1.5rem+40px)] sm:mt-0"
@@ -115,7 +114,7 @@ export default function CulturalRootsPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-gradient-to-br from-indigo-400/30 to-blue-400/30 rounded-full blur-2xl"
               />
-              
+
               {/* Badge */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -126,21 +125,21 @@ export default function CulturalRootsPage() {
                 <span className="text-white/90 font-medium">Heritage Preserved</span>
               </motion.div>
 
-              <motion.h1 
+              <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="text-6xl md:text-7xl lg:text-8xl font-display font-bold text-white mb-6 relative"
               >
                 Cultural Roots
               </motion.h1>
-              
-              <motion.p 
+
+              <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
                 className="text-xl md:text-2xl text-white/80 max-w-4xl mx-auto leading-relaxed"
               >
-                Discover the rich tapestry of culinary traditions that make each dish a unique cultural expression. 
+                Discover the rich tapestry of culinary traditions that make each dish a unique cultural expression.
                 Every recipe tells a story of heritage, community, and the human connection to food.
               </motion.p>
 
@@ -187,7 +186,7 @@ export default function CulturalRootsPage() {
                     <p className="text-white/80 group-hover:text-white/70 transition-colors mb-4 leading-relaxed">
                       {feature.description}
                     </p>
-                    
+
                     {/* Examples */}
                     <div className="flex flex-wrap gap-2">
                       {feature.examples.map((example, idx) => (
@@ -214,7 +213,7 @@ export default function CulturalRootsPage() {
               <h2 className="text-3xl md:text-4xl font-display font-bold text-white text-center mb-12">
                 Global Culinary Heritage
               </h2>
-              
+
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {culturalHighlights.map((region, index) => (
                   <motion.div
@@ -234,7 +233,7 @@ export default function CulturalRootsPage() {
                           {region.region}
                         </h3>
                       </div>
-                      
+
                       <div className="space-y-2">
                         {region.dishes.map((dish, idx) => (
                           <div
@@ -261,7 +260,7 @@ export default function CulturalRootsPage() {
               <h2 className="text-3xl md:text-4xl font-display font-bold text-white text-center mb-12">
                 Voices of Cultural Preservation
               </h2>
-              
+
               <div className="grid md:grid-cols-2 gap-8">
                 {testimonials.map((testimonial, index) => (
                   <motion.div
@@ -274,7 +273,7 @@ export default function CulturalRootsPage() {
                     <div className="flex items-start mb-6">
                       <Star className="w-6 h-6 text-yellow-400 mr-2 mt-1 flex-shrink-0" />
                       <p className="text-xl text-white/90 italic leading-relaxed">
-                        "{testimonial.quote}"
+                        &quot;{testimonial.quote}&quot;
                       </p>
                     </div>
                     <div className="flex items-center">
@@ -300,7 +299,7 @@ export default function CulturalRootsPage() {
                 Preserve Your Cultural Heritage
               </h2>
               <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
-                Share your family recipes, discover new traditions, and help preserve the world's culinary heritage. 
+                Share your family recipes, discover new traditions, and help preserve the world&apos;s culinary heritage.
                 Every dish has a story worth telling.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">

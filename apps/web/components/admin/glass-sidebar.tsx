@@ -63,6 +63,10 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
     setIsClient(true);
   }, []);
 
+  const isSubItemActive = (item: any) => {
+    return item.subItems?.some((subItem: any) => pathname === subItem.href) || false;
+  };
+
   // Auto-expand menu items when a sub-item is active
   useEffect(() => {
     navItems.forEach(item => {
@@ -75,9 +79,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
   // Fetch real data for sidebar badges
   const totalUsersQueryArgs = sessionToken ? { sessionToken } : "skip";
   const waitlistQueryArgs = sessionToken ? { sessionToken } : "skip";
-  // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
   const totalUsers = useQuery(api.queries.users.getTotalUserCount, totalUsersQueryArgs);
-  // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
   const waitlistCount = useQuery(api.queries.waitlist.getWaitlistCount, waitlistQueryArgs);
   const newChefApplications = useQuery(api.queries.careers.getNewChefApplicationsCount);
 
@@ -471,9 +473,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
     return expandedItems.has(itemName);
   };
 
-  const isSubItemActive = (item: any) => {
-    return item.subItems?.some((subItem: any) => pathname === subItem.href) || false;
-  };
+
 
   return (
     <motion.div

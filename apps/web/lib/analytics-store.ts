@@ -1,7 +1,7 @@
 // Simple file-based analytics store for demo (replace with DB for production)
+import { ErrorCode, ErrorFactory } from '@/lib/errors';
 import fs from 'fs/promises';
 import path from 'path';
-import { ErrorFactory, ErrorCode } from '@/lib/errors';
 
 const DATA_DIR = path.resolve(process.cwd(), 'analytics-data');
 const EVENTS_FILE = (page: string) => path.join(DATA_DIR, `${encodeURIComponent(page)}.json`);
@@ -19,7 +19,7 @@ export async function saveAnalyticsEvent(event: any) {
   try {
     const raw = await fs.readFile(file, 'utf-8');
     events = JSON.parse(raw);
-  } catch {}
+  } catch { /* empty */ }
   events.push({ ...event, timestamp: Date.now() });
   await fs.writeFile(file, JSON.stringify(events), 'utf-8');
 }
@@ -31,7 +31,7 @@ export async function getHeatmapData(page: string) {
   try {
     const raw = await fs.readFile(file, 'utf-8');
     events = JSON.parse(raw);
-  } catch {}
+  } catch { /* empty */ }
   // Aggregate mousemove/click events for heatmap
   const points: Record<string, number> = {};
   for (const e of events) {

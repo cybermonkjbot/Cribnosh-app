@@ -33,6 +33,7 @@ interface WaitlistEntryCardProps {
 export function WaitlistEntryCard({ entry, className }: WaitlistEntryCardProps) {
   const formatDate = (timestamp: number) => {
     try {
+      if (!timestamp) return 'N/A';
       return new Date(timestamp).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -92,7 +93,7 @@ export function WaitlistEntryCard({ entry, className }: WaitlistEntryCardProps) 
     source: entry.source || 'unknown',
     status: entry.status || 'active',
     priority: entry.priority || 'normal',
-    joinedAt: entry.joinedAt || Date.now(),
+    joinedAt: entry.joinedAt || 0,
     notes: entry.notes || undefined,
     addedBy: entry.addedBy || undefined,
     addedByName: entry.addedByName || undefined,
@@ -125,14 +126,14 @@ export function WaitlistEntryCard({ entry, className }: WaitlistEntryCardProps) 
               <span className="font-satoshi">{safeEntry.name}</span>
             </div>
           )}
-          
+
           {safeEntry.phone && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Phone className="w-4 h-4 text-gray-400 shrink-0" />
               <span className="font-satoshi">{safeEntry.phone}</span>
             </div>
           )}
-          
+
           {safeEntry.location && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
@@ -154,7 +155,7 @@ export function WaitlistEntryCard({ entry, className }: WaitlistEntryCardProps) 
                 <span className="font-satoshi">{formatDate(safeEntry.joinedAt)}</span>
               </div>
             </div>
-            
+
             {safeEntry.addedByName && (
               <div className="text-blue-600 font-satoshi">
                 Added by: {safeEntry.addedByName}

@@ -1,8 +1,8 @@
 "use client";
 
-import { motion, AnimatePresence } from "motion/react";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
 
 interface FloatingHeartsProps {
   isActive?: boolean;
@@ -10,14 +10,15 @@ interface FloatingHeartsProps {
 }
 
 export function FloatingHearts({ isActive = false, className }: FloatingHeartsProps) {
-  const [hearts, setHearts] = useState<Array<{ id: number; x: number }>>([]);
+  const [hearts, setHearts] = useState<Array<{ id: number; x: number; targetX: number }>>([]);
 
   const createHeart = () => {
     if (!isActive) return;
-    
+
     const newHeart = {
       id: Date.now(),
       x: Math.random() * 40 - 20, // Random x position between -20 and 20
+      targetX: (Math.random() * 40 - 20)
     };
 
     setHearts(current => [...current, newHeart]);
@@ -27,7 +28,7 @@ export function FloatingHearts({ isActive = false, className }: FloatingHeartsPr
   };
 
   return (
-    <div 
+    <div
       className={cn("absolute inset-0 pointer-events-none overflow-hidden", className)}
       onClick={createHeart}
     >
@@ -35,17 +36,17 @@ export function FloatingHearts({ isActive = false, className }: FloatingHeartsPr
         {hearts.map(heart => (
           <motion.div
             key={heart.id}
-            initial={{ 
+            initial={{
               opacity: 0,
               scale: 0,
               y: 0,
               x: heart.x
             }}
-            animate={{ 
+            animate={{
               opacity: [0, 1, 0],
               scale: [0.5, 1, 0.5],
               y: -100,
-              x: heart.x + (Math.random() * 40 - 20)
+              x: heart.x + heart.targetX
             }}
             exit={{ opacity: 0 }}
             transition={{ duration: 2, ease: "easeOut" }}

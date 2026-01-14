@@ -1,4 +1,5 @@
 import { ContainerTextFlip } from "@/components/ui/containedtextflip";
+import { useMobileDevice } from "@/hooks/use-mobile-device";
 import { cn } from "@/lib/utils";
 import { clsx } from "clsx";
 import { motion, useScroll, useTransform } from "motion/react";
@@ -37,7 +38,7 @@ export function HeroBrandPage2({
   onInteractionEnd
 }: HeroBrandPage2Props): React.ReactElement {
   const { scrollYProgress } = useScroll();
-  const [isMobile, setIsMobile] = useState(false);
+  const { isMobile } = useMobileDevice();
   const [imageError, setImageError] = useState(false);
 
   // Memoize event handlers
@@ -48,19 +49,6 @@ export function HeroBrandPage2({
   const handleInteractionEnd = useCallback(() => {
     onInteractionEnd?.();
   }, [onInteractionEnd]);
-
-  // Memoize checkMobile to avoid recreation
-  const checkMobile = useCallback(() => {
-    setIsMobile(window.innerWidth < 768);
-  }, []);
-
-  useEffect(() => {
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-    };
-  }, [checkMobile]);
 
   // Primary section movement (slower)
   const y = useTransform(scrollYProgress, [0, 1], [0, -150]);

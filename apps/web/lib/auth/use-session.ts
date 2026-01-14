@@ -62,6 +62,7 @@ export function useSession() {
 
     const token = getCookie('convex-auth-token');
     if (token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSessionToken(token);
 
       // SessionToken doesn't need decoding - it's validated server-side
@@ -100,6 +101,7 @@ export function useSession() {
 
   useEffect(() => {
     if (userData?.sessionExpiry) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsExpired(userData.sessionExpiry < Date.now());
     }
   }, [userData?.sessionExpiry]);

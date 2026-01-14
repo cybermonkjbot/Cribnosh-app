@@ -1,12 +1,9 @@
 "use client"
 
-import * as React from "react"
+import { useMobileDevice } from '@/hooks/use-mobile-device'
 import { motion, Variants } from "motion/react"
-import { useTheme } from "next-themes"
 import Link from "next/link"
-import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
-import { useMobileDevice } from '@/hooks/use-mobile-device';
+import { usePathname } from 'next/navigation'
 
 interface NavItem {
   label: string
@@ -44,8 +41,8 @@ const itemVariants: Variants = {
 
 const underlineVariants: Variants = {
   initial: { scaleX: 0, opacity: 0 },
-  hover: { 
-    scaleX: 1, 
+  hover: {
+    scaleX: 1,
     opacity: 1,
     transition: {
       type: "spring",
@@ -62,19 +59,15 @@ interface HeaderNavProps {
 
 export function HeaderNav({ items, className = '' }: HeaderNavProps) {
   const pathname = usePathname();
-  const [activeItem, setActiveItem] = useState<string | null>(null);
   const { isMobile, hasTouchScreen } = useMobileDevice();
 
-  useEffect(() => {
-    // Update active item based on current path
-    const matchingItem = items.find(item => 
-      pathname === item.href || pathname?.startsWith(item.href + '/')
-    );
-    setActiveItem(matchingItem?.href || null);
-  }, [pathname, items]);
+  // Update active item based on current path
+  const activeItem = items.find(item =>
+    pathname === item.href || pathname?.startsWith(item.href + '/')
+  )?.href || null;
 
   return (
-    <nav 
+    <nav
       className={`relative ${className}`}
       role="navigation"
       aria-label="Main navigation"
@@ -82,7 +75,7 @@ export function HeaderNav({ items, className = '' }: HeaderNavProps) {
       <ul className="flex items-center gap-1 sm:gap-2">
         {items.map((item) => {
           const isActive = activeItem === item.href;
-          
+
           return (
             <li key={item.href}>
               <Link
@@ -97,11 +90,10 @@ export function HeaderNav({ items, className = '' }: HeaderNavProps) {
                   }
                   ${hasTouchScreen ? 'text-base touch-manipulation' : ''}
                 `}
-                onClick={() => setActiveItem(item.href)}
                 aria-current={isActive ? 'page' : undefined}
               >
                 <span className="relative z-10">{item.label}</span>
-                
+
                 {isActive && (
                   <motion.div
                     layoutId="nav-highlight"
@@ -138,7 +130,7 @@ export function HeaderNav({ items, className = '' }: HeaderNavProps) {
 
       {/* Mobile touch feedback overlay */}
       {hasTouchScreen && (
-        <div 
+        <div
           className="absolute inset-0 touch-none pointer-events-none"
           style={{
             background: 'radial-gradient(circle at var(--touch-x, 50%) var(--touch-y, 50%), rgba(59, 130, 246, 0.1) 0%, transparent 100%)',
