@@ -1,40 +1,37 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Settings, 
-  Mail, 
-  Zap, 
-  Palette, 
-  Truck, 
-  BarChart3, 
-  Shield, 
-  Download, 
-  Upload, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle,
-  Plus,
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  BarChart3,
+  CheckCircle,
+  Download,
   Edit,
-  Trash2,
   Eye,
+  Mail,
+  Palette,
+  Pause,
   Play,
-  Pause
+  Plus,
+  Settings,
+  Shield,
+  Truck,
+  XCircle,
+  Zap
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+import { useRouter } from 'next/navigation';
 
 interface EmailConfigDashboardProps {
   className?: string;
 }
 
 export function EmailConfigDashboard({ className }: EmailConfigDashboardProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('templates');
   const [configs, setConfigs] = useState<any>({});
   const [loading, setLoading] = useState(true);
@@ -195,7 +192,7 @@ export function EmailConfigDashboard({ className }: EmailConfigDashboardProps) {
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
-              <Button>
+              <Button onClick={() => router.push('/admin/email-config/template/new')}>
                 <Plus className="h-4 w-4 mr-2" />
                 New Template
               </Button>
@@ -223,7 +220,11 @@ export function EmailConfigDashboard({ className }: EmailConfigDashboardProps) {
                         <Eye className="h-4 w-4 mr-1" />
                         Preview
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => router.push(`/admin/email-config/template/${template.templateId}`)}
+                      >
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
@@ -322,15 +323,15 @@ export function EmailConfigDashboard({ className }: EmailConfigDashboardProps) {
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-center gap-4">
-                      <div 
+                      <div
                         className="w-8 h-8 rounded-full border"
                         style={{ backgroundColor: brand.colors.primary }}
                       />
-                      <div 
+                      <div
                         className="w-8 h-8 rounded-full border"
                         style={{ backgroundColor: brand.colors.secondary }}
                       />
-                      <div 
+                      <div
                         className="w-8 h-8 rounded-full border"
                         style={{ backgroundColor: brand.colors.accent }}
                       />

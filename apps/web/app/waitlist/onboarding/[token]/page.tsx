@@ -13,7 +13,7 @@ export default function WaitlistOnboardingPage() {
     const token = params.token as string;
     const router = useRouter();
 
-    const waitlistEntry = useQuery(api.queries.waitlist.getByToken, { token });
+    const waitlistEntry = useQuery(api.queries.waitlist.getByToken, token ? { token } : "skip");
     const submitOnboarding = useMutation(api.mutations.waitlist.submitWaitlistOnboarding);
 
     const [step, setStep] = useState(1);
