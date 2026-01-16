@@ -20,6 +20,7 @@ import { motion } from 'motion/react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import ClientDate from '@/components/ui/client-date';
 import { formatCurrency } from '@/lib/utils/number-format';
 import Link from 'next/link';
 
@@ -169,7 +170,7 @@ export default function AdminAnalyticsPage() {
               </span>
             </div>
             <span className="text-xs text-gray-700">
-              Last updated: {new Date().toLocaleTimeString()}
+              Last updated: <ClientDate date={new Date().toISOString()} />
             </span>
           </div>
         </div>
@@ -274,7 +275,7 @@ export default function AdminAnalyticsPage() {
               <div className="text-right">
                 <span className="text-sm font-medium font-satoshi text-gray-900">{activity.count}</span>
                 <p className="text-xs text-gray-700 font-satoshi">
-                  {new Date(activity.timestamp).toLocaleDateString()}
+                  <ClientDate date={activity.timestamp} />
                 </p>
               </div>
             </div>

@@ -182,21 +182,17 @@ export const MultiStepLoader = ({
   }, [loop, loadingStates.length, onComplete]);
 
   useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-
-    if (loading && !hasShownLoader) {
-      timeoutId = setTimeout(updateState, duration);
-    } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!loading || hasShownLoader) {
       setCurrentState(0);
+      return;
     }
 
+    const timeoutId = setTimeout(updateState, duration);
+
     return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      clearTimeout(timeoutId);
     };
-  }, [currentState, loading, updateState, duration, hasShownLoader]);
+  }, [currentState, loading, hasShownLoader, updateState, duration]);
 
   // Only show loader on first visit or reload
   if (hasShownLoader) return null;

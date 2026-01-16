@@ -9,14 +9,10 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    // @ts-ignore - FormData.get() exists but TypeScript types may not recognize it
-    const code = formData.get('code') as string;
-    // @ts-ignore
-    const idToken = formData.get('id_token') as string;
-    // @ts-ignore
-    const state = formData.get('state') as string;
-    // @ts-ignore
-    const user = formData.get('user') as string;
+    const code = (formData as any).get('code') as string;
+    const idToken = (formData as any).get('id_token') as string;
+    const state = (formData as any).get('state') as string;
+    const user = (formData as any).get('user') as string;
 
     // Parse state to get redirect URL
     let redirectUrl = '/try-it';

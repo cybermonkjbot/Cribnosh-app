@@ -33,7 +33,6 @@ export function ResponsiveImage({
   useEffect(() => {
     // Determine appropriate source based on device
     if (isMobile && mobileSrc) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentSrc(mobileSrc);
     } else if (isTablet && tabletSrc) {
       setCurrentSrc(tabletSrc);

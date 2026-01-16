@@ -1,12 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 
-export default function ClientDate({ date }: { date: number | string }) {
+export default function ClientDate({ date, options }: { date: string | number | Date, options?: Intl.DateTimeFormatOptions }) {
   const [formatted, setFormatted] = useState("");
   useEffect(() => {
-    const d = typeof date === "number" ? new Date(date) : new Date(Date.parse(date));
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFormatted(d.toLocaleString());
-  }, [date]);
+    const d = new Date(date);
+    setFormatted(d.toLocaleString(undefined, options));
+  }, [date, options]);
   return <span className="ml-2 text-xs text-gray-600">{formatted}</span>;
 } 

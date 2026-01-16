@@ -7,6 +7,7 @@ import { DataTable } from '@/components/admin/payroll/data-table';
 import PayPeriodDialog from '@/components/admin/payroll/pay-period-dialog';
 import { PayrollCardSkeleton } from '@/components/admin/skeletons';
 import { Button } from '@/components/ui/button';
+import ClientDate from '@/components/ui/client-date';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/convex/_generated/api';
@@ -475,7 +476,7 @@ export default function PayrollAdminPage() {
                         </div>
                       </div>
                       <div className="text-xs text-gray-700 font-satoshi">
-                        Last updated: {new Date().toLocaleDateString()}
+                        Last updated: <ClientDate date={new Date().toISOString()} />
                       </div>
                     </div>
                   ))}

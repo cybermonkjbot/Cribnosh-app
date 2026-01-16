@@ -211,19 +211,5 @@ function CalendarDayButton({
   )
 }
 
-Calendar.propTypes = {
-  className: PropTypes.string,
-  classNames: PropTypes.object,
-  showOutsideDays: PropTypes.bool,
-  captionLayout: PropTypes.string,
-  buttonVariant: PropTypes.string,
-  formatters: PropTypes.object,
-  components: PropTypes.object,
-  rootRef: PropTypes.oneOfType([
-    PropTypes.func,
-    PropTypes.shape({ current: PropTypes.any })
-  ]),
-  orientation: PropTypes.string,
-}
 
 export { Calendar, CalendarDayButton }

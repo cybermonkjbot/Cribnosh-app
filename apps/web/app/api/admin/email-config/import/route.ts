@@ -70,12 +70,9 @@ import { NextRequest } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    // @ts-ignore - FormData.get() exists but TypeScript types may not recognize it
-    const file = formData.get('file') as File | null;
-    // @ts-ignore
-    const category = (formData.get('category') as string) || '';
-    // @ts-ignore
-    const overwrite = formData.get('overwrite') === 'true';
+    const file = (formData as any).get('file') as File | null;
+    const category = ((formData as any).get('category') as string) || '';
+    const overwrite = (formData as any).get('overwrite') === 'true';
 
     if (!file || !category) {
       return ResponseFactory.validationError('File and category are required');

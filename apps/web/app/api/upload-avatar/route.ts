@@ -82,27 +82,26 @@ import { NextRequest } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    // @ts-ignore - FormData.get() exists but TypeScript types may not recognize it
-    const file = formData.get('file') as File;
-    
+    const file = (formData as any).get('file') as File;
+
     if (!file) {
       return ResponseFactory.error('No file uploaded', 'CUSTOM_ERROR', 400);
     }
-    
+
     if (!file.type.startsWith('image/')) {
       return ResponseFactory.error('Only image files are allowed', 'CUSTOM_ERROR', 400);
     }
-    
+
     if (file.size > 5 * 1024 * 1024) {
       return ResponseFactory.error('File size exceeds 5MB', 'CUSTOM_ERROR', 400);
     }
-    
+
     try {
       const convex = getConvexClient();
       const sessionToken = getSessionTokenFromRequest(request);
       // 1. Generate a Convex upload URL
       const uploadUrl = await convex.mutation(api.mutations.documents.generateUploadUrl);
-      
+
       // 2. Upload the file to Convex storage
       const buffer = Buffer.from(await file.arrayBuffer());
       const uploadRes = await fetch(uploadUrl, {
@@ -112,16 +111,16 @@ export async function POST(request: NextRequest) {
         },
         body: buffer
       });
-      
+
       if (!uploadRes.ok) {
         return ResponseFactory.error('Failed to upload to Convex storage', 'CUSTOM_ERROR', 500);
       }
-      
+
       const result = await uploadRes.json();
       if (!result.storageId) {
         throw ErrorFactory.custom(ErrorCode.INTERNAL_ERROR, 'No storageId in upload response');
       }
-      
+
       const { storageId } = result;
       // 3. Return the Convex file URL (or storageId)
       const fileUrl = `/api/files/${storageId}`;

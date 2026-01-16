@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import ClientDate from '@/components/ui/client-date';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -222,7 +223,7 @@ export default function AdminTimeTrackingPage() {
             Comprehensive time tracking insights, staff management, and productivity analytics
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <Button variant="outline" size="lg" className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white">
             <Download className="w-4 h-4 mr-2" />
@@ -408,7 +409,7 @@ export default function AdminTimeTrackingPage() {
                         <div>
                           <p className="font-semibold text-gray-900 font-satoshi">{staffId}</p>
                           <p className="text-sm text-gray-700 font-satoshi">
-                            Last active: {new Date(stats.lastActive).toLocaleDateString()}
+                            Last active: <ClientDate date={stats.lastActive} options={{ dateStyle: 'short' }} />
                           </p>
                         </div>
                       </div>
@@ -437,7 +438,7 @@ export default function AdminTimeTrackingPage() {
               <Filter className="w-5 h-5 text-primary-600" />
               <h3 className="text-lg font-semibold font-asgard text-gray-900">Session Filters</h3>
             </div>
-            
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
               <div className="space-y-2">
                 <label className="text-sm font-medium font-satoshi text-gray-700">Staff ID</label>
@@ -448,7 +449,7 @@ export default function AdminTimeTrackingPage() {
                   className="bg-white/80 border-gray-200"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium font-satoshi text-gray-700">Status</label>
                 <Select value={status} onValueChange={setStatus}>
@@ -464,7 +465,7 @@ export default function AdminTimeTrackingPage() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium font-satoshi text-gray-700">Start Date</label>
                 <Input
@@ -474,7 +475,7 @@ export default function AdminTimeTrackingPage() {
                   className="bg-white/80 border-gray-200"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium font-satoshi text-gray-700">End Date</label>
                 <Input
@@ -484,7 +485,7 @@ export default function AdminTimeTrackingPage() {
                   className="bg-white/80 border-gray-200"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium font-satoshi text-gray-700">Per Page</label>
                 <Select value={limit.toString()} onValueChange={(value) => setLimit(Number(value))}>
@@ -552,7 +553,7 @@ export default function AdminTimeTrackingPage() {
                             <div className="flex items-center gap-2">
                               <Calendar className="w-4 h-4 text-gray-500" />
                               <span className="text-sm font-satoshi text-gray-900">
-                                {new Date(s.clockInTime).toLocaleString()}
+                                <ClientDate date={s.clockInTime} />
                               </span>
                             </div>
                           </td>
@@ -561,7 +562,7 @@ export default function AdminTimeTrackingPage() {
                               <div className="flex items-center gap-2">
                                 <Calendar className="w-4 h-4 text-gray-500" />
                                 <span className="text-sm font-satoshi text-gray-900">
-                                  {new Date(s.clockOutTime).toLocaleString()}
+                                  <ClientDate date={s.clockOutTime} />
                                 </span>
                               </div>
                             ) : (
@@ -691,11 +692,11 @@ export default function AdminTimeTrackingPage() {
                 <ChevronLeft className="w-4 h-4" />
                 Previous
               </Button>
-              
+
               <span className="text-sm font-satoshi text-gray-600">
                 Page {page + 1} {list ? `of ${Math.max(1, Math.ceil(list.total / limit))}` : ''}
               </span>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -707,7 +708,7 @@ export default function AdminTimeTrackingPage() {
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-            
+
             <div className="text-sm font-satoshi text-gray-600">
               {list ? `Showing ${page * limit + 1}-${Math.min((page + 1) * limit, list.total)} of ${list.total} sessions` : ''}
             </div>

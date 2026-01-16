@@ -90,12 +90,10 @@ export async function POST(request: NextRequest) {
     return ResponseFactory.unauthorized('Unauthorized');
   }
   const formData = await request.formData();
-  // @ts-ignore - FormData.get() exists but TypeScript types may not recognize it
-  const file = formData.get('file') as File;
-  // @ts-ignore
-  const userEmail = formData.get('userEmail') as string;
-  // @ts-ignore
-  const docType = formData.get('type') as string;
+  const file = (formData as any).get('file') as File;
+
+  const userEmail = (formData as any).get('userEmail') as string;
+  const docType = (formData as any).get('type') as string;
 
   if (!file || !userEmail) {
     return ResponseFactory.validationError('Missing file or userEmail');
@@ -104,10 +102,10 @@ export async function POST(request: NextRequest) {
   try {
     const convex = getConvexClientFromRequest(request);
     const sessionToken = getSessionTokenFromRequest(request);
-    
+
     // Generate an upload URL from Convex
     const uploadUrl = await convex.mutation(api.mutations.documents.generateUploadUrl);
-    
+
     // Upload the file to Convex storage
     const buffer = Buffer.from(await file.arrayBuffer());
     const uploadRes = await fetch(uploadUrl, {
@@ -117,19 +115,19 @@ export async function POST(request: NextRequest) {
       },
       body: buffer
     });
-    
+
     if (!uploadRes.ok) {
       throw new Error('Failed to upload to Convex storage');
     }
-    
+
     const { storageId } = await uploadRes.json();
     if (!storageId) {
       throw new Error('No storageId in upload response');
     }
-    
+
     const fileName = `${userEmail}/${randomUUID()}-${file.name}`;
     const fileUrl = `/api/files/${storageId}`;
-    
+
     return ResponseFactory.success({ fileUrl, fileName });
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {
