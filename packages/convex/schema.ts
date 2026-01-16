@@ -20,6 +20,18 @@ export default defineSchema({
     .index("by_purpose", ["purpose"])
     .index("by_last_used", ["lastUsed"]),
 
+  // Email Configurations table
+  emailConfigs: defineTable({
+    category: v.string(), // templates, automations, etc.
+    configId: v.string(),
+    config: v.any(), // JSON content
+    lastModified: v.number(),
+    isActive: v.optional(v.boolean()),
+  })
+    .index("by_category", ["category"])
+    .index("by_id", ["configId"])
+    .index("by_category_id", ["category", "configId"]),
+
   // Live Sessions table
   liveSessions: defineTable({
     session_id: v.string(),

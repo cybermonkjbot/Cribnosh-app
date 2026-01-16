@@ -4,6 +4,7 @@ import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import AlertDialog from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import ClientDate from '@/components/ui/client-date';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -603,12 +604,8 @@ Document ID: ${doc._id}`;
                         month: monthName,
                         day: lastFriday.getDate(),
                         year: lastFriday.getFullYear(),
-                        fullDate: lastFriday.toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })
+                        // Store the date object or string for ClientDate to handle
+                        rawDate: lastFriday
                       };
                     })();
 
@@ -619,7 +616,7 @@ Document ID: ${doc._id}`;
                       <div
                         key={monthName}
                         className={`p-4 text-center border-r border-b border-gray-200 last:border-r-0 ${isCurrentMonth ? 'bg-[#F23E2E]/10 border-l-4 border-l-[#F23E2E]' :
-                            isPastMonth ? 'bg-gray-50' : 'bg-white'
+                          isPastMonth ? 'bg-gray-50' : 'bg-white'
                           }`}
                       >
                         <div className={`font-semibold text-sm uppercase tracking-wide mb-3 ${isCurrentMonth ? 'text-[#F23E2E]' : 'text-gray-700'
@@ -634,7 +631,10 @@ Document ID: ${doc._id}`;
                         </div>
 
                         <div className="text-xs text-gray-500 mt-2 leading-tight">
-                          {monthData.fullDate}
+                          <ClientDate
+                            date={monthData.rawDate}
+                            options={{ weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }}
+                          />
                         </div>
                       </div>
                     );
@@ -660,12 +660,8 @@ Document ID: ${doc._id}`;
 
                   payDates.push({
                     date: lastFriday.toISOString().split('T')[0],
-                    fullDate: lastFriday.toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })
+                    // Store raw date for ClientDate
+                    rawDate: lastFriday
                   });
                 }
 
@@ -675,7 +671,12 @@ Document ID: ${doc._id}`;
                   return (
                     <div className="bg-[#F23E2E]/10 border border-[#F23E2E]/30 rounded-lg p-4">
                       <h3 className="font-semibold text-[#F23E2E] mb-2">Next Pay Date</h3>
-                      <div className="text-lg font-bold text-gray-900 mb-1">{nextPayDate.fullDate}</div>
+                      <div className="text-lg font-bold text-gray-900 mb-1">
+                        <ClientDate
+                          date={nextPayDate.rawDate}
+                          options={{ weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }}
+                        />
+                      </div>
                       <div className="text-sm text-gray-700">{daysUntil} day{daysUntil !== 1 ? 's' : ''} from now</div>
                     </div>
                   );
@@ -966,8 +967,8 @@ Document ID: ${doc._id}`;
                           {formatNaira((payslip.netPay || 0) / 100)}
                         </p>
                         <Badge className={`text-xs ${payslip.status === 'processed' ? 'bg-[#F23E2E]/10 text-[#F23E2E] border-[#F23E2E]/30' :
-                            payslip.status === 'pending' ? 'bg-gray-100 text-gray-800 border-gray-200' :
-                              'bg-gray-100 text-gray-800 border-gray-200'
+                          payslip.status === 'pending' ? 'bg-gray-100 text-gray-800 border-gray-200' :
+                            'bg-gray-100 text-gray-800 border-gray-200'
                           }`}>
                           {payslip.status || 'Processed'}
                         </Badge>

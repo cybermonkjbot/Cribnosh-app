@@ -22,8 +22,10 @@ import {
   XCircle,
   Zap
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
+import { api } from "@/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import { useRouter } from 'next/navigation';
 
 interface EmailConfigDashboardProps {
@@ -33,53 +35,31 @@ interface EmailConfigDashboardProps {
 export function EmailConfigDashboard({ className }: EmailConfigDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('templates');
-  const [configs, setConfigs] = useState<any>({});
-  const [loading, setLoading] = useState(true);
+  const data = useQuery(api.email_configs.getConfigs);
+  const saveConfig = useMutation(api.email_configs.saveConfig);
+  const importConfigs = useMutation(api.email_configs.importConfigs);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Load configurations
-  useEffect(() => {
-    loadConfigurations();
-  }, []);
+  const configs = data?.configs || {};
+  const loading = data === undefined;
 
-  const loadConfigurations = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/admin/email-config');
-      const data = await response.json();
-      setConfigs(data.configs);
-    } catch (err) {
-      setError('Failed to load configurations');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // No need for separate loading state or useEffect for loading
 
   const handleSaveConfig = async (category: string, configId: string, config: any) => {
     try {
-      const response = await fetch('/api/admin/email-config', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, configId, config }),
-      });
-
-      if (response.ok) {
-        setSuccess('Configuration saved successfully');
-        loadConfigurations();
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to save configuration');
-      }
+      await saveConfig({ category, configId, config });
+      setSuccess('Configuration saved successfully');
     } catch (err) {
       setError('Failed to save configuration');
     }
   };
 
-  const handleExportConfig = async (category: string) => {
+  const handleExportConfig = (category: string) => {
     try {
-      const response = await fetch(`/api/admin/email-config/export?category=${category}&format=json`);
-      const blob = await response.blob();
+      const configData = configs[category] || [];
+      const jsonString = JSON.stringify(configData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -93,23 +73,26 @@ export function EmailConfigDashboard({ className }: EmailConfigDashboardProps) {
 
   const handleImportConfig = async (category: string, file: File) => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('category', category);
+      const text = await file.text();
+      let importedData;
+      try {
+        importedData = JSON.parse(text);
+      } catch (e) {
+        setError('Invalid JSON file');
+        return;
+      }
 
-      const response = await fetch('/api/admin/email-config/import', {
-        method: 'POST',
-        body: formData,
-      });
+      if (!Array.isArray(importedData)) {
+        // Try to handle single object if necessary, but API expects array
+        importedData = [importedData];
+      }
 
-      if (response.ok) {
-        setSuccess('Configuration imported successfully');
-        loadConfigurations();
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to import configuration');
+      const result = await importConfigs({ category, configs: importedData });
+      if (result.success) {
+        setSuccess(`Successfully imported ${result.count} configurations`);
       }
     } catch (err) {
+      console.error(err);
       setError('Failed to import configuration');
     }
   };
@@ -133,7 +116,7 @@ export function EmailConfigDashboard({ className }: EmailConfigDashboardProps) {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => loadConfigurations()}>
+          <Button variant="outline" onClick={() => { }}>
             <Settings className="h-4 w-4 mr-2" />
             Refresh
           </Button>

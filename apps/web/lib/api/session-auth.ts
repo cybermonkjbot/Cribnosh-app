@@ -79,7 +79,6 @@ export function extractSessionToken(request: NextRequest): string | null {
  */
 async function validateSessionToken(sessionToken: string): Promise<AuthenticatedUser | null> {
   const convex = getConvexClient();
-  // @ts-expect-error - Type instantiation is excessively deep (Convex type inference issue)
   const user = await convex.query(api.queries.users.getUserBySessionToken, {
     sessionToken
   });
