@@ -63,7 +63,7 @@ export default function AdminAccountSettings() {
       }
     }
     fetchUser();
-     
+
   }, [user]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
@@ -132,15 +132,18 @@ export default function AdminAccountSettings() {
       }
       await updateUser(updates);
       setSuccess('Account updated successfully!');
-      setForm(f => ({...f, password: '', passwordConfirm: '',
-    sessionToken: sessionToken || undefined
-  }));
+      setForm(f => ({
+        ...f, password: '', passwordConfirm: '',
+        sessionToken: sessionToken || undefined
+      }));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to update account.');
     } finally {
       setSaving(false);
     }
   }
+
+  const generateUploadUrl = useMutation(api.mutations.documents.generateUploadUrl);
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -153,25 +156,42 @@ export default function AdminAccountSettings() {
       const reader = new FileReader();
       reader.onload = () => setAvatarPreview(reader.result as string);
       reader.readAsDataURL(file);
-      // Upload
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/upload-avatar', {
-        method: 'POST',
-        body: formData,
+
+      // 1. Generate Upload URL
+      const uploadUrl = await generateUploadUrl();
+
+      // 2. Upload File to Convex
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to upload avatar');
-      if (!user) {
-        throw new Error('User not found');
+
+      if (!result.ok) {
+        throw new Error(`Upload failed: ${result.statusText}`);
       }
-      await updateUser({userId: user._id as Id<"users">, avatar: data.url,
-    sessionToken: sessionToken || undefined
-  });
-      // Note: setUser is not available in this context, the user will be updated via the query
+
+      const { storageId } = await result.json();
+
+      // 3. Update User with new Avatar URL
+      // Construct URL or let backend handle storageId? 
+      // The previous API returned `/api/files/${storageId}`.
+      // We should arguably store the storageId directly if the backend supports it, 
+      // but to maintain compatibility let's match the previous behavior or use getUrl?
+      // Looking at previous API: `const fileUrl = \`/api/files/${storageId}\`;`
+      // Let's us that for now to be safe.
+      const fileUrl = `/api/files/${storageId}`;
+
+      await updateUser({
+        userId: user!._id as Id<"users">,
+        avatar: fileUrl,
+        sessionToken: sessionToken || undefined
+      });
+
       setSuccess('Profile picture updated!');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to upload avatar.');
+      // Revert preview on error if needed, but keeping it simple for now
     } finally {
       setAvatarUploading(false);
     }
@@ -182,159 +202,159 @@ export default function AdminAccountSettings() {
   return (
     <div className="container mx-auto py-6 space-y-[18px]">
       <div className="flex items-center justify-center">
-      <GlassCard className="max-w-lg w-full p-8 flex flex-col items-center gap-6 border-primary-200">
-        <div className="flex items-center gap-3 mb-2">
-          <Settings className="w-8 h-8 text-primary-600" />
-          <h1 className="text-2xl font-bold font-asgard text-gray-900">Account Settings</h1>
-        </div>
-        {loading || adminLoading ? (
-          <AccountSettingsSkeleton />
-        ) : error ? (
-          <div className="text-gray-900 font-satoshi text-center">{error}</div>
-        ) : !user ? (
-          <div className="text-gray-900 font-satoshi text-center">Please log in to access account settings.</div>
-        ) : (
-          <form className="w-full space-y-6" onSubmit={handleSubmit}>
-            {/* Profile Picture Section */}
-            <div className="flex flex-col items-center gap-2 mb-4">
-              <div className="relative w-24 h-24">
-                {avatarPreview ? (
-                  <img
-                    src={avatarPreview}
-                    alt="Profile preview"
-                    className="w-24 h-24 rounded-full object-cover border-2 border-primary-200 shadow"
+        <GlassCard className="max-w-lg w-full p-8 flex flex-col items-center gap-6 border-primary-200">
+          <div className="flex items-center gap-3 mb-2">
+            <Settings className="w-8 h-8 text-primary-600" />
+            <h1 className="text-2xl font-bold font-asgard text-gray-900">Account Settings</h1>
+          </div>
+          {loading || adminLoading ? (
+            <AccountSettingsSkeleton />
+          ) : error ? (
+            <div className="text-gray-900 font-satoshi text-center">{error}</div>
+          ) : !user ? (
+            <div className="text-gray-900 font-satoshi text-center">Please log in to access account settings.</div>
+          ) : (
+            <form className="w-full space-y-6" onSubmit={handleSubmit}>
+              {/* Profile Picture Section */}
+              <div className="flex flex-col items-center gap-2 mb-4">
+                <div className="relative w-24 h-24">
+                  {avatarPreview ? (
+                    <img
+                      src={avatarPreview}
+                      alt="Profile preview"
+                      className="w-24 h-24 rounded-full object-cover border-2 border-primary-200 shadow"
+                    />
+                  ) : user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt="Profile picture"
+                      className="w-24 h-24 rounded-full object-cover border-2 border-primary-200 shadow"
+                      onError={e => { (e.currentTarget as HTMLImageElement).src = ''; }}
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-primary-50 flex items-center justify-center border-2 border-primary-200 shadow">
+                      <User className="w-12 h-12 text-primary-300" />
+                    </div>
+                  )}
+                  {avatarUploading && (
+                    <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-full">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+                    </div>
+                  )}
+                </div>
+                <label htmlFor="avatar-upload" className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-100 text-primary-800 font-satoshi text-sm cursor-pointer hover:bg-primary-200 transition-colors">
+                  <UploadCloud className="w-4 h-4" />
+                  Change Photo
+                  <input
+                    id="avatar-upload"
+                    name="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                    disabled={avatarUploading}
                   />
-                ) : user?.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt="Profile picture"
-                    className="w-24 h-24 rounded-full object-cover border-2 border-primary-200 shadow"
-                    onError={e => { (e.currentTarget as HTMLImageElement).src = ''; }}
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-primary-50 flex items-center justify-center border-2 border-primary-200 shadow">
-                    <User className="w-12 h-12 text-primary-300" />
-                  </div>
-                )}
-                {avatarUploading && (
-                  <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-full">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
-                  </div>
-                )}
+                </label>
               </div>
-              <label htmlFor="avatar-upload" className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-100 text-primary-800 font-satoshi text-sm cursor-pointer hover:bg-primary-200 transition-colors">
-                <UploadCloud className="w-4 h-4" />
-                Change Photo
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-900 mb-1 font-satoshi">Name</label>
                 <input
-                  id="avatar-upload"
-                  name="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                  disabled={avatarUploading}
+                  id="name"
+                  name="name"
+                  type="text"
+                  value={form.name}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 rounded-lg border border-primary-200 bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 font-satoshi"
+                  required
+                  autoComplete="name"
                 />
-              </label>
-            </div>
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-900 mb-1 font-satoshi">Name</label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                value={form.name}
-                onChange={handleChange}
-                className="w-full px-4 py-2 rounded-lg border border-primary-200 bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 font-satoshi"
-                required
-                autoComplete="name"
-              />
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-900 mb-1 font-satoshi">Email</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                className="w-full px-4 py-2 rounded-lg border border-primary-200 bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 font-satoshi"
-                required
-                autoComplete="email"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-1 font-satoshi">New Password</label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                className="w-full px-4 py-2 rounded-lg border border-primary-200 bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 font-satoshi"
-                autoComplete="new-password"
-                placeholder="Leave blank to keep current password"
-              />
-            </div>
-            <div>
-              <label htmlFor="passwordConfirm" className="block text-sm font-medium text-gray-900 mb-1 font-satoshi">Confirm Password</label>
-              <input
-                id="passwordConfirm"
-                name="passwordConfirm"
-                type="password"
-                value={form.passwordConfirm}
-                onChange={handleChange}
-                className="w-full px-4 py-2 rounded-lg border border-primary-200 bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 font-satoshi"
-                autoComplete="new-password"
-                placeholder="Repeat new password"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1 font-satoshi">Cuisine Preferences</label>
-              <div className="flex flex-wrap gap-2">
-                {CUISINE_OPTIONS.map(cuisine => (
-                  <label key={cuisine} className="flex items-center gap-1 text-sm font-satoshi">
-                    <input
-                      type="checkbox"
-                      name={`cuisine-${cuisine}`}
-                      checked={form.preferences.cuisine.includes(cuisine)}
-                      onChange={handleChange}
-                      className="accent-primary-600"
-                    />
-                    {cuisine}
-                  </label>
-                ))}
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1 font-satoshi">Dietary Preferences</label>
-              <div className="flex flex-wrap gap-2">
-                {DIETARY_OPTIONS.map(dietary => (
-                  <label key={dietary} className="flex items-center gap-1 text-sm font-satoshi">
-                    <input
-                      type="checkbox"
-                      name={`dietary-${dietary}`}
-                      checked={form.preferences.dietary.includes(dietary)}
-                      onChange={handleChange}
-                      className="accent-primary-600"
-                    />
-                    {dietary}
-                  </label>
-                ))}
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-900 mb-1 font-satoshi">Email</label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 rounded-lg border border-primary-200 bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 font-satoshi"
+                  required
+                  autoComplete="email"
+                />
               </div>
-            </div>
-            {success && <div className="text-[#F23E2E] font-satoshi text-center">{success}</div>}
-            {error && <div className="text-gray-900 font-satoshi text-center">{error}</div>}
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-[#F23E2E] text-white font-bold text-lg shadow hover:bg-[#F23E2E]/90 transition-colors font-satoshi disabled:opacity-50"
-              disabled={saving}
-            >
-              {saving ? <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" /> : null}
-              Save Changes
-            </button>
-          </form>
-        )}
-      </GlassCard>
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-1 font-satoshi">New Password</label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 rounded-lg border border-primary-200 bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 font-satoshi"
+                  autoComplete="new-password"
+                  placeholder="Leave blank to keep current password"
+                />
+              </div>
+              <div>
+                <label htmlFor="passwordConfirm" className="block text-sm font-medium text-gray-900 mb-1 font-satoshi">Confirm Password</label>
+                <input
+                  id="passwordConfirm"
+                  name="passwordConfirm"
+                  type="password"
+                  value={form.passwordConfirm}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 rounded-lg border border-primary-200 bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 font-satoshi"
+                  autoComplete="new-password"
+                  placeholder="Repeat new password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-1 font-satoshi">Cuisine Preferences</label>
+                <div className="flex flex-wrap gap-2">
+                  {CUISINE_OPTIONS.map(cuisine => (
+                    <label key={cuisine} className="flex items-center gap-1 text-sm font-satoshi">
+                      <input
+                        type="checkbox"
+                        name={`cuisine-${cuisine}`}
+                        checked={form.preferences.cuisine.includes(cuisine)}
+                        onChange={handleChange}
+                        className="accent-primary-600"
+                      />
+                      {cuisine}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-1 font-satoshi">Dietary Preferences</label>
+                <div className="flex flex-wrap gap-2">
+                  {DIETARY_OPTIONS.map(dietary => (
+                    <label key={dietary} className="flex items-center gap-1 text-sm font-satoshi">
+                      <input
+                        type="checkbox"
+                        name={`dietary-${dietary}`}
+                        checked={form.preferences.dietary.includes(dietary)}
+                        onChange={handleChange}
+                        className="accent-primary-600"
+                      />
+                      {dietary}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {success && <div className="text-[#F23E2E] font-satoshi text-center">{success}</div>}
+              {error && <div className="text-gray-900 font-satoshi text-center">{error}</div>}
+              <button
+                type="submit"
+                className="w-full py-3 rounded-xl bg-[#F23E2E] text-white font-bold text-lg shadow hover:bg-[#F23E2E]/90 transition-colors font-satoshi disabled:opacity-50"
+                disabled={saving}
+              >
+                {saving ? <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" /> : null}
+                Save Changes
+              </button>
+            </form>
+          )}
+        </GlassCard>
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import ClientDate from '@/components/ui/client-date';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/convex/_generated/api';
@@ -449,14 +450,14 @@ export default function AnalyticsReportsPage() {
                 <div>
                   <p className="text-sm text-gray-600">Created</p>
                   <p className="text-sm font-medium">
-                    {new Date(report.createdAt).toLocaleDateString()}
+                    <ClientDate date={report.createdAt} />
                   </p>
                 </div>
                 {report.generatedAt && (
                   <div>
                     <p className="text-sm text-gray-600">Generated</p>
                     <p className="text-sm font-medium">
-                      {new Date(report.generatedAt).toLocaleDateString()}
+                      <ClientDate date={report.generatedAt} />
                     </p>
                   </div>
                 )}

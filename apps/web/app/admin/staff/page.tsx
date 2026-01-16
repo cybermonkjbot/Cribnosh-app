@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useToast } from '@/hooks/use-toast';
+import { useFileUpload } from '@/hooks/useFileUpload';
 import { useMutation, useQuery } from "convex/react";
 import { Download, Edit, Eye, FileText, Mail, MoreHorizontal, Plus, Shield, Upload, UserX, Users } from "lucide-react";
 import { motion } from 'motion/react';
@@ -84,28 +85,22 @@ export default function AdminStaffPage() {
     }
   };
 
+  const { upload, isUploading: isHookUploading } = useFileUpload();
+
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !selectedStaff) return;
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('userEmail', selectedStaff);
-      formData.append('type', type);
-      const res = await fetch('/api/staff/upload-document', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      const { storageId } = await upload(file);
+
       await uploadDocument({
         userEmail: selectedStaff,
         name: file.name,
         type,
         size: file.size.toString(),
         description,
-        storageId: data.storageId,
+        storageId,
       });
       setFile(null);
       setDescription('');

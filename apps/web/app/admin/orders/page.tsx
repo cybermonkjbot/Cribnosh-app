@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/admin/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import ClientDate from '@/components/ui/client-date';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -433,7 +434,7 @@ export default function OrderManagementPage() {
                                     {getPaymentBadge(order.payment_status)}
                                   </div>
                                   <p className="text-sm text-gray-500 mt-1">
-                                    {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
+                                    {order.createdAt ? <ClientDate date={order.createdAt} /> : 'N/A'}
                                   </p>
                                 </div>
                                 <div className="flex gap-2">
@@ -605,7 +606,7 @@ export default function OrderManagementPage() {
                                 <div className="text-right">
                                   <p className="font-bold text-lg">${order.total_amount.toLocaleString()}</p>
                                   <p className="text-sm text-gray-500">
-                                    {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
+                                    {order.createdAt ? <ClientDate date={order.createdAt} /> : 'N/A'}
                                   </p>
                                 </div>
                               </div>
@@ -808,7 +809,7 @@ export default function OrderManagementPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Order Date</p>
-                  <p className="mt-1">{new Date(selectedOrder.createdAt).toLocaleString()}</p>
+                  <p className="mt-1"><ClientDate date={selectedOrder.createdAt} /></p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Amount</p>
@@ -943,12 +944,12 @@ export default function OrderManagementPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Estimated Delivery</p>
-                    <p className="mt-1">{new Date(selectedOrder.estimated_delivery_time).toLocaleString()}</p>
+                    <p className="mt-1"><ClientDate date={selectedOrder.estimated_delivery_time} /></p>
                   </div>
                   {selectedOrder.actual_delivery_time && (
                     <div>
                       <p className="text-sm font-medium text-gray-600">Actual Delivery</p>
-                      <p className="mt-1">{new Date(selectedOrder.actual_delivery_time).toLocaleString()}</p>
+                      <p className="mt-1"><ClientDate date={selectedOrder.actual_delivery_time} /></p>
                     </div>
                   )}
                 </div>
