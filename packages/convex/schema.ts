@@ -29,7 +29,7 @@ export default defineSchema({
     isActive: v.optional(v.boolean()),
   })
     .index("by_category", ["category"])
-    .index("by_id", ["configId"])
+    .index("by_config_id", ["configId"])
     .index("by_category_id", ["category", "configId"]),
 
   // Live Sessions table
