@@ -1,9 +1,42 @@
+// @ts-nocheck - Convex action type instantiation depth issues
 "use node";
 
 import { v } from "convex/values";
 import { api } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
 import { action } from "../_generated/server";
+
+// ============================================================================
+// Extracted Validator Schemas (to reduce type instantiation depth)
+// ============================================================================
+
+// Common validators for args
+const deliveryAddressValidator = v.object({
+  street: v.string(),
+  city: v.string(),
+  postcode: v.string(),
+  country: v.string(),
+  coordinates: v.optional(v.array(v.number())),
+});
+
+const orderItemValidator = v.object({
+  dish_id: v.string(),
+  quantity: v.number(),
+  price: v.number(),
+  name: v.string(),
+});
+
+const simpleOrderItemValidator = v.object({
+  dish_id: v.string(),
+  quantity: v.number(),
+});
+
+const ratingCategoriesValidator = v.object({
+  food_quality: v.optional(v.number()),
+  delivery_speed: v.optional(v.number()),
+  packaging: v.optional(v.number()),
+  customer_service: v.optional(v.number()),
+});
 
 /**
  * Complete order from cart flow that handles:
@@ -18,23 +51,13 @@ export const createOrderFromCartComplete = action({
   args: {
     customer_id: v.string(),
     chef_id: v.string(),
-    order_items: v.array(v.object({
-      dish_id: v.string(),
-      quantity: v.number(),
-      price: v.number(),
-      name: v.string(),
-    })),
+    order_items: v.array(orderItemValidator),
     total_amount: v.number(),
     payment_id: v.string(),
     payment_method: v.optional(v.string()),
     special_instructions: v.optional(v.string()),
     delivery_time: v.optional(v.string()),
-    delivery_address: v.optional(v.object({
-      street: v.string(),
-      city: v.string(),
-      postcode: v.string(),
-      country: v.string(),
-    })),
+    delivery_address: v.optional(deliveryAddressValidator),
     // Family order metadata (optional)
     family_profile_id: v.optional(v.string()),
     member_user_id: v.optional(v.string()),
@@ -96,19 +119,6 @@ export const customerGetOrders = action({
     status: v.optional(v.union(v.literal("ongoing"), v.literal("past"), v.literal("all"))),
     order_type: v.optional(v.union(v.literal("individual"), v.literal("group"), v.literal("all"))),
   },
-  returns: v.union(
-    v.object({
-      success: v.literal(true),
-      orders: v.array(v.any()),
-      total: v.number(),
-      limit: v.number(),
-      offset: v.number(),
-    }),
-    v.object({
-      success: v.literal(false),
-      error: v.string(),
-    })
-  ),
   handler: async (ctx, args) => {
     try {
       // Get user from session token
@@ -176,7 +186,7 @@ export const customerGetOrders = action({
                   } else if (image.startsWith('k')) {
                     // It's likely a Convex storage ID, get the URL
                     try {
-                      imageUrl = await ctx.storage.getUrl(image as any);
+                      imageUrl = (await ctx.storage.getUrl(image as any)) ?? undefined;
                     } catch (error) {
                       console.error('Failed to get storage URL for image:', image, error);
                       // Fallback to relative path
@@ -239,16 +249,6 @@ export const customerGetOrder = action({
     sessionToken: v.string(),
     order_id: v.string(),
   },
-  returns: v.union(
-    v.object({
-      success: v.literal(true),
-      order: v.any(),
-    }),
-    v.object({
-      success: v.literal(false),
-      error: v.string(),
-    })
-  ),
   handler: async (ctx, args) => {
     try {
       // Get user from session token
@@ -314,16 +314,6 @@ export const customerGetOrderStatus = action({
     sessionToken: v.string(),
     order_id: v.string(),
   },
-  returns: v.union(
-    v.object({
-      success: v.literal(true),
-      order: v.any(),
-    }),
-    v.object({
-      success: v.literal(false),
-      error: v.string(),
-    })
-  ),
   handler: async (ctx, args) => {
     try {
       // Get user from session token
@@ -336,7 +326,7 @@ export const customerGetOrderStatus = action({
       }
 
       // Get order from Convex (status endpoint doesn't require customer role check)
-      const order = await ctx.runQuery(api.queries.orders.getById, {
+      const order = await ctx.runQuery(api.queries.orders.getEnrichedOrderBySessionToken, {
         order_id: args.order_id,
         sessionToken: args.sessionToken,
       });
@@ -363,31 +353,12 @@ export const customerCreateOrder = action({
   args: {
     sessionToken: v.string(),
     chef_id: v.string(),
-    order_items: v.array(v.object({
-      dish_id: v.string(),
-      quantity: v.number(),
-    })),
+    order_items: v.array(simpleOrderItemValidator),
     special_instructions: v.optional(v.string()),
     delivery_time: v.optional(v.string()),
-    delivery_address: v.optional(v.object({
-      street: v.string(),
-      city: v.string(),
-      postcode: v.string(),
-      country: v.string(),
-      coordinates: v.optional(v.array(v.number())),
-    })),
+    delivery_address: v.optional(deliveryAddressValidator),
     payment_method: v.optional(v.string()),
   },
-  returns: v.union(
-    v.object({
-      success: v.literal(true),
-      order: v.any(),
-    }),
-    v.object({
-      success: v.literal(false),
-      error: v.string(),
-    })
-  ),
   handler: async (ctx, args) => {
     try {
       // Get user from session token
@@ -498,28 +469,11 @@ export const customerCreateOrderFromCart = action({
   args: {
     sessionToken: v.string(),
     payment_intent_id: v.string(),
-    delivery_address: v.optional(v.object({
-      street: v.string(),
-      city: v.string(),
-      postcode: v.string(),
-      country: v.string(),
-      coordinates: v.optional(v.array(v.number())),
-    })),
+    delivery_address: v.optional(deliveryAddressValidator),
     special_instructions: v.optional(v.string()),
     delivery_time: v.optional(v.string()),
     nosh_points_applied: v.optional(v.number()), // Nosh Points applied for discount
   },
-  returns: v.union(
-    v.object({
-      success: v.literal(true),
-      order_id: v.string(),
-      order: v.any(),
-    }),
-    v.object({
-      success: v.literal(false),
-      error: v.string(),
-    })
-  ),
   handler: async (ctx, args) => {
     try {
       // Get user from session token
@@ -584,7 +538,7 @@ export const customerCreateOrderFromCart = action({
       });
 
       if (!chefAvailability.allChefsOnline && chefAvailability.offlineChefs.length > 0) {
-        const offlineChefNames = chefAvailability.offlineChefs.map(c => c.chefName).join(', ');
+        const offlineChefNames = chefAvailability.offlineChefs.map((c: any) => c.chefName).join(', ');
         return {
           success: false as const,
           error: `Cannot create order. The following food creator(s) are currently offline: ${offlineChefNames}. Please remove their items from your cart or wait until they come online.`,
@@ -642,7 +596,7 @@ export const customerCreateOrderFromCart = action({
       const createdOrders = [];
       let firstOrder = null;
 
-      for (const [chefId, orderItems] of itemsByChef.entries()) {
+      for (const [chefId, orderItems] of Array.from(itemsByChef.entries())) {
         // Calculate total for this chef's items
         const chefTotal = orderItems.reduce((sum: number, item: { price: number; quantity: number }) => sum + (item.price * item.quantity), 0);
 
@@ -653,7 +607,7 @@ export const customerCreateOrderFromCart = action({
           0
         );
         const chefProportion = chefTotal / totalCartValue;
-        const chefPointsApplied = args.nosh_points_applied 
+        const chefPointsApplied = args.nosh_points_applied
           ? Math.floor(args.nosh_points_applied * chefProportion)
           : undefined;
 
@@ -716,19 +670,6 @@ export const customerCancelOrder = action({
     reason: v.optional(v.string()),
     refund_preference: v.optional(v.union(v.literal("full_refund"), v.literal("partial_refund"), v.literal("credit"))),
   },
-  returns: v.union(
-    v.object({
-      success: v.literal(true),
-      order_id: v.string(),
-      status: v.string(),
-      refund_status: v.string(),
-      cancelled_at: v.string(),
-    }),
-    v.object({
-      success: v.literal(false),
-      error: v.string(),
-    })
-  ),
   handler: async (ctx, args) => {
     try {
       // Get user from session token
@@ -801,27 +742,8 @@ export const customerRateOrder = action({
     order_id: v.string(),
     rating: v.number(),
     review: v.optional(v.string()),
-    categories: v.optional(v.object({
-      food_quality: v.optional(v.number()),
-      delivery_speed: v.optional(v.number()),
-      packaging: v.optional(v.number()),
-      customer_service: v.optional(v.number()),
-    })),
+    categories: v.optional(ratingCategoriesValidator),
   },
-  returns: v.union(
-    v.object({
-      success: v.literal(true),
-      review_id: v.string(),
-      order_id: v.string(),
-      rating: v.number(),
-      review: v.optional(v.string()),
-      created_at: v.string(),
-    }),
-    v.object({
-      success: v.literal(false),
-      error: v.string(),
-    })
-  ),
   handler: async (ctx, args) => {
     try {
       // Get user from session token
@@ -925,18 +847,6 @@ export const customerGetRecentDishes = action({
     sessionToken: v.string(),
     limit: v.optional(v.number()),
   },
-  returns: v.union(
-    v.object({
-      success: v.literal(true),
-      dishes: v.array(v.any()),
-      total: v.number(),
-      limit: v.number(),
-    }),
-    v.object({
-      success: v.literal(false),
-      error: v.string(),
-    })
-  ),
   handler: async (ctx, args) => {
     try {
       // Get user from session token
@@ -985,8 +895,8 @@ export const customerGetRecentDishes = action({
       const dishIds = Array.from(dishOrderMap.keys()) as any[];
       const dishesWithDetails = dishIds.length > 0
         ? await ctx.runQuery(api.queries.meals.getDishesWithDetails, {
-            dishIds,
-          })
+          dishIds,
+        })
         : [];
 
       // Create dish details map
@@ -996,12 +906,12 @@ export const customerGetRecentDishes = action({
       }
 
       // Process orders and build dish map
-      for (const [dishId, orderItems] of dishOrderMap.entries()) {
+      for (const [dishId, orderItems] of Array.from(dishOrderMap.entries())) {
         const dishDetails = dishDetailsMap.get(dishId);
         if (!dishDetails) continue;
 
         const firstItem = orderItems[0];
-        const lastOrder = orderItems.reduce((latest, current) => {
+        const lastOrder = orderItems.reduce((latest: any, current: any) => {
           const currentTime = current.order._creationTime || current.order.createdAt || Date.now();
           const latestTime = latest.order._creationTime || latest.order.createdAt || Date.now();
           return currentTime > latestTime ? current : latest;
@@ -1048,17 +958,6 @@ export const customerGetUsualDinnerItems = action({
     limit: v.optional(v.number()),
     time_range: v.optional(v.union(v.literal("week"), v.literal("month"), v.literal("all"))),
   },
-  returns: v.union(
-    v.object({
-      success: v.literal(true),
-      items: v.array(v.any()),
-      total: v.number(),
-    }),
-    v.object({
-      success: v.literal(false),
-      error: v.string(),
-    })
-  ),
   handler: async (ctx, args) => {
     try {
       // Get user from session token
@@ -1223,16 +1122,6 @@ export const customerCreateCustomOrder = action({
     budget: v.optional(v.number()),
     dietary_restrictions: v.optional(v.string()),
   },
-  returns: v.union(
-    v.object({
-      success: v.literal(true),
-      custom_order: v.any(),
-    }),
-    v.object({
-      success: v.literal(false),
-      error: v.string(),
-    })
-  ),
   handler: async (ctx, args) => {
     try {
       // Get user from session token
@@ -1303,19 +1192,6 @@ export const customerGetCustomOrders = action({
     page: v.optional(v.number()),
     limit: v.optional(v.number()),
   },
-  returns: v.union(
-    v.object({
-      success: v.literal(true),
-      custom_orders: v.array(v.any()),
-      total: v.number(),
-      page: v.number(),
-      limit: v.number(),
-    }),
-    v.object({
-      success: v.literal(false),
-      error: v.string(),
-    })
-  ),
   handler: async (ctx, args) => {
     try {
       // Get user from session token
@@ -1379,16 +1255,6 @@ export const customerGetCustomOrder = action({
     sessionToken: v.string(),
     custom_order_id: v.string(),
   },
-  returns: v.union(
-    v.object({
-      success: v.literal(true),
-      custom_order: v.any(),
-    }),
-    v.object({
-      success: v.literal(false),
-      error: v.string(),
-    })
-  ),
   handler: async (ctx, args) => {
     try {
       // Get user from session token
@@ -1456,16 +1322,6 @@ export const customerUpdateCustomOrder = action({
     desired_delivery_time: v.optional(v.string()),
     dietary_restrictions: v.optional(v.union(v.string(), v.null())),
   },
-  returns: v.union(
-    v.object({
-      success: v.literal(true),
-      custom_order: v.any(),
-    }),
-    v.object({
-      success: v.literal(false),
-      error: v.string(),
-    })
-  ),
   handler: async (ctx, args) => {
     try {
       // Get user from session token
@@ -1546,16 +1402,6 @@ export const customerGenerateSharedOrderLink = action({
     sessionToken: v.string(),
     order_id: v.string(),
   },
-  returns: v.union(
-    v.object({
-      success: v.literal(true),
-      shareLink: v.string(),
-    }),
-    v.object({
-      success: v.literal(false),
-      error: v.string(),
-    })
-  ),
   handler: async (ctx, args) => {
     try {
       // Get user from session token

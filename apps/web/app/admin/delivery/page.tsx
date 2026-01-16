@@ -71,6 +71,7 @@ interface Driver {
   currentOrder?: Id<"orders">;
   createdAt: number;
   updatedAt: number;
+  isExternal?: boolean;
 }
 
 interface Delivery {
@@ -113,6 +114,21 @@ interface Delivery {
     name: string;
     phone: string;
     email: string;
+  };
+  provider?: 'internal' | 'stuart';
+  external_id?: string;
+  external_status?: string;
+  assignment?: {
+    status: string;
+    assignedAt: number;
+    estimatedPickupTime?: number;
+    estimatedDeliveryTime?: number;
+    actualPickupTime?: number;
+    actualDeliveryTime?: number;
+    provider?: string;
+    externalId?: string;
+    externalTrackingUrl?: string;
+    distance?: number;
   };
 }
 
@@ -466,6 +482,18 @@ export default function DeliveryManagementPage() {
                                       <Flag className="w-4 h-4 mr-2" />
                                       Mark as Priority
                                     </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-red-600"
+                                      onClick={() => {
+                                        if (confirm(`Are you sure you want to cancel delivery #${delivery._id.slice(-8)}?`)) {
+                                          handleStatusUpdate(delivery._id, 'cancelled');
+                                        }
+                                      }}
+                                    >
+                                      <XCircle className="w-4 h-4 mr-2" />
+                                      Cancel Delivery
+                                    </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>
@@ -758,7 +786,14 @@ export default function DeliveryManagementPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-600">Status</p>
-                      <div className="mt-1">{getDriverStatusBadge(selectedDelivery.driver.status)}</div>
+                      <div className="mt-1 flex items-center gap-2">
+                        {getDriverStatusBadge(selectedDelivery.driver.status)}
+                        {selectedDelivery.driver.isExternal && (
+                          <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                            Stuart Logistics
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -846,11 +881,19 @@ export default function DeliveryManagementPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Estimated Pickup</p>
-                    <p className="mt-1">{new Date(selectedDelivery.estimatedPickupTime).toLocaleString()}</p>
+                    <p className="mt-1">
+                      {selectedDelivery.estimatedPickupTime
+                        ? new Date(selectedDelivery.estimatedPickupTime).toLocaleString()
+                        : 'Not estimated'}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">Estimated Delivery</p>
-                    <p className="mt-1">{new Date(selectedDelivery.estimatedDeliveryTime).toLocaleString()}</p>
+                    <p className="mt-1">
+                      {selectedDelivery.estimatedDeliveryTime
+                        ? new Date(selectedDelivery.estimatedDeliveryTime).toLocaleString()
+                        : 'Not estimated'}
+                    </p>
                   </div>
                   {selectedDelivery.actualPickupTime && (
                     <div>
@@ -862,6 +905,30 @@ export default function DeliveryManagementPage() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Actual Delivery</p>
                       <p className="mt-1 text-green-600">{new Date(selectedDelivery.actualDeliveryTime).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {selectedDelivery.assignment?.provider === 'stuart' && (
+                    <div className="col-span-2 mt-2 bg-blue-50 p-2 rounded-lg border border-blue-100">
+                      <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider">Stuart Logistics Details</p>
+                      <div className="grid grid-cols-2 gap-2 mt-1">
+                        <div>
+                          <p className="text-[10px] text-blue-600">Stuart ID</p>
+                          <p className="text-xs font-mono">{selectedDelivery.assignment.externalId}</p>
+                        </div>
+                        {selectedDelivery.assignment.externalTrackingUrl && (
+                          <div>
+                            <p className="text-[10px] text-blue-600">Tracking</p>
+                            <a
+                              href={selectedDelivery.assignment.externalTrackingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-800 underline hover:text-blue-900"
+                            >
+                              Live Track
+                            </a>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

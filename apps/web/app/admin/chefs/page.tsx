@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/admin/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/convex/_generated/api';
@@ -83,6 +85,78 @@ interface Chef {
   updatedAt: number;
 }
 
+function AddChefModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const users = useQuery(api.queries.users.getUsersForAdmin);
+  const createChef = useMutation(api.mutations.chefs.createChef);
+  const [loading, setLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState("");
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) {
+      toast({ title: "Error", description: "Please select a user", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const user = users?.find((u: { _id: string }) => u._id === selectedUser);
+      if (!user) throw new Error("User not found");
+
+      await createChef({
+        userId: selectedUser as any,
+        name: user.name,
+        location: { lat: 0, lng: 0, city: "Unknown" },
+        status: "active"
+      });
+
+      toast({ title: "Success", description: "Chef added successfully", variant: "success" });
+      onOpenChange(false);
+      setSelectedUser("");
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Error", description: "Failed to add chef", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Add Chef</DialogTitle>
+          <DialogDescription>
+            Promote an existing user to a chef. They will be auto-enrolled in compliance training.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Select User</Label>
+            <Select value={selectedUser} onValueChange={setSelectedUser}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a user to promote" />
+              </SelectTrigger>
+              <SelectContent>
+                {users?.map((user: { _id: string; name: string; email: string }) => (
+                  <SelectItem key={user._id} value={user._id}>
+                    {user.name} ({user.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" disabled={loading}>{loading ? "Adding..." : "Add Chef"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function ChefManagementPage() {
   const { user, sessionToken, loading } = useAdminUser();
   const { toast } = useToast();
@@ -94,6 +168,7 @@ export default function ChefManagementPage() {
   const [selectedChef, setSelectedChef] = useState<Chef | null>(null);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [showPerformanceModal, setShowPerformanceModal] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Fetch data - authentication is handled by layout, so user is guaranteed to be authenticated here
   const queryArgs = loading || !sessionToken ? "skip" : { sessionToken };
@@ -257,14 +332,22 @@ export default function ChefManagementPage() {
             Export Data
           </Button>
           <Button
-            onClick={() => setShowVerificationModal(true)}
+            onClick={() => setIsAddModalOpen(true)}
             className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
           >
             <Plus className="w-4 h-4 mr-2" />
+            Add Chef
+          </Button>
+          <Button
+            onClick={() => setShowVerificationModal(true)}
+            variant="outline"
+          >
             Verify Chef
           </Button>
         </div>
       </div>
+
+      <AddChefModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

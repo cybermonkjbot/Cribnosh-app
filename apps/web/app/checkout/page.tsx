@@ -1,19 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "@/lib/auth/use-session";
-import { useCart, useCartTotal } from "@/hooks/use-cart";
-import { useCreateCheckout, useCreateOrderFromCart } from "@/hooks/use-checkout";
-import { StripeElements } from "@/components/checkout/stripe-elements";
 import { OrderSummary } from "@/components/checkout/order-summary";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StripeElements } from "@/components/checkout/stripe-elements";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/convex/_generated/api";
+import { useCart, useCartTotal } from "@/hooks/use-cart";
+import { useCreateCheckout, useCreateOrderFromCart } from "@/hooks/use-checkout";
+import { useSession } from "@/lib/auth/use-session";
+import { useAction } from "convex/react";
 import { ArrowLeft, MapPin } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function CheckoutPage() {
@@ -34,6 +36,28 @@ export default function CheckoutPage() {
     state: "",
   });
   const [specialInstructions, setSpecialInstructions] = useState("");
+  const [isValidatingAddress, setIsValidatingAddress] = useState(false);
+  const [addressValidation, setAddressValidation] = useState<{ valid: boolean; error?: string; skipped?: boolean } | null>(null);
+  const validateAddressAction = useAction(api.actions.stuart.validateDeliveryAddress);
+
+  const checkAddressCoverage = async () => {
+    if (!deliveryAddress.street || !deliveryAddress.city || !deliveryAddress.postal_code) return;
+
+    setIsValidatingAddress(true);
+    setAddressValidation(null);
+    try {
+      const fullAddress = `${deliveryAddress.street}, ${deliveryAddress.city}, ${deliveryAddress.postal_code}, ${deliveryAddress.country}`;
+      const result = await validateAddressAction({ address: fullAddress });
+      setAddressValidation(result);
+      if (!result.valid && !result.skipped) {
+        toast.warning(result.error || "This address might be outside our standard delivery range.");
+      }
+    } catch (e) {
+      console.error("Validation error:", e);
+    } finally {
+      setIsValidatingAddress(false);
+    }
+  };
 
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
@@ -149,6 +173,7 @@ export default function CheckoutPage() {
                     id="street"
                     value={deliveryAddress.street}
                     onChange={(e) => setDeliveryAddress({ ...deliveryAddress, street: e.target.value })}
+                    onBlur={checkAddressCoverage}
                     placeholder="123 Main Street"
                   />
                 </div>
@@ -159,6 +184,7 @@ export default function CheckoutPage() {
                       id="city"
                       value={deliveryAddress.city}
                       onChange={(e) => setDeliveryAddress({ ...deliveryAddress, city: e.target.value })}
+                      onBlur={checkAddressCoverage}
                       placeholder="London"
                       required
                     />
@@ -169,6 +195,7 @@ export default function CheckoutPage() {
                       id="postal_code"
                       value={deliveryAddress.postal_code}
                       onChange={(e) => setDeliveryAddress({ ...deliveryAddress, postal_code: e.target.value })}
+                      onBlur={checkAddressCoverage}
                       placeholder="SW1A 1AA"
                     />
                   </div>
@@ -179,9 +206,24 @@ export default function CheckoutPage() {
                     id="country"
                     value={deliveryAddress.country}
                     onChange={(e) => setDeliveryAddress({ ...deliveryAddress, country: e.target.value })}
+                    onBlur={checkAddressCoverage}
                     required
                   />
                 </div>
+                {isValidatingAddress && (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-500"></div>
+                    Checking delivery coverage...
+                  </div>
+                )}
+                {addressValidation && !isValidatingAddress && (
+                  <div className={`text-sm ${addressValidation.valid ? 'text-green-600' : 'text-amber-600'}`}>
+                    {addressValidation.valid
+                      ? (addressValidation.skipped ? "" : "✓ Address is within delivery range")
+                      : `⚠ ${addressValidation.error || "Possibly outside delivery range. We'll try our best to fulfill your order."}`
+                    }
+                  </div>
+                )}
               </CardContent>
             </Card>
 

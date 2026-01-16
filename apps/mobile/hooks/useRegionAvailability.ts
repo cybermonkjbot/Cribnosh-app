@@ -14,7 +14,7 @@ import {
   isAddressInSupportedRegion,
   isCountrySupported,
 } from "@/utils/regionValidation";
-import { useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { useCallback, useMemo, useState } from "react";
 
 export interface UseRegionAvailabilityResult {
@@ -34,6 +34,7 @@ export interface UseRegionAvailabilityResult {
 export function useRegionAvailability(): UseRegionAvailabilityResult {
   // Fetch regional availability config from Convex
   const configData: RegionalAvailabilityConfig | undefined = useQuery(api.queries.admin.getRegionalAvailabilityConfig, {});
+  const validateStuartAddress = useAction(api.actions.stuart.validateDeliveryAddress);
   const configLoading = configData === undefined;
 
   // Track checking state for on-demand region checks
@@ -91,15 +92,26 @@ export function useRegionAvailability(): UseRegionAvailabilityResult {
           return false;
         }
 
-        // Call Convex query directly
+        // Call Convex query directly for regional availability
         const isSupported = await convex.query(api.queries.admin.checkRegionAvailability, request);
+
+        if (isSupported) {
+          // If supported by our internal list, it's definitely supported
+          setIsChecking(false);
+          return true;
+        }
+
+        // If not in our manual list, check if Stuart can handle it (fallback)
+        const fullAddress = `${address.street}, ${address.city}, ${address.postal_code}, ${address.country}`;
+        const stuartResult = await validateStuartAddress({ address: fullAddress });
+
         setIsChecking(false);
-        return isSupported === true;
+        return stuartResult.valid === true;
       } catch (error: any) {
         setIsChecking(false);
         // Handle error gracefully - check if we can use config as fallback
         const errorMessage = error?.message || '';
-        
+
         // Only log unexpected errors
         if (!errorMessage.includes('Server Error')) {
           console.warn("Error checking region availability:", {
@@ -125,7 +137,7 @@ export function useRegionAvailability(): UseRegionAvailabilityResult {
         return false;
       }
     },
-    [effectiveConfig]
+    [effectiveConfig, validateStuartAddress]
   );
 
   /**
@@ -153,7 +165,7 @@ export function useRegionAvailability(): UseRegionAvailabilityResult {
         setIsChecking(false);
         // Handle error gracefully - check if we can use config as fallback
         const errorMessage = error?.message || '';
-        
+
         // Only log unexpected errors
         if (!errorMessage.includes('Server Error')) {
           console.warn("Error checking region availability:", {
@@ -165,12 +177,12 @@ export function useRegionAvailability(): UseRegionAvailabilityResult {
         if (effectiveConfig && city) {
           try {
             const countryToCheck = country || "UK";
-            
+
             // Check country support
             if (!isCountrySupported(countryToCheck, effectiveConfig)) {
               return false;
             }
-            
+
             // Check city support if config has supported cities
             if (effectiveConfig.supportedCities && effectiveConfig.supportedCities.length > 0) {
               const normalizedCity = city.trim().toLowerCase();
@@ -179,7 +191,7 @@ export function useRegionAvailability(): UseRegionAvailabilityResult {
               );
               return isSupported;
             }
-            
+
             // If no city list but country is supported, allow it
             return true;
           } catch (fallbackError) {

@@ -1,17 +1,20 @@
+import { api } from '@/convex/_generated/api';
 import { CustomerAddress } from '@/types/customer';
+import { useAction } from 'convex/react';
 import { X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export interface AddressFormModalProps {
@@ -37,6 +40,26 @@ export function AddressFormModal({
     postal_code: initialAddress?.postal_code || '',
     country: initialAddress?.country || 'United Kingdom',
   });
+
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<{ valid: boolean; error?: string; skipped?: boolean } | null>(null);
+  const validateAddressAction = useAction(api.actions.stuart.validateDeliveryAddress);
+
+  const validateAddress = async () => {
+    if (!formData.street || !formData.city || !formData.postal_code) return;
+
+    setIsValidating(true);
+    setValidationResult(null);
+    try {
+      const fullAddress = `${formData.street}, ${formData.city}, ${formData.postal_code}, ${formData.country}`;
+      const result = await validateAddressAction({ address: fullAddress });
+      setValidationResult(result);
+    } catch (error) {
+      console.error('Stuart validation error:', error);
+    } finally {
+      setIsValidating(false);
+    }
+  };
 
   useEffect(() => {
     if (initialAddress) {
@@ -114,10 +137,10 @@ export function AddressFormModal({
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>
-              {initialAddress 
-                ? `Edit ${label === 'home' ? 'home' : label === 'work' ? 'work' : ''} address`.trim() 
-                : label === 'custom' 
-                  ? 'Add address' 
+              {initialAddress
+                ? `Edit ${label === 'home' ? 'home' : label === 'work' ? 'work' : ''} address`.trim()
+                : label === 'custom'
+                  ? 'Add address'
                   : `Add ${label === 'home' ? 'home' : 'work'} address`}
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -158,6 +181,7 @@ export function AddressFormModal({
                 placeholderTextColor="#9CA3AF"
                 value={formData.street}
                 onChangeText={(value) => updateField('street', value)}
+                onBlur={validateAddress}
                 autoCapitalize="words"
               />
             </View>
@@ -174,6 +198,7 @@ export function AddressFormModal({
                   placeholderTextColor="#9CA3AF"
                   value={formData.city}
                   onChangeText={(value) => updateField('city', value)}
+                  onBlur={validateAddress}
                   autoCapitalize="words"
                 />
               </View>
@@ -205,6 +230,7 @@ export function AddressFormModal({
                   placeholderTextColor="#9CA3AF"
                   value={formData.postal_code}
                   onChangeText={(value) => updateField('postal_code', value)}
+                  onBlur={validateAddress}
                   autoCapitalize="characters"
                 />
               </View>
@@ -219,10 +245,33 @@ export function AddressFormModal({
                   placeholderTextColor="#9CA3AF"
                   value={formData.country}
                   onChangeText={(value) => updateField('country', value)}
+                  onBlur={validateAddress}
                   autoCapitalize="words"
                 />
               </View>
             </View>
+
+            {/* Validation Indicator */}
+            {isValidating && (
+              <View style={styles.validationContainer}>
+                <ActivityIndicator size="small" color="#6B7280" />
+                <Text style={styles.validationText}>Checking delivery coverage...</Text>
+              </View>
+            )}
+
+            {validationResult && !isValidating && (
+              <View style={styles.validationContainer}>
+                <Text style={[
+                  styles.validationText,
+                  { color: validationResult.valid ? '#10B981' : '#F59E0B' }
+                ]}>
+                  {validationResult.valid
+                    ? (validationResult.skipped ? "" : "✓ Address is within delivery range")
+                    : `⚠️ ${validationResult.error || "Possibly outside delivery range"}`
+                  }
+                </Text>
+              </View>
+            )}
 
             {/* Save Button */}
             <TouchableOpacity
@@ -347,6 +396,21 @@ const styles = StyleSheet.create({
     fontStyle: 'normal',
     fontWeight: '600',
     lineHeight: 24,
+  },
+  validationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: -8,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  validationText: {
+    fontSize: 14,
+    fontFamily: 'Inter',
+    fontWeight: '500',
+    color: '#6B7280',
+    flex: 1,
   },
 });
 

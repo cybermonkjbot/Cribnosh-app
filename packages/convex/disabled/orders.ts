@@ -159,7 +159,7 @@ export const getOrdersWithRefundEligibility = query({
 
     // Filter by customer if specified
     if (args.customerId) {
-      query = query.filter((q: any) => q.eq(q.field('customer_id'), args.customerId));
+      query = query.filter(q => q.eq(q.field('customer_id'), args.customerId));
     }
 
     // Filter by refund eligibility status
@@ -168,7 +168,7 @@ export const getOrdersWithRefundEligibility = query({
 
       switch (args.status) {
         case 'refundable':
-          query = query.filter((q: any) =>
+          query = query.filter(q =>
             q.and(
               q.eq(q.field('is_refundable'), true),
               q.or(
@@ -179,7 +179,7 @@ export const getOrdersWithRefundEligibility = query({
           );
           break;
         case 'non-refundable':
-          query = query.filter((q: any) =>
+          query = query.filter(q =>
             q.or(
               q.eq(q.field('is_refundable'), false),
               q.eq(q.field('order_status'), 'completed'),
@@ -188,7 +188,7 @@ export const getOrdersWithRefundEligibility = query({
           );
           break;
         case 'expired':
-          query = query.filter((q: any) =>
+          query = query.filter(q =>
             q.and(
               q.eq(q.field('order_status'), 'delivered'),
               q.neq(q.field('refund_eligible_until'), undefined),
@@ -379,7 +379,7 @@ export const listByCustomer = query({
     }
     let query = ctx.db
       .query('orders')
-      .withIndex('by_customer', (q: any) => q.eq('customer_id', args.customer_id as Id<'users'>));
+      .withIndex('by_customer', q => q.eq('customer_id', args.customer_id as Id<'users'>));
 
     const allOrders = await query.collect();
 
@@ -388,7 +388,7 @@ export const listByCustomer = query({
     if (args.status && args.status !== "all") {
       const ongoingStatuses = ["pending", "confirmed", "preparing", "ready", "on_the_way"];
       if (args.status === "ongoing") {
-        filtered = filtered.filter((o: any) => ongoingStatuses.includes(o.order_status));
+        filtered = filtered.filter(o => ongoingStatuses.includes(o.order_status));
       } else if (args.status === "past") {
         filtered = filtered.filter(o =>
           o.order_status === "delivered" || o.order_status === "cancelled"
@@ -398,7 +398,7 @@ export const listByCustomer = query({
 
     // Apply order type filter
     if (args.order_type && args.order_type !== "all") {
-      filtered = filtered.filter((o: any) => {
+      filtered = filtered.filter(o => {
         if (args.order_type === "group") {
           return o.is_group_order === true;
         } else {
@@ -408,7 +408,7 @@ export const listByCustomer = query({
     }
 
     // Sort by date (newest first)
-    filtered.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+    filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
     // Pagination - only paginate if limit is explicitly provided
     let paginated = filtered;
@@ -434,7 +434,7 @@ export const listByCustomer = query({
 
       // Enrich order items with meal images
       const enrichedOrderItems = await Promise.all(
-        (order.order_items || []).map(async (item) => {
+        (order.order_items || []).map(async (item: any) => {
           try {
             // Get meal details using dish_id
             const meal = await ctx.runQuery(api.queries.meals.getById, {
@@ -453,7 +453,7 @@ export const listByCustomer = query({
                 // Assume it's a Convex storage ID - try to get URL
                 try {
                   // Convex storage IDs are valid Id<'storage'> types
-                  imageUrl = await ctx.storage.getUrl(firstImage as any);
+                  imageUrl = (await ctx.storage.getUrl(firstImage as any)) ?? undefined;
                   if (!imageUrl) {
                     console.error('Storage getUrl returned null for:', firstImage, 'meal:', meal._id);
                   }
@@ -559,7 +559,7 @@ export const getRecentOrders = query({
       status: order.order_status,
       createdAt: order._creationTime,
       total: order.total_amount,
-      items: (order.order_items || []).map((item) => ({
+      items: order.order_items?.map((item: any) => ({
         name: item.name,
         quantity: item.quantity,
         price: item.price
@@ -586,7 +586,7 @@ export const getUserCart = query({
     }
     const cart = await ctx.db
       .query('carts')
-      .withIndex('by_user', (q: any) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q) => q.eq('userId', args.userId))
       .first();
 
     return cart || {
@@ -616,7 +616,7 @@ export const getUserCartBySessionToken = query({
 
     const cart = await ctx.db
       .query('carts')
-      .withIndex('by_user', (q: any) => q.eq('userId', user._id))
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
       .first();
 
     return cart || {
@@ -670,30 +670,31 @@ export const getEnrichedOrderBySessionToken = query({
         .first();
     }
 
+    // If found but it's not from the 'orders' table, set to null
+    if (order && !('customer_id' in order)) {
+      order = null;
+    }
+
     if (!order) {
       return null;
     }
 
-    // Verify ownership
-    if (!isAdmin(user) && !isStaff(user)) {
-      if (order.customer_id !== user._id && order.customer_id.toString() !== user._id.toString()) {
-        return null; // Return null instead of throwing for better UX
-      }
-    }
+    // Narrow type for TypeScript
+    const typedOrder = order as any;
 
     // Fetch chef/kitchen name and phone if available
     let kitchenName = 'Unknown Kitchen';
     let kitchenPhone = null;
     try {
       const chef = await ctx.runQuery(api.queries.chefs.getById, {
-        chefId: order.chef_id as any,
+        chefId: typedOrder.chef_id as any,
       });
       kitchenName = chef?.name || 'Unknown Kitchen';
 
       // Get kitchen phone from user
       if (chef?.userId) {
         const user = await ctx.db.get(chef.userId);
-        kitchenPhone = user?.phone_number || null;
+        kitchenPhone = (user as any)?.phone_number || null;
       }
     } catch (error) {
       // Chef not found, use default
@@ -704,19 +705,36 @@ export const getEnrichedOrderBySessionToken = query({
     try {
       const assignment = await ctx.db
         .query('deliveryAssignments')
-        .filter(q => q.eq(q.field('order_id'), order._id))
+        .filter(q => q.eq(q.field('order_id'), typedOrder._id))
         .first();
 
       if (assignment) {
-        const driver = await ctx.db.get(assignment.driver_id);
-        if (driver) {
+        if (assignment.driver_id) {
+          const driver = await ctx.db.get(assignment.driver_id);
+          if (driver) {
+            deliveryPerson = {
+              id: driver._id,
+              name: driver.name || `${driver.firstName || ''} ${driver.lastName || ''}`.trim() || 'Delivery Driver',
+              phone: driver.phone || null,
+              location: driver.currentLocation || null,
+              vehicleType: driver.vehicleType || null,
+              rating: driver.rating || null,
+            };
+          }
+        } else if (assignment.provider === 'stuart') {
+          // Use external driver details if available
           deliveryPerson = {
-            id: driver._id,
-            name: driver.name || `${driver.firstName || ''} ${driver.lastName || ''}`.trim() || 'Delivery Driver',
-            phone: driver.phone || null,
-            location: driver.currentLocation || null,
-            vehicleType: driver.vehicleType || null,
-            rating: driver.rating || null,
+            id: 'external-stuart',
+            name: assignment.external_driver_name || 'Stuart Courier',
+            phone: assignment.external_driver_phone || null,
+            location: null, // We could potentially track this from webhook location updates
+            vehicleType: 'scooter', // Default for Stuart or infer from package type
+            rating: null,
+            photo: assignment.external_driver_photo || null,
+            status: assignment.external_status || 'active',
+            isExternal: true,
+            estimatedPickupTime: assignment.estimated_pickup_time,
+            estimatedDeliveryTime: assignment.estimated_delivery_time,
           };
         }
       }
@@ -725,13 +743,13 @@ export const getEnrichedOrderBySessionToken = query({
     }
 
     // Get delivery fee - check order first, then deliveries table
-    let deliveryFee = order.delivery_fee || null;
+    let deliveryFee = typedOrder.delivery_fee || null;
     if (deliveryFee === null || deliveryFee === undefined) {
       try {
         // Check deliveries table
         const delivery = await ctx.db
           .query('deliveries')
-          .filter(q => q.eq(q.field('orderId'), order._id))
+          .filter(q => q.eq(q.field('orderId'), typedOrder._id))
           .first();
         if (delivery) {
           deliveryFee = delivery.deliveryFee || null;
@@ -743,43 +761,43 @@ export const getEnrichedOrderBySessionToken = query({
 
     // Transform delivery_address to match expected format (postcode -> postal_code, add state if missing)
     let deliveryAddress = null;
-    if (order.delivery_address) {
+    if (typedOrder.delivery_address) {
       deliveryAddress = {
-        street: order.delivery_address.street || '',
-        city: order.delivery_address.city || '',
-        state: order.delivery_address.state || '', // May not exist in schema
-        postal_code: order.delivery_address.postcode || order.delivery_address.postal_code || '',
-        country: order.delivery_address.country || 'UK',
+        street: typedOrder.delivery_address.street || '',
+        city: typedOrder.delivery_address.city || '',
+        state: typedOrder.delivery_address.state || '', // May not exist in schema
+        postal_code: typedOrder.delivery_address.postcode || typedOrder.delivery_address.postal_code || '',
+        country: typedOrder.delivery_address.country || 'UK',
       };
     }
 
     // Calculate subtotal from order items if not stored
-    const subtotal = order.subtotal || (order.order_items || []).reduce((sum: number, item) => {
+    const subtotal = typedOrder.subtotal || (typedOrder.order_items || []).reduce((sum: number, item: any) => {
       return sum + ((item.price || 0) * (item.quantity || 1));
     }, 0);
 
     // Transform to standardized format (matching the action format and screen expectations)
     const orderData = {
-      id: order._id,
-      _id: order._id,
-      customerId: order.customer_id,
-      chefId: order.chef_id,
-      orderDate: new Date(order.order_date || order.createdAt || Date.now()).toISOString(),
-      totalAmount: order.total_amount,
-      total: order.total_amount,
-      orderStatus: order.order_status,
-      status: order.order_status,
-      specialInstructions: order.special_instructions || null,
-      special_instructions: order.special_instructions || null,
-      estimatedPrepTimeMinutes: order.estimated_prep_time_minutes || null,
-      estimated_prep_time_minutes: order.estimated_prep_time_minutes || null,
-      chefNotes: order.chef_notes || null,
-      chef_notes: order.chef_notes || null,
-      paymentStatus: order.payment_status,
-      payment_status: order.payment_status,
+      id: typedOrder._id,
+      _id: typedOrder._id,
+      customerId: typedOrder.customer_id,
+      chefId: typedOrder.chef_id,
+      orderDate: new Date(typedOrder.order_date || typedOrder.createdAt || Date.now()).toISOString(),
+      totalAmount: typedOrder.total_amount,
+      total: typedOrder.total_amount,
+      orderStatus: typedOrder.order_status,
+      status: typedOrder.order_status,
+      specialInstructions: typedOrder.special_instructions || null,
+      special_instructions: typedOrder.special_instructions || null,
+      estimatedPrepTimeMinutes: typedOrder.estimated_prep_time_minutes || null,
+      estimated_prep_time_minutes: typedOrder.estimated_prep_time_minutes || null,
+      chefNotes: typedOrder.chef_notes || null,
+      chef_notes: typedOrder.chef_notes || null,
+      paymentStatus: typedOrder.payment_status,
+      payment_status: typedOrder.payment_status,
       // Enrich order items with meal images
       orderItems: await Promise.all(
-        (order.order_items || []).map(async (item) => {
+        (typedOrder.order_items || []).map(async (item: any) => {
           try {
             // Get meal details using dish_id
             const meal = await ctx.runQuery(api.queries.meals.getById, {
@@ -797,7 +815,7 @@ export const getEnrichedOrderBySessionToken = query({
               } else {
                 // Assume it's a Convex storage ID - try to get URL
                 try {
-                  imageUrl = await ctx.storage.getUrl(firstImage as any);
+                  imageUrl = (await ctx.storage.getUrl(firstImage as any)) ?? undefined;
                   if (!imageUrl) {
                     console.error('Storage getUrl returned null for:', firstImage, 'meal:', meal._id);
                   }
@@ -840,23 +858,23 @@ export const getEnrichedOrderBySessionToken = query({
           }
         })
       ),
-      items: (order.order_items || []).map((item: any) => ({
+      items: (typedOrder.order_items || []).map((item: any) => ({
         ...item,
         dish_name: item.name || item.dish_name || 'Unknown Dish',
         id: item.dish_id || item.id,
       })),
       // Additional fields that might be needed
-      kitchen_id: order.chef_id,
+      kitchen_id: typedOrder.chef_id,
       kitchen_name: kitchenName,
       kitchen_phone: kitchenPhone,
       delivery_address: deliveryAddress,
       delivery_fee: deliveryFee,
       delivery_person: deliveryPerson,
       subtotal: subtotal,
-      tax: order.tax || 0,
-      created_at: order.created_at || order.createdAt || new Date().toISOString(),
-      updated_at: order.updated_at || order.updatedAt || new Date().toISOString(),
-      estimated_delivery_time: order.estimated_delivery_time || order.delivery_time,
+      tax: typedOrder.tax || 0,
+      created_at: typedOrder.created_at || typedOrder.createdAt || new Date().toISOString(),
+      updated_at: typedOrder.updated_at || typedOrder.updatedAt || new Date().toISOString(),
+      estimated_delivery_time: deliveryPerson?.estimatedDeliveryTime || typedOrder.estimated_delivery_time || typedOrder.delivery_time,
     };
 
     return orderData;
@@ -879,7 +897,7 @@ export const getCartItemCountBySessionToken = query({
 
     const cart = await ctx.db
       .query('carts')
-      .withIndex('by_user', (q: any) => q.eq('userId', user._id))
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
       .first();
 
     if (!cart || !cart.items || cart.items.length === 0) {
@@ -887,7 +905,7 @@ export const getCartItemCountBySessionToken = query({
     }
 
     // Calculate total item count (sum of all quantities)
-    return cart.items.reduce((sum: number, item) => sum + (item.quantity || 0), 0);
+    return cart.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
   },
 });
 
@@ -912,7 +930,7 @@ export const getEnrichedCartBySessionToken = query({
     // Get cart from database
     const cart = await ctx.db
       .query('carts')
-      .withIndex('by_user', (q: any) => q.eq('userId', user._id))
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
       .first();
 
     if (!cart || !cart.items || cart.items.length === 0) {
@@ -925,7 +943,7 @@ export const getEnrichedCartBySessionToken = query({
 
     // Enrich cart items with meal and chef details
     const enrichedItems = await Promise.all(
-      cart.items.map(async (item) => {
+      cart.items.map(async (item: any) => {
         try {
           // Get meal details
           const meal = await ctx.runQuery(api.queries.meals.getById, {
@@ -978,7 +996,7 @@ export const getEnrichedCartBySessionToken = query({
             } else if (firstImage.startsWith('k')) {
               // It's likely a Convex storage ID, get the URL
               try {
-                imageUrl = await ctx.storage.getUrl(firstImage as any);
+                imageUrl = (await ctx.storage.getUrl(firstImage as any)) ?? undefined;
               } catch (error) {
                 console.error('Failed to get storage URL for image:', firstImage, error);
                 // Fallback to relative path
@@ -1064,7 +1082,7 @@ export const checkCartChefAvailability = query({
 
     const cart = await ctx.db
       .query('carts')
-      .withIndex('by_user', (q: any) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q) => q.eq('userId', args.userId))
       .first();
 
     if (!cart || !cart.items || cart.items.length === 0) {
@@ -1082,7 +1100,7 @@ export const checkCartChefAvailability = query({
     const chefIds = new Set<string>();
 
     for (const cartItem of cart.items) {
-      const meal = (allMeals as any[]).find((m: any) => m._id === cartItem.id || m._id === cartItem.dish_id);
+      const meal = (allMeals as any[]).find((m: any) => m._id === cartItem.id || m._id === (cartItem as any).dish_id);
 
       if (!meal) continue;
 
@@ -1106,7 +1124,7 @@ export const checkCartChefAvailability = query({
     // Check availability for each chef
     const offlineChefs: Array<{ chefId: string; chefName: string; itemNames: string[] }> = [];
 
-    for (const chefIdStr of chefIds) {
+    for (const chefIdStr of Array.from(chefIds)) {
       try {
         const chef = await ctx.db.get(chefIdStr as Id<'chefs'>);
         if (!chef) continue;

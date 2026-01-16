@@ -1,3 +1,4 @@
+import { LiveDeliveryMapSheet } from '@/components/delivery/LiveDeliveryMapSheet';
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ImageStack } from "@/components/ui/ImageStack";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -12,6 +13,7 @@ import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
   FileText,
+  MapPin,
   Phone,
   Star,
 } from "lucide-react-native";
@@ -54,6 +56,7 @@ export default function OrderDetailsScreen() {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [showLiveMap, setShowLiveMap] = useState(false);
 
   const { cancelOrder, rateOrder, isLoading: ordersLoading } = useOrders();
 
@@ -368,6 +371,17 @@ export default function OrderDetailsScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Live Tracking Button - Show for active deliveries */}
+            {isOrderActive(order.status) && (
+              <TouchableOpacity
+                style={styles.liveTrackingButton}
+                onPress={() => setShowLiveMap(true)}
+              >
+                <MapPin size={20} color="white" />
+                <Text style={styles.liveTrackingButtonText}>View Live Tracking</Text>
+              </TouchableOpacity>
+            )}
+
             {/* Order Note */}
             {(order.special_instructions || (order as any).specialInstructions) && (
               <View style={styles.noteSection}>
@@ -615,6 +629,13 @@ export default function OrderDetailsScreen() {
             </View>
           </View>
         )}
+
+        {/* Live Delivery Map Bottom Sheet */}
+        <LiveDeliveryMapSheet
+          isVisible={showLiveMap}
+          onClose={() => setShowLiveMap(false)}
+          orderId={order._id as any}
+        />
       </SafeAreaView>
     </>
   );
@@ -768,6 +789,28 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#111827',
+  },
+  mapSection: {
+    marginTop: 32,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingBottom: 16,
+  },
+  liveTrackingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#094327',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginTop: 24,
+    gap: 8,
+  },
+  liveTrackingButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   itemsSection: {
     marginTop: 32,

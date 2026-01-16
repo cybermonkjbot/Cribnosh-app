@@ -16,12 +16,12 @@ http.route({
     const url = new URL(request.url);
     const activeOnly = url.searchParams.get("activeOnly") === "true";
     const limit = parseInt(url.searchParams.get("limit") || "50");
-    
+
     const templates = await ctx.runQuery(api.emailConfig.getEmailTemplates, {
       activeOnly,
       limit,
     });
-    
+
     return new Response(JSON.stringify(templates), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -36,25 +36,25 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const url = new URL(request.url);
     const templateId = url.pathname.split('/').pop();
-    
+
     if (!templateId) {
       return new Response(JSON.stringify({ error: "Template ID is required" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
-    
+
     const template = await ctx.runQuery(api.emailConfig.getEmailTemplate, {
       templateId,
     });
-    
+
     if (!template) {
       return new Response(JSON.stringify({ error: "Template not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
     }
-    
+
     return new Response(JSON.stringify(template), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -70,24 +70,24 @@ http.route({
     try {
       const body = await request.json();
       const { changedBy, ...templateData } = body;
-      
+
       const templateId = await ctx.runMutation(api.emailConfig.createEmailTemplate, {
         ...templateData,
         changedBy: changedBy || "system",
       });
-      
-      return new Response(JSON.stringify({ 
-        success: true, 
+
+      return new Response(JSON.stringify({
+        success: true,
         templateId,
-        message: "Template created successfully" 
+        message: "Template created successfully"
       }), {
         status: 201,
         headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: String(error) 
+      return new Response(JSON.stringify({
+        success: false,
+        error: String(error)
       }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -104,35 +104,35 @@ http.route({
     try {
       const url = new URL(request.url);
       const templateId = url.pathname.split('/').pop();
-      
+
       if (!templateId) {
         return new Response(JSON.stringify({ error: "Template ID is required" }), {
           status: 400,
           headers: { "Content-Type": "application/json" },
         });
       }
-      
+
       const body = await request.json();
       const { changedBy, changeReason, ...updates } = body;
-      
+
       await ctx.runMutation(api.emailConfig.updateEmailTemplate, {
         templateId,
         updates,
         changedBy: changedBy || "system",
         changeReason,
       });
-      
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "Template updated successfully" 
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: "Template updated successfully"
       }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: String(error) 
+      return new Response(JSON.stringify({
+        success: false,
+        error: String(error)
       }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -149,34 +149,34 @@ http.route({
     try {
       const url = new URL(request.url);
       const templateId = url.pathname.split('/').pop();
-      
+
       if (!templateId) {
         return new Response(JSON.stringify({ error: "Template ID is required" }), {
           status: 400,
           headers: { "Content-Type": "application/json" },
         });
       }
-      
+
       const changedBy = url.searchParams.get("changedBy") || "system";
       const changeReason = url.searchParams.get("changeReason") || undefined;
-      
+
       await ctx.runMutation(api.emailConfig.deleteEmailTemplate, {
         templateId,
         changedBy,
         changeReason,
       });
-      
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "Template deleted successfully" 
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: "Template deleted successfully"
       }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: String(error) 
+      return new Response(JSON.stringify({
+        success: false,
+        error: String(error)
       }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -198,13 +198,13 @@ http.route({
     const startDate = url.searchParams.get("startDate") ? parseInt(url.searchParams.get("startDate")!) : undefined;
     const endDate = url.searchParams.get("endDate") ? parseInt(url.searchParams.get("endDate")!) : undefined;
     const templateId = url.searchParams.get("templateId") || undefined;
-    
+
     const stats = await ctx.runQuery(api.emailAnalytics.getEmailDashboardStats, {
       startDate,
       endDate,
       templateId,
     });
-    
+
     return new Response(JSON.stringify(stats), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -225,11 +225,11 @@ http.route({
       const templateId = url.searchParams.get("templateId");
       const recipientEmail = url.searchParams.get("recipient");
       const redirectUrl = url.searchParams.get("url");
-      
+
       if (!templateId || !recipientEmail) {
         return new Response("Missing required parameters", { status: 400 });
       }
-      
+
       // Record click event
       await ctx.runMutation(api.emailConfig.recordEmailEvent, {
         emailId,
@@ -243,7 +243,7 @@ http.route({
           ipAddress: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip"),
         },
       });
-      
+
       // Redirect to the original URL
       if (redirectUrl) {
         return new Response(null, {
@@ -251,7 +251,7 @@ http.route({
           headers: { "Location": redirectUrl },
         });
       }
-      
+
       return new Response("Click tracked", { status: 200 });
     } catch (error) {
       console.error("Click tracking error:", error);
@@ -270,11 +270,11 @@ http.route({
       const emailId = url.pathname.split('/').pop();
       const templateId = url.searchParams.get("templateId");
       const recipientEmail = url.searchParams.get("recipient");
-      
+
       if (!emailId || !templateId || !recipientEmail) {
         return new Response("Missing required parameters", { status: 400 });
       }
-      
+
       // Record open event
       await ctx.runMutation(api.emailConfig.recordEmailEvent, {
         emailId: emailId as string,
@@ -286,15 +286,15 @@ http.route({
           ipAddress: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip"),
         },
       });
-      
+
       // Return 1x1 transparent pixel (base64 decoded without Node.js Buffer)
       const base64String = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
       const binaryString = atob(base64String);
       const pixel = Uint8Array.from(binaryString, (char) => char.charCodeAt(0));
-      
+
       return new Response(pixel, {
         status: 200,
-        headers: { 
+        headers: {
           "Content-Type": "image/png",
           "Cache-Control": "no-cache, no-store, must-revalidate",
           "Pragma": "no-cache",
@@ -320,45 +320,45 @@ http.route({
     try {
       // Parse the notification payload
       const payload = await request.json();
-      
+
       // Verify the JWT signature (Apple sends notifications with JWT)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const isValid = await ctx.runMutation((internal as any)["internal/appleNotifications"].verifyAppleJWT, {
         jwt: request.headers.get("authorization")?.replace("Bearer ", "") || "",
         payload,
       });
-      
+
       if (!isValid) {
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "Invalid Apple JWT signature" 
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Invalid Apple JWT signature"
         }), {
           status: 401,
           headers: { "Content-Type": "application/json" },
         });
       }
-      
+
       // Handle different notification types
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await ctx.runMutation((internal as any)["internal/appleNotifications"].handleNotification, {
         notificationType: payload.type,
         payload,
       });
-      
-      return new Response(JSON.stringify({ 
-        success: true, 
+
+      return new Response(JSON.stringify({
+        success: true,
         message: "Notification processed successfully",
-        result 
+        result
       }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-      
+
     } catch (error) {
       console.error("Apple notification error:", error);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: String(error) 
+      return new Response(JSON.stringify({
+        success: false,
+        error: String(error)
       }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
@@ -369,5 +369,34 @@ http.route({
 
 // Resend webhook handler - using Next.js API route instead
 // The webhook is handled at /api/webhooks/resend/route.ts
+
+// ============================================================================
+// STUART DELIVERY WEBHOOKS
+// ============================================================================
+
+http.route({
+  path: "/api/webhooks/stuart",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const body = await request.json();
+      const event = body.event;
+
+      if (!event) {
+        return new Response("Missing event type", { status: 400 });
+      }
+
+      await ctx.runMutation(internal.internal.stuart.handleWebhookEvent, {
+        event: event,
+        data: body,
+      });
+
+      return new Response("OK", { status: 200 });
+    } catch (error) {
+      console.error("Stuart webhook error:", error);
+      return new Response("Error processing webhook", { status: 500 });
+    }
+  }),
+});
 
 export default http;

@@ -1,8 +1,8 @@
 import { v } from 'convex/values';
-import { mutation, internalMutation, MutationCtx } from '../_generated/server';
-import { Id, Doc } from '../_generated/dataModel';
 import { api } from '../_generated/api';
-import { requireAuth, requireResourceAccess, isAdmin, isStaff } from '../utils/auth';
+import { Doc, Id } from '../_generated/dataModel';
+import { internalMutation, mutation, MutationCtx } from '../_generated/server';
+import { isAdmin, isStaff, requireAuth } from '../utils/auth';
 
 // Define types for cart items
 type CartItem = {
@@ -34,226 +34,430 @@ type OrderItem = {
 type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'on_the_way' | 'out_for_delivery' | 'delivered' | 'completed' | 'cancelled' | 'refunded';
 type PaymentStatus = 'pending' | 'paid' | 'refunded' | 'failed';
 
+// Validators
+const deliveryAddressValidator = v.object({
+  street: v.string(),
+  city: v.string(),
+  postcode: v.string(),
+  country: v.string(),
+});
+
+const orderItemValidator = v.object({
+  dish_id: v.string(),
+  quantity: v.number(),
+  price: v.number(),
+  name: v.string(),
+});
+
+const simpleOrderItemValidator = v.object({
+  dish_id: v.string(),
+  quantity: v.number(),
+});
+
+// Create a new order
+const createOrderHandler = async (ctx: any, args: any): Promise<any> => {
+  // Check regional availability if delivery address is provided
+  if (args.delivery_address) {
+    const isRegionSupported = await ctx.runQuery(api.queries.admin.checkRegionAvailability, {
+      address: {
+        city: args.delivery_address.city,
+        country: args.delivery_address.country,
+      },
+    });
+
+    if (!isRegionSupported) {
+      throw new Error('Oops, We do not serve this region yet, Ordering is not available in your region');
+    }
+  }
+
+  const now = Date.now();
+  // Convert order items to the correct type
+  const orderItems: OrderItem[] = args.order_items.map((item: any) => ({
+    dish_id: item.dish_id as Id<'meals'>,
+    quantity: item.quantity,
+    price: item.price,
+    name: item.name
+  }));
+
+  const orderId = await ctx.db.insert('orders', {
+    order_id: `order_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
+    customer_id: args.customer_id as Id<'users'>,
+    chef_id: args.chef_id as Id<'chefs'>,
+    order_date: new Date().toISOString(),
+    total_amount: args.total_amount,
+    order_status: 'pending',
+    payment_status: 'pending',
+    payment_method: args.payment_method,
+    special_instructions: args.special_instructions,
+    delivery_time: args.delivery_time,
+    delivery_address: args.delivery_address,
+    order_items: args.order_items.map((item: any) => ({
+      ...item,
+      dish_id: item.dish_id as Id<'meals'>,
+    })),
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  // Attempt auto-dispatch
+  await ctx.scheduler.runAfter(0, api.actions.delivery.dispatchOrder, { orderId });
+
+  return orderId;
+};
+
 // Create a new order
 export const createOrder = mutation({
   args: {
     customer_id: v.string(),
     chef_id: v.string(),
-    order_items: v.array(v.object({
-      dish_id: v.string(),
-      quantity: v.number(),
-      price: v.number(),
-      name: v.string(),
-    })),
+    order_items: v.array(orderItemValidator),
     total_amount: v.number(),
     payment_method: v.optional(v.string()),
     special_instructions: v.optional(v.string()),
     delivery_time: v.optional(v.string()),
-    delivery_address: v.optional(v.object({
-      street: v.string(),
-      city: v.string(),
-      postcode: v.string(),
-      country: v.string(),
-    })),
+    delivery_address: v.optional(deliveryAddressValidator),
   },
-  handler: async (ctx, args) => {
-    // Check regional availability if delivery address is provided
-    if (args.delivery_address) {
-      const { checkRegionAvailability } = await import('../queries/admin');
-      const isRegionSupported = await checkRegionAvailability(ctx, {
-        address: {
-          city: args.delivery_address.city,
-          country: args.delivery_address.country,
-        },
-      });
-      
-      if (!isRegionSupported) {
-        throw new Error('Oops, We do not serve this region yet, Ordering is not available in your region');
-      }
-    }
-    
-    const now = Date.now();
-    // Convert order items to the correct type
-    const orderItems: OrderItem[] = args.order_items.map(item => ({
-      dish_id: item.dish_id as Id<'meals'>,
-      quantity: item.quantity,
-      price: item.price,
-      name: item.name
-    }));
-
-    const orderId = await ctx.db.insert('orders', {
-      order_id: `order_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
-      customer_id: args.customer_id as Id<'users'>,
-      chef_id: args.chef_id as Id<'chefs'>,
-      order_date: new Date().toISOString(),
-      total_amount: args.total_amount,
-      order_status: 'pending',
-      payment_status: 'pending',
-      payment_method: args.payment_method,
-      special_instructions: args.special_instructions,
-      delivery_time: args.delivery_time,
-      delivery_address: args.delivery_address,
-      order_items: args.order_items.map(item => ({
-        ...item,
-        dish_id: item.dish_id as Id<'meals'>,
-      })),
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    return orderId;
-  },
+  handler: createOrderHandler,
 });
 
 /**
  * Create order with validation - accepts dish IDs, validates meals in batch, and returns full order
  * This consolidates multiple roundtrips into a single mutation call
  */
+const createOrderWithValidationHandler = async (ctx: any, args: any): Promise<any> => {
+  // Require authentication
+  const user = await requireAuth(ctx, args.sessionToken);
+
+  // Ensure user can only create orders for themselves unless they're staff/admin
+  if (!isAdmin(user) && !isStaff(user)) {
+    if (args.customer_id !== user._id.toString()) {
+      throw new Error('You can only create orders for yourself');
+    }
+  }
+
+  // Check regional availability if delivery address is provided
+  if (args.delivery_address) {
+    const isRegionSupported = await ctx.runQuery(api.queries.admin.checkRegionAvailability, {
+      address: {
+        city: args.delivery_address.city,
+        country: args.delivery_address.country,
+      },
+    });
+
+    if (!isRegionSupported) {
+      throw new Error('Oops, We do not serve this region yet, Ordering is not available in your region');
+    }
+  }
+
+  // Check if this is the chef's first order and if compliance training is complete
+  const chef = await ctx.db.get(args.chef_id as Id<'chefs'>);
+  if (chef) {
+    // Check if chef has any completed orders
+    const existingOrders = await ctx.db
+      .query('orders')
+      .withIndex('by_chef', (q: any) => q.eq('chef_id', args.chef_id as Id<'chefs'>))
+      .filter((q: any) =>
+        q.or(
+          q.eq(q.field('order_status'), 'completed'),
+          q.eq(q.field('order_status'), 'delivered')
+        )
+      )
+      .collect();
+
+    // If this is the first order, check compliance training
+    if (existingOrders.length === 0) {
+      // Check if compliance training is complete
+      const onboardingComplete = await ctx.runQuery(api.queries.chefCourses.isOnboardingComplete, {
+        chefId: args.chef_id as Id<'chefs'>,
+        sessionToken: args.sessionToken,
+      });
+
+      if (!onboardingComplete) {
+        throw new Error('Please complete compliance training before receiving your first order. You can access it from your profile.');
+      }
+    }
+  }
+
+  // Validate all dishes in a single query
+  const allMeals = await ctx.db.query('meals').collect();
+  const mealMap = new Map<string, any>();
+  for (const meal of allMeals) {
+    mealMap.set(meal._id, meal);
+  }
+
+  // Validate each dish and build order items
+  const orderItems: OrderItem[] = [];
+  let total_amount = 0;
+
+  for (const item of args.items) {
+    if (!item.dish_id || typeof item.quantity !== 'number' || item.quantity <= 0) {
+      throw new Error(`Invalid item: dish_id and quantity (must be > 0) are required`);
+    }
+
+    const dish = mealMap.get(item.dish_id as string);
+    if (!dish) {
+      throw new Error(`Dish not found: ${item.dish_id}`);
+    }
+
+    if (dish.status === 'unavailable') {
+      throw new Error(`Dish ${dish.name || item.dish_id} is currently unavailable`);
+    }
+
+    const price = dish.price || 0;
+    const quantity = item.quantity;
+
+    orderItems.push({
+      dish_id: item.dish_id as Id<'meals'>,
+      quantity,
+      price,
+      name: dish.name || 'Unknown Dish',
+    });
+
+    total_amount += price * quantity;
+  }
+
+  if (orderItems.length === 0) {
+    throw new Error('Order must contain at least one item');
+  }
+
+  // Create the order
+  const now = Date.now();
+  const orderId = await ctx.db.insert('orders', {
+    order_id: `order_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
+    customer_id: args.customer_id as Id<'users'>,
+    chef_id: args.chef_id as Id<'chefs'>,
+    order_date: new Date().toISOString(),
+    total_amount,
+    order_status: 'pending',
+    payment_status: 'pending',
+    payment_method: args.payment_method,
+    special_instructions: args.special_instructions,
+    delivery_time: args.delivery_time,
+    delivery_address: args.delivery_address,
+    order_items: orderItems,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  // Return the full order
+  const order = await ctx.db.get(orderId);
+  if (!order) {
+    throw new Error('Failed to retrieve created order');
+  }
+
+  return order;
+};
+
 export const createOrderWithValidation = mutation({
   args: {
     customer_id: v.string(),
     chef_id: v.string(),
-    items: v.array(v.object({
-      dish_id: v.string(),
-      quantity: v.number(),
-    })),
+    items: v.array(simpleOrderItemValidator),
     payment_method: v.optional(v.string()),
     special_instructions: v.optional(v.string()),
     delivery_time: v.optional(v.string()),
-    delivery_address: v.optional(v.object({
-      street: v.string(),
-      city: v.string(),
-      postcode: v.string(),
-      country: v.string(),
-    })),
+    delivery_address: v.optional(deliveryAddressValidator),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    // Require authentication
-    const user = await requireAuth(ctx, args.sessionToken);
-    
-    // Ensure user can only create orders for themselves unless they're staff/admin
-    if (!isAdmin(user) && !isStaff(user)) {
-      if (args.customer_id !== user._id.toString()) {
-        throw new Error('You can only create orders for yourself');
-      }
-    }
-    
-    // Check regional availability if delivery address is provided
-    if (args.delivery_address) {
-      const { checkRegionAvailability } = await import('../queries/admin');
-      const isRegionSupported = await checkRegionAvailability(ctx, {
-        address: {
-          city: args.delivery_address.city,
-          country: args.delivery_address.country,
-        },
-      });
-      
-      if (!isRegionSupported) {
-        throw new Error('Oops, We do not serve this region yet, Ordering is not available in your region');
-      }
-    }
-    
-    // Check if this is the chef's first order and if compliance training is complete
-    const chef = await ctx.db.get(args.chef_id as Id<'chefs'>);
-    if (chef) {
-      // Check if chef has any completed orders
-      const existingOrders = await ctx.db
-        .query('orders')
-        .withIndex('by_chef', (q) => q.eq('chef_id', args.chef_id as Id<'chefs'>))
-        .filter((q) => 
-          q.or(
-            q.eq(q.field('order_status'), 'completed'),
-            q.eq(q.field('order_status'), 'delivered')
-          )
-        )
-        .collect();
-      
-      // If this is the first order, check compliance training
-      if (existingOrders.length === 0) {
-        // Check if compliance training is complete
-        const { isOnboardingComplete } = await import('../queries/chefCourses');
-        const onboardingComplete = await isOnboardingComplete(ctx, {
-          chefId: args.chef_id as Id<'chefs'>,
-          sessionToken: args.sessionToken,
-        });
-        
-        if (!onboardingComplete) {
-          throw new Error('Please complete compliance training before receiving your first order. You can access it from your profile.');
-        }
-      }
-    }
-    
-    // Validate all dishes in a single query
-    const allMeals = await ctx.db.query('meals').collect();
-    const mealMap = new Map<string, any>();
-    for (const meal of allMeals) {
-      mealMap.set(meal._id, meal);
-    }
-    
-    // Validate each dish and build order items
-    const orderItems: OrderItem[] = [];
-    let total_amount = 0;
-    
-    for (const item of args.items) {
-      if (!item.dish_id || typeof item.quantity !== 'number' || item.quantity <= 0) {
-        throw new Error(`Invalid item: dish_id and quantity (must be > 0) are required`);
-      }
-      
-      const dish = mealMap.get(item.dish_id as string);
-      if (!dish) {
-        throw new Error(`Dish not found: ${item.dish_id}`);
-      }
-      
-      if (dish.status === 'unavailable') {
-        throw new Error(`Dish ${dish.name || item.dish_id} is currently unavailable`);
-      }
-      
-      const price = dish.price || 0;
-      const quantity = item.quantity;
-      
-      orderItems.push({
-        dish_id: item.dish_id as Id<'meals'>,
-        quantity,
-        price,
-        name: dish.name || 'Unknown Dish',
-      });
-      
-      total_amount += price * quantity;
-    }
-    
-    if (orderItems.length === 0) {
-      throw new Error('Order must contain at least one item');
-    }
-    
-    // Create the order
-    const now = Date.now();
-    const orderId = await ctx.db.insert('orders', {
-      order_id: `order_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
-      customer_id: args.customer_id as Id<'users'>,
-      chef_id: args.chef_id as Id<'chefs'>,
-      order_date: new Date().toISOString(),
-      total_amount,
-      order_status: 'pending',
-      payment_status: 'pending',
-      payment_method: args.payment_method,
-      special_instructions: args.special_instructions,
-      delivery_time: args.delivery_time,
-      delivery_address: args.delivery_address,
-      order_items: orderItems,
-      createdAt: now,
-      updatedAt: now,
-    });
-    
-    // Return the full order
-    const order = await ctx.db.get(orderId);
-    if (!order) {
-      throw new Error('Failed to retrieve created order');
-    }
-    
-    return order;
-  },
+  handler: createOrderWithValidationHandler,
 });
+
+/**
+ * Create order with payment - accepts payment_id upfront and returns full order
+ * This consolidates order creation, payment linking, and order retrieval into a single mutation
+ */
+const createOrderWithPaymentHandler = async (ctx: any, args: any): Promise<any> => {
+  // Require authentication
+  const user = await requireAuth(ctx, args.sessionToken);
+
+  // Ensure user can only create orders for themselves unless they're staff/admin
+  if (!isAdmin(user) && !isStaff(user)) {
+    if (args.customer_id !== user._id.toString()) {
+      throw new Error('You can only create orders for yourself');
+    }
+  }
+
+  // Check regional availability if delivery address is provided
+  if (args.delivery_address) {
+    const isRegionSupported = await ctx.runQuery(api.queries.admin.checkRegionAvailability, {
+      address: {
+        city: args.delivery_address.city,
+        country: args.delivery_address.country,
+      },
+    });
+
+    if (!isRegionSupported) {
+      throw new Error('Oops, We do not serve this region yet, Ordering is not available in your region');
+    }
+  }
+
+  // Check if this is the chef's first order and if compliance training is complete
+  const chef = await ctx.db.get(args.chef_id as Id<'chefs'>);
+  if (chef) {
+    // Check if chef has any completed orders
+    const existingOrders = await ctx.db
+      .query('orders')
+      .withIndex('by_chef', (q: any) => q.eq('chef_id', args.chef_id as Id<'chefs'>))
+      .filter((q: any) =>
+        q.or(
+          q.eq(q.field('order_status'), 'completed'),
+          q.eq(q.field('order_status'), 'delivered')
+        )
+      )
+      .collect();
+
+    // If this is the first order, check compliance training
+    if (existingOrders.length === 0) {
+      // Check if compliance training is complete
+      const onboardingComplete = await ctx.runQuery(api.queries.chefCourses.isOnboardingComplete, {
+        chefId: args.chef_id as Id<'chefs'>,
+        sessionToken: args.sessionToken,
+      });
+
+      if (!onboardingComplete) {
+        throw new Error('Please complete compliance training before receiving your first order. You can access it from your profile.');
+      }
+    }
+  }
+
+  const now = Date.now();
+  // Convert order items to the correct type
+  const orderItems: OrderItem[] = args.order_items.map((item: any) => ({
+    dish_id: item.dish_id as Id<'meals'>,
+    quantity: item.quantity,
+    price: item.price,
+    name: item.name
+  }));
+
+  // Calculate subtotal (sum of all items)
+  const subtotal = args.order_items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+
+  // Handle Nosh Points discount if points are applied
+  let pointsDiscountAmount = 0;
+  if (args.nosh_points_applied && args.nosh_points_applied > 0) {
+    // 1 point = £0.01
+    pointsDiscountAmount = args.nosh_points_applied * 0.01;
+
+    // Validate user has enough points
+    const pointsRecord = await ctx.db
+      .query('noshPoints')
+      .withIndex('by_user', (q: any) => q.eq('userId', args.customer_id as Id<'users'>))
+      .first();
+
+    if (!pointsRecord || pointsRecord.available_points < args.nosh_points_applied) {
+      throw new Error('Insufficient Nosh Points');
+    }
+
+    // Spend the points (will be linked to order after order is created)
+    // We'll update the transaction with orderId after order creation
+  }
+
+  // Handle offer discount if offer_id is provided
+  let discountAmount = 0;
+  let discountType: "percentage" | "fixed_amount" | "free_delivery" | undefined = undefined;
+  let finalOfferId: string | undefined = undefined;
+
+  if (args.offer_id) {
+    // Get the offer
+    const offer = await ctx.runQuery(api.queries.specialOffers.getById, {
+      offer_id: args.offer_id,
+    });
+
+    if (offer) {
+      // Validate minimum order amount
+      const { validateMinimumOrderAmount, calculateDiscountAmount } = await import('../utils/offerDiscount');
+      if (validateMinimumOrderAmount(subtotal, offer.min_order_amount)) {
+        // Calculate discount
+        discountAmount = calculateDiscountAmount(
+          offer.discount_type,
+          offer.discount_value,
+          subtotal,
+          offer.max_discount
+        );
+        discountType = offer.discount_type;
+        finalOfferId = args.offer_id;
+      }
+    }
+  }
+
+  // Calculate final total (subtotal - points discount - offer discount)
+  const finalTotal = Math.max(0, subtotal - pointsDiscountAmount - discountAmount);
+
+  const orderId = await ctx.db.insert('orders', {
+    order_id: `order_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
+    customer_id: args.customer_id as Id<'users'>,
+    chef_id: args.chef_id as Id<'chefs'>,
+    order_date: new Date().toISOString(),
+    total_amount: finalTotal, // Use discounted total
+    subtotal: subtotal,
+    offer_id: finalOfferId,
+    discount_amount: (pointsDiscountAmount + discountAmount) > 0 ? (pointsDiscountAmount + discountAmount) : undefined,
+    discount_type: discountType,
+    nosh_points_applied: args.nosh_points_applied,
+    order_status: 'pending',
+    payment_status: 'paid', // Mark as paid immediately since payment_id is provided
+    payment_id: args.payment_id,
+    payment_method: args.payment_method || 'card',
+    special_instructions: args.special_instructions,
+    delivery_time: args.delivery_time,
+    delivery_address: args.delivery_address,
+    order_items: orderItems,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  // Mark claimed offer as used and increment conversion count
+  if (finalOfferId && discountAmount > 0) {
+    try {
+      const claim = await ctx.runQuery(api.queries.claimedOffers.getByUserAndOffer, {
+        user_id: args.customer_id as Id<'users'>,
+        offer_id: finalOfferId,
+      });
+      if (claim && !claim.is_used) {
+        await ctx.runMutation(api.mutations.claimedOffers.markAsUsed, {
+          user_id: args.customer_id as Id<'users'>,
+          offer_id: finalOfferId,
+          order_id: orderId,
+        });
+      }
+
+      // Increment conversion count
+      await ctx.runMutation(api.mutations.specialOffers.incrementConversionCount, {
+        offer_id: finalOfferId,
+      });
+    } catch (error) {
+      // If marking as used fails, continue anyway - order creation shouldn't fail
+      console.warn('Failed to mark offer as used or increment conversion:', error);
+    }
+  }
+
+  // If Nosh Points were applied, spend them and link to order
+  if (args.nosh_points_applied && args.nosh_points_applied > 0) {
+    try {
+      await ctx.runMutation(api.mutations.noshPoints.spendPoints, {
+        userId: args.customer_id as Id<'users'>,
+        points: args.nosh_points_applied,
+        reason: 'Applied to order discount',
+        orderId: orderId,
+      });
+    } catch (error) {
+      // If spending points fails, we should probably rollback the order
+      // But for now, log and continue - points validation was done earlier
+      console.error('Failed to spend Nosh Points after order creation:', error);
+    }
+  }
+
+  // Return the full order
+  const order = await ctx.db.get(orderId);
+  if (!order) {
+    throw new Error('Failed to retrieve created order');
+  }
+
+  // Attempt auto-dispatch
+  await ctx.scheduler.runAfter(0, api.actions.delivery.dispatchOrder, { orderId });
+
+  return order;
+};
 
 /**
  * Create order with payment - accepts payment_id upfront and returns full order
@@ -263,219 +467,38 @@ export const createOrderWithPayment = mutation({
   args: {
     customer_id: v.string(),
     chef_id: v.string(),
-    order_items: v.array(v.object({
-      dish_id: v.string(),
-      quantity: v.number(),
-      price: v.number(),
-      name: v.string(),
-    })),
+    order_items: v.array(orderItemValidator),
     total_amount: v.number(),
     payment_id: v.string(),
     payment_method: v.optional(v.string()),
     special_instructions: v.optional(v.string()),
     delivery_time: v.optional(v.string()),
-    delivery_address: v.optional(v.object({
-      street: v.string(),
-      city: v.string(),
-      postcode: v.string(),
-      country: v.string(),
-    })),
+    delivery_address: v.optional(deliveryAddressValidator),
     sessionToken: v.optional(v.string()),
     offer_id: v.optional(v.string()), // Applied special offer ID
     nosh_points_applied: v.optional(v.number()), // Nosh Points applied for discount
   },
-  handler: async (ctx, args) => {
-    // Require authentication
-    const user = await requireAuth(ctx, args.sessionToken);
-    
-    // Ensure user can only create orders for themselves unless they're staff/admin
-    if (!isAdmin(user) && !isStaff(user)) {
-      if (args.customer_id !== user._id.toString()) {
-        throw new Error('You can only create orders for yourself');
-      }
-    }
-    
-    // Check regional availability if delivery address is provided
-    if (args.delivery_address) {
-      const { checkRegionAvailability } = await import('../queries/admin');
-      const isRegionSupported = await checkRegionAvailability(ctx, {
-        address: {
-          city: args.delivery_address.city,
-          country: args.delivery_address.country,
-        },
-      });
-      
-      if (!isRegionSupported) {
-        throw new Error('Oops, We do not serve this region yet, Ordering is not available in your region');
-      }
-    }
-    
-    // Check if this is the chef's first order and if compliance training is complete
-    const chef = await ctx.db.get(args.chef_id as Id<'chefs'>);
-    if (chef) {
-      // Check if chef has any completed orders
-      const existingOrders = await ctx.db
-        .query('orders')
-        .withIndex('by_chef', (q) => q.eq('chef_id', args.chef_id as Id<'chefs'>))
-        .filter((q) => 
-          q.or(
-            q.eq(q.field('order_status'), 'completed'),
-            q.eq(q.field('order_status'), 'delivered')
-          )
-        )
-        .collect();
-      
-      // If this is the first order, check compliance training
-      if (existingOrders.length === 0) {
-        // Check if compliance training is complete
-        const { isOnboardingComplete } = await import('../queries/chefCourses');
-        const onboardingComplete = await isOnboardingComplete(ctx, {
-          chefId: args.chef_id as Id<'chefs'>,
-          sessionToken: args.sessionToken,
-        });
-        
-        if (!onboardingComplete) {
-          throw new Error('Please complete compliance training before receiving your first order. You can access it from your profile.');
-        }
-      }
-    }
-    
-    const now = Date.now();
-    // Convert order items to the correct type
-    const orderItems: OrderItem[] = args.order_items.map(item => ({
-      dish_id: item.dish_id as Id<'meals'>,
-      quantity: item.quantity,
-      price: item.price,
-      name: item.name
-    }));
-
-    // Calculate subtotal (sum of all items)
-    const subtotal = args.order_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-    // Handle Nosh Points discount if points are applied
-    let pointsDiscountAmount = 0;
-    if (args.nosh_points_applied && args.nosh_points_applied > 0) {
-      // 1 point = £0.01
-      pointsDiscountAmount = args.nosh_points_applied * 0.01;
-      
-      // Validate user has enough points
-      const pointsRecord = await ctx.db
-        .query('noshPoints')
-        .withIndex('by_user', (q) => q.eq('userId', args.customer_id as Id<'users'>))
-        .first();
-
-      if (!pointsRecord || pointsRecord.available_points < args.nosh_points_applied) {
-        throw new Error('Insufficient Nosh Points');
-      }
-
-      // Spend the points (will be linked to order after order is created)
-      // We'll update the transaction with orderId after order creation
-    }
-
-    // Handle offer discount if offer_id is provided
-    let discountAmount = 0;
-    let discountType: "percentage" | "fixed_amount" | "free_delivery" | undefined = undefined;
-    let finalOfferId: string | undefined = undefined;
-
-    if (args.offer_id) {
-      // Get the offer
-      const offer = await ctx.runQuery(api.queries.specialOffers.getById, {
-        offer_id: args.offer_id,
-      });
-
-      if (offer) {
-        // Validate minimum order amount
-        const { validateMinimumOrderAmount, calculateDiscountAmount } = await import('../utils/offerDiscount');
-        if (validateMinimumOrderAmount(subtotal, offer.min_order_amount)) {
-          // Calculate discount
-          discountAmount = calculateDiscountAmount(
-            offer.discount_type,
-            offer.discount_value,
-            subtotal,
-            offer.max_discount
-          );
-          discountType = offer.discount_type;
-          finalOfferId = args.offer_id;
-        }
-      }
-    }
-
-    // Calculate final total (subtotal - points discount - offer discount)
-    const finalTotal = Math.max(0, subtotal - pointsDiscountAmount - discountAmount);
-
-    const orderId = await ctx.db.insert('orders', {
-      order_id: `order_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
-      customer_id: args.customer_id as Id<'users'>,
-      chef_id: args.chef_id as Id<'chefs'>,
-      order_date: new Date().toISOString(),
-      total_amount: finalTotal, // Use discounted total
-      subtotal: subtotal,
-      offer_id: finalOfferId,
-      discount_amount: (pointsDiscountAmount + discountAmount) > 0 ? (pointsDiscountAmount + discountAmount) : undefined,
-      discount_type: discountType,
-      nosh_points_applied: args.nosh_points_applied,
-      order_status: 'pending',
-      payment_status: 'paid', // Mark as paid immediately since payment_id is provided
-      payment_id: args.payment_id,
-      payment_method: args.payment_method || 'card',
-      special_instructions: args.special_instructions,
-      delivery_time: args.delivery_time,
-      delivery_address: args.delivery_address,
-      order_items: orderItems,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // Mark claimed offer as used and increment conversion count
-    if (finalOfferId && discountAmount > 0) {
-      try {
-        const claim = await ctx.runQuery(api.queries.claimedOffers.getByUserAndOffer, {
-          user_id: args.customer_id as Id<'users'>,
-          offer_id: finalOfferId,
-        });
-        if (claim && !claim.is_used) {
-          await ctx.runMutation(api.mutations.claimedOffers.markAsUsed, {
-            user_id: args.customer_id as Id<'users'>,
-            offer_id: finalOfferId,
-            order_id: orderId,
-          });
-        }
-
-        // Increment conversion count
-        await ctx.runMutation(api.mutations.specialOffers.incrementConversionCount, {
-          offer_id: finalOfferId,
-        });
-      } catch (error) {
-        // If marking as used fails, continue anyway - order creation shouldn't fail
-        console.warn('Failed to mark offer as used or increment conversion:', error);
-      }
-    }
-
-    // If Nosh Points were applied, spend them and link to order
-    if (args.nosh_points_applied && args.nosh_points_applied > 0) {
-      try {
-        await ctx.runMutation(api.mutations.noshPoints.spendPoints, {
-          userId: args.customer_id as Id<'users'>,
-          points: args.nosh_points_applied,
-          reason: 'Applied to order discount',
-          orderId: orderId,
-        });
-      } catch (error) {
-        // If spending points fails, we should probably rollback the order
-        // But for now, log and continue - points validation was done earlier
-        console.error('Failed to spend Nosh Points after order creation:', error);
-      }
-    }
-
-    // Return the full order
-    const order = await ctx.db.get(orderId);
-    if (!order) {
-      throw new Error('Failed to retrieve created order');
-    }
-    
-    return order;
-  },
+  handler: createOrderWithPaymentHandler,
 });
+
+// Internal mutation for seeding - skips region check
+const createOrderForSeedHandler = async (ctx: any, args: any): Promise<any> => {
+  const now = args.createdAt || Date.now();
+  const orderId = await ctx.db.insert('orders', {
+    order_id: `order_${now}_${Math.random().toString(36).substring(2, 10)}`,
+    customer_id: args.customer_id,
+    chef_id: args.chef_id,
+    order_date: args.order_date || new Date(now).toISOString(),
+    total_amount: args.total_amount,
+    order_status: 'pending',
+    payment_status: 'pending',
+    order_items: args.order_items,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return orderId;
+};
 
 // Internal mutation for seeding - skips region check
 export const createOrderForSeed = internalMutation({
@@ -492,23 +515,7 @@ export const createOrderForSeed = internalMutation({
     order_date: v.optional(v.string()),
     createdAt: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const now = args.createdAt || Date.now();
-    const orderId = await ctx.db.insert('orders', {
-      order_id: `order_${now}_${Math.random().toString(36).substring(2, 10)}`,
-      customer_id: args.customer_id,
-      chef_id: args.chef_id,
-      order_date: args.order_date || new Date(now).toISOString(),
-      total_amount: args.total_amount,
-      order_status: 'pending',
-      payment_status: 'pending',
-      order_items: args.order_items,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    return orderId;
-  },
+  handler: createOrderForSeedHandler,
 });
 
 /**
@@ -519,7 +526,7 @@ async function handleOrderCompletion(ctx: MutationCtx, orderId: Id<'orders'>, us
   if (!order) return;
 
   // Create meal logs from order items
-  const orderItems = (order.order_items || []).map((item) => ({
+  const orderItems = (order.order_items || []).map((item: any) => ({
     mealId: item.dish_id,
     quantity: item.quantity,
   }));
@@ -549,34 +556,23 @@ async function handleOrderCompletion(ctx: MutationCtx, orderId: Id<'orders'>, us
 }
 
 export const updateStatus = mutation({
-  args: { 
-    order_id: v.string(), 
-    status: v.union(
-      v.literal('pending'),
-      v.literal('confirmed'),
-      v.literal('preparing'),
-      v.literal('ready'),
-      v.literal('on_the_way'),
-      v.literal('out_for_delivery'),
-      v.literal('delivered'),
-      v.literal('completed'),
-      v.literal('cancelled'),
-      v.literal('refunded')
-    ) 
+  args: {
+    order_id: v.string(),
+    status: v.string()
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'orders'> | null> => {
     const order = await ctx.db.query('orders').filter(q => q.eq(q.field('order_id'), args.order_id)).first();
     if (!order) throw new Error('Order not found');
-    
+
     const previousStatus = order.order_status;
-    await ctx.db.patch(order._id, { 
+    await ctx.db.patch(order._id, {
       order_status: args.status,
-      updatedAt: Date.now() 
+      updatedAt: Date.now()
     });
 
     // Handle order completion - trigger profile updates
-    if ((args.status === 'delivered' || args.status === 'completed') && 
-        previousStatus !== 'delivered' && previousStatus !== 'completed') {
+    if ((args.status === 'delivered' || args.status === 'completed') &&
+      previousStatus !== 'delivered' && previousStatus !== 'completed') {
       await handleOrderCompletion(ctx, order._id, order.customer_id);
     }
 
@@ -586,7 +582,7 @@ export const updateStatus = mutation({
 
 export const markPaid = mutation({
   args: { order_id: v.string(), paymentIntentId: v.string() },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'orders'> | null> => {
     const order = await ctx.db.query('orders').filter(q => q.eq(q.field('order_id'), args.order_id)).first();
     if (!order) throw new Error('Order not found');
     await ctx.db.patch(order._id, { payment_status: 'paid', payment_id: args.paymentIntentId });
@@ -596,17 +592,17 @@ export const markPaid = mutation({
 
 export const markRefunded = mutation({
   args: { order_id: v.string(), refundId: v.string() },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<void> => {
     // First try to find the order by order_id using a filter
     const orders = await ctx.db
       .query('orders')
       .filter((q) => q.eq(q.field('order_id'), args.order_id))
       .collect();
-    
+
     const order = orders[0];
-      
+
     if (!order) throw new Error('Order not found');
-    
+
     await ctx.db.patch(order._id, {
       payment_status: 'refunded' as const,
       payment_id: args.refundId,
@@ -620,11 +616,7 @@ export const updateOrderStatus = mutation({
   args: {
     userId: v.id('users'),
     paymentIntentId: v.string(),
-    status: v.union(
-      v.literal('confirmed'),
-      v.literal('failed'),
-      v.literal('canceled')
-    ),
+    status: v.string(),
     amount: v.number(),
     currency: v.string(),
   },
@@ -634,21 +626,21 @@ export const updateOrderStatus = mutation({
       .query('orders')
       .filter((q) => q.eq(q.field('customer_id'), args.userId))
       .collect();
-    
+
     // Find the most recent pending order for this user
     const pendingOrder = orders
-      .filter(order => order.payment_status === 'pending')
-      .sort((a, b) => b.createdAt - a.createdAt)[0];
-    
+      .filter((order: Doc<'orders'>) => order.payment_status === 'pending')
+      .sort((a: Doc<'orders'>, b: Doc<'orders'>) => b.createdAt - a.createdAt)[0];
+
     if (!pendingOrder) {
       console.log(`No pending order found for user ${args.userId}`);
       return null;
     }
-    
+
     // Update order status based on payment status
     let orderStatus: OrderStatus = 'pending';
     let paymentStatus: PaymentStatus = 'pending';
-    
+
     switch (args.status) {
       case 'confirmed':
         orderStatus = 'confirmed';
@@ -663,14 +655,14 @@ export const updateOrderStatus = mutation({
         paymentStatus = 'failed';
         break;
     }
-    
+
     await ctx.db.patch(pendingOrder._id, {
       order_status: orderStatus,
       payment_status: paymentStatus,
       payment_id: args.paymentIntentId,
       updatedAt: Date.now(),
     });
-    
+
     console.log(`Updated order ${pendingOrder._id} status to ${orderStatus}, payment to ${paymentStatus}`);
     return await ctx.db.get(pendingOrder._id);
   },
@@ -683,12 +675,12 @@ export const updateCartItem = mutation({
     itemId: v.string(),
     quantity: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<CartItem | undefined> => {
     // Get the user's cart
     // Query the cart with proper type safety
     const cart = await ctx.db
       .query('carts')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q: any) => q.eq('userId', args.userId))
       .first() as CartDocument | null;
 
     if (!cart) {
@@ -700,8 +692,8 @@ export const updateCartItem = mutation({
     }
 
     // Update the item quantity
-    const updatedItems = (cart.items || []).map((item: CartItem) => 
-      item.id === args.itemId 
+    const updatedItems = (cart.items || []).map((item: CartItem) =>
+      item.id === args.itemId
         ? { ...item, quantity: args.quantity, updatedAt: Date.now() }
         : item
     );
@@ -721,12 +713,12 @@ export const removeFromCart = mutation({
     userId: v.id('users'),
     itemId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<boolean> => {
     // Get the user's cart
     // Query the cart with proper type safety
     const cart = await ctx.db
       .query('carts')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q: any) => q.eq('userId', args.userId))
       .first() as CartDocument | null;
 
     if (!cart) {
@@ -755,11 +747,11 @@ export const clearCart = mutation({
   args: {
     userId: v.id('users'),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<boolean> => {
     // Get the user's cart
     const cart = await ctx.db
       .query('carts')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q: any) => q.eq('userId', args.userId))
       .first() as CartDocument | null;
 
     if (!cart) {
@@ -784,24 +776,24 @@ export const addToCart = mutation({
     dishId: v.id('meals'),
     quantity: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'carts'> | null> => {
     // Fetch meal details
     const meal = await ctx.db.get(args.dishId);
-    
+
     if (!meal) {
       throw new Error('Dish not found');
     }
-    
+
     // Check if meal is available
     if (meal.status === 'unavailable') {
       throw new Error('This dish is currently unavailable');
     }
-    
+
     // Validate quantity
     if (args.quantity <= 0) {
       throw new Error('Quantity must be greater than 0');
     }
-    
+
     // Prepare cart item with meal details
     const cartItem: CartItem = {
       id: args.dishId,
@@ -810,11 +802,11 @@ export const addToCart = mutation({
       quantity: args.quantity,
       updatedAt: Date.now(),
     };
-    
+
     // Get or create the user's cart
     let cart = await ctx.db
       .query('carts')
-      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user', (q: any) => q.eq('userId', args.userId))
       .first() as CartDocument | null;
 
     if (!cart) {
@@ -828,7 +820,7 @@ export const addToCart = mutation({
     } else {
       // Check if item already exists in cart
       const existingItemIndex = cart.items.findIndex(item => item.id === args.dishId);
-      
+
       if (existingItemIndex >= 0) {
         // Update existing item quantity
         const updatedItems = [...cart.items];
@@ -837,7 +829,7 @@ export const addToCart = mutation({
           quantity: updatedItems[existingItemIndex].quantity + args.quantity,
           updatedAt: Date.now(),
         };
-        
+
         await ctx.db.patch(cart._id, {
           items: updatedItems,
           updatedAt: Date.now(),
@@ -845,7 +837,7 @@ export const addToCart = mutation({
       } else {
         // Add new item to cart
         const updatedItems = [...cart.items, cartItem];
-        
+
         await ctx.db.patch(cart._id, {
           items: updatedItems,
           updatedAt: Date.now(),
@@ -856,6 +848,72 @@ export const addToCart = mutation({
     return await ctx.db.get(cart._id);
   },
 });
+
+// Create order from live session
+const createOrderFromLiveSessionHandler = async (ctx: any, args: any): Promise<any> => {
+  try {
+    // Get the live session
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) {
+      throw new Error('Live session not found');
+    }
+
+    // Get the chef from the session
+    const chef = await ctx.db.get(session.chef_id);
+    if (!chef) {
+      throw new Error('Chef not found');
+    }
+
+    // Check regional availability if delivery address is provided
+    if (args.orderData.deliveryAddress) {
+      const isRegionSupported = await ctx.runQuery(api.queries.admin.checkRegionAvailability, {
+        address: {
+          city: args.orderData.deliveryAddress.city,
+          country: args.orderData.deliveryAddress.country,
+        },
+      });
+
+      if (!isRegionSupported) {
+        throw new Error('Oops, We do not serve this region yet, Ordering is not available in your region');
+      }
+    }
+
+    // Calculate total amount
+    const totalAmount = args.orderData.items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+
+    // Create the order
+    const orderId = await ctx.db.insert('orders', {
+      order_id: `live_order_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
+      customer_id: args.userId,
+      chef_id: session.chef_id,
+      order_date: new Date().toISOString(),
+      total_amount: totalAmount,
+      order_status: 'pending',
+      payment_status: 'pending',
+      payment_method: args.orderData.paymentMethod || 'card',
+      special_instructions: args.orderData.specialInstructions,
+      delivery_address: args.orderData.deliveryAddress,
+      order_items: args.orderData.items.map((item: any) => ({
+        ...item,
+        dish_id: item.dish_id as Id<'meals'>,
+      })),
+      live_session_id: args.sessionId,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    console.log(`Created order ${orderId} from live session ${args.sessionId} for user ${args.userId}`);
+
+    return {
+      orderId,
+      totalAmount,
+      status: 'pending'
+    };
+  } catch (error) {
+    console.error('Error creating order from live session:', error);
+    throw error;
+  }
+};
 
 // Create order from live session
 export const createOrderFromLiveSession = mutation({
@@ -879,71 +937,7 @@ export const createOrderFromLiveSession = mutation({
       paymentMethod: v.optional(v.string()),
     }),
   },
-  handler: async (ctx, args) => {
-    try {
-      // Get the live session
-      const session = await ctx.db.get(args.sessionId);
-      if (!session) {
-        throw new Error('Live session not found');
-      }
-      
-      // Get the chef from the session
-      const chef = await ctx.db.get(session.chef_id);
-      if (!chef) {
-        throw new Error('Chef not found');
-      }
-      
-      // Check regional availability if delivery address is provided
-      if (args.orderData.deliveryAddress) {
-        const { checkRegionAvailability } = await import('../queries/admin');
-        const isRegionSupported = await checkRegionAvailability(ctx, {
-          address: {
-            city: args.orderData.deliveryAddress.city,
-            country: args.orderData.deliveryAddress.country,
-          },
-        });
-        
-        if (!isRegionSupported) {
-          throw new Error('Oops, We do not serve this region yet, Ordering is not available in your region');
-        }
-      }
-      
-      // Calculate total amount
-      const totalAmount = args.orderData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      
-      // Create the order
-      const orderId = await ctx.db.insert('orders', {
-        order_id: `live_order_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
-        customer_id: args.userId,
-        chef_id: session.chef_id,
-        order_date: new Date().toISOString(),
-        total_amount: totalAmount,
-        order_status: 'pending',
-        payment_status: 'pending',
-        payment_method: args.orderData.paymentMethod || 'card',
-        special_instructions: args.orderData.specialInstructions,
-        delivery_address: args.orderData.deliveryAddress,
-        order_items: args.orderData.items.map(item => ({
-          ...item,
-          dish_id: item.dish_id as Id<'meals'>,
-        })),
-        live_session_id: args.sessionId,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      });
-      
-      console.log(`Created order ${orderId} from live session ${args.sessionId} for user ${args.userId}`);
-      
-      return {
-        orderId,
-        totalAmount,
-        status: 'pending'
-      };
-    } catch (error) {
-      console.error('Error creating order from live session:', error);
-      throw error;
-    }
-  },
+  handler: createOrderFromLiveSessionHandler,
 });
 
 // Process refund for an order
@@ -952,17 +946,12 @@ export const processRefund = mutation({
     orderId: v.id('orders'),
     refundId: v.string(),
     amount: v.number(),
-    reason: v.union(
-      v.literal('requested_by_customer'),
-      v.literal('fraudulent'),
-      v.literal('duplicate'),
-      v.literal('other')
-    ),
+    reason: v.string(),
     processedBy: v.id('users'),
     description: v.string(),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'orders'> | null> => {
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error('Order not found');
@@ -1003,20 +992,12 @@ export const processRefund = mutation({
 export const cancelOrder = mutation({
   args: {
     orderId: v.id('orders'),
-    reason: v.union(
-      v.literal('customer_request'),
-      v.literal('out_of_stock'),
-      v.literal('chef_unavailable'),
-      v.literal('delivery_issue'),
-      v.literal('fraudulent'),
-      v.literal('duplicate'),
-      v.literal('other')
-    ),
+    reason: v.string(),
     cancelledBy: v.id('users'),
     description: v.string(),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'orders'> | null> => {
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error('Order not found');
@@ -1057,7 +1038,7 @@ export const markOrderDelivered = mutation({
     deliveryNotes: v.optional(v.string()),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'orders'> | null> => {
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error('Order not found');
@@ -1102,7 +1083,7 @@ export const markOrderCompleted = mutation({
     completionNotes: v.optional(v.string()),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'orders'> | null> => {
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error('Order not found');
@@ -1144,7 +1125,7 @@ export const markOrderReviewed = mutation({
     reviewNotes: v.optional(v.string()),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'orders'> | null> => {
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error('Order not found');
@@ -1184,7 +1165,7 @@ export const updateRefundEligibility = mutation({
     reason: v.string(),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'orders'> | null> => {
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error('Order not found');
@@ -1250,7 +1231,7 @@ export const updateRefundWindow = mutation({
     reason: v.string(),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'orders'> | null> => {
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error('Order not found');
@@ -1295,7 +1276,7 @@ export const confirmOrder = mutation({
     notes: v.optional(v.string()),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'orders'> | null> => {
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error('Order not found');
@@ -1339,7 +1320,7 @@ export const prepareOrder = mutation({
     updatedPrepTime: v.optional(v.number()),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'orders'> | null> => {
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error('Order not found');
@@ -1382,7 +1363,7 @@ export const markOrderReady = mutation({
     readyNotes: v.optional(v.string()),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Doc<'orders'> | null> => {
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error('Order not found');
@@ -1441,7 +1422,7 @@ export const updateOrder = mutation({
     chefNotes: v.optional(v.string()),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error('Order not found');
@@ -1501,14 +1482,10 @@ export const addOrderNote = mutation({
     orderId: v.id('orders'),
     addedBy: v.id('users'),
     note: v.string(),
-    noteType: v.union(
-      v.literal('chef_note'),
-      v.literal('customer_note'),
-      v.literal('internal_note')
-    ),
+    noteType: v.string(),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error('Order not found');
@@ -1551,32 +1528,13 @@ export const sendOrderNotification = mutation({
   args: {
     orderId: v.id('orders'),
     sentBy: v.id('users'),
-    notificationType: v.union(
-      v.literal('order_confirmed'),
-      v.literal('order_preparing'),
-      v.literal('order_ready'),
-      v.literal('order_delivered'),
-      v.literal('order_completed'),
-      v.literal('order_cancelled'),
-      v.literal('order_updated'),
-      v.literal('custom')
-    ),
+    notificationType: v.string(),
     message: v.string(),
-    priority: v.union(
-      v.literal('low'),
-      v.literal('medium'),
-      v.literal('high'),
-      v.literal('urgent')
-    ),
-    channels: v.array(v.union(
-      v.literal('email'),
-      v.literal('sms'),
-      v.literal('push'),
-      v.literal('in_app')
-    )),
+    priority: v.string(),
+    channels: v.array(v.string()),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error('Order not found');
@@ -1585,7 +1543,7 @@ export const sendOrderNotification = mutation({
     const now = Date.now();
 
     // Add notification to orderNotifications table
-    const notificationId = await ctx.db.insert('orderNotifications', {
+    const notificationData: any = {
       order_id: args.orderId,
       notification_type: args.notificationType,
       message: args.message,
@@ -1595,7 +1553,8 @@ export const sendOrderNotification = mutation({
       metadata: args.metadata,
       sent_at: now,
       status: 'sent',
-    });
+    };
+    const notificationId = await ctx.db.insert('orderNotifications', notificationData);
 
     // Add notification action to order history
     await ctx.db.insert('orderHistory', {
@@ -1625,15 +1584,10 @@ export const sendOrderMessage = mutation({
     orderId: v.id('orders'),
     sentBy: v.id('users'),
     message: v.string(),
-    messageType: v.union(
-      v.literal('text'),
-      v.literal('image'),
-      v.literal('file'),
-      v.literal('status_update')
-    ),
+    messageType: v.string(),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     const order = await ctx.db.get(args.orderId);
     if (!order) {
       throw new Error('Order not found');
@@ -1642,7 +1596,7 @@ export const sendOrderMessage = mutation({
     const now = Date.now();
 
     // Add message to orderMessages table
-    const messageId = await ctx.db.insert('orderMessages', {
+    const messageData: any = {
       order_id: args.orderId,
       message: args.message,
       messageType: args.messageType,
@@ -1650,7 +1604,8 @@ export const sendOrderMessage = mutation({
       metadata: args.metadata,
       sent_at: now,
       status: 'sent',
-    });
+    };
+    const messageId = await ctx.db.insert('orderMessages', messageData);
 
     // Add message action to order history
     await ctx.db.insert('orderHistory', {
@@ -1695,8 +1650,8 @@ async function autoAssignDriverToOrder(ctx: MutationCtx, orderId: Id<"orders">, 
   // Get available drivers near the delivery location
   const availableDrivers = await ctx.db
     .query("drivers")
-    .filter((q) => q.eq(q.field("status"), "active"))
-    .filter((q) => q.eq(q.field("availability"), "available"))
+    .filter((q: any) => q.eq(q.field("status"), "active"))
+    .filter((q: any) => q.eq(q.field("availability"), "available"))
     .collect();
 
   if (availableDrivers.length === 0) {
@@ -1704,7 +1659,7 @@ async function autoAssignDriverToOrder(ctx: MutationCtx, orderId: Id<"orders">, 
   }
 
   // Calculate distance and score each driver
-  const scoredDrivers = availableDrivers.map((driver) => {
+  const scoredDrivers = availableDrivers.map((driver: Doc<'drivers'>) => {
     if (!driver.currentLocation) {
       return { driver, score: 0, distance: Infinity };
     }
@@ -1725,7 +1680,7 @@ async function autoAssignDriverToOrder(ctx: MutationCtx, orderId: Id<"orders">, 
   });
 
   // Sort by score (highest first) and select the best driver
-  scoredDrivers.sort((a, b) => b.score - a.score);
+  scoredDrivers.sort((a: { score: number }, b: { score: number }) => b.score - a.score);
   const bestDriver = scoredDrivers[0];
 
   if (bestDriver.score === 0) {
@@ -1736,21 +1691,21 @@ async function autoAssignDriverToOrder(ctx: MutationCtx, orderId: Id<"orders">, 
   const assignmentId = await ctx.db.insert('deliveryAssignments', {
     order_id: orderId,
     driver_id: bestDriver.driver._id,
-    assigned_by: order.ready_by || order.confirmed_by,
+    assigned_by: order.chef_id, // Fallback to chef as assigner since ready_by is not on order doc
     assigned_at: Date.now(),
-    estimated_pickup_time: order.ready_at,
-    estimated_delivery_time: order.ready_at + (30 * 60 * 1000), // 30 minutes from ready time
+    estimated_pickup_time: Date.now(), // Fallback to now
+    estimated_delivery_time: Date.now() + (30 * 60 * 1000), // 30 minutes from now
     pickup_location: {
       latitude: 0, // Will be updated with actual chef location
       longitude: 0,
-      address: typeof order.delivery_address === 'string' ? order.delivery_address : JSON.stringify(order.delivery_address),
+      address: typeof order.delivery_address === 'string' ? order.delivery_address : 'Unknown Address',
       instructions: "Pick up from chef location",
     },
     delivery_location: {
       latitude,
       longitude,
-      address: typeof order.delivery_address === 'string' ? order.delivery_address : JSON.stringify(order.delivery_address),
-      instructions: order.delivery_instructions || "Deliver to customer",
+      address: typeof order.delivery_address === 'string' ? order.delivery_address : 'Unknown Address',
+      instructions: "Deliver to customer",
     },
     status: 'assigned',
     metadata: {
@@ -1776,10 +1731,10 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   const R = 6371; // Earth's radius in kilometers
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }

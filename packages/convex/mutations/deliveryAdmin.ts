@@ -1,12 +1,12 @@
-import { mutation } from '../_generated/server';
 import { v } from 'convex/values';
+import {
+  ErrorCode,
+  ErrorFactory,
+  handleConvexError
+} from '../../../apps/web/lib/errors/convex-exports';
 import { api } from '../_generated/api';
 import { Doc, Id } from '../_generated/dataModel';
-import { 
-  handleConvexError,
-  ErrorFactory 
-} from '../../../apps/web/lib/errors/convex-exports';
-import { ErrorCode } from '../../../apps/web/lib/errors/convex-exports';
+import { mutation } from '../_generated/server';
 
 // Delivery Management Mutations
 export const updateDeliveryStatus = mutation({
@@ -282,5 +282,71 @@ export const updateDriverLocation = mutation({
     } catch (error) {
       throw handleConvexError(error);
     }
+  },
+});
+
+// ============================================================================
+// DELIVERY SETTINGS (STUART API)
+// ============================================================================
+
+export const saveDeliverySettings = mutation({
+  args: {
+    stuart_api_key: v.optional(v.string()),
+    stuart_env: v.optional(v.string()), // 'sandbox' | 'production'
+    auto_dispatch: v.optional(v.boolean()),
+    fallback_enabled: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    // Helper to update or insert a setting
+    const updateSetting = async (key: string, value: any, isSecret = false) => {
+      if (value === undefined) return;
+
+      const existing = await ctx.db
+        .query("appSettings")
+        .withIndex("by_key", (q) => q.eq("key", key))
+        .first();
+
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          value,
+          updatedAt: Date.now(),
+          // updatedBy: args.updatedBy, // Optional: tracking who updated it
+        });
+      } else {
+        await ctx.db.insert("appSettings", {
+          key,
+          value,
+          isSecret,
+          updatedAt: Date.now(),
+        });
+      }
+    };
+
+    await updateSetting("stuart_api_key", args.stuart_api_key, true);
+    await updateSetting("stuart_env", args.stuart_env);
+    await updateSetting("auto_dispatch", args.auto_dispatch);
+    await updateSetting("fallback_enabled", args.fallback_enabled);
+
+    return true;
+  },
+});
+
+export const getDeliverySettings = mutation({ // Using mutation to allow reading secrets (though query is better if we mask)
+  args: {},
+  handler: async (ctx) => {
+    const getSetting = async (key: string) => {
+      const setting = await ctx.db
+        .query("appSettings")
+        .withIndex("by_key", (q) => q.eq("key", key))
+        .first();
+      return setting?.value;
+    };
+
+    return {
+      stuart_api_key: await getSetting("stuart_api_key"),
+      stuart_env: await getSetting("stuart_env"),
+      auto_dispatch: await getSetting("auto_dispatch"),
+      fallback_enabled: await getSetting("fallback_enabled"),
+    };
   },
 });

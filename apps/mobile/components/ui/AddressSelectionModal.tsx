@@ -1,20 +1,20 @@
+import { useAuthContext } from '@/contexts/AuthContext';
+import { api } from '@/convex/_generated/api';
 import { useRegionAvailability } from '@/hooks/useRegionAvailability';
 import { useUserLocation } from '@/hooks/useUserLocation';
+import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 import { CustomerAddress } from '@/types/customer';
 import * as SecureStore from 'expo-secure-store';
 import { Edit, MapPin, Plus, Search, Trash2, X } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
-import { useAuthContext } from '@/contexts/AuthContext';
 import {
-    Alert,
-    FlatList,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
@@ -84,7 +84,7 @@ export function AddressSelectionModal({
   // Fetch profile data from Convex
   const fetchProfile = useCallback(async () => {
     if (!isAuthenticated) return;
-    
+
     try {
       const convex = getConvexClient();
       const sessionToken = await getSessionToken();
@@ -180,7 +180,7 @@ export function AddressSelectionModal({
         });
       }
     }
-    
+
     return addresses;
   }, [profileData]);
 
@@ -215,7 +215,7 @@ export function AddressSelectionModal({
   // Filter addresses based on search
   const filteredSavedAddresses = useMemo(() => {
     if (!searchQuery.trim()) return savedAddresses;
-    
+
     const query = searchQuery.toLowerCase();
     return savedAddresses.filter(addr => {
       const fullAddress = `${addr.street} ${addr.city} ${addr.state} ${addr.postal_code}`.toLowerCase();
@@ -225,7 +225,7 @@ export function AddressSelectionModal({
 
   const filteredRecentAddresses = useMemo(() => {
     if (!searchQuery.trim()) return recentAddresses;
-    
+
     const query = searchQuery.toLowerCase();
     return recentAddresses.filter(addr => {
       const fullAddress = `${addr.street} ${addr.city} ${addr.state} ${addr.postal_code}`.toLowerCase();
@@ -236,14 +236,14 @@ export function AddressSelectionModal({
   // Calculate distance for address
   const getDistance = useCallback((address: CustomerAddress): string | null => {
     if (!userLocation || !address.coordinates) return null;
-    
+
     const distance = calculateDistance(
       userLocation.latitude,
       userLocation.longitude,
       address.coordinates.latitude,
       address.coordinates.longitude
     );
-    
+
     if (distance < 1) {
       return `${Math.round(distance * 1000)} m`;
     }
@@ -251,10 +251,10 @@ export function AddressSelectionModal({
   }, [userLocation]);
 
   // Handle address selection
-  const handleSelectAddress = useCallback((address: CustomerAddress) => {
+  const handleSelectAddress = useCallback(async (address: CustomerAddress) => {
     // Check regional availability
-    const isSupported = checkAddress(address);
-    
+    const isSupported = await checkAddress(address);
+
     if (!isSupported) {
       // Show region availability modal
       setShowRegionModal(true);
@@ -267,10 +267,10 @@ export function AddressSelectionModal({
       id: `recent-${Date.now()}`,
       lastUsed: Date.now(),
     };
-    
+
     setRecentAddresses(prev => {
-      const filtered = prev.filter(a => 
-        a.street !== address.street || 
+      const filtered = prev.filter(a =>
+        a.street !== address.street ||
         a.city !== address.city
       );
       const updated = [recentAddress, ...filtered].slice(0, 10); // Keep last 10
@@ -304,7 +304,7 @@ export function AddressSelectionModal({
 
         if (editingAddress) {
           // Update existing custom address
-          const updated = customAddresses.map(a => 
+          const updated = customAddresses.map(a =>
             a.id === editingAddress.id ? newCustomAddress : a
           );
           setCustomAddresses(updated);
@@ -359,12 +359,12 @@ export function AddressSelectionModal({
 
   // Render saved address item
   const renderSavedAddress = useCallback(({ item }: { item: SavedAddress }) => {
-    const isSelected = selectedAddress?.street === item.street && 
-                      selectedAddress?.city === item.city;
+    const isSelected = selectedAddress?.street === item.street &&
+      selectedAddress?.city === item.city;
     const distance = getDistance(item);
-    const labelName = item.label === 'home' ? 'Home' : 
-                     item.label === 'work' ? 'Work' : 
-                     item.labelName || 'Custom';
+    const labelName = item.label === 'home' ? 'Home' :
+      item.label === 'work' ? 'Work' :
+        item.labelName || 'Custom';
     const isCustom = item.label === 'custom';
 
     return (
@@ -427,55 +427,55 @@ export function AddressSelectionModal({
   const renderPlacesSection = () => {
     // Check if user has any saved addresses
     const hasAnyAddresses = filteredSavedAddresses.length > 0 || customAddresses.length > 0 || filteredRecentAddresses.length > 0;
-    
+
     return (
       <View style={styles.placesSection}>
-        
+
         <View style={styles.placesGrid}>
-        {/* Home Place */}
-        <TouchableOpacity
-          style={styles.placeCard}
-          onPress={() => handleAddAddress('home')}
-        >
-          <View style={[styles.placeIcon, { backgroundColor: '#10B981' }]}>
-            <SvgXml xml={replaceSVGColor(houseIconSVG, '#FFFFFF')} width={24} height={24} />
-          </View>
-          <Text style={styles.placeLabel}>Home</Text>
-          {savedAddresses.find(a => a.label === 'home') && (
-            <Text style={styles.placeDistance}>
-              {getDistance(savedAddresses.find(a => a.label === 'home')!) || ''}
-            </Text>
-          )}
-        </TouchableOpacity>
+          {/* Home Place */}
+          <TouchableOpacity
+            style={styles.placeCard}
+            onPress={() => handleAddAddress('home')}
+          >
+            <View style={[styles.placeIcon, { backgroundColor: '#10B981' }]}>
+              <SvgXml xml={replaceSVGColor(houseIconSVG, '#FFFFFF')} width={24} height={24} />
+            </View>
+            <Text style={styles.placeLabel}>Home</Text>
+            {savedAddresses.find(a => a.label === 'home') && (
+              <Text style={styles.placeDistance}>
+                {getDistance(savedAddresses.find(a => a.label === 'home')!) || ''}
+              </Text>
+            )}
+          </TouchableOpacity>
 
-        {/* Work Place */}
-        <TouchableOpacity
-          style={styles.placeCard}
-          onPress={() => handleAddAddress('work')}
-        >
-          <View style={[styles.placeIcon, { backgroundColor: '#3B82F6' }]}>
-            <SvgXml xml={replaceSVGColor(briefcaseIconSVG, '#FFFFFF')} width={24} height={24} />
-          </View>
-          <Text style={styles.placeLabel}>Work</Text>
-          {savedAddresses.find(a => a.label === 'work') && (
-            <Text style={styles.placeDistance}>
-              {getDistance(savedAddresses.find(a => a.label === 'work')!) || ''}
-            </Text>
-          )}
-        </TouchableOpacity>
+          {/* Work Place */}
+          <TouchableOpacity
+            style={styles.placeCard}
+            onPress={() => handleAddAddress('work')}
+          >
+            <View style={[styles.placeIcon, { backgroundColor: '#3B82F6' }]}>
+              <SvgXml xml={replaceSVGColor(briefcaseIconSVG, '#FFFFFF')} width={24} height={24} />
+            </View>
+            <Text style={styles.placeLabel}>Work</Text>
+            {savedAddresses.find(a => a.label === 'work') && (
+              <Text style={styles.placeDistance}>
+                {getDistance(savedAddresses.find(a => a.label === 'work')!) || ''}
+              </Text>
+            )}
+          </TouchableOpacity>
 
-        {/* Add Custom Place */}
-        <TouchableOpacity
-          style={styles.placeCard}
-          onPress={() => handleAddAddress('custom')}
-        >
-          <View style={[styles.placeIcon, { backgroundColor: '#F8F9FA' }]}>
-            <Plus size={24} color="#6B7280" />
-          </View>
-          <Text style={styles.placeLabel}>Custom</Text>
-        </TouchableOpacity>
+          {/* Add Custom Place */}
+          <TouchableOpacity
+            style={styles.placeCard}
+            onPress={() => handleAddAddress('custom')}
+          >
+            <View style={[styles.placeIcon, { backgroundColor: '#F8F9FA' }]}>
+              <Plus size={24} color="#6B7280" />
+            </View>
+            <Text style={styles.placeLabel}>Custom</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
     );
   };
 
@@ -485,12 +485,12 @@ export function AddressSelectionModal({
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>
-            {mode === 'select' 
+            {mode === 'select'
               ? 'Select address'
-              : addressLabel === 'home' 
-                ? 'Add home address' 
-                : addressLabel === 'work' 
-                  ? 'Add work address' 
+              : addressLabel === 'home'
+                ? 'Add home address'
+                : addressLabel === 'work'
+                  ? 'Add work address'
                   : 'Add address'}
           </Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -546,36 +546,36 @@ export function AddressSelectionModal({
               )}
 
               {/* Empty State */}
-              {filteredSavedAddresses.length === 0 && 
-               customAddresses.length === 0 &&
-               filteredRecentAddresses.length === 0 && 
-               !searchQuery && (
-                <View style={styles.emptyState}>
-                  <MapPin size={48} color="#9CA3AF" />
-                  <Text style={styles.emptyStateText}>
-                    {mode === 'select' ? 'No saved addresses' : 'No saved addresses yet'}
-                  </Text>
-                  <Text style={styles.emptyStateSubtext}>
-                    {mode === 'select' 
-                      ? 'Enter a new address above or add one from your profile'
-                      : 'Choose an address type above to get started'}
-                  </Text>
-                </View>
-              )}
+              {filteredSavedAddresses.length === 0 &&
+                customAddresses.length === 0 &&
+                filteredRecentAddresses.length === 0 &&
+                !searchQuery && (
+                  <View style={styles.emptyState}>
+                    <MapPin size={48} color="#9CA3AF" />
+                    <Text style={styles.emptyStateText}>
+                      {mode === 'select' ? 'No saved addresses' : 'No saved addresses yet'}
+                    </Text>
+                    <Text style={styles.emptyStateSubtext}>
+                      {mode === 'select'
+                        ? 'Enter a new address above or add one from your profile'
+                        : 'Choose an address type above to get started'}
+                    </Text>
+                  </View>
+                )}
 
               {/* Search Results Empty */}
-              {searchQuery && 
-               filteredSavedAddresses.length === 0 && 
-               customAddresses.length === 0 &&
-               filteredRecentAddresses.length === 0 && (
-                <View style={styles.emptyState}>
-                  <Search size={48} color="#9CA3AF" />
-                  <Text style={styles.emptyStateText}>No results found</Text>
-                  <Text style={styles.emptyStateSubtext}>
-                    Try a different search term
-                  </Text>
-                </View>
-              )}
+              {searchQuery &&
+                filteredSavedAddresses.length === 0 &&
+                customAddresses.length === 0 &&
+                filteredRecentAddresses.length === 0 && (
+                  <View style={styles.emptyState}>
+                    <Search size={48} color="#9CA3AF" />
+                    <Text style={styles.emptyStateText}>No results found</Text>
+                    <Text style={styles.emptyStateSubtext}>
+                      Try a different search term
+                    </Text>
+                  </View>
+                )}
             </>
           }
           style={styles.list}

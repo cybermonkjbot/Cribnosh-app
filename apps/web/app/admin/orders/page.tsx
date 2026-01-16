@@ -509,6 +509,17 @@ export default function OrderManagementPage() {
                                       <DropdownMenuItem
                                         className="text-red-600"
                                         onClick={() => {
+                                          if (confirm(`Are you sure you want to cancel order #${order._id.slice(-8)}?`)) {
+                                            handleStatusUpdate(order._id, 'cancelled');
+                                          }
+                                        }}
+                                      >
+                                        <XCircle className="w-4 h-4 mr-2" />
+                                        Cancel Order
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="text-red-600"
+                                        onClick={() => {
                                           if (confirm('Are you sure you want to refund this order?')) {
                                             toast({
                                               title: "Refund Initiated",

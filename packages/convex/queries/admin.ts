@@ -770,26 +770,78 @@ export const getAllDeliveriesWithDetails = query({
 
     const orders = await ordersQuery.order('desc').take(args.limit || 20);
 
-    // Enrich with customer and driver details
+    // Enrich with customer and delivery assignment details
     const enrichedOrders = await Promise.all(
       orders.map(async (order) => {
         const customer = await ctx.db.get(order.customer_id);
 
-        // Mock driver data since we don't have a direct link in schema yet
-        // In a real implementation, this would link to a drivers table
-        const driver = {
-          name: "John Doe",
-          phone: "+44 7700 900000",
-          location: { lat: 51.5074, lng: -0.1278 }
-        };
+        // Fetch actual delivery assignment
+        const assignment = await ctx.db
+          .query('deliveryAssignments')
+          .withIndex('by_order', (q) => q.eq('order_id', order._id))
+          .unique();
+
+        let driverInfo = null;
+        if (assignment) {
+          if (assignment.driver_id) {
+            const driver = await ctx.db.get(assignment.driver_id);
+            if (driver) {
+              driverInfo = {
+                name: driver.name,
+                phone: driver.phone,
+                rating: driver.rating || 5,
+                status: driver.status,
+                vehicle: {
+                  type: driver.vehicleType,
+                  make: driver.vehicleModel,
+                  model: driver.vehicleModel,
+                }
+              };
+            }
+          } else if (assignment.provider === 'stuart') {
+            driverInfo = {
+              name: assignment.external_driver_name || "Stuart Driver",
+              phone: assignment.external_driver_phone || "N/A",
+              rating: 5,
+              status: "active",
+              vehicle: {
+                type: "Stuart Delivery",
+                make: "Stuart",
+                model: "External",
+              },
+              isExternal: true,
+              externalId: assignment.external_id,
+              trackingUrl: assignment.external_tracking_url,
+            };
+          }
+        }
 
         return {
           ...order,
           customer: customer ? {
             name: customer.name,
+            phone: customer.phone_number,
+            email: customer.email,
             address: order.delivery_address?.street || "Unknown Address"
           } : undefined,
-          driver
+          assignment: assignment ? {
+            status: assignment.status,
+            assignedAt: assignment.assigned_at,
+            estimatedPickupTime: assignment.estimated_pickup_time,
+            estimatedDeliveryTime: assignment.estimated_delivery_time,
+            actualPickupTime: assignment.actual_pickup_time,
+            actualDeliveryTime: assignment.actual_delivery_time,
+            provider: assignment.provider,
+            externalId: assignment.external_id,
+            distance: order.total_amount > 0 ? 3.5 : 0, // Mock distance if not in order
+          } : undefined,
+          driver: driverInfo,
+          // Flatten some assignment fields for easier UI access if needed
+          estimatedPickupTime: assignment?.estimated_pickup_time,
+          estimatedDeliveryTime: assignment?.estimated_delivery_time,
+          actualPickupTime: assignment?.actual_pickup_time,
+          actualDeliveryTime: assignment?.actual_delivery_time,
+          distance: 3.5, // Default distance for UI
         };
       })
     );

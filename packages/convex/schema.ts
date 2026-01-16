@@ -2,6 +2,17 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // App Settings table for storing API keys and configuration
+  appSettings: defineTable({
+    key: v.string(), // e.g., 'stuart_api_key', 'stuart_env'
+    value: v.any(),
+    isSecret: v.optional(v.boolean()), // If true, value masked in UI
+    description: v.optional(v.string()),
+    updatedAt: v.number(),
+    updatedBy: v.optional(v.id("users")),
+  })
+    .index("by_key", ["key"]),
+
   // Email Assets table for storing images used in emails
   emailAssets: defineTable({
     url: v.string(), // Original URL or path
@@ -420,6 +431,16 @@ export default defineSchema({
     dietCompatibility: v.optional(v.number()),
     dietMessage: v.optional(v.string()),
     chefTips: v.optional(v.array(v.string())),
+    // Portion and packaging information
+    portionSize: v.optional(v.union(
+      v.literal("small"),      // Single serving, light meal
+      v.literal("regular"),    // Standard single serving
+      v.literal("large"),      // Generous single serving
+      v.literal("family")      // Multiple servings (2-4 people)
+    )),
+    servingCount: v.optional(v.number()), // Number of people this serves
+    packageWeight: v.optional(v.number()), // Estimated weight in grams
+    requiresSpecialPackaging: v.optional(v.boolean()), // Fragile, needs insulation, etc.
     // Vector embedding for semantic search (1536 dimensions for OpenAI text-embedding-3-small)
     embedding: v.optional(v.array(v.number())),
   })
@@ -709,8 +730,8 @@ export default defineSchema({
   // Delivery assignments table
   deliveryAssignments: defineTable({
     order_id: v.id("orders"),
-    driver_id: v.id("drivers"),
-    assigned_by: v.id("users"),
+    driver_id: v.optional(v.id("drivers")), // Optional for external providers
+    assigned_by: v.optional(v.id("users")),
     assigned_at: v.number(),
     estimated_pickup_time: v.optional(v.number()),
     estimated_delivery_time: v.optional(v.number()),
@@ -740,12 +761,33 @@ export default defineSchema({
     delivery_notes: v.optional(v.string()),
     customer_rating: v.optional(v.number()),
     customer_feedback: v.optional(v.string()),
+    // External provider fields
+    provider: v.optional(v.string()), // 'internal' | 'stuart'
+    external_id: v.optional(v.string()), // Stuart Job ID
+    external_status: v.optional(v.string()), // Stuart specific status
+    external_tracking_url: v.optional(v.string()),
+    external_driver_name: v.optional(v.string()),
+    external_driver_phone: v.optional(v.string()),
+    external_driver_photo: v.optional(v.string()),
+    // ETA tracking
+    current_eta_to_pickup: v.optional(v.number()), // seconds
+    current_eta_to_dropoff: v.optional(v.number()), // seconds
+    eta_last_updated: v.optional(v.number()), // timestamp
+    // Proof of delivery
+    proof_of_delivery_photo: v.optional(v.string()),
+    proof_of_delivery_signature: v.optional(v.string()),
+    proof_of_delivery_notes: v.optional(v.string()),
+    // Package details
+    package_size: v.optional(v.string()), // xsmall, small, medium, large, xlarge
+    package_description: v.optional(v.string()),
     metadata: v.optional(v.any()),
   })
     .index("by_order", ["order_id"])
     .index("by_driver", ["driver_id"])
     .index("by_status", ["status"])
-    .index("by_date", ["assigned_at"]),
+    .index("by_date", ["assigned_at"])
+    .index("by_provider", ["provider"])
+    .index("by_external_id", ["external_id"]),
 
   // Delivery tracking table
   deliveryTracking: defineTable({
@@ -1299,6 +1341,9 @@ export default defineSchema({
     is_group_order: v.optional(v.boolean()),
     group_order_id: v.optional(v.id("group_orders")),
     participant_count: v.optional(v.number()),
+    // Stuart delivery tracking
+    stuart_tracking_url: v.optional(v.string()),
+    stuart_job_id: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   })

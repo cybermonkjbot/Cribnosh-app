@@ -1,0 +1,141 @@
+import { v } from "convex/values";
+import { internalMutation } from "../_generated/server";
+
+export const handleWebhookEvent = internalMutation({
+    args: {
+        event: v.string(), // package_created, courier_assigned, etc.
+        data: v.any(), // The full webhook payload
+    },
+    handler: async (ctx, args) => {
+        const { event, data } = args;
+        const job = data.job;
+        const externalId = job?.id ? String(job.id) : null;
+        const status = job?.status;
+
+        if (!externalId) {
+            console.error("Stuart Webhook: No external ID found", event);
+            return;
+        }
+
+        // Find the delivery assignment by external_id
+        const assignment = await ctx.db
+            .query("deliveryAssignments")
+            .withIndex("by_external_id", (q) => q.eq("external_id", externalId))
+            .first();
+
+        if (!assignment) {
+            console.warn(`Stuart Webhook: Assignment not found for job ${externalId}`);
+            return;
+        }
+
+        const now = Date.now();
+        let newStatus = assignment.status;
+        let updateOrder = false;
+        let orderStatus = null;
+
+        // Map Stuart statuses to internal statuses
+        switch (event) {
+            case "courier_assigned":
+                newStatus = "accepted";
+                break;
+            case "ordering": // Courier is on way to pickup
+                newStatus = "accepted"; // or assigned
+                break;
+            case "courier_arriving": // At pickup
+            case "courier_waiting_at_pickup": // NEW: Courier waiting at restaurant
+                newStatus = "accepted";
+                break;
+            case "package_picked_up":
+            case "delivering":
+                newStatus = "in_transit";
+                updateOrder = true;
+                orderStatus = "out_for_delivery";
+
+                // Store courier location for live tracking
+                if (data.job?.driver?.latitude && data.job?.driver?.longitude) {
+                    await ctx.db.insert("deliveryTracking", {
+                        assignment_id: assignment._id,
+                        driver_id: assignment.driver_id || ("stuart_courier" as any), // Fallback for external
+                        location: {
+                            latitude: data.job.driver.latitude,
+                            longitude: data.job.driver.longitude,
+                            accuracy: data.job.driver.accuracy,
+                        },
+                        status: "location_update",
+                        timestamp: now,
+                        metadata: {
+                            courier_heading: data.job.driver.heading,
+                            transport_type: data.job.driver.transport_type,
+                        },
+                    });
+                }
+                break;
+            case "courier_waiting_at_dropoff": // NEW: Courier at customer location
+                newStatus = "in_transit";
+                break;
+            case "package_delivered":
+            case "finished":
+                newStatus = "delivered";
+                updateOrder = true;
+                orderStatus = "delivered";
+                break;
+            case "package_cancelled":
+            case "job_cancelled":
+            case "cancelled":
+                newStatus = "cancelled";
+                updateOrder = true;
+                orderStatus = "cancelled";
+                break;
+            default:
+                // status update only
+                break;
+        }
+
+        // Prepare update data
+        const updateData: any = {
+            status: newStatus as any,
+            external_status: status,
+            external_tracking_url: job.tracking_url || assignment.external_tracking_url,
+            metadata: {
+                ...assignment.metadata,
+                stuart_last_event: event,
+                stuart_data: data,
+                updatedAt: now,
+            },
+        };
+
+        // Update external driver info if present in payload
+        if (data.job?.driver) {
+            updateData.external_driver_name = data.job.driver.display_name || data.job.driver.firstname;
+            updateData.external_driver_phone = data.job.driver.phone;
+            updateData.external_driver_photo = data.job.driver.picture_path_imgix;
+        }
+
+        // Store proof of delivery if available
+        if (data.job?.deliveries?.[0]?.package_delivered_picture_url) {
+            updateData.proof_of_delivery_photo = data.job.deliveries[0].package_delivered_picture_url;
+            updateData.proof_of_delivery_signature = data.job.deliveries[0].signature_url;
+            updateData.proof_of_delivery_notes = data.job.deliveries[0].comment;
+        }
+
+        // Update ETA if available
+        if (data.job?.deliveries?.[0]?.dropoff_eta_seconds) {
+            updateData.current_eta_to_dropoff = data.job.deliveries[0].dropoff_eta_seconds;
+            updateData.eta_last_updated = now;
+        }
+
+        // Update Delivery Assignment
+        await ctx.db.patch(assignment._id, updateData);
+
+        // Update Order if needed
+        if (updateOrder && orderStatus) {
+            await ctx.db.patch(assignment.order_id, {
+                order_status: orderStatus as any,
+                updatedAt: now,
+                ...(orderStatus === "delivered" ? { delivered_at: now } : {}),
+            });
+        }
+
+        console.log(`Stuart webhook processed: ${event} for job ${externalId}`);
+    },
+});
