@@ -1,27 +1,24 @@
 "use client";
 
 import {
-  PersonalInfoForm,
-  KitchenDetailsForm,
   CulinaryBackgroundForm,
+  KitchenDetailsForm,
   MenuItemsForm,
-  UploadPhotosForm,
-  ReviewSubmitForm
+  PersonalInfoForm,
+  ReviewSubmitForm,
+  UploadPhotosForm
 } from '@/components/cooking';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import { motion, AnimatePresence } from 'motion/react';
-import { AnalyticsProvider } from '@/components/analytics';
-import { useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import type { Id } from '@/convex/_generated/dataModel';
-import { useMediaQuery } from '@/hooks/use-media-query';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { MasonryBackground } from '@/components/ui/masonry-background';
 import { MobileBackButton } from '@/components/ui/mobile-back-button';
 import { ParallaxContent } from '@/components/ui/parallax-section';
+import { api } from '@/convex/_generated/api';
+import type { Id } from '@/convex/_generated/dataModel';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { useMutation } from 'convex/react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 type FormStep = 'personal' | 'kitchen' | 'background' | 'menu' | 'photos' | 'review';
 
@@ -69,7 +66,6 @@ export interface ChefApplicationData {
     operationId?: string;
     finalStatus?: 'completed' | 'failed';
     error?: string;
-    notionPageId?: string;
   };
 }
 
@@ -206,19 +202,19 @@ export default function ApplicationPage() {
 
       // Get the current user ID (you'll need to implement this based on your auth system)
       const userId = ''; // Replace with actual user ID from your auth system
-      
+
       if (!userId) {
         throw new Error('User not authenticated');
       }
-      
+
       // Create chef with minimal required fields - make most fields optional
       const chefId = await createChef({
         userId: userId as Id<'users'>,
-        name: formData.personalInfo.firstName && formData.personalInfo.lastName 
+        name: formData.personalInfo.firstName && formData.personalInfo.lastName
           ? `${formData.personalInfo.firstName} ${formData.personalInfo.lastName}`
           : formData.personalInfo.email.split('@')[0], // Use email prefix if no name
-        cuisine: formData.culinaryBackground.cuisineTypes.length > 0 
-          ? formData.culinaryBackground.cuisineTypes 
+        cuisine: formData.culinaryBackground.cuisineTypes.length > 0
+          ? formData.culinaryBackground.cuisineTypes
           : ['General'], // Default cuisine if none specified
         location: {
           lat: formData.geocodedLocation?.lat || 0,
@@ -228,8 +224,8 @@ export default function ApplicationPage() {
         rating: 0, // Start with 0 rating
         image: formData.photos.kitchen[0] || undefined,
         bio: formData.culinaryBackground.experience || 'Chef passionate about creating delicious meals',
-        specialties: formData.culinaryBackground.specialties.length > 0 
-          ? formData.culinaryBackground.specialties 
+        specialties: formData.culinaryBackground.specialties.length > 0
+          ? formData.culinaryBackground.specialties
           : ['Home Cooking'], // Default specialty
       });
 
@@ -244,7 +240,7 @@ export default function ApplicationPage() {
         });
       }
 
-      // 2. Submit to API for Notion sync, status polling, and email
+      // 2. Submit to API for email execution
       // Queue emails for admin and chef
       await fetch('/api/cooking/apply', {
         method: 'POST',
@@ -256,31 +252,31 @@ export default function ApplicationPage() {
       });
       const apiData = {
         formType: 'Chef Application',
-        fullName: formData.personalInfo.firstName && formData.personalInfo.lastName 
+        fullName: formData.personalInfo.firstName && formData.personalInfo.lastName
           ? `${formData.personalInfo.firstName} ${formData.personalInfo.lastName}`
           : 'Chef Applicant',
         email: formData.personalInfo.email,
         phone: formData.personalInfo.phone || 'Not provided',
-        yearsExperience: formData.culinaryBackground.experience 
-          ? parseInt(formData.culinaryBackground.experience) 
+        yearsExperience: formData.culinaryBackground.experience
+          ? parseInt(formData.culinaryBackground.experience)
           : 0,
-        cuisines: formData.culinaryBackground.cuisineTypes.length > 0 
-          ? formData.culinaryBackground.cuisineTypes 
+        cuisines: formData.culinaryBackground.cuisineTypes.length > 0
+          ? formData.culinaryBackground.cuisineTypes
           : ['General'],
         kitchenType: formData.kitchenDetails.kitchenType || 'Not specified',
-        availability: formData.availability.length > 0 
-          ? formData.availability 
+        availability: formData.availability.length > 0
+          ? formData.availability
           : ['Flexible'],
-        certifications: formData.culinaryBackground.certifications.length > 0 
-          ? formData.culinaryBackground.certifications 
+        certifications: formData.culinaryBackground.certifications.length > 0
+          ? formData.culinaryBackground.certifications
           : ['None specified'],
         businessRegistration: formData.businessRegistration || 'Not provided',
         hasInsurance: formData.hasInsurance,
-        dietarySpecialties: formData.culinaryBackground.specialties.length > 0 
-          ? formData.culinaryBackground.specialties 
+        dietarySpecialties: formData.culinaryBackground.specialties.length > 0
+          ? formData.culinaryBackground.specialties
           : ['General'],
-        preferredZones: formData.kitchenDetails.city 
-          ? [formData.kitchenDetails.city] 
+        preferredZones: formData.kitchenDetails.city
+          ? [formData.kitchenDetails.city]
           : ['TBD'],
         languages: ['English'],
       };
@@ -302,33 +298,12 @@ export default function ApplicationPage() {
           operationId: result.operationId,
         },
       }));
-      // Poll for Notion sync status
-      const pollInterval = setInterval(async () => {
-        try {
-          const statusResponse = await fetch(`/api/submit-form?operationId=${result.operationId}`, {
-            headers: {
-              'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
-            },
-          });
-          const statusResult = await statusResponse.json();
-          if (statusResult.status === 'completed') {
-            clearInterval(pollInterval);
-            setFormData(prev => ({
-              ...prev,
-              submissionStatus: {
-                status: 'success',
-                message: 'Application submitted successfully! We will review your application and get back to you soon.',
-                operationId: result.operationId,
-                finalStatus: 'completed',
-                notionPageId: statusResult.notionPageId,
-              },
-            }));
-            // Send confirmation email
-            const emailPayload = {
-              to: formData.personalInfo.email,
-              from: 'applications@cribnosh.com',
-              subject: 'Your CribNosh Chef Application',
-              html: `
+      // Send confirmation email
+      const emailPayload = {
+        to: formData.personalInfo.email,
+        from: 'applications@cribnosh.com',
+        subject: 'Your CribNosh Chef Application',
+        html: `
                   <h1>Thanks for Applying to CribNosh!</h1>
                   <p>Hi ${formData.personalInfo.firstName},</p>
                   <p>We've received your application to become a CribNosh chef. Our team will review your information and get back to you within 2-3 business days.</p>
@@ -342,36 +317,19 @@ export default function ApplicationPage() {
                   <p>If you have any questions in the meantime, feel free to reply to this email.</p>
                   <p>Best regards,<br>The CribNosh Team</p>
                 `,
-            };
-            await fetch('/api/email', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
-              },
-              body: JSON.stringify(emailPayload),
-            });
-            setTimeout(() => {
-              router.push('/cooking/apply/success');
-            }, 2000);
-          } else if (statusResult.status === 'failed') {
-            clearInterval(pollInterval);
-            setFormData(prev => ({
-              ...prev,
-              submissionStatus: {
-                status: 'error',
-                message: statusResult.error || 'Failed to submit application',
-                operationId: result.operationId,
-                finalStatus: 'failed',
-                error: statusResult.error,
-              },
-            }));
-          }
-        } catch (error) {
-          console.error('Error checking submission status:', error);
-        }
+      };
+      await fetch('/api/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
+        },
+        body: JSON.stringify(emailPayload),
+      });
+
+      setTimeout(() => {
+        router.push('/cooking/apply/success');
       }, 2000);
-      setTimeout(() => { clearInterval(pollInterval); }, 30000);
     } catch (error) {
       setFormData(prev => ({
         ...prev,
@@ -414,7 +372,7 @@ export default function ApplicationPage() {
       <MasonryBackground className="z-0" />
       {/* Mobile Back Button - only on mobile, fixed top left */}
       <MobileBackButton />
-      
+
       <div className="relative z-10">
         {/* Hero Section - Hidden on mobile */}
         <div className="hidden sm:block">
@@ -499,11 +457,10 @@ export default function ApplicationPage() {
                       <div className="flex justify-between items-center mb-8">
                         {steps.map((step, index) => (
                           <div key={step} className="flex items-center">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              currentStep === step ? 'bg-[#ff3b30] text-white' :
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === step ? 'bg-[#ff3b30] text-white' :
                               steps.indexOf(currentStep) > index ? 'bg-green-500 text-white' :
-                              'bg-gray-200 text-gray-600'
-                            }`}>
+                                'bg-gray-200 text-gray-600'
+                              }`}>
                               {steps.indexOf(currentStep) > index ? (
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -513,9 +470,8 @@ export default function ApplicationPage() {
                               )}
                             </div>
                             {index < steps.length - 1 && (
-                              <div className={`h-1 w-16 mx-2 ${
-                                steps.indexOf(currentStep) > index ? 'bg-green-500' : 'bg-gray-200'
-                              }`} />
+                              <div className={`h-1 w-16 mx-2 ${steps.indexOf(currentStep) > index ? 'bg-green-500' : 'bg-gray-200'
+                                }`} />
                             )}
                           </div>
                         ))}
@@ -532,38 +488,37 @@ export default function ApplicationPage() {
                         >
                           {renderFormStep()}
                         </motion.div>
-                                              </AnimatePresence>
+                      </AnimatePresence>
 
-                        {/* Navigation Buttons */}
-                        <div className="flex justify-between mt-8">
-                          {currentIndex > 0 && (
-                            <motion.button
-                              onClick={handleBack}
-                              className="flex items-center px-6 py-3 text-gray-600 hover:text-gray-900 transition-colors"
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                            >
-                              <ChevronLeft className="w-5 h-5 mr-2" />
-                              Back
-                            </motion.button>
-                          )}
-                          {currentIndex < steps.length - 1 ? (
-                            <motion.button
-                              onClick={handleNext}
-                              disabled={!isStepValid()}
-                              className={`ml-auto flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
-                                isStepValid()
-                                  ? 'bg-[#ff3b30] text-white hover:bg-[#ff5e54]'
-                                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      {/* Navigation Buttons */}
+                      <div className="flex justify-between mt-8">
+                        {currentIndex > 0 && (
+                          <motion.button
+                            onClick={handleBack}
+                            className="flex items-center px-6 py-3 text-gray-600 hover:text-gray-900 transition-colors"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <ChevronLeft className="w-5 h-5 mr-2" />
+                            Back
+                          </motion.button>
+                        )}
+                        {currentIndex < steps.length - 1 ? (
+                          <motion.button
+                            onClick={handleNext}
+                            disabled={!isStepValid()}
+                            className={`ml-auto flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-300 ${isStepValid()
+                              ? 'bg-[#ff3b30] text-white hover:bg-[#ff5e54]'
+                              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                               }`}
-                              whileHover={isStepValid() ? { scale: 1.02 } : {}}
-                              whileTap={isStepValid() ? { scale: 0.98 } : {}}
-                            >
-                              Next
-                              <ChevronRight className="w-5 h-5 ml-2" />
-                            </motion.button>
-                          ) : null}
-                        </div>
+                            whileHover={isStepValid() ? { scale: 1.02 } : {}}
+                            whileTap={isStepValid() ? { scale: 0.98 } : {}}
+                          >
+                            Next
+                            <ChevronRight className="w-5 h-5 ml-2" />
+                          </motion.button>
+                        ) : null}
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>

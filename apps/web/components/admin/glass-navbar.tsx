@@ -86,7 +86,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
     { label: 'Leave Request', href: '/staff/leave-request' },
     { label: 'Work Email', href: '/staff/work-email-request' },
     { label: 'Work ID', href: '/staff/work-id' },
-    { label: 'Mattermost', href: '/staff/mattermost' },
+
     { label: 'Onboarding', href: '/staff/onboarding' },
   ];
 
@@ -158,12 +158,12 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
     setSearchLoading(true);
     setShowSearchModal(true);
     setSearchError(null);
-    
+
     // Add to recent searches
     const newRecentSearches = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
     setRecentSearches(newRecentSearches);
     localStorage.setItem('admin-recent-searches', JSON.stringify(newRecentSearches));
-    
+
     try {
       if (isAdminPage) {
         const res = await convex.query(api.queries.admin.globalAdminSearch, { query });
@@ -206,7 +206,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
 
   // Check if user is clocked in (staff/admin)
   const activeSession = useQuery(
-    api.queries.workSessions.getActiveSession, 
+    api.queries.workSessions.getActiveSession,
     adminUser && adminUser._id && sessionToken
       ? { staffId: adminUser._id as Id<'users'>, sessionToken }
       : "skip"
@@ -242,11 +242,10 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
           <nav className="hidden lg:flex items-center space-x-1">
             <Link
               href="/staff/time-tracking"
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                pathname === '/staff/time-tracking'
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${pathname === '/staff/time-tracking'
                   ? 'bg-[#F23E2E]/10 text-[#F23E2E]'
                   : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-              }`}
+                }`}
             >
               Time Tracking
             </Link>
@@ -258,7 +257,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
             )}
           </nav>
         )}
-        
+
         {/* Search button */}
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -269,9 +268,9 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
         >
           <Search className="w-5 h-5 text-gray-800" />
         </motion.button>
-        
-        
-        <motion.button 
+
+
+        <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={onNotificationClick}
@@ -280,7 +279,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
         >
           <Bell className="w-5 h-5 text-gray-800" />
           {notifications > 0 && (
-            <motion.span 
+            <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs rounded-full flex items-center justify-center font-medium font-satoshi"
@@ -367,7 +366,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
                     )
                   )}
                 </div>
-                
+
                 <div className="p-1 bg-white">
                   <Link
                     href="/admin/account"
@@ -381,9 +380,8 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
                   <button
                     onClick={handleLogout}
                     disabled={isLoggingOut}
-                    className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 font-satoshi bg-white ${
-                      isLoggingOut ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
+                    className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 font-satoshi bg-white ${isLoggingOut ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                     aria-label={isLoggingOut ? 'Logging out...' : 'Logout'}
                   >
                     <LogOut className="w-4 h-4" />
@@ -398,8 +396,8 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
 
       {/* Click outside to close user menu */}
       {showUserMenu && (
-        <div 
-          className="fixed inset-0 z-40" 
+        <div
+          className="fixed inset-0 z-40"
           onClick={() => setShowUserMenu(false)}
         />
       )}
@@ -423,36 +421,36 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
               {searchError && <div className="text-red-600 font-satoshi">{searchError}</div>}
               {!searchLoading && searchResults && (
                 <div className="space-y-6">
-                {(Object.entries(searchResults) as [string, any[]][]).map(([type, items], idx) => (
-                  items.length > 0 && (
-                    <div key={type}>
-                      <h3 className="text-lg font-bold font-asgard text-[#F23E2E] mb-2 capitalize">{type.replace(/([A-Z])/g, ' $1')}</h3>
-                      <ul className="space-y-2">
-                        {items.map((item, idx) => (
-                          <li key={item._id || idx} className="bg-[#F23E2E]/10 rounded-lg p-3 border border-[#F23E2E]/20 text-gray-900">
-                            {item.name && <div className="font-bold">{item.name}</div>}
-                            {item.title && <div className="font-bold">{item.title}</div>}
-                            {item.email && <div className="text-sm text-gray-700">{item.email}</div>}
-                            {item.description && <div className="text-sm text-gray-700">{item.description}</div>}
-                            {item.summary && <div className="text-xs text-gray-600">{item.summary}</div>}
-                            {item.status && <div className="text-xs text-gray-600">Status: {item.status}</div>}
-                            {item.role && <div className="text-xs text-gray-600">Role: {item.role}</div>}
-                            {item.department && <div className="text-xs text-gray-600">Department: {item.department}</div>}
-                            {item.location && <div className="text-xs text-gray-600">Location: {item.location}</div>}
-                            {item.activityType && <div className="text-xs text-gray-600">Type: {item.activityType}</div>}
-                            {item.action && <div className="text-xs text-gray-600">Action: {item.action}</div>}
-                            {item.service && <div className="text-xs text-gray-600">Service: {item.service}</div>}
-                            {item.key && <div className="text-xs text-gray-600">Key: {item.key}</div>}
-                            {item.value && <div className="text-xs text-gray-600">Value: {item.value}</div>}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )
-                ))}
-                {Object.values(searchResults).every((items: any) => items.length === 0) && (
-                  <div className="text-gray-700 font-satoshi">No results found.</div>
-                )}
+                  {(Object.entries(searchResults) as [string, any[]][]).map(([type, items], idx) => (
+                    items.length > 0 && (
+                      <div key={type}>
+                        <h3 className="text-lg font-bold font-asgard text-[#F23E2E] mb-2 capitalize">{type.replace(/([A-Z])/g, ' $1')}</h3>
+                        <ul className="space-y-2">
+                          {items.map((item, idx) => (
+                            <li key={item._id || idx} className="bg-[#F23E2E]/10 rounded-lg p-3 border border-[#F23E2E]/20 text-gray-900">
+                              {item.name && <div className="font-bold">{item.name}</div>}
+                              {item.title && <div className="font-bold">{item.title}</div>}
+                              {item.email && <div className="text-sm text-gray-700">{item.email}</div>}
+                              {item.description && <div className="text-sm text-gray-700">{item.description}</div>}
+                              {item.summary && <div className="text-xs text-gray-600">{item.summary}</div>}
+                              {item.status && <div className="text-xs text-gray-600">Status: {item.status}</div>}
+                              {item.role && <div className="text-xs text-gray-600">Role: {item.role}</div>}
+                              {item.department && <div className="text-xs text-gray-600">Department: {item.department}</div>}
+                              {item.location && <div className="text-xs text-gray-600">Location: {item.location}</div>}
+                              {item.activityType && <div className="text-xs text-gray-600">Type: {item.activityType}</div>}
+                              {item.action && <div className="text-xs text-gray-600">Action: {item.action}</div>}
+                              {item.service && <div className="text-xs text-gray-600">Service: {item.service}</div>}
+                              {item.key && <div className="text-xs text-gray-600">Key: {item.key}</div>}
+                              {item.value && <div className="text-xs text-gray-600">Value: {item.value}</div>}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )
+                  ))}
+                  {Object.values(searchResults).every((items: any) => items.length === 0) && (
+                    <div className="text-gray-700 font-satoshi">No results found.</div>
+                  )}
                 </div>
               )}
             </div>

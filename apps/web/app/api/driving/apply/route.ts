@@ -37,15 +37,11 @@
  *           example: "Success"
  */
 
-import { NextRequest } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
-import { withErrorHandling } from '@/lib/errors';
-import { EmailService } from '@/lib/email/email.service';
 import { addToBroadcastList } from '@/lib/email/addToBroadcastList';
-import { mattermostService } from '@/lib/mattermost';
-import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { EmailService } from '@/lib/email/email.service';
+import { NextRequest } from 'next/server';
+
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_EQsb5GpW_HkaiK9VCCYjwAYH2Jd8xP5VN';
 
@@ -99,15 +95,9 @@ export async function POST(request: NextRequest) {
   });
   // Add to broadcast list
   await addToBroadcastList({ email, firstName: name });
-  
-  // Send Mattermost notification
-  await mattermostService.notifyDriverApplication({
-    name,
-    email,
-    vehicle,
-    experience,
-  });
-  
+
+
+
   // Confirmation email to driver (already templated)
   const confirmationHtml = await emailService.getTemplateRenderer().renderGenericNotificationEmail({
     title: 'Thank you for applying as a CribNosh driver!',

@@ -56,10 +56,7 @@ export class MonitoringService {
     this.metrics.set('email_provider_switch_total', 0);
     this.metrics.set('email_broken_images_removed', 0);
 
-    // Notion metrics
-    this.metrics.set('notion_requests_total', 0);
-    this.metrics.set('notion_failures_total', 0);
-    this.metrics.set('notion_retry_total', 0);
+
 
     // Form submission metrics
     this.metrics.set('form_submissions_total', 0);
@@ -67,7 +64,7 @@ export class MonitoringService {
 
     // Performance metrics
     this.metrics.set('email_send_duration_ms', []);
-    this.metrics.set('notion_request_duration_ms', []);
+    this.metrics.set('email_send_duration_ms', []);
   }
 
   // Logging methods
@@ -114,7 +111,7 @@ export class MonitoringService {
 
   public getMetrics() {
     const result: Record<string, unknown> = {};
-    
+
     for (const [key, value] of this.metrics.entries()) {
       if (Array.isArray(value)) {
         // Calculate statistics for duration metrics
@@ -139,14 +136,11 @@ export class MonitoringService {
     const metrics = this.getMetrics();
     const emailFailed = typeof metrics.email_failed_total === 'number' ? metrics.email_failed_total : 0;
     const emailSent = typeof metrics.email_sent_total === 'number' ? metrics.email_sent_total : 1;
-    const notionFailures = typeof metrics.notion_failures_total === 'number' ? metrics.notion_failures_total : 0;
-    const notionRequests = typeof metrics.notion_requests_total === 'number' ? metrics.notion_requests_total : 1;
     const formFailures = typeof metrics.form_validation_failures_total === 'number' ? metrics.form_validation_failures_total : 0;
     const formSubmissions = typeof metrics.form_submissions_total === 'number' ? metrics.form_submissions_total : 1;
-    
+
     const errorRate = {
       email: emailFailed / emailSent,
-      notion: notionFailures / notionRequests,
       forms: formFailures / formSubmissions,
     };
 
@@ -160,11 +154,6 @@ export class MonitoringService {
           failed: metrics.email_failed_total,
           retries: metrics.email_retry_total,
         },
-        notion: {
-          requests: metrics.notion_requests_total,
-          failures: metrics.notion_failures_total,
-          retries: metrics.notion_retry_total,
-        },
         forms: {
           submissions: metrics.form_submissions_total,
           validationFailures: metrics.form_validation_failures_total,
@@ -172,7 +161,6 @@ export class MonitoringService {
       },
       performance: {
         emailLatency: metrics.email_send_duration_ms,
-        notionLatency: metrics.notion_request_duration_ms,
       },
     };
   }

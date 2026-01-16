@@ -1,14 +1,14 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withAPIMiddleware } from '@/lib/api/middleware';
 import { getConvexClientFromRequest, getSessionTokenFromRequest } from '@/lib/conxed-client';
-import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { EmailService } from '@/lib/email/email.service';
 import { withErrorHandling } from '@/lib/errors';
-import { mattermostService } from '@/lib/mattermost';
+
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const emailService = new EmailService({
@@ -107,7 +107,7 @@ const emailService = new EmailService({
 async function handlePOST(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId } = await getAuthenticatedCustomer(request);
-    
+
     const body = await request.json();
     const {
       event_date,
@@ -119,30 +119,30 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       dietary_requirements,
       additional_notes,
     } = body;
-    
+
     // Validation
     if (!event_date || !number_of_guests || !event_type || !event_location || !phone_number || !email) {
       return ResponseFactory.validationError(
         'Missing required fields: event_date, number_of_guests, event_type, event_location, phone_number, email'
       );
     }
-    
+
     if (typeof number_of_guests !== 'number' || number_of_guests <= 0) {
       return ResponseFactory.validationError('number_of_guests must be a positive number.');
     }
-    
+
     const convex = getConvexClientFromRequest(request);
     const sessionToken = getSessionTokenFromRequest(request);
-    
+
     // Get customer profile to get name
     // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
     const customerProfile: any = await convex.query(api.queries.customers.getByUserId, {
       userId: userId as any,
       sessionToken: sessionToken || undefined
     });
-    
+
     const customerName = customerProfile?.name || email.split('@')[0];
-    
+
     // Create event chef request in Convex
     // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
     const requestId: any = await convex.mutation(api.mutations.eventChefRequests.create, {
@@ -158,46 +158,35 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       status: 'pending',
       sessionToken: sessionToken || undefined
     });
-    
+
     // Send email to admin
     const adminHtml = await emailService.getTemplateRenderer().renderAdminNotificationEmail({
       title: '[Event Chef Request] New Event Request',
       details: `A new event chef request has been submitted.\n\nCustomer: ${customerName}\nEmail: ${email}\nPhone: ${phone_number}\nEvent Date: ${event_date}\nEvent Type: ${event_type}\nNumber of Guests: ${number_of_guests}\nLocation: ${event_location}\n${dietary_requirements ? `Dietary Requirements: ${dietary_requirements}\n` : ''}${additional_notes ? `Additional Notes: ${additional_notes}` : ''}`,
     });
-    
+
     await emailService.send({
       to: 'support@cribnosh.com',
       from: 'earlyaccess@emails.cribnosh.com',
       subject: '[Event Chef Request] New Event Request',
       html: adminHtml,
     });
-    
-    // Send Mattermost notification
-    await mattermostService.notifyEventChefRequest({
-      customerName,
-      email,
-      phone: phone_number,
-      eventDate: event_date,
-      eventType: event_type,
-      numberOfGuests: number_of_guests,
-      location: event_location,
-      dietaryRequirements: dietary_requirements,
-      additionalNotes: additional_notes,
-    });
-    
+
+
+
     // Send confirmation email to customer
     const confirmationHtml = await emailService.getTemplateRenderer().renderGenericNotificationEmail({
       title: 'Thank you for your event chef request!',
       message: 'We have received your event chef request and our team will call you within 24 hours to confirm your event coverage and discuss your food requirements.',
     });
-    
+
     await emailService.send({
       to: email,
       from: 'earlyaccess@emails.cribnosh.com',
       subject: 'Thank you for your event chef request!',
       html: confirmationHtml,
     });
-    
+
     return ResponseFactory.success(
       {
         success: true,

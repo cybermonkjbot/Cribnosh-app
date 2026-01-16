@@ -1,7 +1,7 @@
 import { ResponseFactory } from '@/lib/api';
 import { addToBroadcastList } from '@/lib/email/addToBroadcastList';
 import { EmailService } from '@/lib/email/email.service';
-import { mattermostService } from '@/lib/mattermost';
+
 import { NextRequest } from 'next/server';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_EQsb5GpW_HkaiK9VCCYjwAYH2Jd8xP5VN';
@@ -230,17 +230,7 @@ export async function POST(request: NextRequest) {
   // Add to broadcast list
   await addToBroadcastList({ email: personalInfo.email, firstName: personalInfo.firstName, lastName: personalInfo.lastName });
 
-  // Send Mattermost notification
-  await mattermostService.notifyChefApplication({
-    name: `${personalInfo.firstName} ${personalInfo.lastName}`,
-    email: personalInfo.email,
-    phone: personalInfo.phone,
-    experience: culinaryBackground.experience,
-    cuisines: culinaryBackground.cuisineTypes,
-    kitchenType: kitchenDetails.kitchenType,
-    certifications: culinaryBackground.certifications,
-    specialties: culinaryBackground.specialties,
-  });
+
 
   // Confirmation email to chef (already templated)
   const confirmationHtml = await emailService.getTemplateRenderer().renderGenericNotificationEmail({
