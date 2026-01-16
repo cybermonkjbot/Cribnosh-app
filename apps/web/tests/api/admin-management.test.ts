@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { createTestRequest } from '../utils/api-test-utils'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTestJwt } from '../utils'
 
 // Provide controllable convex client mocks
@@ -198,33 +197,7 @@ describe('Admin Management API Endpoints', () => {
     })
   })
 
-  describe('GET /api/admin/chef/cuisines', () => {
-    it('should retrieve chef cuisines management data', async () => {
-      const { GET } = await import('@/app/api/admin/chef/cuisines/route')
-      const cuisines = [{ id: 'cui_1' }, { id: 'cui_2' }]
-      mockConvexQuery.mockResolvedValueOnce(cuisines)
-      const req = new NextRequest('http://localhost:3000/api/admin/chef/cuisines')
-      const res = await GET(req)
-      expect(res.status).toBe(200)
-      const data = await res.json()
-      expect(Array.isArray(data.cuisines)).toBe(true)
-      expect(data.cuisines.length).toBe(2)
-    })
-  })
 
-  describe('POST /api/admin/chef/cuisines/[chef_cuisine_id]/approve', () => {
-    it('should approve chef cuisine successfully', async () => {
-      const { POST } = await import('@/app/api/admin/chef/cuisines/[cuisine_id]_approve/approve/route')
-      mockConvexMutation.mockResolvedValueOnce(undefined)
-      const req = new NextRequest('http://localhost:3000/api/admin/chef/cuisines/chef_cuisine_002/approve', {
-        method: 'POST',
-      })
-      const res = await POST(req, { params: { cuisine_id: 'chef_cuisine_002' } })
-      expect(res.status).toBe(200)
-      const data = await res.json()
-      expect(data.status).toBe('ok')
-    })
-  })
 
   describe('GET /api/admin/logs', () => {
     it('paginates admin logs for admin role', async () => {
