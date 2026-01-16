@@ -49,6 +49,7 @@ import type * as crons_refundEligibility from "../crons/refundEligibility.js";
 import type * as emailAnalytics from "../emailAnalytics.js";
 import type * as emailAutomation from "../emailAutomation.js";
 import type * as emailTemplates from "../emailTemplates.js";
+import type * as email_configs from "../email_configs.js";
 import type * as featureFlags from "../featureFlags.js";
 import type * as http from "../http.js";
 import type * as internal_appleNotifications from "../internal/appleNotifications.js";
@@ -310,6 +311,7 @@ declare const fullApi: ApiFromModules<{
   emailAnalytics: typeof emailAnalytics;
   emailAutomation: typeof emailAutomation;
   emailTemplates: typeof emailTemplates;
+  email_configs: typeof email_configs;
   featureFlags: typeof featureFlags;
   http: typeof http;
   "internal/appleNotifications": typeof internal_appleNotifications;
