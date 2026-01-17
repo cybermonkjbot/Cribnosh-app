@@ -11,7 +11,9 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle,
+  Clock,
   Database,
+  DollarSign,
   FileText,
   Globe,
   Mail,
@@ -43,7 +45,7 @@ export default function AdminSettings() {
   const [isLoading, setIsLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [activeTab, setActiveTab] = useState('general');
-  
+
   const systemSettings = useQuery(
     api.queries.admin.getSystemSettings,
     sessionToken ? { sessionToken } : "skip"
@@ -56,7 +58,7 @@ export default function AdminSettings() {
     // Email & Notifications
     emailNotifications: true,
     emailDigest: false,
-    
+
     // Security & Access
     securityLevel: 'standard',
     sessionTimeout: 7200,
@@ -64,34 +66,63 @@ export default function AdminSettings() {
     passwordMinLength: 8,
     requireTwoFactor: false,
     sslRequired: true,
-    
+
     // Performance & Caching
     cacheEnabled: true,
     compressionEnabled: true,
     analyticsEnabled: true,
     apiRateLimit: 100,
-    
+
     // System & Maintenance
     maintenanceMode: false,
     debugMode: false,
     autoBackup: true,
     backupFrequency: 'daily',
     maxUploadSize: 10,
-    
+
     // User Management
     allowRegistration: true,
     requireEmailVerification: true,
     defaultUserRole: 'user',
-    
+
     // Content & Media
     allowedFileTypes: ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx'],
     maxFileSize: 5,
     imageCompression: true,
-    
+
     // API & Integrations
     enableApiAccess: true,
     apiVersion: 'v1',
     webhookRetries: 3,
+
+    // Delivery Logic
+    driver_max_range: 10,
+    google_maps_api_key: '',
+    fallback_enabled: false,
+    enable_batching: false,
+    enable_predictive_dispatch: false,
+    predictive_buffer_minutes: 15,
+
+    // Finance
+    base_delivery_fee: 4.99,
+    platform_fee_percent: 10,
+    min_order_value: 15.00,
+    small_order_fee: 2.50,
+
+    // Operations
+    driver_acceptance_timeout_seconds: 45,
+    max_driver_active_orders: 3,
+    auto_assign_orders: true,
+
+    // Integrations
+    stripe_publishable_key: '',
+    twilio_from_number: '',
+
+    // Notifications
+    notify_admin_new_order: true,
+    notify_admin_driver_signup: true,
+    notify_driver_new_assignment: true,
+    notify_customer_order_updates: true,
   };
 
   const [settings, setSettings] = useState(defaultSettings);
@@ -113,7 +144,7 @@ export default function AdminSettings() {
   const handleSaveSettings = async () => {
     setIsLoading(true);
     setSaveStatus('saving');
-    
+
     try {
       // Validate admin user
       if (!adminUser?._id) {
@@ -154,7 +185,7 @@ export default function AdminSettings() {
           description: 'System settings updated',
           metadata: {
             entityType: 'system_settings',
-            details: { 
+            details: {
               updatedSettings: Object.keys(settings),
               adminUser: adminUser._id,
               timestamp: Date.now()
@@ -181,7 +212,7 @@ export default function AdminSettings() {
 
   const renderSettingInput = (setting: { key: string; type: string; options?: Array<{ value: string; label: string }> }) => {
     const value = settings[setting.key as keyof typeof settings];
-    
+
     switch (setting.type) {
       case 'boolean':
         return (
@@ -197,7 +228,7 @@ export default function AdminSettings() {
             </span>
           </label>
         );
-      
+
       case 'select':
         return (
           <select
@@ -212,7 +243,7 @@ export default function AdminSettings() {
             ))}
           </select>
         );
-      
+
       case 'number':
         return (
           <input
@@ -224,7 +255,17 @@ export default function AdminSettings() {
             className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F23E2E]/20 focus:border-[#F23E2E] font-satoshi"
           />
         );
-      
+
+      case 'text':
+        return (
+          <input
+            type="text"
+            value={typeof value === 'string' ? value : ''}
+            onChange={(e) => handleSettingChange(setting.key, e.target.value)}
+            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F23E2E]/20 focus:border-[#F23E2E] font-satoshi"
+          />
+        );
+
       default:
         return null;
     }
@@ -278,6 +319,24 @@ export default function AdminSettings() {
       label: 'System & Maintenance',
       icon: Server,
       description: 'System maintenance and monitoring'
+    },
+    {
+      id: 'finance',
+      label: 'Finance',
+      icon: DollarSign,
+      description: 'Fees, pricing, and financial settings'
+    },
+    {
+      id: 'operations',
+      label: 'Operations',
+      icon: Clock,
+      description: 'Operational constraints and timeouts'
+    },
+    {
+      id: 'delivery',
+      label: 'Delivery Logic',
+      icon: Activity,
+      description: 'Configure dispatch, batching, and predictive delivery'
     }
   ];
 
@@ -302,6 +361,76 @@ export default function AdminSettings() {
         ],
       },
     ],
+    finance: [
+      {
+        title: 'Pricing & Fees',
+        icon: DollarSign,
+        settings: [
+          {
+            key: 'base_delivery_fee',
+            label: 'Base Delivery Fee',
+            description: 'Standard fee charged for delivery',
+            type: 'number',
+            min: 0,
+            max: 100,
+          },
+          {
+            key: 'platform_fee_percent',
+            label: 'Platform Fee (%)',
+            description: 'Percentage taken by the platform per order',
+            type: 'number',
+            min: 0,
+            max: 50,
+          },
+          {
+            key: 'min_order_value',
+            label: 'Minimum Order Value',
+            description: 'Minimum cart value required for checkout',
+            type: 'number',
+            min: 0,
+            max: 100,
+          },
+          {
+            key: 'small_order_fee',
+            label: 'Small Order Fee',
+            description: 'Extra fee for orders below minimum value',
+            type: 'number',
+            min: 0,
+            max: 20,
+          },
+        ],
+      },
+    ],
+    operations: [
+      {
+        title: 'Operational Constraints',
+        icon: Clock,
+        settings: [
+          {
+            key: 'driver_acceptance_timeout_seconds',
+            label: 'Driver Acceptance Timeout (s)',
+            description: 'Time a driver has to accept an order before it is reassigned',
+            type: 'number',
+            min: 15,
+            max: 120,
+          },
+          {
+            key: 'max_driver_active_orders',
+            label: 'Max Active Orders per Driver',
+            description: 'Maximum concurrent orders a driver can handle',
+            type: 'number',
+            min: 1,
+            max: 5,
+          },
+          {
+            key: 'auto_assign_orders',
+            label: 'Auto-Assign Orders',
+            description: 'Automatically assign orders to best available driver',
+            type: 'boolean',
+          },
+        ],
+      },
+    ],
     email: [
       {
         title: 'Email Configuration',
@@ -317,6 +446,36 @@ export default function AdminSettings() {
             key: 'emailDigest',
             label: 'Email Digest',
             description: 'Send daily digest emails instead of individual notifications',
+            type: 'boolean',
+          },
+        ],
+      },
+      {
+        title: 'System Alerts',
+        icon: AlertTriangle,
+        settings: [
+          {
+            key: 'notify_admin_new_order',
+            label: 'Admin: New Order Alert',
+            description: 'Notify admins when a new order is placed',
+            type: 'boolean',
+          },
+          {
+            key: 'notify_admin_driver_signup',
+            label: 'Admin: Driver Signup',
+            description: 'Notify admins of new driver registrations',
+            type: 'boolean',
+          },
+          {
+            key: 'notify_driver_new_assignment',
+            label: 'Driver: New Assignment',
+            description: 'Notify drivers when they receive a new order',
+            type: 'boolean',
+          },
+          {
+            key: 'notify_customer_order_updates',
+            label: 'Customer: Order Updates',
+            description: 'Notify customers on order status changes',
             type: 'boolean',
           },
         ],
@@ -504,6 +663,42 @@ export default function AdminSettings() {
           },
         ],
       },
+      {
+        title: 'External Integrations',
+        icon: Globe,
+        settings: [
+          {
+            key: 'stripe_publishable_key',
+            label: 'Stripe Publishable Key',
+            description: 'Public key for Stripe payments',
+            type: 'text',
+          },
+          {
+            key: 'twilio_from_number',
+            label: 'Twilio From Number',
+            description: 'Phone number for outgoing SMS',
+            type: 'text',
+          },
+        ]
+      },
+      {
+        title: 'External Integrations',
+        icon: Globe,
+        settings: [
+          {
+            key: 'stripe_publishable_key',
+            label: 'Stripe Publishable Key',
+            description: 'Public key for Stripe payments',
+            type: 'text',
+          },
+          {
+            key: 'twilio_from_number',
+            label: 'Twilio From Number',
+            description: 'Phone number for outgoing SMS',
+            type: 'text',
+          },
+        ]
+      },
     ],
     maintenance: [
       {
@@ -531,11 +726,65 @@ export default function AdminSettings() {
         ],
       },
     ],
+    delivery: [
+      {
+        title: 'Dispatch Configuration',
+        icon: Settings,
+        settings: [
+          {
+            key: 'driver_max_range',
+            label: 'Driver Max Range (km)',
+            description: 'Maximum distance for internal driver dispatch',
+            type: 'number',
+            min: 1,
+            max: 50,
+          },
+          {
+            key: 'google_maps_api_key',
+            label: 'Google Maps API Key',
+            description: 'API Key for Distance Matrix (leave empty to use Haversine only)',
+            type: 'text',
+          },
+          {
+            key: 'fallback_enabled',
+            label: 'Enable Stuart Fallback',
+            description: 'Use Stuart when no internal drivers are available',
+            type: 'boolean',
+          },
+        ]
+      },
+      {
+        title: 'Advanced Efficiency',
+        icon: Zap,
+        settings: [
+          {
+            key: 'enable_batching',
+            label: 'Enable Order Batching',
+            description: 'Allow drivers to pick up multiple orders from the same location',
+            type: 'boolean',
+          },
+          {
+            key: 'enable_predictive_dispatch',
+            label: 'Enable Predictive Dispatch',
+            description: 'Delay dispatch based on food preparation time',
+            type: 'boolean',
+          },
+          {
+            key: 'predictive_buffer_minutes',
+            label: 'Predictive Buffer (minutes)',
+            description: 'Buffer time before food is ready to dispatch driver',
+            type: 'number',
+            min: 5,
+            max: 60,
+          },
+        ]
+      }
+    ],
   };
 
   const renderTabContent = (activeTab: string) => {
     const groups = settingGroups[activeTab as keyof typeof settingGroups] || [];
-    
+
     return (
       <div className="space-y-6">
         {groups.map((group, groupIndex) => {
@@ -561,7 +810,7 @@ export default function AdminSettings() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="space-y-6">
                 {group.settings.map((setting) => (
                   <div key={setting.key} className="space-y-2">
@@ -590,123 +839,122 @@ export default function AdminSettings() {
 
   return (
     <div className="container mx-auto py-6 space-y-[18px]">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-asgard text-gray-900">
-              System Settings
-            </h1>
-            <p className="text-gray-600 font-satoshi mt-1">
-              Configure system-wide settings and preferences
-            </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold font-asgard text-gray-900">
+            System Settings
+          </h1>
+          <p className="text-gray-600 font-satoshi mt-1">
+            Configure system-wide settings and preferences
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={handleSaveSettings}
+            disabled={isLoading}
+            size="lg"
+            className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
+          >
+            {isLoading ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {saveStatus === 'saving' ? 'Saving...' : 'Save Settings'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Save Status */}
+      {saveStatus !== 'idle' && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-4 rounded-xl border font-satoshi ${saveStatus === 'success'
+            ? 'bg-[#F23E2E]/10 border-[#F23E2E]/30 text-[#F23E2E]'
+            : saveStatus === 'error'
+              ? 'bg-gray-100 border-gray-300 text-gray-800'
+              : 'bg-gray-100 border-gray-300 text-gray-800'
+            }`}
+        >
+          <div className="flex items-center gap-2">
+            {saveStatus === 'success' && <CheckCircle className="w-5 h-5" />}
+            {saveStatus === 'error' && <AlertTriangle className="w-5 h-5" />}
+            {saveStatus === 'saving' && <RefreshCw className="w-5 h-5 animate-spin" />}
+            <span className="font-medium">
+              {saveStatus === 'success' && 'Settings saved successfully!'}
+              {saveStatus === 'error' && 'Error saving settings. Please try again.'}
+              {saveStatus === 'saving' && 'Saving settings...'}
+            </span>
           </div>
-          
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={handleSaveSettings}
-              disabled={isLoading}
-              size="lg"
-              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
-            >
-              {isLoading ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              {saveStatus === 'saving' ? 'Saving...' : 'Save Settings'}
-            </Button>
+        </motion.div>
+      )}
+
+      {/* Tabbed Interface */}
+      {isMobile ? (
+        <AdminTabsMobile
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        >
+          {renderTabContent}
+        </AdminTabsMobile>
+      ) : (
+        <AdminTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        >
+          {renderTabContent}
+        </AdminTabs>
+      )}
+
+      {/* System Status */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="bg-white/50 backdrop-blur-sm rounded-xl border border-gray-200/30 p-6"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 bg-gray-100 rounded-lg">
+            <Activity className="w-6 h-6 text-gray-900" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold font-asgard text-gray-900">
+              System Status
+            </h3>
+            <p className="text-gray-600 font-satoshi">
+              Current system health and performance
+            </p>
           </div>
         </div>
 
-        {/* Save Status */}
-        {saveStatus !== 'idle' && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`p-4 rounded-xl border font-satoshi ${
-              saveStatus === 'success' 
-                ? 'bg-[#F23E2E]/10 border-[#F23E2E]/30 text-[#F23E2E]' 
-                : saveStatus === 'error'
-                ? 'bg-gray-100 border-gray-300 text-gray-800'
-                : 'bg-gray-100 border-gray-300 text-gray-800'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              {saveStatus === 'success' && <CheckCircle className="w-5 h-5" />}
-              {saveStatus === 'error' && <AlertTriangle className="w-5 h-5" />}
-              {saveStatus === 'saving' && <RefreshCw className="w-5 h-5 animate-spin" />}
-              <span className="font-medium">
-                {saveStatus === 'success' && 'Settings saved successfully!'}
-                {saveStatus === 'error' && 'Error saving settings. Please try again.'}
-                {saveStatus === 'saving' && 'Saving settings...'}
-              </span>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Tabbed Interface */}
-        {isMobile ? (
-          <AdminTabsMobile
-            tabs={tabs}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          >
-            {renderTabContent}
-          </AdminTabsMobile>
-        ) : (
-          <AdminTabs
-            tabs={tabs}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          >
-            {renderTabContent}
-          </AdminTabs>
-        )}
-
-        {/* System Status */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white/50 backdrop-blur-sm rounded-xl border border-gray-200/30 p-6"
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-gray-100 rounded-lg">
-              <Activity className="w-6 h-6 text-gray-900" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold font-asgard text-gray-900">
-                System Status
-              </h3>
-              <p className="text-gray-600 font-satoshi">
-                Current system health and performance
-              </p>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center p-4 bg-[#F23E2E]/10 rounded-lg">
+            <div className="w-3 h-3 bg-[#F23E2E] rounded-full mx-auto mb-2"></div>
+            <p className="text-sm font-medium text-gray-800 font-satoshi">System</p>
+            <p className="text-lg font-bold text-[#F23E2E] font-asgard">
+              {settings.maintenanceMode ? 'Maintenance' : 'Operational'}
+            </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-[#F23E2E]/10 rounded-lg">
-              <div className="w-3 h-3 bg-[#F23E2E] rounded-full mx-auto mb-2"></div>
-              <p className="text-sm font-medium text-gray-800 font-satoshi">System</p>
-              <p className="text-lg font-bold text-[#F23E2E] font-asgard">
-                {settings.maintenanceMode ? 'Maintenance' : 'Operational'}
-              </p>
-            </div>
-            <div className="text-center p-4 bg-gray-100 rounded-lg">
-              <div className="w-3 h-3 bg-gray-500 rounded-full mx-auto mb-2"></div>
-              <p className="text-sm font-medium text-gray-800 font-satoshi">Database</p>
-              <p className="text-lg font-bold text-gray-900 font-asgard">
-                {settings.cacheEnabled ? 'Cached' : 'Direct'}
-              </p>
-            </div>
-            <div className="text-center p-4 bg-gray-100 rounded-lg">
-              <div className="w-3 h-3 bg-gray-500 rounded-full mx-auto mb-2"></div>
-              <p className="text-sm font-medium text-gray-800 font-satoshi">API</p>
-              <p className="text-lg font-bold text-gray-900 font-asgard">
-                {settings.enableApiAccess ? 'Active' : 'Disabled'}
-              </p>
-            </div>
+          <div className="text-center p-4 bg-gray-100 rounded-lg">
+            <div className="w-3 h-3 bg-gray-500 rounded-full mx-auto mb-2"></div>
+            <p className="text-sm font-medium text-gray-800 font-satoshi">Database</p>
+            <p className="text-lg font-bold text-gray-900 font-asgard">
+              {settings.cacheEnabled ? 'Cached' : 'Direct'}
+            </p>
           </div>
-        </motion.div>
-      </div>
+          <div className="text-center p-4 bg-gray-100 rounded-lg">
+            <div className="w-3 h-3 bg-gray-500 rounded-full mx-auto mb-2"></div>
+            <p className="text-sm font-medium text-gray-800 font-satoshi">API</p>
+            <p className="text-lg font-bold text-gray-900 font-asgard">
+              {settings.enableApiAccess ? 'Active' : 'Disabled'}
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    </div>
   );
 }

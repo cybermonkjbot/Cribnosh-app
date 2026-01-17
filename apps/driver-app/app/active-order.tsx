@@ -13,7 +13,7 @@ import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
 import { useCallMonitoring } from '../hooks/useCallMonitoring';
 import { LocationData, LocationService } from '../services/LocationService';
 import { callingService } from '../services/callingService';
-import { useGetDriverOrderQuery, useUpdateOrderStatusMutation } from '../store/driverApi';
+import { useGetDriverOrderQuery, useUpdateDriverLocationMutation, useUpdateOrderStatusMutation } from '../store/driverApi';
 import { logger } from '../utils/Logger';
 
 export default function ActiveOrderScreen() {
@@ -23,11 +23,11 @@ export default function ActiveOrderScreen() {
 
   // Get driver order data using RTK Query (includes assignment details)
   const { data: orderData, isLoading: isLoadingOrder } = useGetDriverOrderQuery(orderId, { skip: !orderId });
-  
+
   // Extract order and assignment from response
   const order = orderData?.data?.order;
   const assignment = orderData?.data?.assignment;
-  
+
   // Get customer data if order exists
   const customer = order?.customer_id ? { _id: order.customer_id } : null;
 
@@ -36,6 +36,7 @@ export default function ActiveOrderScreen() {
 
   // Mutations - use RTK Query for order status updates
   const [updateOrderStatus, { isLoading: isUpdatingStatus }] = useUpdateOrderStatusMutation();
+  const [updateDriverLocation] = useUpdateDriverLocationMutation();
 
   // Monitor for incoming calls
   const { activeCall } = useCallMonitoring({
@@ -79,7 +80,7 @@ export default function ActiveOrderScreen() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [showCustomerInfo, setShowCustomerInfo] = useState(false);
-  
+
   // Location service instance
   const locationService = LocationService.getInstance();
 
@@ -91,10 +92,18 @@ export default function ActiveOrderScreen() {
           accuracy: Location.Accuracy.High,
           enableHighAccuracy: true,
         });
-        
+
         if (location) {
           setCurrentLocation(location);
           setLocationError(null);
+
+          // Initial sync
+          if (driver?._id) {
+            updateDriverLocation({
+              driverId: driver._id,
+              location: { latitude: location.latitude, longitude: location.longitude },
+            }).catch(err => logger.error('Failed to update initial driver location:', err));
+          }
         } else {
           setLocationError('Unable to get current location. Please check your location permissions.');
         }
@@ -114,6 +123,15 @@ export default function ActiveOrderScreen() {
           (location: LocationData) => {
             setCurrentLocation(location);
             setLocationError(null);
+
+            // Sync to backend
+            if (driver?._id) {
+              // We don't await this to keep UI responsive
+              updateDriverLocation({
+                driverId: driver._id,
+                location: { latitude: location.latitude, longitude: location.longitude },
+              }).catch(err => logger.error('Failed to sync driver location:', err));
+            }
           },
           {
             accuracy: Location.Accuracy.High,
@@ -136,7 +154,7 @@ export default function ActiveOrderScreen() {
     return () => {
       locationService.stopLocationWatching();
     };
-  }, []);
+  }, [driver?._id]); // Add dependency on driver ID to ensure we have it for sync
 
   const handleBack = () => {
     router.back();
@@ -189,12 +207,12 @@ export default function ActiveOrderScreen() {
                 'Delivery Completed!',
                 'Great job! Your earnings have been added to your account.',
                 [
-                {
-                  text: 'Back to Dashboard',
-                  onPress: () => router.push('/dashboard'),
-                },
-              ]
-            );
+                  {
+                    text: 'Back to Dashboard',
+                    onPress: () => router.push('/dashboard'),
+                  },
+                ]
+              );
             } catch (error) {
               Alert.alert('Error', 'Failed to complete delivery. Please try again.');
             }
@@ -261,7 +279,7 @@ export default function ActiveOrderScreen() {
             } catch (error) {
               logger.error('Error initiating call:', error);
               const errorMessage = error instanceof Error ? error.message : 'Failed to start call';
-              
+
               if (errorMessage.includes('WebRTC not available') || errorMessage.includes('react-native-webrtc')) {
                 Alert.alert(
                   'Calling Not Available',
@@ -308,17 +326,17 @@ export default function ActiveOrderScreen() {
 
   const getDistance = () => {
     if (!currentLocation || !order) return 'Calculating...';
-    
+
     // Calculate distance between current location and delivery location
     const R = 6371; // Earth's radius in kilometers
     const dLat = (order.deliveryLocation.latitude - currentLocation.latitude) * Math.PI / 180;
     const dLon = (order.deliveryLocation.longitude - currentLocation.longitude) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(currentLocation.latitude * Math.PI / 180) * Math.cos(order.deliveryLocation.latitude * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(currentLocation.latitude * Math.PI / 180) * Math.cos(order.deliveryLocation.latitude * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c;
-    
+
     return distance < 1 ? `${(distance * 1000).toFixed(0)}m` : `${distance.toFixed(1)}km`;
   };
 
@@ -326,17 +344,17 @@ export default function ActiveOrderScreen() {
     if (!currentLocation || !order.deliveryLocation) {
       return 'Calculating...';
     }
-    
+
     // Calculate distance using the same logic as getDistance
     const R = 6371; // Earth's radius in kilometers
     const dLat = (order.deliveryLocation.latitude - currentLocation.latitude) * Math.PI / 180;
     const dLon = (order.deliveryLocation.longitude - currentLocation.longitude) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(currentLocation.latitude * Math.PI / 180) * Math.cos(order.deliveryLocation.latitude * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(currentLocation.latitude * Math.PI / 180) * Math.cos(order.deliveryLocation.latitude * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c;
-    
+
     // Rough estimate: 1km = 2 minutes in city traffic
     const estimatedMinutes = Math.ceil(distance * 2);
     return `${estimatedMinutes} minutes`;
@@ -361,10 +379,10 @@ export default function ActiveOrderScreen() {
           <View style={styles.statusCard}>
             <View style={styles.statusHeader}>
               <View style={[styles.statusIcon, { backgroundColor: getStatusColor(order.status) + '20' }]}>
-                <Ionicons 
-                  name="car" 
-                  size={24} 
-                  color={getStatusColor(order.status)} 
+                <Ionicons
+                  name="car"
+                  size={24}
+                  color={getStatusColor(order.status)}
                 />
               </View>
               <View style={styles.statusInfo}>
@@ -381,14 +399,14 @@ export default function ActiveOrderScreen() {
             <View style={styles.sectionHeader}>
               <ThemedText style={styles.sectionTitle} lightColor={Colors.light.text} darkColor={Colors.dark.text}>Customer Information</ThemedText>
               <TouchableOpacity onPress={() => setShowCustomerInfo(!showCustomerInfo)}>
-                <Ionicons 
-                  name={showCustomerInfo ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color={Colors.light.icon} 
+                <Ionicons
+                  name={showCustomerInfo ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color={Colors.light.icon}
                 />
               </TouchableOpacity>
             </View>
-            
+
             {showCustomerInfo && (
               <View style={styles.customerInfo}>
                 <View style={styles.customerDetail}>
@@ -490,7 +508,7 @@ export default function ActiveOrderScreen() {
                 <Ionicons name="navigate" size={20} color={Colors.light.background} />
                 <ThemedText style={styles.navigationButtonText}>Start Navigation</ThemedText>
               </TouchableOpacity>
-              
+
               <TouchableOpacity style={styles.arrivedButton} onPress={handleArrived}>
                 <Ionicons name="checkmark-circle" size={20} color={Colors.light.background} />
                 <ThemedText style={styles.arrivedButtonText}>Mark as Arrived</ThemedText>
@@ -506,8 +524,8 @@ export default function ActiveOrderScreen() {
           )}
 
           {order.status === 'COMPLETED' && (
-            <TouchableOpacity 
-              style={styles.dashboardButton} 
+            <TouchableOpacity
+              style={styles.dashboardButton}
               onPress={() => router.push('/dashboard')}
             >
               <Ionicons name="home" size={20} color={Colors.light.background} />

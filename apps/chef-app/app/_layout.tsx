@@ -1,6 +1,10 @@
 // react-native-reanimated must be imported FIRST
 import 'react-native-reanimated';
 
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { ChefAuthProvider } from '@/contexts/ChefAuthContext';
+import { getConvexReactClient } from '@/lib/convexClient';
+import { ToastProvider } from '@/lib/ToastContext';
 import { ConvexProvider } from 'convex/react';
 import Constants from 'expo-constants';
 import { Stack } from 'expo-router';
@@ -9,10 +13,8 @@ import * as Updates from 'expo-updates';
 import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { getConvexReactClient } from '@/lib/convexClient';
-import { ChefAuthProvider } from '@/contexts/ChefAuthContext';
-import { ToastProvider } from '@/lib/ToastContext';
-import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+
+import { LocationTracker } from '@/components/LocationTracker';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -50,7 +52,7 @@ export default function RootLayout() {
         // Check for updates with error handling
         try {
           const update = await Updates.checkForUpdateAsync();
-          
+
           if (!isMounted) {
             return;
           }
@@ -110,6 +112,7 @@ export default function RootLayout() {
           <ConvexProvider client={convex}>
             <ToastProvider>
               <ChefAuthProvider>
+                <LocationTracker />
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="index" />
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

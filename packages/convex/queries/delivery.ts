@@ -57,6 +57,31 @@ export const getDeliveryAssignmentByOrder = query({
   },
 });
 
+// Get active assignment for a driver
+export const getDriverActiveAssignment = query({
+  args: {
+    driverId: v.id("drivers"),
+  },
+  handler: async (ctx, args) => {
+    // Find any assignment for this driver that is NOT delivered/failed/cancelled
+    // We look for 'assigned', 'accepted', 'picked_up', 'in_transit'
+    const assignments = await ctx.db
+      .query("deliveryAssignments")
+      .withIndex("by_driver", (q) => q.eq("driver_id", args.driverId))
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("status"), "assigned"),
+          q.eq(q.field("status"), "accepted"),
+          q.eq(q.field("status"), "picked_up"),
+          q.eq(q.field("status"), "in_transit")
+        )
+      )
+      .first();
+
+    return assignments;
+  },
+});
+
 // Get delivery tracking history
 export const getDeliveryTrackingHistory = query({
   args: {
