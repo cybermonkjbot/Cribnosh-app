@@ -2,10 +2,10 @@ import {
   Body,
   Column,
   Container,
+  Html as EmailHtml,
   Font,
   Head,
   Hr,
-  Html as EmailHtml,
   Img,
   Link,
   Preview,
@@ -1411,6 +1411,6 @@ export const SocialProof = ({
 // Export everything for backward compatibility
 export {
   Body, Column, Container, Font, Head, Hr,
-  Html, Img, Link, Preview, Row, Section,
+  EmailHtml as Html, Img, Link, Preview, Row, Section,
   Text
 };
