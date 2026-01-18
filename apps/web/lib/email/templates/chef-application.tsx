@@ -1,4 +1,4 @@
-import { Html, Head, Preview, Section } from '@react-email/components';
+import { Html as EmailHtml, Head, Preview, Section } from '@react-email/components';
 import { EmailWrapper, ProfessionalHeader, ContentText, FooterSection, SocialLinks, colors, spacing, FeatureCard, typography } from './components';
 
 import { emailUrls } from '../utils/urls';
@@ -32,7 +32,7 @@ export const ChefApplicationEmail = ({
   unsubscribeUrl,
   companyAddress,
 }: ChefApplicationEmailProps) => (
-  <Html>
+  <EmailHtml>
     <Head />
     <Preview>Welcome to CribNosh! Your food creator application is being reviewed</Preview>
     <EmailWrapper previewText="Welcome to CribNosh! Your food creator application is being reviewed" title="Application Received">
@@ -157,5 +157,5 @@ export const ChefApplicationEmail = ({
         showDivider
       />
     </EmailWrapper>
-  </Html>
+  </EmailHtml>
 );

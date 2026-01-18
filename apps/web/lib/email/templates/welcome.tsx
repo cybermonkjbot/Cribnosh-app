@@ -1,5 +1,5 @@
 import {
-  Html,
+  Html as EmailHtml,
   Head,
   Preview,
   Container,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { emailUrls } from '../utils/urls';
 import {
-  Html,
+  Html as EmailHtml,
   Head,
   Preview,
   Container,
@@ -75,7 +75,7 @@ export const PromotionalEmail: React.FC<PromotionalEmailProps> = ({
   companyAddress,
 }) => {
   return (
-    <Html>
+    <EmailHtml>
       <Head />
       <Preview>Exclusive {discountPercentage.toString()}% off your first CribNosh order!</Preview>
       <EmailWrapper
@@ -306,7 +306,7 @@ export const PromotionalEmail: React.FC<PromotionalEmailProps> = ({
           showDivider
         />
       </EmailWrapper>
-    </Html>
+    </EmailHtml>
   );
 };
 

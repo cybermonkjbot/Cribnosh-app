@@ -1,5 +1,5 @@
 import {
-  Html,
+  Html as EmailHtml,
   Head,
   Preview,
   Container,
@@ -52,7 +52,7 @@ export const ChefRecommendationsEmail = ({
   unsubscribeUrl,
   companyAddress,
 }: ChefRecommendationsEmailProps) => (
-  <Html>
+  <EmailHtml>
     <Head />
     <Preview>Discover new flavors from top-rated chefs in your area!</Preview>
     <Container style={{ padding: '40px 20px', background: colors.background }}>
@@ -163,5 +163,5 @@ export const ChefRecommendationsEmail = ({
         />
       </Section>
     </Container>
-  </Html>
+  </EmailHtml>
 ); 

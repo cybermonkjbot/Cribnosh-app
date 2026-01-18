@@ -1,4 +1,4 @@
-import { Html, Head, Preview, Container, Section } from '@react-email/components';
+import { Html as EmailHtml, Head, Preview, Container, Section } from '@react-email/components';
 import { EmailWrapper, ProfessionalHeader, ContentText, EmailButton, FooterSection, colors, SocialLinks, spacing, Alert, FeatureCard } from './components';
 
 import { emailUrls } from '../utils/urls';
@@ -34,7 +34,7 @@ export const FormConfirmationEmail = ({
   unsubscribeUrl,
   companyAddress,
 }: FormConfirmationEmailProps) => (
-  <Html>
+  <EmailHtml>
     <Head />
     <Preview>Your {formName} submission is confirmed</Preview>
     <EmailWrapper previewText={`Your ${formName} submission is confirmed`} title={`${formName} Received`}>
@@ -109,5 +109,5 @@ export const FormConfirmationEmail = ({
         showDivider
       />
     </EmailWrapper>
-  </Html>
+  </EmailHtml>
 );

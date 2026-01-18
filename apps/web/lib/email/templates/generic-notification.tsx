@@ -1,4 +1,4 @@
-import { Html, Head, Preview, Container, Section } from '@react-email/components';
+import { Html as EmailHtml, Head, Preview, Container, Section } from '@react-email/components';
 import { EmailWrapper, ProfessionalHeader, ContentText, FooterSection, colors, SocialLinks, spacing } from './components';
 import { emailUrls } from '../utils/urls';
 
@@ -23,7 +23,7 @@ const footerLinks = [
 export const GenericNotificationEmail = (props: GenericNotificationEmailProps) => {
   const { title, message, unsubscribeUrl, address } = props;
   return (
-    <Html>
+    <EmailHtml>
       <Head />
       <Preview>{title}</Preview>
       <EmailWrapper previewText={title} title={title}>
@@ -53,6 +53,6 @@ export const GenericNotificationEmail = (props: GenericNotificationEmailProps) =
           showDivider
         />
       </EmailWrapper>
-    </Html>
+    </EmailHtml>
   );
 };

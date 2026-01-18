@@ -1,7 +1,7 @@
 import {
   Column,
   Head,
-  Html,
+  Html as EmailHtml,
   Preview,
   Row,
   Section
@@ -121,7 +121,7 @@ export const LoyaltyRewardsEmail: React.FC<LoyaltyRewardsEmailProps> = ({
   const progressPercentage = tierInfo.nextTier ? (currentPoints / tierInfo.nextTierPoints) * 100 : 100;
 
   return (
-    <Html>
+    <EmailHtml>
       <Head />
       <Preview>Your CribNosh Rewards Update - {tierInfo.name} Member Status</Preview>
       <EmailWrapper
@@ -438,7 +438,7 @@ export const LoyaltyRewardsEmail: React.FC<LoyaltyRewardsEmailProps> = ({
           showDivider
         />
       </EmailWrapper>
-    </Html>
+    </EmailHtml>
   );
 };
 

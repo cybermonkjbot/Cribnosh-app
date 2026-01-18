@@ -5,7 +5,7 @@ import {
   Font,
   Head,
   Hr,
-  Html,
+  Html as EmailHtml,
   Img,
   Link,
   Preview,
@@ -657,7 +657,7 @@ export const EmailWrapper = ({
   title?: string;
   backgroundColor?: string;
 }) => (
-  <Html>
+  <EmailHtml>
     <Head>
       <title>{title}</title>
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -705,7 +705,7 @@ export const EmailWrapper = ({
         {children}
       </Container>
     </Body>
-  </Html>
+  </EmailHtml>
 );
 
 // Professional Email Header with enhanced branding

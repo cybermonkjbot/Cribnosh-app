@@ -1,7 +1,7 @@
 import React from 'react';
 import { emailUrls } from '../utils/urls';
 import {
-  Html,
+  Html as EmailHtml,
   Head,
   Preview,
   Container,
@@ -36,7 +36,7 @@ export const OTPVerificationEmail: React.FC<OTPVerificationEmailProps> = ({
   companyAddress = 'CribNosh – Personalized Dining, Every Time.',
 }) => {
   return (
-    <Html>
+    <EmailHtml>
       <Head />
       <Preview>Verify your email with CribNosh - Your verification code is ready</Preview>
       <EmailWrapper
@@ -115,7 +115,7 @@ export const OTPVerificationEmail: React.FC<OTPVerificationEmailProps> = ({
           showDivider
         />
       </EmailWrapper>
-    </Html>
+    </EmailHtml>
   );
 };
 

@@ -1,7 +1,7 @@
 import {
   Column,
   Head,
-  Html,
+  Html as EmailHtml,
   Preview,
   Row,
   Section
@@ -107,7 +107,7 @@ export const FeedbackRequestEmail: React.FC<FeedbackRequestEmailProps> = ({
   };
 
   return (
-    <Html>
+    <EmailHtml>
       <Head />
       <Preview>How was your CribNosh experience? Share your feedback and earn rewards!</Preview>
       <EmailWrapper
@@ -405,7 +405,7 @@ export const FeedbackRequestEmail: React.FC<FeedbackRequestEmailProps> = ({
           showDivider
         />
       </EmailWrapper>
-    </Html>
+    </EmailHtml>
   );
 };
 

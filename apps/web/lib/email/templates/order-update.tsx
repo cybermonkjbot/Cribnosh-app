@@ -1,7 +1,7 @@
 import React from 'react';
 import { emailUrls } from '../utils/urls';
 import {
-  Html,
+  Html as EmailHtml,
   Head,
   Preview,
   Container,
@@ -190,7 +190,7 @@ export const OrderUpdateEmail: React.FC<OrderUpdateEmailProps> = ({
   };
 
   return (
-    <Html>
+    <EmailHtml>
       <Head />
       <Preview>{getUpdateTitle()} - Order #{orderNumber}</Preview>
       <EmailWrapper
@@ -412,7 +412,7 @@ export const OrderUpdateEmail: React.FC<OrderUpdateEmailProps> = ({
           showDivider
         />
       </EmailWrapper>
-    </Html>
+    </EmailHtml>
   );
 };
 

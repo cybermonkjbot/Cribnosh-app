@@ -1,7 +1,7 @@
 import React from 'react';
 import { emailUrls } from '../utils/urls';
 import {
-  Html,
+  Html as EmailHtml,
   Head,
   Preview,
   Container,
@@ -158,7 +158,7 @@ export const SystemAlertEmail: React.FC<SystemAlertEmailProps> = ({
   };
 
   return (
-    <Html>
+    <EmailHtml>
       <Head />
       <Preview>{title} - {severity.toUpperCase()} Alert</Preview>
       <EmailWrapper
@@ -507,7 +507,7 @@ export const SystemAlertEmail: React.FC<SystemAlertEmailProps> = ({
           showDivider
         />
       </EmailWrapper>
-    </Html>
+    </EmailHtml>
   );
 };
 

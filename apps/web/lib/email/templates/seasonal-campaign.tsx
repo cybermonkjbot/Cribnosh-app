@@ -1,7 +1,7 @@
 import React from 'react';
 import { emailUrls } from '../utils/urls';
 import {
-  Html,
+  Html as EmailHtml,
   Head,
   Preview,
   Container,
@@ -148,7 +148,7 @@ export const SeasonalCampaignEmail: React.FC<SeasonalCampaignEmailProps> = ({
   };
 
   return (
-    <Html>
+    <EmailHtml>
       <Head />
       <Preview>{campaignName} - {getSeasonalGreeting()}</Preview>
       <EmailWrapper
@@ -470,7 +470,7 @@ export const SeasonalCampaignEmail: React.FC<SeasonalCampaignEmailProps> = ({
           showDivider
         />
       </EmailWrapper>
-    </Html>
+    </EmailHtml>
   );
 };
 
