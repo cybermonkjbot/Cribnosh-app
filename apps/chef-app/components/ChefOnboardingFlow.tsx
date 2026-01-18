@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ChefOnboardingProfileScreen } from './ChefOnboardingProfileScreen';
-import { ChefOnboardingLocationScreen } from './ChefOnboardingLocationScreen';
+import { api } from '@/convex/_generated/api';
+import { useMutation } from 'convex/react';
+import React, { useCallback, useState } from 'react';
+import { ChefOnboardingGDPRScreen } from './ChefOnboardingGDPRScreen';
 import { ChefOnboardingImageScreen } from './ChefOnboardingImageScreen';
 import { ChefOnboardingKitchenScreen } from './ChefOnboardingKitchenScreen';
-import { useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
+import { ChefOnboardingLocationScreen } from './ChefOnboardingLocationScreen';
+import { ChefOnboardingProfileScreen } from './ChefOnboardingProfileScreen';
 
 interface ChefOnboardingData {
   name: string;
@@ -37,8 +38,8 @@ export const ChefOnboardingFlow: React.FC<ChefOnboardingFlowProps> = ({
   initialDraft,
 }) => {
   const saveDraft = useMutation(api.mutations.chefs.saveOnboardingDraft);
-  const [currentStep, setCurrentStep] = useState<'profile' | 'image' | 'location' | 'kitchen'>(
-    (initialDraft?.currentStep as any) || 'profile'
+  const [currentStep, setCurrentStep] = useState<'gdpr' | 'profile' | 'image' | 'location' | 'kitchen'>(
+    (initialDraft?.currentStep as any) || 'gdpr'
   );
   const [onboardingData, setOnboardingData] = useState<ChefOnboardingData>({
     name: initialDraft?.name || '',
@@ -56,7 +57,7 @@ export const ChefOnboardingFlow: React.FC<ChefOnboardingFlowProps> = ({
   // Save draft to backend after each step
   const saveProgress = useCallback(async (step: string, data: ChefOnboardingData) => {
     if (!chefId || !sessionToken) return;
-    
+
     try {
       await saveDraft({
         chefId: chefId as any,
@@ -135,6 +136,15 @@ export const ChefOnboardingFlow: React.FC<ChefOnboardingFlowProps> = ({
   const handleKitchenSkip = () => {
     onSkip?.();
   };
+
+  if (currentStep === 'gdpr') {
+    return (
+      <ChefOnboardingGDPRScreen
+        onNext={() => setCurrentStep('profile')}
+        backgroundImage={backgroundImage}
+      />
+    );
+  }
 
   if (currentStep === 'profile') {
     return (

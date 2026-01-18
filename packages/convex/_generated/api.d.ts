@@ -256,6 +256,7 @@ import type * as queries_waitlist from "../queries/waitlist.js";
 import type * as queries_workSessions from "../queries/workSessions.js";
 import type * as schemaDrip from "../schemaDrip.js";
 import type * as services_resend from "../services/resend.js";
+import type * as stuart_integration from "../stuart_integration.js";
 import type * as types_convexContexts from "../types/convexContexts.js";
 import type * as types_email from "../types/email.js";
 import type * as types_livestream from "../types/livestream.js";
@@ -526,6 +527,7 @@ declare const fullApi: ApiFromModules<{
   "queries/workSessions": typeof queries_workSessions;
   schemaDrip: typeof schemaDrip;
   "services/resend": typeof services_resend;
+  stuart_integration: typeof stuart_integration;
   "types/convexContexts": typeof types_convexContexts;
   "types/email": typeof types_email;
   "types/livestream": typeof types_livestream;

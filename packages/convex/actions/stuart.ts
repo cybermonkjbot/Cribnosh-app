@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
+import { CACHE_TTL } from "../cacheConfig";
 
 /**
  * Public action to validate a delivery address with Stuart.
@@ -12,7 +13,7 @@ export const validateDeliveryAddress = action({
     args: {
         address: v.string(),
     },
-    handler: async (ctx, args) => {
+    handler: async (ctx, args): Promise<any> => {
         try {
             // 1. Check if Stuart is enabled
             const settings = await ctx.runQuery(internal.queries.admin.getDeliverySettings);

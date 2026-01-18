@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { OnboardingDietScreen } from './OnboardingDietScreen';
 import { OnboardingAllergyScreen } from './OnboardingAllergyScreen';
 import { OnboardingCuisinesScreen } from './OnboardingCuisinesScreen';
+import { OnboardingDietScreen } from './OnboardingDietScreen';
+import { OnboardingGDPRScreen } from './OnboardingGDPRScreen';
 
 interface OnboardingData {
   dietDescription: string;
@@ -22,7 +23,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   onSkip,
   backgroundImage,
 }) => {
-  const [currentStep, setCurrentStep] = useState<'diet' | 'allergy' | 'cuisines'>('diet');
+  const [currentStep, setCurrentStep] = useState<'gdpr' | 'diet' | 'allergy' | 'cuisines'>('gdpr');
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     dietDescription: 'I like to eat a Fresh meat diet...',
     selectedPreference: 'Vegan',
@@ -78,6 +79,15 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   const handleAllergySkip = () => {
     onSkip?.();
   };
+
+  if (currentStep === 'gdpr') {
+    return (
+      <OnboardingGDPRScreen
+        onNext={() => setCurrentStep('diet')}
+        backgroundImage={backgroundImage}
+      />
+    );
+  }
 
   if (currentStep === 'diet') {
     return (

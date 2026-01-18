@@ -1,12 +1,11 @@
-import React from 'react';
-import { StyleSheet, TouchableOpacity, View, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ThemedText } from './ThemedText';
-import { ThemedView } from './ThemedView';
+import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../constants/Colors';
 import { PersistentBottomSheet } from './PersistentBottomSheet';
+import { ThemedText } from './ThemedText';
+import { ThemedView } from './ThemedView';
 
-interface Bank {
+export interface Bank {
   _id: string;
   name: string;
   code: string;
@@ -21,12 +20,12 @@ interface BankPickerSheetProps {
   onSelect: (bankCode: string, bankName: string) => void;
 }
 
-export function BankPickerSheet({ 
-  visible, 
-  onClose, 
-  banks, 
-  selectedBankCode, 
-  onSelect 
+export function BankPickerSheet({
+  visible,
+  onClose,
+  banks,
+  selectedBankCode,
+  onSelect
 }: BankPickerSheetProps) {
   return (
     <PersistentBottomSheet

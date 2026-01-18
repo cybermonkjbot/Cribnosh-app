@@ -2,25 +2,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 // TODO: Use API endpoints when available
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { DocumentUpload, DocumentUploadRef } from '../components/DocumentUpload';
-import { logger } from '../utils/Logger';
-import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
-import { VehicleTypePickerSheet } from '../components/VehicleTypePickerSheet';
-import { VehicleModelPickerSheet } from '../components/VehicleModelPickerSheet';
-import { VehicleYearPickerSheet } from '../components/VehicleYearPickerSheet';
 import { BankPickerSheet } from '../components/BankPickerSheet';
 import { CribNoshLogo } from '../components/CribNoshLogo';
-import { 
-  useGetVehicleTypesQuery,
-  useGetVehicleModelsQuery,
-  useGetVehicleYearsQuery,
+import { DocumentUpload, DocumentUploadRef } from '../components/DocumentUpload';
+import { VehicleModelPickerSheet } from '../components/VehicleModelPickerSheet';
+import { VehicleTypePickerSheet } from '../components/VehicleTypePickerSheet';
+import { VehicleYearPickerSheet } from '../components/VehicleYearPickerSheet';
+import { useDriverAuth } from '../contexts/EnhancedDriverAuthContext';
+import {
   useGetBanksQuery,
-  useVerifyBankAccountMutation,
+  useGetVehicleModelsQuery,
+  useGetVehicleTypesQuery,
+  useGetVehicleYearsQuery,
   useRegisterDriverMutation,
+  useVerifyBankAccountMutation,
 } from '../store/driverApi';
+import { logger } from '../utils/Logger';
 
 export default function DriverRegisterScreen() {
   const router = useRouter();
@@ -30,65 +30,70 @@ export default function DriverRegisterScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifyingAccount, setIsVerifyingAccount] = useState(false);
   const [phoneValidationError, setPhoneValidationError] = useState<string | null>(null);
-  
+
   // Sheet visibility states
   const [showVehicleTypeSheet, setShowVehicleTypeSheet] = useState(false);
   const [showVehicleModelSheet, setShowVehicleModelSheet] = useState(false);
   const [showVehicleYearSheet, setShowVehicleYearSheet] = useState(false);
   const [showBankSheet, setShowBankSheet] = useState(false);
-  
+
   // TODO: Replace with Cribnosh queries
   // Fetch suppliers for selection (may not exist in Cribnosh)
   // const suppliers = useQuery(api.queries.marketplace.getAllSuppliers);
-  const suppliers = null; // Placeholder
-  
+  interface Supplier {
+    _id: string;
+    companyName: string;
+    address: string;
+  }
+  const suppliers: Supplier[] = []; // Placeholder
+
   // Store selected vehicle type ID and model ID
   const [selectedVehicleTypeId, setSelectedVehicleTypeId] = useState<string>('');
   const [selectedVehicleModelId, setSelectedVehicleModelId] = useState<string>('');
-  
+
   // Document upload refs
   const driversLicenseRef = useRef<DocumentUploadRef>(null);
   const vehicleRegistrationRef = useRef<DocumentUploadRef>(null);
   const insuranceRef = useRef<DocumentUploadRef>(null);
-  
+
   // Track file selections (not just uploads)
   const [hasSelectedFiles, setHasSelectedFiles] = useState({
     driversLicense: false,
     vehicleRegistration: false,
     insurance: false,
   });
-  
+
   // Helper function to normalize phone number to +44 format (UK)
   const normalizePhoneNumber = (value: string): string => {
     if (!value) return '';
     // Remove all spaces, dashes, parentheses
     const cleaned = value.replace(/[\s\-\(\)]/g, '');
-    
+
     // If it starts with +44, return as is
     if (cleaned.startsWith('+44')) {
       return cleaned;
     }
-    
+
     // If it starts with 44 (without +), add +
     if (cleaned.startsWith('44')) {
       return '+' + cleaned;
     }
-    
+
     // If it starts with 0 (local format), replace 0 with +44
     if (cleaned.startsWith('0')) {
       return '+44' + cleaned.substring(1);
     }
-    
+
     // If it's 10 digits starting with 7 (UK mobile), add +44
     if (/^7\d{9}$/.test(cleaned)) {
       return '+44' + cleaned;
     }
-    
+
     // If it's 10 digits starting with 1 or 2 (UK landline), add +44
     if (/^[12]\d{9}$/.test(cleaned)) {
       return '+44' + cleaned;
     }
-    
+
     return cleaned;
   };
 
@@ -97,10 +102,10 @@ export default function DriverRegisterScreen() {
     if (!value) return false;
     // Check if it looks like an email (contains @)
     if (value.includes('@')) return false;
-    
+
     // Normalize the phone number
     const normalized = normalizePhoneNumber(value);
-    
+
     // Check if it matches UK phone number pattern after normalization
     // UK phone numbers: +44 followed by 10 digits
     // Mobile: +44 7xxx xxxxxx (10 digits starting with 7)
@@ -126,11 +131,11 @@ export default function DriverRegisterScreen() {
 
   const prefilledPhoneNumber = getPrefilledPhoneNumber();
   const prefilledEmail = (params.email as string) || user?.email || '';
-  
+
   // Determine which fields should be read-only (if we have data from backend)
   const hasBackendPhone = !!(user?.phone && isValidPhoneNumber(user.phone));
   const hasBackendEmail = !!user?.email;
-  
+
   // Form data
   const [formData, setFormData] = useState({
     // Personal Information
@@ -138,29 +143,29 @@ export default function DriverRegisterScreen() {
     lastName: user?.fullName?.split(' ').slice(1).join(' ') || '',
     phoneNumber: prefilledPhoneNumber,
     email: prefilledEmail,
-    
+
     // Vehicle Information
     vehicleType: '',
     vehicleModel: '',
     vehicleYear: '',
     licensePlate: '',
-    
+
     // Documents
     driversLicense: '',
     vehicleRegistration: '',
     insurance: '',
-    
+
     // Document file IDs
     driversLicenseFileId: '',
     vehicleRegistrationFileId: '',
     insuranceFileId: '',
-    
+
     // Bank Information
     bankName: '',
     bankCode: '',
     accountNumber: '',
     accountName: '',
-    
+
     // Work Type Selection
     workType: '', // 'independent' or 'supplier'
     supplierId: '',
@@ -172,20 +177,21 @@ export default function DriverRegisterScreen() {
   const { data: banksData } = useGetBanksQuery();
   const [verifyBankAccount] = useVerifyBankAccountMutation();
   const [registerDriver] = useRegisterDriverMutation();
-  
+
   // Get vehicle models based on selected type
   const { data: vehicleModelsData } = useGetVehicleModelsQuery(
     formData.vehicleType || '',
     { skip: !formData.vehicleType }
   );
-  
+
   // Extract data from API responses
-  const vehicleTypes = vehicleTypesData?.data || [];
-  const vehicleModels = vehicleModelsData?.data || [];
-  const vehicleYears = vehicleYearsData?.data || [];
-  const banks = banksData?.data || [];
+  const vehicleTypes = vehicleTypesData || [];
+  const vehicleModels = vehicleModelsData || [];
+  const vehicleYears = vehicleYearsData || [];
+  const banks = banksData || [];
 
   const steps = [
+    { title: 'Data Privacy', subtitle: 'Privacy Notice' },
     { title: 'Personal Info', subtitle: 'Tell us about yourself' },
     { title: 'Vehicle Info', subtitle: 'Your delivery vehicle' },
     { title: 'Documents', subtitle: 'Required documents' },
@@ -201,9 +207,9 @@ export default function DriverRegisterScreen() {
     if (field === 'email' && hasBackendEmail) {
       return; // Email is read-only if it comes from backend
     }
-    
+
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Real-time phone number validation
     if (field === 'phoneNumber') {
       if (value.trim() === '') {
@@ -214,18 +220,18 @@ export default function DriverRegisterScreen() {
         setPhoneValidationError(null); // Clear error if valid
       }
     }
-    
-           // Validate account format when account number is entered and bank is selected
-           // Note: Stripe doesn't provide account name verification for UK accounts without user interaction
-           // This only validates the format - account name must be entered manually
-           if (field === 'accountNumber' && value.length === 10 && formData.bankCode) {
-             handleAccountVerification(value, formData.bankCode);
-           }
+
+    // Validate account format when account number is entered and bank is selected
+    // Note: Stripe doesn't provide account name verification for UK accounts without user interaction
+    // This only validates the format - account name must be entered manually
+    if (field === 'accountNumber' && value.length === 10 && formData.bankCode) {
+      handleAccountVerification(value, formData.bankCode);
+    }
   };
-  
+
   const handleBankSelect = (bankCode: string, bankName: string) => {
     setFormData(prev => ({ ...prev, bankCode, bankName }));
-    
+
     // Validate account format if account number is already 10 digits
     // Note: Stripe doesn't provide account name verification for UK accounts without user interaction
     // This only validates the format - account name must be entered manually
@@ -233,48 +239,48 @@ export default function DriverRegisterScreen() {
       handleAccountVerification(formData.accountNumber, bankCode);
     }
   };
-  
-         const handleAccountVerification = async (accountNumber: string, bankCode: string) => {
-           if (!accountNumber || accountNumber.length !== 10 || !bankCode) {
-             return;
-           }
-           
-           setIsVerifyingAccount(true);
-           try {
-             const result = await verifyBankAccount({
-               accountNumber,
-               bankCode,
-             }).unwrap();
-             
-             // Stripe doesn't provide account name verification for UK accounts without user interaction
-             // The API validates the format only
-             // Account name must be entered manually by the user
-             if (result.success) {
-               // Format validated successfully
-               // Don't auto-fill account name - user must enter it manually
-               // The account will be verified when used for payouts via Stripe
-             } else {
-               // Format validation failed
-               setFormData(prev => ({ 
-                 ...prev, 
-                 accountName: '',
-               }));
-               const errorMessage = result.error || 'Invalid account number or sort code format. Please check and try again.';
-               Alert.alert('Validation Failed', errorMessage);
-             }
-           } catch (error: any) {
-             logger.error('Account verification error:', error);
-             // Clear account name on error
-             setFormData(prev => ({ 
-               ...prev, 
-               accountName: '',
-             }));
-             const errorMessage = error?.data?.message || error?.message || 'Failed to validate account. Please check the account number and sort code.';
-             Alert.alert('Validation Error', errorMessage);
-           } finally {
-             setIsVerifyingAccount(false);
-           }
-         };
+
+  const handleAccountVerification = async (accountNumber: string, bankCode: string) => {
+    if (!accountNumber || accountNumber.length !== 10 || !bankCode) {
+      return;
+    }
+
+    setIsVerifyingAccount(true);
+    try {
+      const result = await verifyBankAccount({
+        accountNumber,
+        bankCode,
+      }).unwrap();
+
+      // Stripe doesn't provide account name verification for UK accounts without user interaction
+      // The API validates the format only
+      // Account name must be entered manually by the user
+      if (result.success) {
+        // Format validated successfully
+        // Don't auto-fill account name - user must enter it manually
+        // The account will be verified when used for payouts via Stripe
+      } else {
+        // Format validation failed
+        setFormData(prev => ({
+          ...prev,
+          accountName: '',
+        }));
+        const errorMessage = result.error || 'Invalid account number or sort code format. Please check and try again.';
+        Alert.alert('Validation Failed', errorMessage);
+      }
+    } catch (error: any) {
+      logger.error('Account verification error:', error);
+      // Clear account name on error
+      setFormData(prev => ({
+        ...prev,
+        accountName: '',
+      }));
+      const errorMessage = error?.data?.message || error?.message || 'Failed to validate account. Please check the account number and sort code.';
+      Alert.alert('Validation Error', errorMessage);
+    } finally {
+      setIsVerifyingAccount(false);
+    }
+  };
 
   // Update form data when params or user data changes
   useEffect(() => {
@@ -283,23 +289,23 @@ export default function DriverRegisterScreen() {
       const paramPhone = params.phoneNumber as string;
       const validParamPhone = paramPhone && isValidPhoneNumber(paramPhone) ? paramPhone : '';
       const validUserPhone = user?.phone && isValidPhoneNumber(user.phone) ? user.phone : '';
-      
+
       // Recalculate backend flags inside useEffect
       const backendHasPhone = !!(user?.phone && isValidPhoneNumber(user.phone));
       const backendHasEmail = !!user?.email;
-      
+
       setFormData(prev => {
-        const newPhoneNumber = validParamPhone 
+        const newPhoneNumber = validParamPhone
           ? normalizePhoneNumber(validParamPhone)
-          : (backendHasPhone 
-              ? prev.phoneNumber 
-              : (validUserPhone ? normalizePhoneNumber(validUserPhone) : prev.phoneNumber));
-        
+          : (backendHasPhone
+            ? prev.phoneNumber
+            : (validUserPhone ? normalizePhoneNumber(validUserPhone) : prev.phoneNumber));
+
         // Clear validation error if phone number is valid
         if (newPhoneNumber && isValidPhoneNumber(newPhoneNumber)) {
           setPhoneValidationError(null);
         }
-        
+
         return {
           ...prev,
           // Only update phone if we have a valid phone number and it's not already set from backend
@@ -315,10 +321,10 @@ export default function DriverRegisterScreen() {
   }, [params.phoneNumber, params.email, user]);
 
   const handleDocumentUpload = (documentType: 'driversLicense' | 'vehicleRegistration' | 'insurance', fileUrl: string, fileId: string) => {
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData(prev => ({
+      ...prev,
       [`${documentType}FileId`]: fileId,
-      [documentType]: fileUrl 
+      [documentType]: fileUrl
     }));
     // File is uploaded, update selection state
     setHasSelectedFiles(prev => ({ ...prev, [documentType]: false }));
@@ -331,7 +337,7 @@ export default function DriverRegisterScreen() {
   const handleUploadAll = async () => {
     const uploadPromises: Promise<{ success: boolean; documentType: string; error?: string }>[] = [];
     const documentTypes: string[] = [];
-    
+
     if (driversLicenseRef.current?.hasSelectedFile()) {
       documentTypes.push("Driver's License");
       uploadPromises.push(
@@ -340,7 +346,7 @@ export default function DriverRegisterScreen() {
           .catch(err => ({ success: false, documentType: "Driver's License", error: err.message || String(err) }))
       );
     }
-    
+
     if (vehicleRegistrationRef.current?.hasSelectedFile()) {
       documentTypes.push("Vehicle Registration");
       uploadPromises.push(
@@ -349,7 +355,7 @@ export default function DriverRegisterScreen() {
           .catch(err => ({ success: false, documentType: "Vehicle Registration", error: err.message || String(err) }))
       );
     }
-    
+
     if (insuranceRef.current?.hasSelectedFile()) {
       documentTypes.push("Insurance");
       uploadPromises.push(
@@ -358,11 +364,11 @@ export default function DriverRegisterScreen() {
           .catch(err => ({ success: false, documentType: "Insurance", error: err.message || String(err) }))
       );
     }
-    
+
     if (uploadPromises.length > 0) {
       const results = await Promise.all(uploadPromises);
       const failed = results.filter(r => !r.success);
-      
+
       if (failed.length > 0) {
         const failedDocs = failed.map(r => `${r.documentType}`).join(', ');
         Alert.alert('Upload Error', `Failed to upload: ${failedDocs}. Please try again.`);
@@ -373,12 +379,13 @@ export default function DriverRegisterScreen() {
   };
 
   const handleNext = async () => {
-    // If on step 2 and button says "Upload All", upload all selected files first
-    if (currentStep === 2 && !(formData.driversLicenseFileId && formData.vehicleRegistrationFileId && formData.insuranceFileId)) {
+    // If on step 3 (Documents) and button says "Upload All", upload all selected files first
+    // Step index increased by 1 due to Data Privacy step
+    if (currentStep === 3 && !(formData.driversLicenseFileId && formData.vehicleRegistrationFileId && formData.insuranceFileId)) {
       await handleUploadAll();
       return;
     }
-    
+
     if (currentStep < steps.length - 1) {
       setCurrentStep(prev => prev + 1);
     } else {
@@ -396,19 +403,19 @@ export default function DriverRegisterScreen() {
 
   const validateForm = () => {
     const errors: string[] = [];
-    
+
     // Personal info validation
     if (!formData.firstName.trim()) errors.push('First name is required');
     if (!formData.lastName.trim()) errors.push('Last name is required');
     if (!formData.phoneNumber.trim()) errors.push('Phone number is required');
     if (!formData.email.trim()) errors.push('Email is required');
-    
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (formData.email && !emailRegex.test(formData.email)) {
       errors.push('Please enter a valid email address');
     }
-    
+
     // Phone validation - normalize phone number and validate
     if (formData.phoneNumber) {
       const normalizedPhone = normalizePhoneNumber(formData.phoneNumber);
@@ -417,18 +424,18 @@ export default function DriverRegisterScreen() {
         errors.push('Please enter a valid UK phone number');
       }
     }
-    
+
     // Vehicle info validation
     if (!formData.vehicleType.trim()) errors.push('Vehicle type is required');
     if (!formData.vehicleModel.trim()) errors.push('Vehicle model is required');
     if (!formData.vehicleYear.trim()) errors.push('Vehicle year is required');
     if (!formData.licensePlate.trim()) errors.push('License plate is required');
-    
+
     // Document validation
     if (!formData.driversLicenseFileId) errors.push('Driver\'s license is required');
     if (!formData.vehicleRegistrationFileId) errors.push('Vehicle registration is required');
     if (!formData.insuranceFileId) errors.push('Insurance certificate is required');
-    
+
     // Bank info validation
     if (!formData.bankCode.trim()) errors.push('Bank selection is required');
     if (!formData.bankName.trim()) errors.push('Bank name is required');
@@ -437,13 +444,13 @@ export default function DriverRegisterScreen() {
       errors.push('Account number must be exactly 10 digits');
     }
     if (!formData.accountName.trim()) errors.push('Account name is required');
-    
+
     // Work type validation
     if (!formData.workType) errors.push('Please select a work type');
     if (formData.workType === 'supplier' && !formData.supplierId) {
       errors.push('Please select a supplier');
     }
-    
+
     return errors;
   };
 
@@ -461,56 +468,56 @@ export default function DriverRegisterScreen() {
 
     setIsLoading(true);
     try {
-           // Normalize phone number to +44 format (handles local format like 07123 456789)
-           const normalizedPhoneNumber = normalizePhoneNumber(formData.phoneNumber);
-           
-           // Register driver using API
-           // Pass session token if available so backend can identify existing user
-           const result = await registerDriver({
-             sessionToken: sessionToken || undefined,
-             firstName: formData.firstName,
-             lastName: formData.lastName,
-             phoneNumber: normalizedPhoneNumber,
-             email: formData.email,
-             vehicleType: formData.vehicleType,
-             vehicleModel: formData.vehicleModel,
-             vehicleYear: formData.vehicleYear,
-             licensePlate: formData.licensePlate,
-             driversLicense: formData.driversLicense,
-             driversLicenseFileId: formData.driversLicenseFileId,
-             vehicleRegistration: formData.vehicleRegistration,
-             vehicleRegistrationFileId: formData.vehicleRegistrationFileId,
-             insurance: formData.insurance,
-             insuranceFileId: formData.insuranceFileId,
-             bankName: formData.bankName,
-             bankCode: formData.bankCode,
-             accountNumber: formData.accountNumber,
-             accountName: formData.accountName,
-             workType: formData.workType as 'independent' | 'supplier' | undefined,
-             supplierId: formData.workType === 'supplier' ? formData.supplierId : undefined,
-           }).unwrap();
-           
-           if (result.success) {
-             // Navigate to registration success screen
-             router.push({
-               pathname: '/registration-success',
-               params: {
-                 driverId: result.driverId,
-                 userId: result.userId || '',
-                 },
-             });
-           } else {
-             Alert.alert(
-               'Registration Failed', 
-               'An error occurred during registration. Please try again.',
-               [{ text: 'OK' }]
-             );
-           }
+      // Normalize phone number to +44 format (handles local format like 07123 456789)
+      const normalizedPhoneNumber = normalizePhoneNumber(formData.phoneNumber);
+
+      // Register driver using API
+      // Pass session token if available so backend can identify existing user
+      const result = await registerDriver({
+        sessionToken: sessionToken || undefined,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: normalizedPhoneNumber,
+        email: formData.email,
+        vehicleType: formData.vehicleType,
+        vehicleModel: formData.vehicleModel,
+        vehicleYear: formData.vehicleYear,
+        licensePlate: formData.licensePlate,
+        driversLicense: formData.driversLicense,
+        driversLicenseFileId: formData.driversLicenseFileId,
+        vehicleRegistration: formData.vehicleRegistration,
+        vehicleRegistrationFileId: formData.vehicleRegistrationFileId,
+        insurance: formData.insurance,
+        insuranceFileId: formData.insuranceFileId,
+        bankName: formData.bankName,
+        bankCode: formData.bankCode,
+        accountNumber: formData.accountNumber,
+        accountName: formData.accountName,
+        workType: formData.workType as 'independent' | 'supplier' | undefined,
+        supplierId: formData.workType === 'supplier' ? formData.supplierId : undefined,
+      }).unwrap();
+
+      if (result.success) {
+        // Navigate to registration success screen
+        router.push({
+          pathname: '/registration-success',
+          params: {
+            driverId: result.driverId,
+            userId: result.userId || '',
+          },
+        });
+      } else {
+        Alert.alert(
+          'Registration Failed',
+          'An error occurred during registration. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
     } catch (error) {
       logger.error('Registration error:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       Alert.alert(
-        'Registration Failed', 
+        'Registration Failed',
         `Failed to create your account: ${errorMessage}`,
         [{ text: 'OK' }]
       );
@@ -521,22 +528,24 @@ export default function DriverRegisterScreen() {
 
   const canProceed = () => {
     switch (currentStep) {
-      case 0:
-        return formData.firstName && formData.lastName && formData.phoneNumber && 
-               formData.email;
-      case 1:
-        return formData.vehicleType && formData.vehicleModel && 
-               formData.vehicleYear && formData.licensePlate;
-      case 2:
+      case 0: // Data Privacy
+        return true; // Simple "I Agree" step
+      case 1: // Personal Info
+        return formData.firstName && formData.lastName && formData.phoneNumber &&
+          formData.email;
+      case 2: // Vehicle Info
+        return formData.vehicleType && formData.vehicleModel &&
+          formData.vehicleYear && formData.licensePlate;
+      case 3: // Documents
         // Enable button if all documents have either an uploaded file OR a selected file
         const hasDriversLicense = !!formData.driversLicenseFileId || hasSelectedFiles.driversLicense;
         const hasVehicleRegistration = !!formData.vehicleRegistrationFileId || hasSelectedFiles.vehicleRegistration;
         const hasInsurance = !!formData.insuranceFileId || hasSelectedFiles.insurance;
         return hasDriversLicense && hasVehicleRegistration && hasInsurance;
-      case 3:
-        return formData.bankCode && formData.bankName && formData.accountNumber && 
-               formData.accountNumber.length === 10 && formData.accountName;
-      case 4:
+      case 4: // Bank Details
+        return formData.bankCode && formData.bankName && formData.accountNumber &&
+          formData.accountNumber.length === 10 && formData.accountName;
+      case 5: // Work Type
         return formData.workType && (formData.workType === 'independent' || formData.supplierId);
       default:
         return false;
@@ -546,6 +555,24 @@ export default function DriverRegisterScreen() {
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
+        return (
+          <View style={styles.stepContent}>
+            <View style={styles.infoContainer}>
+              <Text style={styles.sectionTitle}>Data Privacy Notice</Text>
+              <Text style={styles.sectionSubtitle}>
+                We value your privacy.
+              </Text>
+              <Text style={styles.infoText}>
+                We use your personal data to process your registration, manage your driver account, and facilitate payments. Your information is stored securely and is never sold to third parties.
+              </Text>
+              <Text style={[styles.infoText, { marginTop: 16 }]}>
+                By continuing, you acknowledge that you have read and understood our Privacy Policy and Terms of Service, and agree to the processing of your personal data as described therein.
+              </Text>
+            </View>
+          </View>
+        );
+
+      case 1:
         return (
           <View style={styles.stepContent}>
             <View style={styles.inputContainer}>
@@ -574,7 +601,7 @@ export default function DriverRegisterScreen() {
               <Text style={styles.inputLabel}>Phone Number</Text>
               <TextInput
                 style={[
-                  styles.textInput, 
+                  styles.textInput,
                   hasBackendPhone && styles.textInputDisabled,
                   phoneValidationError && styles.textInputError
                 ]}
@@ -606,7 +633,7 @@ export default function DriverRegisterScreen() {
           </View>
         );
 
-      case 1:
+      case 2:
         return (
           <View style={styles.stepContent}>
             <View style={styles.inputContainer}>
@@ -685,7 +712,7 @@ export default function DriverRegisterScreen() {
           </View>
         );
 
-      case 2:
+      case 3:
         return (
           <View style={styles.stepContent}>
             <Text style={styles.sectionTitle}>Required Documents</Text>
@@ -722,7 +749,7 @@ export default function DriverRegisterScreen() {
           </View>
         );
 
-      case 3:
+      case 4:
         return (
           <View style={styles.stepContent}>
             <Text style={styles.sectionTitle}>Bank Information</Text>
@@ -788,18 +815,18 @@ export default function DriverRegisterScreen() {
                 </View>
               )}
             </View>
-            
+
             <BankPickerSheet
               visible={showBankSheet}
               onClose={() => setShowBankSheet(false)}
-              banks={banks}
+              banks={banks.map(b => ({ ...b, _id: b.code }))}
               selectedBankCode={formData.bankCode}
               onSelect={handleBankSelect}
             />
           </View>
         );
 
-      case 4:
+      case 5:
         return (
           <View style={styles.stepContent}>
             <Text style={styles.sectionTitle}>How Do You Want to Work?</Text>
@@ -824,7 +851,7 @@ export default function DriverRegisterScreen() {
               <View style={styles.workTypeInfo}>
                 <Text style={styles.workTypeTitle}>Independent Driver</Text>
                 <Text style={styles.workTypeDescription}>
-                  Work with any supplier and accept orders from multiple companies. 
+                  Work with any supplier and accept orders from multiple companies.
                   More flexibility and potentially higher earnings.
                 </Text>
                 <View style={styles.workTypeFeatures}>
@@ -834,10 +861,10 @@ export default function DriverRegisterScreen() {
                 </View>
               </View>
               <View style={styles.workTypeStatus}>
-                <Ionicons 
-                  name={formData.workType === 'independent' ? "radio-button-on" : "radio-button-off"} 
-                  size={24} 
-                  color={formData.workType === 'independent' ? Colors.light.primary : Colors.light.icon} 
+                <Ionicons
+                  name={formData.workType === 'independent' ? "radio-button-on" : "radio-button-off"}
+                  size={24}
+                  color={formData.workType === 'independent' ? Colors.light.primary : Colors.light.icon}
                 />
               </View>
             </TouchableOpacity>
@@ -856,7 +883,7 @@ export default function DriverRegisterScreen() {
               <View style={styles.workTypeInfo}>
                 <Text style={styles.workTypeTitle}>Supplier-Specific Driver</Text>
                 <Text style={styles.workTypeDescription}>
-                  Work exclusively with one supplier. More stable work and 
+                  Work exclusively with one supplier. More stable work and
                   guaranteed orders from your chosen company.
                 </Text>
                 <View style={styles.workTypeFeatures}>
@@ -866,10 +893,10 @@ export default function DriverRegisterScreen() {
                 </View>
               </View>
               <View style={styles.workTypeStatus}>
-                <Ionicons 
-                  name={formData.workType === 'supplier' ? "radio-button-on" : "radio-button-off"} 
-                  size={24} 
-                  color={formData.workType === 'supplier' ? Colors.light.primary : Colors.light.icon} 
+                <Ionicons
+                  name={formData.workType === 'supplier' ? "radio-button-on" : "radio-button-off"}
+                  size={24}
+                  color={formData.workType === 'supplier' ? Colors.light.primary : Colors.light.icon}
                 />
               </View>
             </TouchableOpacity>
@@ -882,7 +909,7 @@ export default function DriverRegisterScreen() {
                   Select your delivery preferences
                 </Text>
 
-                {suppliers?.map((supplier: Supplier) => (
+                {suppliers.map((supplier: Supplier) => (
                   <TouchableOpacity
                     key={supplier._id}
                     style={[
@@ -896,10 +923,10 @@ export default function DriverRegisterScreen() {
                       <Text style={styles.supplierAddress}>{supplier.address}</Text>
                     </View>
                     <View style={styles.supplierStatus}>
-                      <Ionicons 
-                        name={formData.supplierId === supplier._id ? "radio-button-on" : "radio-button-off"} 
-                        size={24} 
-                        color={formData.supplierId === supplier._id ? Colors.light.primary : Colors.light.icon} 
+                      <Ionicons
+                        name={formData.supplierId === supplier._id ? "radio-button-on" : "radio-button-off"}
+                        size={24}
+                        color={formData.supplierId === supplier._id ? Colors.light.primary : Colors.light.icon}
                       />
                     </View>
                   </TouchableOpacity>
@@ -922,69 +949,69 @@ export default function DriverRegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
-          </TouchableOpacity>
-          <View style={styles.logoContainer}>
-            <CribNoshLogo size={120} variant="default" />
-          </View>
-          <View style={styles.headerSpacer} />
-        </View>
-
-        {/* Progress Indicator */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressHeader}>
-            <View>
-              <Text style={styles.progressTitle}>{steps[currentStep].title}</Text>
-              <Text style={styles.progressSubtitle}>{steps[currentStep].subtitle}</Text>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
+            </TouchableOpacity>
+            <View style={styles.logoContainer}>
+              <CribNoshLogo size={120} variant="default" />
             </View>
-            <Text style={styles.progressSubtitle}>
-              {currentStep + 1} / {steps.length}
-            </Text>
+            <View style={styles.headerSpacer} />
           </View>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { width: `${((currentStep + 1) / steps.length) * 100}%` }
-              ]} 
-            />
+
+          {/* Progress Indicator */}
+          <View style={styles.progressContainer}>
+            <View style={styles.progressHeader}>
+              <View>
+                <Text style={styles.progressTitle}>{steps[currentStep].title}</Text>
+                <Text style={styles.progressSubtitle}>{steps[currentStep].subtitle}</Text>
+              </View>
+              <Text style={styles.progressSubtitle}>
+                {currentStep + 1} / {steps.length}
+              </Text>
+            </View>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${((currentStep + 1) / steps.length) * 100}%` }
+                ]}
+              />
+            </View>
           </View>
-        </View>
 
-        {/* Step Content */}
-        <ScrollView 
-          style={styles.scrollView} 
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {renderStepContent()}
-        </ScrollView>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.nextButton, !canProceed() && styles.nextButtonDisabled]}
-            onPress={handleNext}
-            disabled={!canProceed() || isLoading}
+          {/* Step Content */}
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.nextButtonText}>
-              {isLoading ? 'Creating Account...' : 
-               currentStep === steps.length - 1 ? 'Create Account' :
-               currentStep === 2 && !(formData.driversLicenseFileId && formData.vehicleRegistrationFileId && formData.insuranceFileId) ? 'Upload All' : 
-               'Continue'}
-            </Text>
-            {!isLoading && <Ionicons name="arrow-forward" size={20} color={Colors.light.background} />}
-          </TouchableOpacity>
-        </View>
+            {renderStepContent()}
+          </ScrollView>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={[styles.nextButton, !canProceed() && styles.nextButtonDisabled]}
+              onPress={handleNext}
+              disabled={!canProceed() || isLoading}
+            >
+              <Text style={styles.nextButtonText}>
+                {isLoading ? 'Creating Account...' :
+                  currentStep === steps.length - 1 ? 'Create Account' :
+                    currentStep === 2 && !(formData.driversLicenseFileId && formData.vehicleRegistrationFileId && formData.insuranceFileId) ? 'Upload All' :
+                      'Continue'}
+              </Text>
+              {!isLoading && <Ionicons name="arrow-forward" size={20} color={Colors.light.background} />}
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
 
@@ -992,7 +1019,7 @@ export default function DriverRegisterScreen() {
       <VehicleTypePickerSheet
         visible={showVehicleTypeSheet}
         onClose={() => setShowVehicleTypeSheet(false)}
-        types={vehicleTypes}
+        types={vehicleTypes.map(t => ({ ...t, _id: t.id }))}
         selectedTypeId={selectedVehicleTypeId}
         onSelect={(typeId, typeName) => {
           setSelectedVehicleTypeId(typeId);
@@ -1008,7 +1035,7 @@ export default function DriverRegisterScreen() {
       <VehicleModelPickerSheet
         visible={showVehicleModelSheet}
         onClose={() => setShowVehicleModelSheet(false)}
-        models={vehicleModels}
+        models={vehicleModels.map(m => ({ ...m, _id: m.id, displayName: m.name, make: '', model: m.name }))}
         selectedModelId={selectedVehicleModelId}
         onSelect={(modelId, modelName) => {
           setSelectedVehicleModelId(modelId);
@@ -1021,7 +1048,7 @@ export default function DriverRegisterScreen() {
       <VehicleYearPickerSheet
         visible={showVehicleYearSheet}
         onClose={() => setShowVehicleYearSheet(false)}
-        years={vehicleYears}
+        years={vehicleYears.map(y => parseInt(y.name, 10))}
         selectedYear={formData.vehicleYear}
         onSelect={(year) => {
           handleInputChange('vehicleYear', year);
@@ -1397,4 +1424,17 @@ const styles = StyleSheet.create({
     color: Colors.light.icon,
     marginBottom: 16,
   },
+  infoContainer: {
+    padding: 24,
+    backgroundColor: Colors.light.background,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.light.secondary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+
 });

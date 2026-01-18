@@ -52,6 +52,20 @@ export const list = query({
   },
 });
 
+
+// Get email template by type
+export const getByType = query({
+  args: {
+    emailType: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("emailTemplates")
+      .withIndex("by_type", (q) => q.eq("emailType", args.emailType))
+      .first();
+  },
+});
+
 // Internal query to get template and context for sending emails
 export const getTemplateAndContext = internalQuery({
   args: { emailType: v.string() },

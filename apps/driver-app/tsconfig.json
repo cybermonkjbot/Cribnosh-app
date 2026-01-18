@@ -3,7 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "composite": true,
-    "noEmit": false,
+    "noEmit": true,
     "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "bundler",
