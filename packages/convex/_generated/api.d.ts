@@ -37,6 +37,7 @@ import type * as actions_stuart from "../actions/stuart.js";
 import type * as actions_users from "../actions/users.js";
 import type * as actions_waitlist from "../actions/waitlist.js";
 import type * as actions_weather from "../actions/weather.js";
+import type * as cacheConfig from "../cacheConfig.js";
 import type * as config_complianceIssues from "../config/complianceIssues.js";
 import type * as config_complianceScoring from "../config/complianceScoring.js";
 import type * as convex__generated_api from "../convex/_generated/api.js";
@@ -306,6 +307,7 @@ declare const fullApi: ApiFromModules<{
   "actions/users": typeof actions_users;
   "actions/waitlist": typeof actions_waitlist;
   "actions/weather": typeof actions_weather;
+  cacheConfig: typeof cacheConfig;
   "config/complianceIssues": typeof config_complianceIssues;
   "config/complianceScoring": typeof config_complianceScoring;
   "convex/_generated/api": typeof convex__generated_api;

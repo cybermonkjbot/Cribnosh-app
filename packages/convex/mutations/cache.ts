@@ -1,175 +1,75 @@
-import { v } from 'convex/values';
-import { mutation, MutationCtx } from '../_generated/server';
+import { v } from "convex/values";
+import { internalMutation } from "../_generated/server";
 
-// Set cache value
-export const setCache = mutation({
+export const set = internalMutation({
   args: {
+    action: v.string(),
     key: v.string(),
-    value: v.any(),
-    ttl: v.optional(v.number()), // Time to live in milliseconds
-    prefix: v.optional(v.string()),
+    data: v.any(),
+    ttlMs: v.optional(v.number()), // Time to live in milliseconds
   },
-  handler: async (ctx: MutationCtx, { key, value, ttl, prefix }) => {
-    const now = Date.now();
-    const expiresAt = ttl ? now + ttl : undefined;
-    
-    // Check if key already exists
+  handler: async (ctx, args) => {
+    const expiresAt = args.ttlMs ? Date.now() + args.ttlMs : undefined;
+
     const existing = await ctx.db
-      .query("cache")
-      .withIndex("by_key", (q) => q.eq("key", key))
+      .query("actionCache")
+      .withIndex("by_action_key", (q) =>
+        q.eq("action", args.action).eq("key", args.key)
+      )
       .first();
 
     if (existing) {
-      // Update existing cache entry
       await ctx.db.patch(existing._id, {
-        value,
-        ttl,
+        data: args.data,
+        updatedAt: Date.now(),
         expiresAt,
-        updatedAt: now,
       });
-      return existing._id;
     } else {
-      // Create new cache entry
-      return await ctx.db.insert("cache", {
-        key,
-        value,
-        ttl,
+      await ctx.db.insert("actionCache", {
+        action: args.action,
+        key: args.key,
+        data: args.data,
+        updatedAt: Date.now(),
         expiresAt,
-        prefix,
-        createdAt: now,
-        updatedAt: now,
       });
     }
   },
 });
 
-// Get cache value
-export const getCache = mutation({
+export const clear = internalMutation({
   args: {
+    action: v.string(),
     key: v.string(),
   },
-  handler: async (ctx: MutationCtx, { key }) => {
-    const cacheEntry = await ctx.db
-      .query("cache")
-      .withIndex("by_key", (q) => q.eq("key", key))
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("actionCache")
+      .withIndex("by_action_key", (q) =>
+        q.eq("action", args.action).eq("key", args.key)
+      )
       .first();
 
-    if (!cacheEntry) {
-      return null;
+    if (existing) {
+      await ctx.db.delete(existing._id);
     }
-
-    // Check if expired
-    if (cacheEntry.expiresAt && Date.now() > cacheEntry.expiresAt) {
-      // Delete expired entry
-      await ctx.db.delete(cacheEntry._id);
-      return null;
-    }
-
-    return cacheEntry.value;
   },
 });
 
-// Delete cache entry
-export const deleteCache = mutation({
-  args: {
-    key: v.string(),
-  },
-  handler: async (ctx: MutationCtx, { key }) => {
-    const cacheEntry = await ctx.db
-      .query("cache")
-      .withIndex("by_key", (q) => q.eq("key", key))
-      .first();
-
-    if (cacheEntry) {
-      await ctx.db.delete(cacheEntry._id);
-      return true;
-    }
-
-    return false;
-  },
-});
-
-// Clear cache by prefix
-export const clearCacheByPrefix = mutation({
-  args: {
-    prefix: v.string(),
-  },
-  handler: async (ctx: MutationCtx, { prefix }) => {
-    const cacheEntries = await ctx.db
-      .query("cache")
-      .withIndex("by_prefix", (q) => q.eq("prefix", prefix))
-      .collect();
-
-    let deleted = 0;
-    for (const entry of cacheEntries) {
-      await ctx.db.delete(entry._id);
-      deleted++;
-    }
-
-    return { deleted };
-  },
-});
-
-// Clean up expired cache entries
-export const cleanupExpiredCache = mutation({
+export const cleanup = internalMutation({
   args: {},
-  handler: async (ctx: MutationCtx) => {
+  handler: async (ctx) => {
     const now = Date.now();
-    
-    const expiredEntries = await ctx.db
-      .query("cache")
-      .withIndex("by_expiry", (q) => q.lte("expiresAt", now))
+    // Find expired entries
+    const expired = await ctx.db
+      .query("actionCache")
+      .withIndex("by_expires_at", (q) => q.lt("expiresAt", now))
       .collect();
 
-    let deleted = 0;
-    for (const entry of expiredEntries) {
+    // Delete them
+    for (const entry of expired) {
       await ctx.db.delete(entry._id);
-      deleted++;
     }
 
-    return { deleted };
+    console.log(`Cleaned up ${expired.length} expired cache entries.`);
   },
 });
-
-// Increment cache value (for counters)
-export const incrementCache = mutation({
-  args: {
-    key: v.string(),
-    value: v.optional(v.number()),
-    ttl: v.optional(v.number()),
-  },
-  handler: async (ctx: MutationCtx, { key, value = 1, ttl }) => {
-    const now = Date.now();
-    const expiresAt = ttl ? now + ttl : undefined;
-    
-    const existing = await ctx.db
-      .query("cache")
-      .withIndex("by_key", (q) => q.eq("key", key))
-      .first();
-
-    if (existing) {
-      const currentValue = typeof existing.value === 'number' ? existing.value : 0;
-      const newValue = currentValue + value;
-      
-      await ctx.db.patch(existing._id, {
-        value: newValue,
-        ttl,
-        expiresAt,
-        updatedAt: now,
-      });
-      
-      return newValue;
-    } else {
-      const cacheId = await ctx.db.insert("cache", {
-        key,
-        value,
-        ttl,
-        expiresAt,
-        createdAt: now,
-        updatedAt: now,
-      });
-      
-      return value;
-    }
-  },
-}); 

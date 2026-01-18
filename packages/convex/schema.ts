@@ -835,6 +835,18 @@ export default defineSchema({
   })
     .index("by_active", ["is_active"])
     .index("by_center", ["center.latitude", "center.longitude"]),
+
+  // Action Cache table (Generic)
+  actionCache: defineTable({
+    action: v.string(), // e.g., "weather", "stuart_validation", "emotions_context"
+    key: v.string(), // Unique key for the inputs
+    data: v.any(), // The cached response
+    updatedAt: v.number(), // Timestamp for TTL checks
+    expiresAt: v.optional(v.number()), // Timestamp when entry expires
+  })
+    .index("by_action_key", ["action", "key"])
+    .index("by_expires_at", ["expiresAt"]),
+
   adminActivity: defineTable({
     type: v.string(), // 'new_user', 'new_meal', 'system_update', etc.
     userId: v.optional(v.string()),

@@ -21,10 +21,30 @@ export const validateDeliveryAddress = action({
                 return { valid: true, skipped: true };
             }
 
-            // 2. Use the internal action to perform the actual Stuart API call
+            // 2. Check cache
+            const cacheKey = args.address.trim().toLowerCase();
+            const cached = await ctx.runQuery(internal.queries.cache.get, {
+                action: 'stuart_validation',
+                key: cacheKey,
+                ttlMs: CACHE_TTL.STUART_VALIDATION
+            });
+
+            if (cached) {
+                return cached;
+            }
+
+            // 3. Use the internal action to perform the actual Stuart API call
             const result = await ctx.runAction(internal.stuart_integration.validateAddress, {
                 address: args.address,
                 type: "delivering",
+            });
+
+            // 4. Cache the result
+            await ctx.runMutation(internal.mutations.cache.set, {
+                action: 'stuart_validation',
+                key: cacheKey,
+                data: result,
+                ttlMs: CACHE_TTL.STUART_VALIDATION,
             });
 
             return result;

@@ -1,9 +1,8 @@
 "use node";
 
-import { action } from "../_generated/server";
 import { v } from "convex/values";
 import { api } from "../_generated/api";
-import { Id } from "../_generated/dataModel";
+import { action } from "../_generated/server";
 
 /**
  * Get emotions engine context - aggregates all context data in Convex
@@ -19,6 +18,24 @@ export const getEmotionsEngineContext = action({
     })),
   },
   handler: async (ctx, args) => {
+    // Generate a consistent key based on arguments
+    const keyParts = [
+      args.userId ? `user:${args.userId}` : 'anon',
+      args.location ? `loc:${args.location.latitude.toFixed(2)},${args.location.longitude.toFixed(2)}` : 'noloc'
+    ];
+    const cacheKey = keyParts.join('|');
+
+    // Check cache
+    const cached = await ctx.runQuery(internal.queries.cache.get, {
+      action: 'emotions_context',
+      key: cacheKey,
+      ttlMs: CACHE_TTL.EMOTIONS_CONTEXT
+    });
+
+    if (cached) {
+      return cached;
+    }
+
     const result: {
       nearbyCuisines?: string[];
       userProfile?: any;
@@ -26,7 +43,7 @@ export const getEmotionsEngineContext = action({
       dietaryPreferences?: any;
       favoriteCuisines?: string[];
     } = {};
-    
+
     // Fetch nearby chefs if location is provided
     if (args.location) {
       try {
@@ -35,7 +52,7 @@ export const getEmotionsEngineContext = action({
           longitude: args.location.longitude,
           maxDistanceKm: 10,
         });
-        
+
         // Collect unique cuisines from nearby chefs' specialties
         const cuisineSet = new Set<string>();
         if (Array.isArray(nearbyChefs)) {
@@ -51,21 +68,21 @@ export const getEmotionsEngineContext = action({
         result.nearbyCuisines = [];
       }
     }
-    
+
     // Fetch user data if userId is provided
     if (args.userId) {
       try {
         // Fetch all user data in parallel
         const [userProfile, recentOrders, dietaryPreferences, favoriteCuisines] = await Promise.all([
           ctx.runQuery(api.queries.users.getUserProfile, { userId: args.userId }),
-          ctx.runQuery(api.queries.orders.getRecentOrders, { 
-            userId: args.userId, 
-            limit: 10 
+          ctx.runQuery(api.queries.orders.getRecentOrders, {
+            userId: args.userId,
+            limit: 10
           }),
           ctx.runQuery(api.queries.users.getDietaryPreferences, { userId: args.userId }),
           ctx.runQuery(api.queries.users.getFavoriteCuisines, { userId: args.userId }),
         ]);
-        
+
         result.userProfile = userProfile;
         result.recentOrders = recentOrders;
         result.dietaryPreferences = dietaryPreferences;
@@ -79,7 +96,15 @@ export const getEmotionsEngineContext = action({
         result.favoriteCuisines = [];
       }
     }
-    
+
+    // Cache the result
+    await ctx.runMutation(internal.mutations.cache.set, {
+      action: 'emotions_context',
+      key: cacheKey,
+      data: result,
+      ttlMs: CACHE_TTL.EMOTIONS_CONTEXT,
+    });
+
     return result;
   },
 });

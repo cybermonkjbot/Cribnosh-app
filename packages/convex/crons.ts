@@ -67,4 +67,12 @@ crons.interval(
   {}
 );
 
+// Clean up expired action cache entries every hour
+crons.interval(
+  "cleanup expired action cache",
+  { hours: 1 },
+  internal.mutations.cache.cleanup,
+  {}
+);
+
 export default crons;
