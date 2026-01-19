@@ -292,6 +292,7 @@ export const customerGetOrder = action({
         estimatedPrepTimeMinutes: order.estimated_prep_time_minutes || null,
         chefNotes: order.chef_notes || null,
         paymentStatus: order.payment_status,
+        payment_link_token: order.payment_link_token,
         orderItems: order.order_items || [],
       };
 
@@ -468,11 +469,13 @@ export const customerCreateOrder = action({
 export const customerCreateOrderFromCart = action({
   args: {
     sessionToken: v.string(),
-    payment_intent_id: v.string(),
+    payment_intent_id: v.optional(v.string()), // Optional for "Pay for Me"
     delivery_address: v.optional(deliveryAddressValidator),
     special_instructions: v.optional(v.string()),
     delivery_time: v.optional(v.string()),
     nosh_points_applied: v.optional(v.number()), // Nosh Points applied for discount
+    payment_method: v.optional(v.string()),
+    gameDebtId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     try {
@@ -490,7 +493,7 @@ export const customerCreateOrderFromCart = action({
         return { success: false as const, error: 'Access denied. Customer role required.' };
       }
 
-      if (!args.payment_intent_id) {
+      if (!args.payment_intent_id && args.payment_method !== 'pay_for_me') {
         return { success: false as const, error: 'payment_intent_id is required' };
       }
 
@@ -617,13 +620,15 @@ export const customerCreateOrderFromCart = action({
           chef_id: chefId,
           order_items: orderItems,
           total_amount: chefTotal,
-          payment_id: args.payment_intent_id, // Same payment intent for all orders
-          payment_method: 'card',
+          total_amount: chefTotal,
+          payment_id: args.payment_intent_id, // Same payment intent for all orders (or undefined for pay_for_me)
+          payment_method: args.payment_method || 'card',
           special_instructions: args.special_instructions,
           delivery_time: args.delivery_time,
           delivery_address: args.delivery_address,
           sessionToken: args.sessionToken,
           nosh_points_applied: chefPointsApplied,
+          gameDebtId: args.gameDebtId ? args.gameDebtId as Id<'gameDebts'> : undefined,
         });
 
         createdOrders.push(order);

@@ -1,15 +1,15 @@
 import { KitchenNameCard } from '@/components/KitchenNameCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SuperButton } from '@/components/ui/SuperButton';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { api } from '@/convex/_generated/api';
+import { getSessionToken } from '@/lib/convexClient';
 import { Feather } from '@expo/vector-icons';
+import { useQuery } from 'convex/react';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
-import { useAuthContext } from '@/contexts/AuthContext';
-import { useQuery } from 'convex/react';
-import { useEffect, useState } from 'react';
 
 export default function SuccessScreen() {
   const { order_id } = useLocalSearchParams<{ order_id?: string }>();
@@ -56,44 +56,44 @@ export default function SuccessScreen() {
   // Format delivery time
   const getDeliveryTime = (): string => {
     if (!orderData) return '15 - 45 minutes';
-    
+
     // Check for estimated_prep_time_minutes
     const estimatedMins = (orderData as any).estimated_prep_time_minutes;
     if (typeof estimatedMins === 'number' && estimatedMins > 0) {
       return `${estimatedMins}-${estimatedMins + 15} minutes`;
     }
-    
+
     // Check for estimated_delivery_time string
     const estimatedTime = (orderData as any).estimated_delivery_time;
     if (typeof estimatedTime === 'string' && estimatedTime) {
       return estimatedTime;
     }
-    
+
     return '15 - 45 minutes'; // Default fallback
   };
 
   // Format delivery address
   const getDeliveryAddress = (): string => {
     if (!orderData) return 'Address not provided';
-    
+
     const address = (orderData as any).delivery_address;
     if (!address) return 'Address not provided';
-    
+
     // Handle different address formats
     if (typeof address === 'string') {
       return address;
     }
-    
+
     if (typeof address === 'object') {
       const parts: string[] = [];
-      
+
       // Try all possible field names
       const street = address.street || address.address_line_1 || address.addressLine1 || address.line1;
       const city = address.city || address.town;
       const postcode = address.postal_code || address.postcode || address.postalCode || address.zip || address.zipCode;
       const state = address.state || address.county || address.province;
       const country = address.country;
-      
+
       if (typeof street === 'string' && street.trim()) parts.push(street.trim());
       if (typeof city === 'string' && city.trim()) parts.push(city.trim());
       if (typeof state === 'string' && state.trim()) parts.push(state.trim());
@@ -101,19 +101,19 @@ export default function SuccessScreen() {
       if (typeof country === 'string' && country.trim() && country.toLowerCase() !== 'uk') {
         parts.push(country.trim());
       }
-      
+
       if (parts.length > 0) {
         return parts.join(', ');
       }
     }
-    
+
     return 'Address not provided';
   };
 
   // Get kitchen name
   const getKitchenName = (): string => {
     if (!orderData) return 'Kitchen';
-    
+
     const kitchenName = (orderData as any).kitchen_name || (orderData as any).restaurant_name;
     if (typeof kitchenName === 'string' && kitchenName) {
       return kitchenName;
@@ -191,7 +191,7 @@ export default function SuccessScreen() {
       </View>
 
       {/* Scrollable Main Content */}
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -247,12 +247,46 @@ export default function SuccessScreen() {
 
         {/* Kitchen Information Card */}
         <View style={styles.kitchenCard}>
-          <KitchenNameCard 
+          <KitchenNameCard
             name={kitchenName}
             description={kitchenDescription}
             tiltEnabled={false}
           />
         </View>
+
+        {/* Payment Link Card (for Pay for Me orders) */}
+        {(orderData as any)?.payment_link_token && (orderData as any)?.payment_status === 'pending' && (
+          <View style={styles.paymentLinkCard}>
+            <View style={styles.paymentLinkHeader}>
+              <Feather name="share-2" size={20} color="#4F46E5" />
+              <Text style={styles.paymentLinkTitle}>Share Payment Link</Text>
+            </View>
+            <Text style={styles.paymentLinkDescription}>
+              Share this link with someone to pay for your order:
+            </Text>
+            <View style={styles.linkContainer}>
+              <Text style={styles.linkText} numberOfLines={1}>
+                cribnosh.com/pay/{(orderData as any).payment_link_token}
+              </Text>
+            </View>
+            <SuperButton
+              title="Share Link"
+              onPress={async () => {
+                try {
+                  const Share = require('react-native').Share;
+                  await Share.share({
+                    message: `Hey! Can you pay for my Cribnosh order? Here's the link: https://cribnosh.com/pay/${(orderData as any).payment_link_token}`,
+                  });
+                } catch (error) {
+                  // Ignore
+                }
+              }}
+              backgroundColor="#4F46E5"
+              textColor="white"
+              style={{ marginTop: 16 }}
+            />
+          </View>
+        )}
 
         {/* Spacer for fixed buttons at bottom */}
         <View style={styles.bottomSpacer} />
@@ -426,5 +460,41 @@ const styles = StyleSheet.create({
     color: '#FF3B30', // text-[#FF3B30]
     fontSize: 18, // text-lg
     fontWeight: '600', // font-semibold
+  },
+  paymentLinkCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
+  paymentLinkHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  paymentLinkTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  paymentLinkDescription: {
+    fontSize: 14,
+    color: '#4B5563',
+    marginBottom: 12,
+  },
+  linkContainer: {
+    backgroundColor: '#F3F4F6',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  linkText: {
+    fontFamily: 'Courier',
+    fontSize: 14,
+    color: '#1F2937',
   },
 });

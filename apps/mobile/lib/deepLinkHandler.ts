@@ -9,7 +9,7 @@ export const handleDeepLink = (event: { url: string }) => {
     if (!url || typeof url !== "string") {
       return;
     }
-    
+
     // Check if it's a valid deep link
     if (!url.includes('cribnoshapp://') && !url.includes('cribnosh.com')) {
       return;
@@ -44,6 +44,8 @@ export const handleDeepLink = (event: { url: string }) => {
     // Handle different deep link patterns
     if (url.includes("/treat/")) {
       handleTreatLink(url);
+    } else if (url.includes("/pay/")) {
+      handlePaymentLink(url);
     } else if (url.includes("/shared-link")) {
       try {
         router.navigate("/shared-link");
@@ -103,5 +105,24 @@ const handleTreatLink = (url: string) => {
     } catch (navError) {
       console.error("Navigation error in handleTreatLink catch:", navError);
     }
+  }
+};
+
+const handlePaymentLink = (url: string) => {
+  try {
+    // Extract token from URL - handle cribnoshapp://pay/TOKEN schema
+    const tokenMatch = url.match(/cribnoshapp:\/\/pay\/([^/?]+)/);
+    const token = tokenMatch ? tokenMatch[1] : null;
+
+    if (token) {
+      const decodedToken = decodeURIComponent(token);
+      try {
+        router.navigate(`/pay/${decodedToken}` as any);
+      } catch (navError) {
+        console.error("Navigation error in handlePaymentLink:", navError);
+      }
+    }
+  } catch (error) {
+    console.error("Error handling payment link:", error);
   }
 };

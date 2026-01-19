@@ -74,6 +74,7 @@ interface Order {
   groupOrder?: GroupOrder;
   _uniqueKey?: string; // Unique key for React list rendering
   _originalId?: string; // Original ID from API (_id or order_id) for navigation
+  paymentStatus?: string;
 }
 
 export default function OrdersScreen() {
@@ -285,6 +286,7 @@ export default function OrdersScreen() {
       _uniqueKey: `api-${uniqueId}`,
       // Store original ID for navigation (prefer _id, then order_id, then id)
       _originalId: apiOrder._id || apiOrder.order_id || (apiOrder.id ? String(apiOrder.id) : undefined),
+      paymentStatus: (apiOrder as any).payment_status || (apiOrder as any).paymentStatus,
     };
 
     // Add group order info if applicable
@@ -554,6 +556,7 @@ export default function OrdersScreen() {
               onPress={() => handleOrderPress(order, isCustomOrder)}
               showSeparator={index < sortedOrders.length - 1}
               index={index}
+              paymentStatus={order.paymentStatus}
             />
           );
         })}

@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, ViewStyle, Image } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withDelay,
-    withTiming,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
 } from 'react-native-reanimated';
 import { ImageStack } from './ImageStack';
 
@@ -55,6 +55,7 @@ interface OrderCardProps {
   style?: ViewStyle;
   showSeparator?: boolean;
   index?: number;
+  paymentStatus?: string;
 }
 
 
@@ -163,6 +164,7 @@ const OrderCardComponent: React.FC<OrderCardProps> = ({
   style,
   showSeparator = true,
   index = 0,
+  paymentStatus,
 }) => {
   const fadeAnim = useSharedValue(0);
   const slideAnim = useSharedValue(50);
@@ -170,7 +172,7 @@ const OrderCardComponent: React.FC<OrderCardProps> = ({
 
   useEffect(() => {
     const delay = index * 100; // Stagger animation for each card
-    
+
     fadeAnim.value = withDelay(delay, withTiming(1, { duration: 600 }));
     slideAnim.value = withDelay(delay, withTiming(0, { duration: 600 }));
     scaleAnim.value = withDelay(delay, withTiming(1, { duration: 600 }));
@@ -186,7 +188,18 @@ const OrderCardComponent: React.FC<OrderCardProps> = ({
     };
   });
 
-  const statusStyle = status ? getStatusStyle(status) : null;
+  let statusStyle = status ? getStatusStyle(status) : null;
+
+  // Override for pending payment
+  if (status === 'pending' && paymentStatus === 'pending') {
+    statusStyle = {
+      backgroundColor: 'rgba(124, 58, 237, 0.12)', // Violet
+      textColor: '#7C3AED',
+      text: 'Waiting for Payment',
+      icon: 'card-outline' as keyof typeof Ionicons.glyphMap,
+    };
+  }
+
   const isOngoingOrder = status && status !== 'cancelled' && status !== 'completed';
   const isGroupOrder = orderType === 'group' && groupOrder;
 
@@ -201,14 +214,14 @@ const OrderCardComponent: React.FC<OrderCardProps> = ({
         // Filter out invalid/empty URLs
         const validImages = images.filter(url => url && typeof url === 'string' && url.trim().length > 0);
         if (validImages.length > 0) {
-        // Create one entry per image for stacking
+          // Create one entry per image for stacking
           validImages.forEach((imageUrl, idx) => {
-          itemsWithImages.push({
-            ...item,
-            _id: `${item._id || item.dish_id || idx}_${idx}`,
-            image_url: imageUrl,
+            itemsWithImages.push({
+              ...item,
+              _id: `${item._id || item.dish_id || idx}_${idx}`,
+              image_url: imageUrl,
+            });
           });
-        });
         }
       }
     });
@@ -232,9 +245,9 @@ const OrderCardComponent: React.FC<OrderCardProps> = ({
   };
 
   const CardContent = (
-    <Animated.View 
+    <Animated.View
       style={[
-        styles.orderItem, 
+        styles.orderItem,
         style,
         animatedStyle,
       ]}
@@ -260,10 +273,10 @@ const OrderCardComponent: React.FC<OrderCardProps> = ({
             )}
             {statusStyle && (
               <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
-                <Ionicons 
-                  name={statusStyle.icon} 
-                  size={13} 
-                  color={statusStyle.textColor} 
+                <Ionicons
+                  name={statusStyle.icon}
+                  size={13}
+                  color={statusStyle.textColor}
                   style={styles.statusIcon}
                 />
                 <Text style={[styles.statusText, { color: statusStyle.textColor }]}>
@@ -274,7 +287,7 @@ const OrderCardComponent: React.FC<OrderCardProps> = ({
           </View>
         </View>
         <Text style={styles.orderDescription}>{description}</Text>
-        
+
         {/* Show items for ongoing orders */}
         {isOngoingOrder && items && items.length > 0 && (
           <View style={styles.itemsContainer}>
@@ -296,15 +309,15 @@ const OrderCardComponent: React.FC<OrderCardProps> = ({
             )}
           </View>
         )}
-        
+
         <View style={styles.orderFooter}>
           <Text style={styles.orderPrice}>{price}</Text>
           {estimatedTime && (
             <View style={styles.estimatedTimeContainer}>
-              <Ionicons 
-                name="time-outline" 
-                size={11} 
-                color="#687076" 
+              <Ionicons
+                name="time-outline"
+                size={11}
+                color="#687076"
                 style={styles.timeIcon}
               />
               <Text style={styles.estimatedTime}>{estimatedTime}</Text>
@@ -317,7 +330,7 @@ const OrderCardComponent: React.FC<OrderCardProps> = ({
 
   if (onPress) {
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={onPress}
         activeOpacity={0.7}
         style={styles.touchableContainer}

@@ -336,6 +336,24 @@ export default function OrderDetailsScreen() {
               <Text style={styles.headerTitle}>Order Details</Text>
               <View style={styles.headerSpacer} />
             </View>
+
+            {/* Pay for Me Waiting Banner */}
+            {((order as any).payment_status === 'pending' || (order as any).paymentStatus === 'pending') && (order as any).payment_link_token && (
+              <View style={styles.waitingPaymentBanner}>
+                <View style={styles.waitingContent}>
+                  <Text style={styles.waitingTitle}>Waiting for payment</Text>
+                  <Text style={styles.waitingText}>
+                    Share the link with your friend to complete the order.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.shareLinkButton}
+                  onPress={() => router.push(`/orders/payment-request?order_id=${orderId}`)}
+                >
+                  <Text style={styles.shareLinkText}>Share Link</Text>
+                </TouchableOpacity>
+              </View>
+            )}
             {/* Order Header */}
             <View style={styles.orderHeader}>
               <Text style={styles.orderTitle}>Order</Text>
@@ -1008,5 +1026,41 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  waitingPaymentBanner: {
+    backgroundColor: '#F3E8FF', // Light violet/purple
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#D8B4FE',
+  },
+  waitingContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  waitingTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#6B21A8', // Purple 800
+    marginBottom: 4,
+  },
+  waitingText: {
+    fontSize: 14,
+    color: '#7E22CE', // Purple 700
+  },
+  shareLinkButton: {
+    backgroundColor: '#7C3AED', // Violet 600
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  shareLinkText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });

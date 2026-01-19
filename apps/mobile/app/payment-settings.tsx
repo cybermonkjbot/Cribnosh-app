@@ -1,6 +1,7 @@
 import { AddCardSheet } from '@/components/ui/AddCardSheet';
 import { BalanceInfoSheet } from '@/components/ui/BalanceInfoSheet';
 import { BalanceTransactionsSheet } from '@/components/ui/BalanceTransactionsSheet';
+import { CreateTreatSheet } from '@/components/ui/CreateTreatSheet';
 import { TopUpBalanceSheet } from '@/components/ui/TopUpBalanceSheet';
 import { usePayments } from '@/hooks/usePayments';
 import { useRouter } from 'expo-router';
@@ -59,6 +60,7 @@ export default function PaymentSettingsScreen() {
   const [isBalanceInfoVisible, setIsBalanceInfoVisible] = useState(false);
   const [isTransactionsVisible, setIsTransactionsVisible] = useState(false);
   const [isTopUpVisible, setIsTopUpVisible] = useState(false);
+  const [isCreateTreatVisible, setIsCreateTreatVisible] = useState(false);
   const [paymentMethodsData, setPaymentMethodsData] = useState<any>(null);
   const [balanceData, setBalanceData] = useState<any>(null);
   const [transactionsData, setTransactionsData] = useState<any>(null);
@@ -121,6 +123,10 @@ export default function PaymentSettingsScreen() {
 
   const handleTopUpBalance = () => {
     setIsTopUpVisible(true);
+  };
+
+  const handleCreateTreat = () => {
+    setIsCreateTreatVisible(true);
   };
 
   const handleCloseTopUp = async () => {
@@ -199,6 +205,24 @@ export default function PaymentSettingsScreen() {
                 <SvgXml xml={plusIconSVG} width={20} height={20} />
               </View>
               <Text style={styles.itemText}>Top up balance</Text>
+            </View>
+            <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Social Payments Section */}
+        <View style={styles.paymentSection}>
+          <Text style={styles.sectionTitle}>Social Payments</Text>
+          <TouchableOpacity
+            style={styles.addCardItem}
+            onPress={handleCreateTreat}
+            activeOpacity={0.7}
+          >
+            <View style={styles.itemLeft}>
+              <View style={styles.itemIcon}>
+                <SvgXml xml={plusIconSVG} width={20} height={20} />
+              </View>
+              <Text style={styles.itemText}>Send a Treat</Text>
             </View>
             <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
           </TouchableOpacity>
@@ -320,6 +344,12 @@ export default function PaymentSettingsScreen() {
         isVisible={isAddCardVisible}
         onClose={() => setIsAddCardVisible(false)}
         onSuccess={handleCardAdded}
+      />
+
+      {/* Create Treat Sheet */}
+      <CreateTreatSheet
+        isVisible={isCreateTreatVisible}
+        onClose={() => setIsCreateTreatVisible(false)}
       />
     </SafeAreaView>
   );

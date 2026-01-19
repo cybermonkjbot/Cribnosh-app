@@ -1358,6 +1358,7 @@ export default defineSchema({
     stuart_job_id: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
+    payment_link_token: v.optional(v.string()), // For "Pay for Me"
   })
     .index("by_customer", ["customer_id"])
     .index("by_chef", ["chef_id"])
@@ -1366,7 +1367,8 @@ export default defineSchema({
     .index("by_date", ["order_date"])
     .index("by_order_id", ["order_id"])
     .index("by_refund_eligible", ["is_refundable", "refund_eligible_until"])
-    .index("by_group_order", ["group_order_id"]),
+    .index("by_group_order", ["group_order_id"])
+    .index("by_payment_link_token", ["payment_link_token"]),
 
   // Group Orders table
   group_orders: defineTable({
@@ -3944,4 +3946,72 @@ export default defineSchema({
     .index("by_course_module", ["courseId", "moduleId"])
     .index("by_status", ["status"])
     .index("by_course_number", ["courseId", "moduleNumber"]),
+
+  // Chef Bank Accounts table
+  chefBankAccounts: defineTable({
+    chefId: v.id("chefs"),
+    stripeBankAccountId: v.optional(v.string()), // For Stripe Connect
+    accountHolderName: v.string(),
+    bankName: v.string(),
+    last4: v.string(),
+    isPrimary: v.boolean(),
+    status: v.union(v.literal("active"), v.literal("archived")),
+    metadata: v.optional(v.any()), // Store encrypted details or references securely
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_chef", ["chefId"]),
+
+  // Chef Payouts table
+  chefPayouts: defineTable({
+    chefId: v.id("chefs"),
+    bankAccountId: v.id("chefBankAccounts"),
+    amount: v.number(), // in pence
+    currency: v.string(), // e.g., 'gbp'
+    status: v.union(
+      v.literal("requested"),
+      v.literal("processing"),
+      v.literal("paid"),
+      v.literal("failed"),
+      v.literal("cancelled")
+    ),
+    reference: v.optional(v.string()), // Stripe payout ID or bank ref
+    requestedAt: v.number(),
+    processedAt: v.optional(v.number()),
+    failureReason: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  })
+    .index("by_chef", ["chefId"])
+    .index("by_status", ["status"])
+    .index("by_date", ["requestedAt"]),
+
+  // Games table
+  games: defineTable({
+    players: v.array(v.id("users")), // User IDs of players
+    status: v.union(v.literal("active"), v.literal("completed"), v.literal("cancelled")),
+    winnerId: v.optional(v.id("users")), // Null if cancelled or tied (if possible)
+    loserId: v.optional(v.id("users")),
+    gameType: v.string(), // e.g., "high_card", "dice_roll"
+    metadata: v.optional(v.any()), // Store game state, moves, etc.
+    completedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"]),
+
+  // Game Debts table
+  gameDebts: defineTable({
+    gameId: v.id("games"),
+    debtorId: v.id("users"), // Loser who owes
+    creditorId: v.id("users"), // Winner who is owed
+    amount: v.optional(v.number()), // Optional limit, or full meal cost
+    status: v.union(v.literal("pending"), v.literal("paid"), v.literal("redeemed"), v.literal("cancelled")),
+    redeemedOrderId: v.optional(v.id("orders")), // Linked order ID when redeemed
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_debtor", ["debtorId"])
+    .index("by_creditor", ["creditorId"])
+    .index("by_status", ["status"])
+    .index("by_debtor_status", ["debtorId", "status"]),
 });

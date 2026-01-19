@@ -231,6 +231,9 @@ const createOrderWithValidationHandler = async (ctx: any, args: any): Promise<an
     order_status: 'pending',
     payment_status: 'pending',
     payment_method: args.payment_method,
+    payment_link_token: args.payment_method === 'pay_for_me'
+      ? Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+      : undefined,
     special_instructions: args.special_instructions,
     delivery_time: args.delivery_time,
     delivery_address: args.delivery_address,
@@ -383,6 +386,12 @@ const createOrderWithPaymentHandler = async (ctx: any, args: any): Promise<any> 
   // Calculate final total (subtotal - points discount - offer discount)
   const finalTotal = Math.max(0, subtotal - pointsDiscountAmount - discountAmount);
 
+  const paymentLinkToken = args.payment_method === 'pay_for_me'
+    ? Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+    : undefined;
+
+
+
   const orderId = await ctx.db.insert('orders', {
     order_id: `order_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
     customer_id: args.customer_id as Id<'users'>,
@@ -395,9 +404,11 @@ const createOrderWithPaymentHandler = async (ctx: any, args: any): Promise<any> 
     discount_type: discountType,
     nosh_points_applied: args.nosh_points_applied,
     order_status: 'pending',
-    payment_status: 'paid', // Mark as paid immediately since payment_id is provided
+    // order_status: args.payment_method === 'pay_for_me' ? 'pending' : 'pending', // Duplicate key removed
+    payment_status: args.payment_method === 'pay_for_me' ? 'pending' : 'paid',
     payment_id: args.payment_id,
     payment_method: args.payment_method || 'card',
+    payment_link_token: paymentLinkToken,
     special_instructions: args.special_instructions,
     delivery_time: args.delivery_time,
     delivery_address: args.delivery_address,
@@ -405,6 +416,41 @@ const createOrderWithPaymentHandler = async (ctx: any, args: any): Promise<any> 
     createdAt: now,
     updatedAt: now,
   });
+
+  // Handle Game Debt Redemption
+  if (args.gameDebtId) {
+    const debt = await ctx.db.get(args.gameDebtId);
+    if (debt && debt.status === 'pending' && debt.creditorId === args.customer_id) {
+      await ctx.db.patch(debt._id, {
+        status: 'redeemed',
+        redeemedOrderId: orderId,
+        updatedAt: Date.now(),
+      });
+
+      // Notify debtor (Loser)
+      const requester = await ctx.db.get(args.customer_id as Id<'users'>);
+      if (requester) {
+        await ctx.db.insert('notifications', {
+          userId: debt.debtorId,
+          type: 'payment_request',
+          title: 'Pay Up! Game Loss Redemption',
+          message: `${requester.name} is redeeming their free meal! Time to pay up.`,
+          read: false,
+          createdAt: Date.now(),
+          priority: 'high',
+          category: 'orders',
+          actionUrl: `/pay/${paymentLinkToken || 'error'}`,
+          data: {
+            orderId: orderId,
+            requesterId: requester._id,
+            requesterName: requester.name,
+            amount: finalTotal,
+            paymentLinkToken: paymentLinkToken || '',
+          },
+        });
+      }
+    }
+  }
 
   // Mark claimed offer as used and increment conversion count
   if (finalOfferId && discountAmount > 0) {
@@ -469,7 +515,7 @@ export const createOrderWithPayment = mutation({
     chef_id: v.string(),
     order_items: v.array(orderItemValidator),
     total_amount: v.number(),
-    payment_id: v.string(),
+    payment_id: v.optional(v.string()),
     payment_method: v.optional(v.string()),
     special_instructions: v.optional(v.string()),
     delivery_time: v.optional(v.string()),
@@ -477,6 +523,7 @@ export const createOrderWithPayment = mutation({
     sessionToken: v.optional(v.string()),
     offer_id: v.optional(v.string()), // Applied special offer ID
     nosh_points_applied: v.optional(v.number()), // Nosh Points applied for discount
+    gameDebtId: v.optional(v.id('gameDebts')), // Game debt to redeem
   },
   handler: createOrderWithPaymentHandler,
 });
@@ -608,6 +655,56 @@ export const markRefunded = mutation({
       payment_id: args.refundId,
       updatedAt: Date.now(),
     });
+  },
+});
+
+export const sendPaymentRequest = mutation({
+  args: {
+    orderId: v.id('orders'),
+    targetUserId: v.id('users'),
+    sessionToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
+
+    const order = await ctx.db.get(args.orderId);
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    if (order.customer_id !== user._id) {
+      throw new Error('You can only request payment for your own orders');
+    }
+
+    if (order.payment_status === 'paid') {
+      throw new Error('Order is already paid');
+    }
+
+    if (order.payment_status !== 'pending') {
+      throw new Error('Order is not eligible for payment request');
+    }
+
+    // Create detailed notification for the target user
+    await ctx.db.insert('notifications', {
+      userId: args.targetUserId,
+      type: 'payment_request',
+      title: 'Payment Request',
+      message: `${user.name} has asked you to pay for their order on Cribnosh.`,
+      read: false,
+      createdAt: Date.now(),
+      priority: 'high',
+      category: 'orders',
+      actionUrl: `/pay/${order.payment_link_token}`,
+      data: {
+        orderId: order._id,
+        requesterId: user._id,
+        requesterName: user.name,
+        amount: order.total_amount,
+        paymentLinkToken: order.payment_link_token,
+      },
+    });
+
+    return { success: true };
   },
 });
 

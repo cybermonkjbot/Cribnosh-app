@@ -66,6 +66,7 @@ import { UpdateAvailableModal } from "./UpdateAvailableModal";
 import { CuisineCategoriesDrawer } from "./CuisineCategoriesDrawer";
 import { CuisineCategoryDrawer } from "./CuisineCategoryDrawer";
 import { CuisinesDrawer } from "./CuisinesDrawer";
+import { NoticesSection } from "./NoticesSection";
 import { ShakeToEatFlow } from "./ShakeToEatFlow";
 import { SpecialOffersDrawer } from "./SpecialOffersDrawer";
 import { SpecialOffersSection } from "./SpecialOffersSection";
@@ -1914,6 +1915,8 @@ export function MainScreen() {
           >
             {/* Main Content with fade animation */}
             <Animated.View style={contentFadeStyle}>
+              {/* Notices Section */}
+              <NoticesSection />
               {!isAuthenticated && !authLoading && (
                 <NotLoggedInNotice onSignInPress={handleSignInPress} />
               )}

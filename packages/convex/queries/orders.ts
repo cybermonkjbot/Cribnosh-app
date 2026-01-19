@@ -1179,3 +1179,47 @@ export const getChefCompletedOrdersCount = query({
     return orders.length;
   },
 });
+
+// Get order by payment link token (publicly accessible with valid token)
+export const getOrderByPaymentToken = query({
+  args: {
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Find order with matching token
+    const order = await ctx.db
+      .query('orders')
+      .filter(q => q.eq(q.field('payment_link_token'), args.token))
+      .first();
+
+    if (!order) {
+      return null;
+    }
+
+    // Only return un-paid pending orders
+    if (order.payment_status === 'paid' || order.order_status === 'cancelled') {
+      // We might want to return it to show "Already Paid" screen, but for security let's return limited info or handle in UI
+      // For now returning the order so UI can show "Already Paid"
+    }
+
+    // Enrich with chef name
+    let kitchenName = 'Unknown Kitchen';
+    try {
+      const chef = await ctx.db.get(order.chef_id);
+      if (chef) kitchenName = chef.name;
+    } catch (e) {
+      // ignore
+    }
+
+    return {
+      _id: order._id,
+      order_id: order.order_id,
+      total_amount: order.total_amount,
+      status: order.order_status,
+      payment_status: order.payment_status,
+      customer_id: order.customer_id,
+      kitchen_name: kitchenName,
+      items: order.order_items, // minimal details
+    };
+  },
+});

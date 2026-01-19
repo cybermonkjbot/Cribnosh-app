@@ -1,15 +1,16 @@
 import { AddPaymentMethodModal } from "@/components/AddPaymentMethodScreen";
+import { AddCardSheet } from "@/components/ui/AddCardSheet";
+import { TopUpBalanceSheet } from "@/components/ui/TopUpBalanceSheet";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { api } from '@/convex/_generated/api';
+import { usePayments } from "@/hooks/usePayments";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
 import { Entypo, Feather } from "@expo/vector-icons";
+import { useQuery } from "convex/react";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { Users } from "lucide-react-native";
-import { useEffect, useState, useCallback } from "react";
-import { getConvexClient, getSessionToken } from "@/lib/convexClient";
-import { api } from '@/convex/_generated/api';
-import { useAuthContext } from "@/contexts/AuthContext";
-import { TopUpBalanceSheet } from "@/components/ui/TopUpBalanceSheet";
-import { AddCardSheet } from "@/components/ui/AddCardSheet";
-import { usePayments } from "@/hooks/usePayments";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Image,
@@ -18,7 +19,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
 
 const PAYMENT_METHOD_STORAGE_KEY = "cart_selected_payment_method";
@@ -28,7 +29,9 @@ export default function PaymentMethodSelection() {
   const [isAddPaymentMethodModalVisible, setIsAddPaymentMethodModalVisible] = useState(false);
   const [isTopUpSheetVisible, setIsTopUpSheetVisible] = useState(false);
   const [isAddCardSheetVisible, setIsAddCardSheetVisible] = useState(false);
-  const { isAuthenticated } = useAuthContext();
+  const { isAuthenticated, user } = useAuthContext();
+  // Fetch active game debts involved
+  const gameDebts = useQuery(api.games.getActiveGameDebts, isAuthenticated && user ? { userId: user._id } : "skip");
   const [familyProfileData, setFamilyProfileData] = useState<any>(null);
   const [balanceData, setBalanceData] = useState<any>(null);
   const [savedCards, setSavedCards] = useState<any[]>([]);
@@ -37,7 +40,7 @@ export default function PaymentMethodSelection() {
   // Fetch family profile from Convex
   const fetchFamilyProfile = useCallback(async () => {
     if (!isAuthenticated) return;
-    
+
     try {
       const convex = getConvexClient();
       const sessionToken = await getSessionToken();
@@ -69,7 +72,7 @@ export default function PaymentMethodSelection() {
   // Fetch balance from Convex
   const fetchBalance = useCallback(async () => {
     if (!isAuthenticated) return;
-    
+
     try {
       const convex = getConvexClient();
       const sessionToken = await getSessionToken();
@@ -101,7 +104,7 @@ export default function PaymentMethodSelection() {
   // Fetch saved payment methods (cards)
   const fetchSavedCards = useCallback(async () => {
     if (!isAuthenticated) return;
-    
+
     try {
       const methods = await getPaymentMethods();
       if (methods) {
@@ -149,15 +152,15 @@ export default function PaymentMethodSelection() {
   const paymentMethods = [
     ...(isFamilyMember && familyPaymentEnabled
       ? [
-          {
-            id: 'family',
-            name: 'Family Payment Method',
-            icon: null,
-            description: 'Using parent account payment',
-            isDefault: true,
-            isFamily: true,
-          },
-        ]
+        {
+          id: 'family',
+          name: 'Family Payment Method',
+          icon: null,
+          description: 'Using parent account payment',
+          isDefault: true,
+          isFamily: true,
+        },
+      ]
       : []),
     // Add saved cards
     ...savedCards.map((card: any) => ({
@@ -183,17 +186,38 @@ export default function PaymentMethodSelection() {
       icon: null,
       description: "Quick and secure payment",
       isDefault: false,
+
     },
     {
       id: "balance",
       name: "Cribnosh Balance",
       icon: require("@/assets/images/nosh-pass.png"),
-      description: balanceData?.data?.is_available 
+      description: balanceData?.data?.is_available
         ? `£${((balanceData.data.balance || 0) / 100).toFixed(2)} available`
         : "Balance not available",
       isDefault: false,
       disabled: !balanceData?.data?.is_available || (balanceData?.data?.balance || 0) <= 0,
     },
+    {
+      id: "pay_for_me",
+      name: "Ask someone to pay",
+      icon: null,
+      description: "Share a link to get this paid",
+      isDefault: false,
+      isPayForMe: true,
+    },
+    // Add Game Debt Redemption Option
+    ...(gameDebts && gameDebts.length > 0 ? [{
+      id: "redeem_game",
+      name: "Redeem Free Meal (Play to Win)",
+      icon: null, // Custom icon rendered below
+      description: `Get ${gameDebts[0].debtorName} to pay!`,
+      isDefault: false,
+      isGameRedemption: true,
+      debtId: gameDebts[0]._id, // Initially pick first, or expand to allow selection
+      debtorId: gameDebts[0].debtorId,
+      debtorName: gameDebts[0].debtorName,
+    }] : []),
   ];
 
   // Set default to family payment if available
@@ -215,16 +239,23 @@ export default function PaymentMethodSelection() {
       return;
     }
 
-    // Save selected payment method to secure store
     const selectedMethod = paymentMethods.find(m => m.id === selectedPaymentMethod);
     if (selectedMethod) {
+      // Determine icon type
+      let iconType = "balance";
+      if (selectedMethod.icon) iconType = "card";
+      else if (selectedMethod.id === "apple") iconType = "apple";
+      else if (selectedMethod.id === "pay_for_me") iconType = "pay_for_me";
+      else if (selectedMethod.id === "redeem_game") iconType = "redeem_game";
+
       await SecureStore.setItemAsync(
         PAYMENT_METHOD_STORAGE_KEY,
         JSON.stringify({
           id: selectedPaymentMethod,
           name: selectedMethod.name,
           description: selectedMethod.description,
-          iconType: selectedMethod.icon ? "card" : selectedMethod.id === "apple" ? "apple" : "balance",
+          iconType: iconType,
+          debtId: 'debtId' in selectedMethod ? selectedMethod.debtId : undefined,
         })
       );
     }
@@ -328,7 +359,7 @@ export default function PaymentMethodSelection() {
         />
       );
     }
-    
+
     // Fallback for Apple Pay
     if (method.id === "apple") {
       return (
@@ -337,7 +368,25 @@ export default function PaymentMethodSelection() {
         </View>
       );
     }
-    
+
+    // Icon for Pay for Me
+    if (method.id === "pay_for_me") {
+      return (
+        <View style={styles.payForMeIconContainer}>
+          <Feather name="share" size={16} color="#4F46E5" />
+        </View>
+      );
+    }
+
+    // Icon for Game Redemption
+    if (method.id === "redeem_game") {
+      return (
+        <View style={[styles.payForMeIconContainer, { backgroundColor: '#DCFCE7' }]}>
+          <Feather name="gift" size={16} color="#15803D" />
+        </View>
+      );
+    }
+
     return null;
   };
 
@@ -409,15 +458,15 @@ export default function PaymentMethodSelection() {
                   )}
                 </View>
               </View>
-              
+
               <View style={styles.methodRight}>
-                {method.id === "balance" && 
-                 balanceData?.data?.is_available && 
-                 (balanceData.data.balance || 0) <= 0 && (
-                  <View style={styles.topUpBadge}>
-                    <Text style={styles.topUpBadgeText}>Top Up</Text>
-                  </View>
-                )}
+                {method.id === "balance" &&
+                  balanceData?.data?.is_available &&
+                  (balanceData.data.balance || 0) <= 0 && (
+                    <View style={styles.topUpBadge}>
+                      <Text style={styles.topUpBadgeText}>Top Up</Text>
+                    </View>
+                  )}
                 {'isCard' in method && method.isCard && (
                   <Pressable
                     onPress={(e) => {
@@ -441,7 +490,7 @@ export default function PaymentMethodSelection() {
 
         {/* Add New Payment Method */}
         <View style={styles.addMethodContainer}>
-          <Pressable 
+          <Pressable
             style={styles.addMethodButton}
             onPress={handleAddPaymentMethod}
           >
@@ -663,5 +712,14 @@ const styles = StyleSheet.create({
   deleteButton: {
     padding: 8,
     marginRight: 8,
+  },
+  payForMeIconContainer: {
+    width: 48, // w-12
+    height: 32, // h-8
+    marginRight: 16, // mr-4
+    backgroundColor: '#E0E7FF', // bg-indigo-100
+    borderRadius: 8, // rounded-lg
+    alignItems: 'center', // items-center
+    justifyContent: 'center', // justify-center
   },
 });

@@ -1,7 +1,7 @@
-import { useCallback, useState } from 'react';
+import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
+import { useCallback, useState } from 'react';
 
 export const useOrders = () => {
   const { showToast } = useToast();
@@ -168,7 +168,7 @@ export const useOrders = () => {
 
   const createOrderFromCart = useCallback(
     async (data: {
-      payment_intent_id: string;
+      payment_intent_id?: string;
       delivery_address?: {
         street: string;
         city: string;
@@ -179,6 +179,8 @@ export const useOrders = () => {
       special_instructions?: string;
       delivery_time?: string;
       nosh_points_applied?: number; // Nosh Points applied for discount
+      payment_method?: string;
+      gameDebtId?: string;
     }) => {
       try {
         setIsLoading(true);
@@ -197,6 +199,8 @@ export const useOrders = () => {
           special_instructions: data.special_instructions,
           delivery_time: data.delivery_time,
           nosh_points_applied: data.nosh_points_applied,
+          payment_method: data.payment_method,
+          gameDebtId: data.gameDebtId,
         });
 
         if (!result.success) {
@@ -213,12 +217,12 @@ export const useOrders = () => {
         const errorMessage = error?.message || 'Failed to create order from cart';
         // Only show toast if this is an unexpected error (not one we threw)
         const isExpectedError = errorMessage === 'Please log in to create an order' ||
-                                errorMessage.includes('Failed to create order from cart') ||
-                                errorMessage.includes('Oops, We do not serve this region') ||
-                                errorMessage.includes('Cart is empty') ||
-                                errorMessage.includes('Authentication required') ||
-                                errorMessage.includes('Access denied');
-        
+          errorMessage.includes('Failed to create order from cart') ||
+          errorMessage.includes('Oops, We do not serve this region') ||
+          errorMessage.includes('Cart is empty') ||
+          errorMessage.includes('Authentication required') ||
+          errorMessage.includes('Access denied');
+
         if (!isExpectedError) {
           showToast(errorMessage, 'error');
         }

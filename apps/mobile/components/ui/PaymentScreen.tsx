@@ -1,30 +1,28 @@
 import { Mascot } from "@/components/Mascot";
+import { api } from '@/convex/_generated/api';
 import { useCart } from "@/hooks/useCart";
 import { useOrders } from "@/hooks/useOrders";
 import { usePayments } from "@/hooks/usePayments";
 import { useRegionAvailability } from "@/hooks/useRegionAvailability";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
 import { startOrderLiveActivity } from "@/lib/live-activity/orderLiveActivity";
 import { Entypo } from "@expo/vector-icons";
+import { useStripe } from "@stripe/stripe-react-native";
 import { router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
-import * as SecureStore from "expo-secure-store";
-import { RegionAvailabilityModal } from "./RegionAvailabilityModal";
 import { MultipleChefsWarningModal } from "./MultipleChefsWarningModal";
 import { OfflineChefsWarningModal } from "./OfflineChefsWarningModal";
-import { useStripe } from "@stripe/stripe-react-native";
-import Constants from "expo-constants";
-import { getConvexClient, getSessionToken } from "@/lib/convexClient";
-import { api } from '@/convex/_generated/api';
+import { RegionAvailabilityModal } from "./RegionAvailabilityModal";
 
 // Try to import expo-device to check if we're on a simulator
 let Device: any = null;
@@ -73,7 +71,7 @@ export default function PaymentScreen({
   const { createCheckout } = usePayments();
   const { createOrderFromCart } = useOrders();
   const [cartData, setCartData] = useState<any>(null);
-  const stripe = useStripe();
+  const stripe = useStripe() as any;
   const { confirmPayment, presentApplePay, isApplePaySupported } = stripe || {};
 
   // Load cart data if orderTotal is not provided
@@ -134,14 +132,14 @@ export default function PaymentScreen({
     if (!cartData?.data?.items || cartData.data.items.length === 0) {
       return false;
     }
-    
+
     const chefIds = new Set<string>();
     for (const item of cartData.data.items) {
       if (item.chef_id) {
         chefIds.add(item.chef_id);
       }
     }
-    
+
     return chefIds.size > 1;
   }, [cartData]);
 
@@ -187,7 +185,7 @@ export default function PaymentScreen({
       // Step 2: Get selected payment method
       const storedPaymentMethod = await SecureStore.getItemAsync(PAYMENT_METHOD_STORAGE_KEY);
       let selectedPaymentMethod: { iconType?: string; id?: string } | null = null;
-      
+
       if (storedPaymentMethod) {
         try {
           selectedPaymentMethod = JSON.parse(storedPaymentMethod);
@@ -199,127 +197,131 @@ export default function PaymentScreen({
       // Step 3: Confirm payment based on payment method type
       let confirmedPaymentIntent: any = null;
 
-      if (selectedPaymentMethod?.iconType === 'apple') {
-        // Apple Pay flow
-        if (!presentApplePay || !isApplePaySupported) {
-          // Check if we're on a simulator - only if Device is available and explicitly says it's not a device
-          // We need to be careful: Device?.isDevice === false means simulator, but undefined means we don't know
-          const isSimulator = Device && Device.isDevice === false;
-          
-          if (isSimulator) {
+      const isPayForMe = selectedPaymentMethod?.id === 'pay_for_me';
+
+      if (!isPayForMe) {
+        if (selectedPaymentMethod?.iconType === 'apple') {
+          // Apple Pay flow
+          if (!presentApplePay || !isApplePaySupported) {
+            // Check if we're on a simulator - only if Device is available and explicitly says it's not a device
+            // We need to be careful: Device?.isDevice === false means simulator, but undefined means we don't know
+            const isSimulator = Device && Device.isDevice === false;
+
+            if (isSimulator) {
+              throw new Error(
+                "Apple Pay is not available on iOS simulators. " +
+                "Please test Apple Pay on a real iOS device. " +
+                "You can change your payment method to a card for testing."
+              );
+            }
+
             throw new Error(
-              "Apple Pay is not available on iOS simulators. " +
-              "Please test Apple Pay on a real iOS device. " +
-              "You can change your payment method to a card for testing."
+              "Apple Pay is not available on this device. " +
+              "Please ensure Apple Pay is set up in your device settings, " +
+              "or select a different payment method."
             );
           }
-          
-          throw new Error(
-            "Apple Pay is not available on this device. " +
-            "Please ensure Apple Pay is set up in your device settings, " +
-            "or select a different payment method."
-          );
-        }
 
-        // Build cart items for Apple Pay
-        const cartItems = [];
-        
-        // Add individual items
-        if (cartData?.data?.items) {
-          for (const item of cartData.data.items) {
+          // Build cart items for Apple Pay
+          const cartItems = [];
+
+          // Add individual items
+          if (cartData?.data?.items) {
+            for (const item of cartData.data.items) {
+              cartItems.push({
+                label: item.name || 'Item',
+                amount: String((item.price * item.quantity) / 100),
+                type: 'final' as const,
+              });
+            }
+          }
+
+          // Add delivery fee if applicable
+          if (calculatedDeliveryFee && calculatedDeliveryFee > 0) {
             cartItems.push({
-              label: item.name || 'Item',
-              amount: String((item.price * item.quantity) / 100),
+              label: 'Delivery Fee',
+              amount: String(calculatedDeliveryFee / 100),
               type: 'final' as const,
             });
           }
-        }
-        
-        // Add delivery fee if applicable
-        if (calculatedDeliveryFee && calculatedDeliveryFee > 0) {
-          cartItems.push({
-            label: 'Delivery Fee',
-            amount: String(calculatedDeliveryFee / 100),
-            type: 'final' as const,
+
+          // Note: Apple Pay automatically calculates the total from the sum of all items
+
+          // Present Apple Pay sheet
+          const { error: applePayError, paymentMethod: applePayPaymentMethod } = await presentApplePay({
+            cartItems,
+            country: 'GB',
+            currency: 'GBP',
+            requiredShippingAddressFields: deliveryAddress ? [] : ['all'],
           });
-        }
-        
-        // Note: Apple Pay automatically calculates the total from the sum of all items
 
-        // Present Apple Pay sheet
-        const { error: applePayError, paymentMethod: applePayPaymentMethod } = await presentApplePay({
-          cartItems,
-          country: 'GB',
-          currency: 'GBP',
-          requiredShippingAddressFields: deliveryAddress ? [] : ['all'],
-        });
-
-        if (applePayError) {
-          throw new Error(applePayError.message || 'Apple Pay payment failed');
-        }
-
-        if (!applePayPaymentMethod) {
-          throw new Error('Apple Pay payment method not returned');
-        }
-
-        // Confirm payment with Apple Pay payment method
-        if (!confirmPayment) {
-          throw new Error("Stripe confirmPayment is not available");
-        }
-
-        // Confirm payment intent with the Apple Pay payment method
-        const { error: confirmError, paymentIntent: confirmedIntent } = await confirmPayment(
-          clientSecret,
-          {
-            paymentMethodType: 'ApplePay',
-            paymentMethodId: applePayPaymentMethod.id,
+          if (applePayError) {
+            throw new Error(applePayError.message || 'Apple Pay payment failed');
           }
-        );
 
-        if (confirmError) {
-          throw new Error(confirmError.message || 'Payment confirmation failed');
-        }
-
-        confirmedPaymentIntent = confirmedIntent;
-      } else if (selectedPaymentMethod?.id) {
-        // Card payment flow - payment method already attached to payment intent
-        if (!confirmPayment) {
-          throw new Error("Stripe confirmPayment is not available");
-        }
-
-        const { error: confirmError, paymentIntent: confirmedIntent } = await confirmPayment(
-          clientSecret,
-          undefined // Payment method already attached, no options needed
-        );
-
-        if (confirmError) {
-          throw new Error(confirmError.message || 'Payment confirmation failed');
-        }
-
-        confirmedPaymentIntent = confirmedIntent;
-      } else {
-        // No payment method selected - fallback to card collection
-        if (!confirmPayment) {
-          throw new Error("Stripe confirmPayment is not available");
-        }
-
-        const { error: confirmError, paymentIntent: confirmedIntent } = await confirmPayment(
-          clientSecret,
-          {
-            paymentMethodType: 'Card',
+          if (!applePayPaymentMethod) {
+            throw new Error('Apple Pay payment method not returned');
           }
-        );
 
-        if (confirmError) {
-          throw new Error(confirmError.message || 'Payment confirmation failed');
+          // Confirm payment with Apple Pay payment method
+          if (!confirmPayment) {
+            throw new Error("Stripe confirmPayment is not available");
+          }
+
+          // Confirm payment intent with the Apple Pay payment method
+          const { error: confirmError, paymentIntent: confirmedIntent } = await confirmPayment(
+            clientSecret,
+            {
+              paymentMethodType: 'ApplePay',
+              paymentMethodId: applePayPaymentMethod.id,
+            }
+          );
+
+          if (confirmError) {
+            throw new Error(confirmError.message || 'Payment confirmation failed');
+          }
+
+          confirmedPaymentIntent = confirmedIntent;
+        } else if (selectedPaymentMethod?.id) {
+          // Card payment flow - payment method already attached to payment intent
+          if (!confirmPayment) {
+            throw new Error("Stripe confirmPayment is not available");
+          }
+
+          const { error: confirmError, paymentIntent: confirmedIntent } = await confirmPayment(
+            clientSecret,
+            undefined // Payment method already attached, no options needed
+          );
+
+          if (confirmError) {
+            throw new Error(confirmError.message || 'Payment confirmation failed');
+          }
+
+          confirmedPaymentIntent = confirmedIntent;
+        } else {
+          // No payment method selected - fallback to card collection
+          if (!confirmPayment) {
+            throw new Error("Stripe confirmPayment is not available");
+          }
+
+          const { error: confirmError, paymentIntent: confirmedIntent } = await confirmPayment(
+            clientSecret,
+            {
+              paymentMethodType: 'Card',
+            }
+          );
+
+          if (confirmError) {
+            throw new Error(confirmError.message || 'Payment confirmation failed');
+          }
+
+          confirmedPaymentIntent = confirmedIntent;
         }
 
-        confirmedPaymentIntent = confirmedIntent;
-      }
-
-      // Verify payment was successful
-      if (!confirmedPaymentIntent || confirmedPaymentIntent.status !== 'Succeeded') {
-        throw new Error(`Payment not completed. Status: ${confirmedPaymentIntent?.status || 'unknown'}`);
+        // Verify payment was successful
+        if (!confirmedPaymentIntent || confirmedPaymentIntent.status !== 'Succeeded') {
+          throw new Error(`Payment not completed. Status: ${confirmedPaymentIntent?.status || 'unknown'}`);
+        }
       }
 
       // Step 3: Get discount info from storage
@@ -339,20 +341,21 @@ export default function PaymentScreen({
       // Step 4: Create order from cart after payment
       // Use note from props, storage, or empty string
       const finalSpecialInstructions = specialInstructions || cartOrderNote || undefined;
-      
+
       const orderResult = await createOrderFromCart({
-        payment_intent_id: paymentIntentId,
+        payment_intent_id: selectedPaymentMethod?.id === 'pay_for_me' ? undefined : paymentIntentId,
+        payment_method: selectedPaymentMethod?.id === 'pay_for_me' ? 'pay_for_me' : 'card',
         delivery_address: deliveryAddress
           ? {
-              street: deliveryAddress.street,
-              city: deliveryAddress.city,
-              state: "", // Not provided in props
-              postal_code: deliveryAddress.postcode,
-              country: deliveryAddress.country,
-            }
+            street: deliveryAddress.street,
+            city: deliveryAddress.city,
+            postcode: deliveryAddress.postcode,
+            country: deliveryAddress.country,
+          }
           : undefined,
         special_instructions: finalSpecialInstructions,
         nosh_points_applied: noshPointsApplied,
+        gameDebtId: selectedPaymentMethod?.id === 'redeem_game' ? (selectedPaymentMethod as any).debtId : undefined,
       });
 
       if (!orderResult || !orderResult.order_id) {
@@ -393,7 +396,11 @@ export default function PaymentScreen({
         onPaymentSuccess(orderId);
       } else {
         // Default navigation if no handler provided
-        router.push(`/orders/cart/success?order_id=${orderId}`);
+        if (selectedPaymentMethod?.id === 'pay_for_me') {
+          router.push(`/orders/payment-request?order_id=${orderId}` as any);
+        } else {
+          router.push(`/orders/cart/success?order_id=${orderId}` as any);
+        }
       }
     } catch (error: any) {
       console.error("Payment processing error:", error);
@@ -438,7 +445,7 @@ export default function PaymentScreen({
       try {
         const convex = getConvexClient();
         const sessionToken = await getSessionToken();
-        
+
         if (!sessionToken) {
           setHasCheckedOfflineChefs(true);
           return;
@@ -543,8 +550,8 @@ export default function PaymentScreen({
                   {isCheckingRegion
                     ? "Checking delivery availability..."
                     : paymentStatus === "pending_confirmation"
-                    ? "Preparing your order..."
-                    : "Processing Payment"}
+                      ? "Preparing your order..."
+                      : "Processing Payment"}
                 </Text>
                 <Text style={styles.amountValue}>£{displayTotal.toFixed(2)}</Text>
               </>
