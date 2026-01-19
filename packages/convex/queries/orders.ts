@@ -627,6 +627,37 @@ export const getUserCartBySessionToken = query({
   },
 });
 
+// Get order by payment link token (Public access for payer)
+export const getOrderByPaymentToken = query({
+  args: {
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // No auth check required - this is public so payers can see what they are paying for
+    // However, we should limit the data returned to avoid leaking sensitive info
+
+    if (!args.token) return null;
+
+    const order = await ctx.db
+      .query('orders')
+      .withIndex('by_payment_link_token', (q) => q.eq('payment_link_token', args.token))
+      .first();
+
+    if (!order) return null;
+
+    // Return limited details
+    return {
+      _id: order._id,
+      order_id: order.order_id,
+      payment_status: order.payment_status,
+      total_amount: order.total_amount,
+      items: order.order_items,
+      createdAt: order.createdAt,
+      // Do NOT return customer_id, address, phone, etc.
+    };
+  },
+});
+
 // Get enriched order by session token and order ID (for reactive order details in mobile app)
 export const getEnrichedOrderBySessionToken = query({
   args: {

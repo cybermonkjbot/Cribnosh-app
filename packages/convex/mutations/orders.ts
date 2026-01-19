@@ -386,7 +386,7 @@ const createOrderWithPaymentHandler = async (ctx: any, args: any): Promise<any> 
   // Calculate final total (subtotal - points discount - offer discount)
   const finalTotal = Math.max(0, subtotal - pointsDiscountAmount - discountAmount);
 
-  const paymentLinkToken = args.payment_method === 'pay_for_me'
+  const paymentLinkToken = (args.payment_method === 'pay_for_me' || args.gameDebtId)
     ? Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
     : undefined;
 

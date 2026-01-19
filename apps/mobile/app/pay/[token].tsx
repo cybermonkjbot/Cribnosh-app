@@ -2,11 +2,12 @@
 import { Mascot } from "@/components/Mascot";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { api } from "@/convex/_generated/api";
+import { getSessionToken } from '@/lib/convexClient';
 import { getAbsoluteImageUrl } from "@/utils/imageUrl";
 import Entypo from "@expo/vector-icons/Entypo";
 import Feather from "@expo/vector-icons/Feather";
 import { useStripe } from "@stripe/stripe-react-native";
-import { useAction, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Utensils } from "lucide-react-native";
 import { useState } from "react";
@@ -40,6 +41,8 @@ export default function PayForOrderScreen() {
     // Action to initiate payment
     // Note: Assuming api.actions.payer.payForOrder exists (auto-generated)
     const payForOrder = useAction(api.actions.payer.payForOrder);
+    // Mutation to mark as paid immediately (backup to webhook)
+    const markPaid = useMutation(api.mutations.orders.markPaid);
 
     const handlePay = async () => {
         if (!order) return;
@@ -52,24 +55,14 @@ export default function PayForOrderScreen() {
         setIsProcessing(true);
         try {
             // 1. Initiate backend payment
+            const sessionToken = await getSessionToken();
+            if (!sessionToken) {
+                // Should be caught by !isAuthenticated check above, but for safety
+                throw new Error("Failed to retrieve session token");
+            }
+
             const result = await payForOrder({
-                // @ts-ignore - sessionToken handled by Convex Client but we might need to pass it explicitly 
-                // depending on how useAction wraps it. usually it's automatic for queries/mutations 
-                // but for actions sometimes we custom pass. 
-                // Wait, useAction wrapper usually handles args. 
-                // Actually, our backend expects sessionToken. 
-                // We'll need to fetch it or rely on the auth context providing it?
-                // For now let's assume useAction doesn't auto-inject sessionToken into args if defined in args.
-                // We might need to get it from AuthContext or helper.
-                // Let's import getSessionToken helper if available.
-                // But for simplicity in this file replacement, I'll pass a placeholder or try to get it.
-                // Actually, standard Convex `useAction` passes arguments directly. 
-                // My backend `payer.ts` expects `sessionToken`.
-                // I need to get it.
-                sessionToken: "", // TODO: Get actual token. Currently using empty string to satisfy TS if possible, but it will fail.
-                // Better approach: Let's assume we can get it or the backend can infer user from ctx.auth if configured.
-                // But my backend code used `getUserBySessionToken` so it needs the string.
-                // I will update this file to import `getSessionToken` from `@/lib/convexClient`
+                sessionToken,
                 orderId: order._id,
             });
 
@@ -90,6 +83,10 @@ export default function PayForOrderScreen() {
             }
 
             if (paymentIntent?.status === 'Succeeded') {
+                await markPaid({
+                    order_id: order.order_id,
+                    paymentIntentId: paymentIntent.id
+                });
                 Alert.alert("Success", "Payment confirmed!");
                 router.replace("/");
             }

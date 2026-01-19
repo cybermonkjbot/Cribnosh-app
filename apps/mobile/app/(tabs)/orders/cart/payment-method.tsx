@@ -206,6 +206,13 @@ export default function PaymentMethodSelection() {
       isDefault: false,
       isPayForMe: true,
     },
+    {
+      id: "stripe_sheet",
+      name: "Buy Now Pay Later / Other",
+      icon: null,
+      description: "Klarna, Afterpay, and more",
+      isDefault: false,
+    },
     // Add Game Debt Redemption Option
     ...(gameDebts && gameDebts.length > 0 ? [{
       id: "redeem_game",
@@ -247,6 +254,7 @@ export default function PaymentMethodSelection() {
       else if (selectedMethod.id === "apple") iconType = "apple";
       else if (selectedMethod.id === "pay_for_me") iconType = "pay_for_me";
       else if (selectedMethod.id === "redeem_game") iconType = "redeem_game";
+      else if (selectedMethod.id === "stripe_sheet") iconType = "stripe_sheet";
 
       await SecureStore.setItemAsync(
         PAYMENT_METHOD_STORAGE_KEY,
@@ -383,6 +391,15 @@ export default function PaymentMethodSelection() {
       return (
         <View style={[styles.payForMeIconContainer, { backgroundColor: '#DCFCE7' }]}>
           <Feather name="gift" size={16} color="#15803D" />
+        </View>
+      );
+    }
+
+    // Icon for Stripe Payment Sheet (BNPL / Other)
+    if (method.id === "stripe_sheet") {
+      return (
+        <View style={[styles.payForMeIconContainer, { backgroundColor: '#F3F4F6' }]}>
+          <Feather name="credit-card" size={16} color="#4B5563" />
         </View>
       );
     }
