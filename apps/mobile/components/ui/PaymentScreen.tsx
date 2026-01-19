@@ -172,8 +172,41 @@ export default function PaymentScreen({
         }
       }
 
-      // Step 1: Create payment intent from cart
-      const paymentIntent = await createCheckout();
+      // Step 1: Create payment intent from cart with fulfillment details
+      const storedPaymentMethodStr = await SecureStore.getItemAsync(PAYMENT_METHOD_STORAGE_KEY);
+      let selectedPM: { id?: string } | null = null;
+      if (storedPaymentMethodStr) {
+        try {
+          selectedPM = JSON.parse(storedPaymentMethodStr);
+        } catch (e) { }
+      }
+
+      // Get nosh points applied from storage if available
+      let noshPoints: number | undefined = undefined;
+      try {
+        const discountInfoStr = await SecureStore.getItemAsync('cart_discount_info');
+        if (discountInfoStr) {
+          const discountInfo = JSON.parse(discountInfoStr);
+          if (discountInfo.type === 'nosh_pass' && discountInfo.pointsAmount) {
+            noshPoints = discountInfo.pointsAmount;
+          }
+        }
+      } catch (e) { }
+
+      const paymentIntent = await createCheckout({
+        delivery_address: deliveryAddress
+          ? {
+            street: deliveryAddress.street,
+            city: deliveryAddress.city,
+            postcode: deliveryAddress.postcode,
+            country: deliveryAddress.country,
+          }
+          : undefined,
+        special_instructions: specialInstructions || cartOrderNote || undefined,
+        nosh_points_applied: noshPoints,
+        gameDebtId: selectedPM?.id === 'redeem_game' ? (selectedPM as any).debtId : undefined,
+        payment_method: selectedPM?.id,
+      });
 
       if (!paymentIntent || !paymentIntent.id) {
         throw new Error("Failed to create payment intent");

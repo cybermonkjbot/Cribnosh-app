@@ -109,7 +109,7 @@ export default function RootLayout() {
         if (update.isAvailable) {
           // Fetch the update in the background
           await Updates.fetchUpdateAsync();
-          
+
           if (!isMounted) {
             return;
           }
@@ -250,70 +250,70 @@ export default function RootLayout() {
             <Stack>
               <Stack.Screen name="index" options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen 
-                name="shared-ordering" 
-                options={{ 
+              <Stack.Screen
+                name="shared-ordering"
+                options={{
                   headerShown: false,
                   presentation: 'modal',
                   animation: 'slide_from_bottom',
                   gestureEnabled: true,
-                }} 
+                }}
               />
               <Stack.Screen name="shared-link" options={{ headerShown: false }} />
-              <Stack.Screen 
-                name="sign-in" 
-                options={{ 
+              <Stack.Screen
+                name="sign-in"
+                options={{
                   headerShown: false,
                   // Presentation and gesture options are set dynamically in sign-in.tsx based on notDismissable param
-                }} 
+                }}
               />
-              <Stack.Screen 
-                name="event-chef-request" 
-                options={{ 
+              <Stack.Screen
+                name="event-chef-request"
+                options={{
                   headerShown: false,
                   presentation: 'modal',
                   animation: 'slide_from_bottom',
-                }} 
+                }}
               />
-              <Stack.Screen 
-                name="nosh-heaven" 
-                options={{ 
+              <Stack.Screen
+                name="nosh-heaven"
+                options={{
                   headerShown: false,
                   presentation: 'fullScreenModal',
                   animation: 'slide_from_bottom',
                   gestureEnabled: true,
-                }} 
+                }}
               />
-              <Stack.Screen 
-                name="claim-offer" 
-                options={{ 
+              <Stack.Screen
+                name="claim-offer"
+                options={{
                   headerShown: false,
                   presentation: 'modal',
                   animation: 'slide_from_bottom',
                   gestureEnabled: true,
-                }} 
+                }}
               />
-              <Stack.Screen 
-                name="payment-settings" 
-                options={{ 
+              <Stack.Screen
+                name="payment-settings"
+                options={{
                   headerShown: false,
-                }} 
+                }}
               />
-              <Stack.Screen 
-                name="select-address" 
-                options={{ 
+              <Stack.Screen
+                name="select-address"
+                options={{
                   headerShown: false,
                   presentation: 'modal',
                   animation: 'slide_from_bottom',
                   gestureEnabled: true,
-                }} 
+                }}
               />
               <Stack.Screen name="+not-found" />
             </Stack>
-            <StatusBar 
+            <StatusBar
               translucent={Platform.OS === 'android' ? true : undefined}
               backgroundColor={Platform.OS === 'android' ? 'transparent' : undefined}
-              barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} 
+              barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
             />
           </ThemeProvider>
         </BottomSheetModalProvider>
@@ -332,7 +332,7 @@ export default function RootLayout() {
       isExpoGo,
       willWrap: !!(StripeProvider && STRIPE_CONFIG.publishableKey),
     });
-    
+
     if (!STRIPE_CONFIG.publishableKey) {
       console.error('❌ STRIPE_CONFIG.publishableKey is empty! Stripe features will not work.');
       console.error('   Check: apps/mobile/.env has EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY set');
@@ -340,14 +340,14 @@ export default function RootLayout() {
   }
 
   // Ensure publishable key is valid before wrapping
-  const isValidKey = STRIPE_CONFIG.publishableKey && 
+  const isValidKey = STRIPE_CONFIG.publishableKey &&
     (STRIPE_CONFIG.publishableKey.startsWith('pk_test_') || STRIPE_CONFIG.publishableKey.startsWith('pk_live_'));
-  
+
   const wrappedContent = StripeProvider && isValidKey ? (
-    <StripeProvider 
+    <StripeProvider
       publishableKey={STRIPE_CONFIG.publishableKey}
       merchantIdentifier="merchant.com.cribnosh.co.uk"
-      urlScheme="cribnosh" // Required for 3D Secure and redirects
+      urlScheme="cribnoshapp" // Required for 3D Secure and redirects
       threeDSecureParams={{
         timeout: 5,
       }}
@@ -357,7 +357,7 @@ export default function RootLayout() {
   ) : (
     appContent
   );
-  
+
   // Log warning if StripeProvider is not wrapping content
   if (__DEV__ && (!StripeProvider || !isValidKey)) {
     if (!StripeProvider) {

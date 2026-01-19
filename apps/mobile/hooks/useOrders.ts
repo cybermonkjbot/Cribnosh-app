@@ -1,117 +1,84 @@
+import { useAuthContext } from '@/contexts/AuthContext';
 import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
-import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { useCallback, useState } from 'react';
+import { getConvexClient } from '@/lib/convexClient';
+import { useQuery } from 'convex/react';
+import { useCallback, useMemo, useState } from 'react';
 
-export const useOrders = () => {
+export const useOrders = (params?: {
+  status?: 'ongoing' | 'past' | 'all';
+  order_type?: 'individual' | 'group' | 'all';
+  limit?: number;
+  page?: number;
+}) => {
   const { showToast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const { token, isAuthenticated } = useAuthContext();
+  const [isActionLoading, setIsActionLoading] = useState(false);
+
+  // Reactive orders query
+  const ordersQuery = useQuery(
+    api.queries.orders.getEnrichedOrdersBySessionToken,
+    token ? {
+      sessionToken: token,
+      status: params?.status || 'all',
+      order_type: params?.order_type || 'all',
+      limit: params?.limit || 20,
+      page: params?.page || 1,
+    } : "skip"
+  );
+
+  const orders = useMemo(() => ordersQuery?.orders || [], [ordersQuery]);
+  const totalOrders = ordersQuery?.total || 0;
+  const isOrdersLoading = ordersQuery === undefined;
 
   const getOrders = useCallback(
-    async (params?: {
-      page?: number;
-      limit?: number;
-      status?: 'ongoing' | 'past' | 'all';
-      order_type?: 'individual' | 'group' | 'all';
-    }) => {
+    async (overrideParams?: typeof params) => {
       try {
-        setIsLoading(true);
-        const sessionToken = await getSessionToken();
-        if (!sessionToken) {
-          showToast('Please log in to view your orders', 'error');
-          return null;
-        }
+        if (!token) return { success: false, error: 'Not authenticated' };
 
         const convex = getConvexClient();
-        const result = await convex.action(api.actions.orders.customerGetOrders, {
-          sessionToken,
-          page: params?.page,
-          limit: params?.limit,
-          status: params?.status || 'all',
-          order_type: params?.order_type || 'all',
+        const result = await convex.query(api.queries.orders.getEnrichedOrdersBySessionToken, {
+          sessionToken: token,
+          status: overrideParams?.status || params?.status || 'all',
+          order_type: overrideParams?.order_type || params?.order_type || 'all',
+          limit: overrideParams?.limit || params?.limit || 20,
+          page: overrideParams?.page || params?.page || 1,
         });
-
-        if (!result.success) {
-          showToast(result.error || 'Failed to get orders', 'error');
-          return null;
-        }
 
         return result;
       } catch (error: any) {
         const errorMessage = error?.message || 'Failed to get orders';
         showToast(errorMessage, 'error');
         return null;
-      } finally {
-        setIsLoading(false);
       }
     },
-    [showToast]
+    [token, params, showToast]
   );
 
   const getOrder = useCallback(
     async (orderId: string) => {
       try {
-        setIsLoading(true);
-        const sessionToken = await getSessionToken();
-        if (!sessionToken) {
-          showToast('Please log in to view order details', 'error');
-          return null;
-        }
-
+        if (!token) return null;
         const convex = getConvexClient();
-        const result = await convex.action(api.actions.orders.customerGetOrder, {
-          sessionToken,
+        const result = await convex.query(api.queries.orders.getEnrichedOrderBySessionToken, {
+          sessionToken: token,
           order_id: orderId,
         });
-
-        if (!result.success) {
-          showToast(result.error || 'Failed to get order', 'error');
-          return null;
-        }
-
-        return result.order;
+        return result;
       } catch (error: any) {
         const errorMessage = error?.message || 'Failed to get order';
         showToast(errorMessage, 'error');
         return null;
-      } finally {
-        setIsLoading(false);
       }
     },
-    [showToast]
+    [token, showToast]
   );
 
   const getOrderStatus = useCallback(
     async (orderId: string) => {
-      try {
-        setIsLoading(true);
-        const sessionToken = await getSessionToken();
-        if (!sessionToken) {
-          showToast('Please log in to view order status', 'error');
-          return null;
-        }
-
-        const convex = getConvexClient();
-        const result = await convex.action(api.actions.orders.customerGetOrderStatus, {
-          sessionToken,
-          order_id: orderId,
-        });
-
-        if (!result.success) {
-          showToast(result.error || 'Failed to get order status', 'error');
-          return null;
-        }
-
-        return result.order;
-      } catch (error: any) {
-        const errorMessage = error?.message || 'Failed to get order status';
-        showToast(errorMessage, 'error');
-        return null;
-      } finally {
-        setIsLoading(false);
-      }
+      return getOrder(orderId);
     },
-    [showToast]
+    [getOrder]
   );
 
   const createOrder = useCallback(
@@ -130,16 +97,15 @@ export const useOrders = () => {
       payment_method?: string;
     }) => {
       try {
-        setIsLoading(true);
-        const sessionToken = await getSessionToken();
-        if (!sessionToken) {
+        setIsActionLoading(true);
+        if (!token) {
           showToast('Please log in to create an order', 'error');
           return null;
         }
 
         const convex = getConvexClient();
         const result = await convex.action(api.actions.orders.customerCreateOrder, {
-          sessionToken,
+          sessionToken: token,
           chef_id: data.chef_id,
           order_items: data.order_items,
           special_instructions: data.special_instructions,
@@ -160,10 +126,10 @@ export const useOrders = () => {
         showToast(errorMessage, 'error');
         return null;
       } finally {
-        setIsLoading(false);
+        setIsActionLoading(false);
       }
     },
-    [showToast]
+    [showToast, token]
   );
 
   const createOrderFromCart = useCallback(
@@ -178,14 +144,13 @@ export const useOrders = () => {
       };
       special_instructions?: string;
       delivery_time?: string;
-      nosh_points_applied?: number; // Nosh Points applied for discount
+      nosh_points_applied?: number;
       payment_method?: string;
       gameDebtId?: string;
     }) => {
       try {
-        setIsLoading(true);
-        const sessionToken = await getSessionToken();
-        if (!sessionToken) {
+        setIsActionLoading(true);
+        if (!token) {
           const errorMsg = 'Please log in to create an order';
           showToast(errorMsg, 'error');
           throw new Error(errorMsg);
@@ -193,7 +158,7 @@ export const useOrders = () => {
 
         const convex = getConvexClient();
         const result = await convex.action(api.actions.orders.customerCreateOrderFromCart, {
-          sessionToken,
+          sessionToken: token,
           payment_intent_id: data.payment_intent_id,
           delivery_address: data.delivery_address,
           special_instructions: data.special_instructions,
@@ -212,10 +177,7 @@ export const useOrders = () => {
         showToast('Order created successfully', 'success');
         return result;
       } catch (error: any) {
-        // If we threw this error ourselves, toast was already shown
-        // For unexpected errors (network, etc.), show toast
         const errorMessage = error?.message || 'Failed to create order from cart';
-        // Only show toast if this is an unexpected error (not one we threw)
         const isExpectedError = errorMessage === 'Please log in to create an order' ||
           errorMessage.includes('Failed to create order from cart') ||
           errorMessage.includes('Oops, We do not serve this region') ||
@@ -226,27 +188,26 @@ export const useOrders = () => {
         if (!isExpectedError) {
           showToast(errorMessage, 'error');
         }
-        throw error; // Re-throw so caller can handle it
+        throw error;
       } finally {
-        setIsLoading(false);
+        setIsActionLoading(false);
       }
     },
-    [showToast]
+    [showToast, token]
   );
 
   const cancelOrder = useCallback(
     async (orderId: string, reason?: string, refundPreference?: 'full_refund' | 'partial_refund' | 'credit') => {
       try {
-        setIsLoading(true);
-        const sessionToken = await getSessionToken();
-        if (!sessionToken) {
+        setIsActionLoading(true);
+        if (!token) {
           showToast('Please log in to cancel an order', 'error');
           return false;
         }
 
         const convex = getConvexClient();
         const result = await convex.action(api.actions.orders.customerCancelOrder, {
-          sessionToken,
+          sessionToken: token,
           order_id: orderId,
           reason,
           refund_preference: refundPreference,
@@ -264,10 +225,10 @@ export const useOrders = () => {
         showToast(errorMessage, 'error');
         return false;
       } finally {
-        setIsLoading(false);
+        setIsActionLoading(false);
       }
     },
-    [showToast]
+    [showToast, token]
   );
 
   const rateOrder = useCallback(
@@ -283,16 +244,15 @@ export const useOrders = () => {
       };
     }) => {
       try {
-        setIsLoading(true);
-        const sessionToken = await getSessionToken();
-        if (!sessionToken) {
+        setIsActionLoading(true);
+        if (!token) {
           showToast('Please log in to rate an order', 'error');
           return null;
         }
 
         const convex = getConvexClient();
         const result = await convex.action(api.actions.orders.customerRateOrder, {
-          sessionToken,
+          sessionToken: token,
           order_id: data.order_id,
           rating: data.rating,
           review: data.review,
@@ -311,80 +271,51 @@ export const useOrders = () => {
         showToast(errorMessage, 'error');
         return null;
       } finally {
-        setIsLoading(false);
+        setIsActionLoading(false);
       }
     },
-    [showToast]
+    [showToast, token]
   );
 
   const getRecentDishes = useCallback(
     async (limit?: number) => {
       try {
-        setIsLoading(true);
-        const sessionToken = await getSessionToken();
-        if (!sessionToken) {
-          showToast('Please log in to view recent dishes', 'error');
-          return null;
-        }
-
+        if (!token) return null;
         const convex = getConvexClient();
         const result = await convex.action(api.actions.orders.customerGetRecentDishes, {
-          sessionToken,
+          sessionToken: token,
           limit,
         });
-
-        if (!result.success) {
-          showToast(result.error || 'Failed to get recent dishes', 'error');
-          return null;
-        }
-
         return result;
       } catch (error: any) {
-        const errorMessage = error?.message || 'Failed to get recent dishes';
-        showToast(errorMessage, 'error');
         return null;
-      } finally {
-        setIsLoading(false);
       }
     },
-    [showToast]
+    [token]
   );
 
   const getUsualDinnerItems = useCallback(
     async (limit?: number, timeRange?: 'week' | 'month' | 'all') => {
       try {
-        setIsLoading(true);
-        const sessionToken = await getSessionToken();
-        if (!sessionToken) {
-          showToast('Please log in to view usual dinner items', 'error');
-          return null;
-        }
-
+        if (!token) return null;
         const convex = getConvexClient();
         const result = await convex.action(api.actions.orders.customerGetUsualDinnerItems, {
-          sessionToken,
+          sessionToken: token,
           limit,
           time_range: timeRange,
         });
-
-        if (!result.success) {
-          showToast(result.error || 'Failed to get usual dinner items', 'error');
-          return null;
-        }
-
         return result;
       } catch (error: any) {
-        const errorMessage = error?.message || 'Failed to get usual dinner items';
-        showToast(errorMessage, 'error');
         return null;
-      } finally {
-        setIsLoading(false);
       }
     },
-    [showToast]
+    [token]
   );
 
   return {
+    orders,
+    totalOrders,
+    isOrdersLoading,
     getOrders,
     getOrder,
     getOrderStatus,
@@ -394,7 +325,8 @@ export const useOrders = () => {
     rateOrder,
     getRecentDishes,
     getUsualDinnerItems,
-    isLoading,
+    isLoading: isActionLoading || isOrdersLoading,
+    isActionLoading,
   };
 };
 

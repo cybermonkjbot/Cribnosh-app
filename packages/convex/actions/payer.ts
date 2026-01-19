@@ -43,12 +43,15 @@ async function getStripeCustomerId(ctx: any, userId: Id<'users'>, email: string)
 /**
  * Pay for an existing order (Authenticated Payer)
  */
+// @ts-expect-error - Type instantiation is excessively deep due to large schema
 export const payForOrder = action({
+    // @ts-ignore
     args: {
         sessionToken: v.string(),
         orderId: v.id("orders"),
         payment_method_id: v.optional(v.string()), // Optional, if using a saved card ID
     },
+    // @ts-ignore
     returns: v.union(
         v.object({
             success: v.literal(true),
@@ -59,6 +62,7 @@ export const payForOrder = action({
             error: v.string(),
         })
     ),
+    // @ts-ignore
     handler: async (ctx, args) => {
         try {
             // 1. Authenticate User

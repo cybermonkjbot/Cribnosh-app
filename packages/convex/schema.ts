@@ -267,6 +267,31 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_created", ["createdAt"]),
 
+  // Pending Orders table for Stripe reconciliation
+  pendingOrders: defineTable({
+    paymentIntentId: v.string(),
+    userId: v.id("users"),
+    cartItemsSnapshot: v.array(v.object({
+      dish_id: v.id("meals"),
+      quantity: v.number(),
+      price: v.number(),
+      name: v.string(),
+    })),
+    deliveryAddress: v.optional(v.object({
+      street: v.string(),
+      city: v.string(),
+      postcode: v.string(),
+      country: v.string(),
+    })),
+    specialInstructions: v.optional(v.string()),
+    noshPointsApplied: v.optional(v.number()),
+    gameDebtId: v.optional(v.string()),
+    payment_method: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_payment_intent", ["paymentIntentId"])
+    .index("by_user", ["userId"]),
+
   // Live session orders
   liveOrders: defineTable({
     orderId: v.id("orders"),
@@ -1368,7 +1393,8 @@ export default defineSchema({
     .index("by_order_id", ["order_id"])
     .index("by_refund_eligible", ["is_refundable", "refund_eligible_until"])
     .index("by_group_order", ["group_order_id"])
-    .index("by_payment_link_token", ["payment_link_token"]),
+    .index("by_payment_link_token", ["payment_link_token"])
+    .index("by_payment_id", ["payment_id"]),
 
   // Group Orders table
   group_orders: defineTable({

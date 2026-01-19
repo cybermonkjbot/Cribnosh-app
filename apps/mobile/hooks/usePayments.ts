@@ -1,7 +1,7 @@
-import { useCallback, useState } from 'react';
+import { api } from '@/convex/_generated/api';
 import { useToast } from '@/lib/ToastContext';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
-import { api } from '@/convex/_generated/api';
+import { useCallback, useState } from 'react';
 
 export const usePayments = () => {
   const { showToast } = useToast();
@@ -122,7 +122,18 @@ export const usePayments = () => {
   );
 
   const createCheckout = useCallback(
-    async () => {
+    async (data?: {
+      delivery_address?: {
+        street: string;
+        city: string;
+        postcode: string;
+        country: string;
+      };
+      special_instructions?: string;
+      nosh_points_applied?: number;
+      gameDebtId?: string;
+      payment_method?: string;
+    }) => {
       try {
         setIsLoading(true);
         const sessionToken = await getSessionToken();
@@ -134,6 +145,11 @@ export const usePayments = () => {
         const convex = getConvexClient();
         const result = await convex.action(api.actions.payments.customerCreateCheckout, {
           sessionToken,
+          delivery_address: data?.delivery_address,
+          special_instructions: data?.special_instructions,
+          nosh_points_applied: data?.nosh_points_applied,
+          gameDebtId: data?.gameDebtId,
+          payment_method: data?.payment_method,
         });
 
         if (!result.success) {

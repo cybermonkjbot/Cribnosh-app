@@ -4,6 +4,7 @@ import { Id } from '../_generated/dataModel';
 import { query } from '../_generated/server';
 import { getAuthenticatedUser, isAdmin, isStaff, requireAuth } from '../utils/auth';
 
+// @ts-ignore: Type instantiation is excessively deep
 export const listByChef = query({
   args: {
     chef_id: v.string(),
@@ -31,7 +32,7 @@ export const listByChef = query({
     if (!chef) {
       chef = await ctx.db
         .query('chefs')
-        .filter(q => q.eq(q.field('userId'), args.chef_id))
+        .filter((q: any) => q.eq(q.field('userId'), args.chef_id))
         .first();
     }
 
@@ -52,11 +53,11 @@ export const listByChef = query({
     // Fetch orders filtered by chef_id (using the actual chef._id)
     const allOrders = await ctx.db
       .query('orders')
-      .filter(q => q.eq(q.field('chef_id'), chef._id))
+      .filter((q: any) => q.eq(q.field('chef_id'), chef._id))
       .collect();
 
     // Sort by createdAt desc (newest first)
-    allOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    allOrders.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
 
     // Apply pagination
     if (limit !== undefined) {
@@ -68,6 +69,7 @@ export const listByChef = query({
   },
 });
 
+// @ts-ignore: Type instantiation is excessively deep
 export const getById = query({
   args: {
     order_id: v.string(),
@@ -77,7 +79,7 @@ export const getById = query({
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
 
-    const order = await ctx.db.query('orders').filter(q => q.eq(q.field('order_id'), args.order_id)).first();
+    const order = await ctx.db.query('orders').filter((q: any) => q.eq(q.field('order_id'), args.order_id)).first();
     if (!order) return null;
 
     // Only allow if user is admin/staff, or if they are the customer
@@ -95,6 +97,7 @@ export const getById = query({
 });
 
 // Get order by ID
+// @ts-ignore: Type instantiation is excessively deep
 export const getOrderById = query({
   args: {
     orderId: v.string(),
@@ -104,7 +107,7 @@ export const getOrderById = query({
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
 
-    const order = await ctx.db.query('orders').filter(q => q.eq(q.field('order_id'), args.orderId)).first();
+    const order = await ctx.db.query('orders').filter((q: any) => q.eq(q.field('order_id'), args.orderId)).first();
     if (!order) return null;
 
     // Only allow if user is admin/staff, or if they are the customer
@@ -122,6 +125,7 @@ export const getOrderById = query({
 });
 
 // Get orders with refund eligibility information
+// @ts-ignore: Type instantiation is excessively deep
 export const getOrdersWithRefundEligibility = query({
   args: {
     customerId: v.optional(v.id('users')),
@@ -203,7 +207,7 @@ export const getOrdersWithRefundEligibility = query({
     const allOrders = await query.collect();
 
     // Sort by creation date (newest first) and apply pagination
-    const sortedOrders = allOrders.sort((a, b) => b.createdAt - a.createdAt);
+    const sortedOrders = allOrders.sort((a: any, b: any) => b.createdAt - a.createdAt);
     const startIndex = args.offset;
     const endIndex = startIndex + args.limit;
 
@@ -212,6 +216,7 @@ export const getOrdersWithRefundEligibility = query({
 });
 
 // Get refund eligibility summary statistics
+// @ts-ignore: Type instantiation is excessively deep
 export const getRefundEligibilitySummary = query({
   args: {
     customerId: v.optional(v.id('users')),
@@ -242,7 +247,7 @@ export const getRefundEligibilitySummary = query({
     let baseQuery = ctx.db.query('orders');
 
     if (args.customerId) {
-      baseQuery = baseQuery.filter(q => q.eq(q.field('customer_id'), args.customerId));
+      baseQuery = baseQuery.filter((q: any) => q.eq(q.field('customer_id'), args.customerId));
     }
 
     const allOrders = await baseQuery.collect();
@@ -261,7 +266,7 @@ export const getRefundEligibilitySummary = query({
       ready: 0
     };
 
-    allOrders.forEach(order => {
+    allOrders.forEach((order: any) => {
       // Count by status
       if (order.order_status) {
         summary[order.order_status as keyof typeof summary]++;
@@ -282,6 +287,7 @@ export const getRefundEligibilitySummary = query({
 });
 
 // Get order history
+// @ts-ignore: Type instantiation is excessively deep
 export const getOrderHistory = query({
   args: {
     orderId: v.id('orders'),
@@ -289,7 +295,7 @@ export const getOrderHistory = query({
   handler: async (ctx, args) => {
     const history = await ctx.db
       .query('orderHistory')
-      .filter(q => q.eq(q.field('order_id'), args.orderId))
+      .filter((q: any) => q.eq(q.field('order_id'), args.orderId))
       .order('desc')
       .collect();
 
@@ -298,6 +304,7 @@ export const getOrderHistory = query({
 });
 
 // Get order notes
+// @ts-ignore: Type instantiation is excessively deep
 export const getOrderNotes = query({
   args: {
     orderId: v.id('orders'),
@@ -305,7 +312,7 @@ export const getOrderNotes = query({
   handler: async (ctx, args) => {
     const notes = await ctx.db
       .query('orderNotes')
-      .filter(q => q.eq(q.field('order_id'), args.orderId))
+      .filter((q: any) => q.eq(q.field('order_id'), args.orderId))
       .order('desc')
       .collect();
 
@@ -314,6 +321,7 @@ export const getOrderNotes = query({
 });
 
 // Get order notifications
+// @ts-ignore: Type instantiation is excessively deep
 export const getOrderNotifications = query({
   args: {
     orderId: v.id('orders'),
@@ -321,7 +329,7 @@ export const getOrderNotifications = query({
   handler: async (ctx, args) => {
     const notifications = await ctx.db
       .query('orderNotifications')
-      .filter(q => q.eq(q.field('order_id'), args.orderId))
+      .filter((q: any) => q.eq(q.field('order_id'), args.orderId))
       .order('desc')
       .collect();
 
@@ -330,6 +338,7 @@ export const getOrderNotifications = query({
 });
 
 // Get order messages
+// @ts-ignore: Type instantiation is excessively deep
 export const getOrderMessages = query({
   args: {
     orderId: v.id('orders'),
@@ -337,7 +346,7 @@ export const getOrderMessages = query({
   handler: async (ctx, args) => {
     const messages = await ctx.db
       .query('orderMessages')
-      .filter(q => q.eq(q.field('order_id'), args.orderId))
+      .filter((q: any) => q.eq(q.field('order_id'), args.orderId))
       .order('desc')
       .collect();
 
@@ -345,6 +354,7 @@ export const getOrderMessages = query({
   },
 });
 
+// @ts-ignore: Type instantiation is excessively deep
 export const listByCustomer = query({
   args: {
     customer_id: v.string(),
@@ -390,7 +400,7 @@ export const listByCustomer = query({
       if (args.status === "ongoing") {
         filtered = filtered.filter((o: any) => ongoingStatuses.includes(o.order_status));
       } else if (args.status === "past") {
-        filtered = filtered.filter(o =>
+        filtered = filtered.filter((o: any) =>
           o.order_status === "delivered" || o.order_status === "cancelled"
         );
       }
@@ -434,7 +444,7 @@ export const listByCustomer = query({
 
       // Enrich order items with meal images
       const enrichedOrderItems = await Promise.all(
-        (order.order_items || []).map(async (item) => {
+        (order.order_items || []).map(async (item: any) => {
           try {
             // Get meal details using dish_id
             const meal = await ctx.runQuery(api.queries.meals.getById, {
@@ -453,7 +463,7 @@ export const listByCustomer = query({
                 // Assume it's a Convex storage ID - try to get URL
                 try {
                   // Convex storage IDs are valid Id<'storage'> types
-                  imageUrl = await ctx.storage.getUrl(firstImage as any);
+                  imageUrl = await ctx.storage.getUrl(firstImage as any) ?? undefined;
                   if (!imageUrl) {
                     console.error('Storage getUrl returned null for:', firstImage, 'meal:', meal._id);
                   }
@@ -512,7 +522,7 @@ export const listByCustomer = query({
         return {
           ...baseOrder,
           group_order_details: groupOrder ? {
-            participants: groupOrder.participants.map(p => ({
+            participants: groupOrder.participants.map((p: any) => ({
               user_id: p.user_id,
               user_name: p.user_name,
               user_initials: p.user_initials,
@@ -530,6 +540,7 @@ export const listByCustomer = query({
   },
 });
 
+// @ts-ignore: Type instantiation is excessively deep
 export const getRecentOrders = query({
   args: {
     userId: v.id("users"),
@@ -550,16 +561,16 @@ export const getRecentOrders = query({
     const { userId, limit = 10 } = args;
     const orders = await ctx.db
       .query('orders')
-      .filter(q => q.eq(q.field('customer_id'), userId))
+      .filter((q: any) => q.eq(q.field('customer_id'), userId))
       .order('desc')
       .take(limit);
 
-    return orders.map(order => ({
+    return orders.map((order: any) => ({
       id: order._id,
       status: order.order_status,
       createdAt: order._creationTime,
       total: order.total_amount,
-      items: (order.order_items || []).map((item) => ({
+      items: (order.order_items || []).map((item: any) => ({
         name: item.name,
         quantity: item.quantity,
         price: item.price
@@ -569,6 +580,7 @@ export const getRecentOrders = query({
 });
 
 // Get user's cart
+// @ts-ignore: Type instantiation is excessively deep
 export const getUserCart = query({
   args: {
     userId: v.id("users"),
@@ -598,6 +610,7 @@ export const getUserCart = query({
 });
 
 // Get user's cart by session token (for reactive queries in mobile app)
+// @ts-ignore: Type instantiation is excessively deep
 export const getUserCartBySessionToken = query({
   args: {
     sessionToken: v.string()
@@ -628,6 +641,7 @@ export const getUserCartBySessionToken = query({
 });
 
 // Get order by payment link token (Public access for payer)
+// @ts-ignore: Type instantiation is excessively deep
 export const getOrderByPaymentToken = query({
   args: {
     token: v.string(),
@@ -640,10 +654,17 @@ export const getOrderByPaymentToken = query({
 
     const order = await ctx.db
       .query('orders')
-      .withIndex('by_payment_link_token', (q) => q.eq('payment_link_token', args.token))
+      .withIndex('by_payment_link_token', (q: any) => q.eq('payment_link_token', args.token))
       .first();
 
     if (!order) return null;
+
+    // Fetch kitchen name for better UX
+    let kitchenName = 'Unknown Kitchen';
+    try {
+      const chef = await ctx.db.get(order.chef_id);
+      if (chef) kitchenName = chef.name;
+    } catch (e) { /* ignore */ }
 
     // Return limited details
     return {
@@ -651,14 +672,17 @@ export const getOrderByPaymentToken = query({
       order_id: order.order_id,
       payment_status: order.payment_status,
       total_amount: order.total_amount,
+      status: order.order_status,
+      kitchen_name: kitchenName,
       items: order.order_items,
       createdAt: order.createdAt,
-      // Do NOT return customer_id, address, phone, etc.
+      // Do NOT return customer_id, address, phone, etc. to non-authenticated payers
     };
   },
 });
 
 // Get enriched order by session token and order ID (for reactive order details in mobile app)
+// @ts-ignore: Type instantiation is excessively deep
 export const getEnrichedOrderBySessionToken = query({
   args: {
     sessionToken: v.string(),
@@ -697,7 +721,7 @@ export const getEnrichedOrderBySessionToken = query({
     if (!order) {
       order = await ctx.db
         .query('orders')
-        .filter(q => q.eq(q.field('order_id'), args.order_id))
+        .filter((q: any) => q.eq(q.field('order_id'), args.order_id))
         .first();
     }
 
@@ -735,7 +759,7 @@ export const getEnrichedOrderBySessionToken = query({
     try {
       const assignment = await ctx.db
         .query('deliveryAssignments')
-        .filter(q => q.eq(q.field('order_id'), order._id))
+        .filter((q: any) => q.eq(q.field('order_id'), order._id))
         .first();
 
       if (assignment) {
@@ -762,7 +786,7 @@ export const getEnrichedOrderBySessionToken = query({
         // Check deliveries table
         const delivery = await ctx.db
           .query('deliveries')
-          .filter(q => q.eq(q.field('orderId'), order._id))
+          .filter((q: any) => q.eq(q.field('orderId'), order._id))
           .first();
         if (delivery) {
           deliveryFee = delivery.deliveryFee || null;
@@ -785,7 +809,7 @@ export const getEnrichedOrderBySessionToken = query({
     }
 
     // Calculate subtotal from order items if not stored
-    const subtotal = order.subtotal || (order.order_items || []).reduce((sum: number, item) => {
+    const subtotal = order.subtotal || (order.order_items || []).reduce((sum: number, item: any) => {
       return sum + ((item.price || 0) * (item.quantity || 1));
     }, 0);
 
@@ -810,7 +834,7 @@ export const getEnrichedOrderBySessionToken = query({
       payment_status: order.payment_status,
       // Enrich order items with meal images
       orderItems: await Promise.all(
-        (order.order_items || []).map(async (item) => {
+        (order.order_items || []).map(async (item: any) => {
           try {
             // Get meal details using dish_id
             const meal = await ctx.runQuery(api.queries.meals.getById, {
@@ -828,7 +852,7 @@ export const getEnrichedOrderBySessionToken = query({
               } else {
                 // Assume it's a Convex storage ID - try to get URL
                 try {
-                  imageUrl = await ctx.storage.getUrl(firstImage as any);
+                  imageUrl = await ctx.storage.getUrl(firstImage as any) ?? undefined;
                   if (!imageUrl) {
                     console.error('Storage getUrl returned null for:', firstImage, 'meal:', meal._id);
                   }
@@ -895,6 +919,7 @@ export const getEnrichedOrderBySessionToken = query({
 });
 
 // Get cart item count by session token (for reactive cart count in mobile app)
+// @ts-ignore: Type instantiation is excessively deep
 export const getCartItemCountBySessionToken = query({
   args: {
     sessionToken: v.string()
@@ -918,12 +943,13 @@ export const getCartItemCountBySessionToken = query({
     }
 
     // Calculate total item count (sum of all quantities)
-    return cart.items.reduce((sum: number, item) => sum + (item.quantity || 0), 0);
+    return cart.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
   },
 });
 
 // Get enriched cart by session token (for reactive cart in mobile app)
 // This query enriches cart items with meal details, chef info, and image URLs
+// @ts-ignore: Type instantiation is excessively deep
 export const getEnrichedCartBySessionToken = query({
   args: {
     sessionToken: v.string()
@@ -956,7 +982,7 @@ export const getEnrichedCartBySessionToken = query({
 
     // Enrich cart items with meal and chef details
     const enrichedItems = await Promise.all(
-      cart.items.map(async (item) => {
+      cart.items.map(async (item: any) => {
         try {
           // Get meal details
           const meal = await ctx.runQuery(api.queries.meals.getById, {
@@ -982,7 +1008,7 @@ export const getEnrichedCartBySessionToken = query({
                 } else if (profileImage.startsWith('k')) {
                   // It's likely a Convex storage ID, get the URL
                   try {
-                    chefProfileImage = await ctx.storage.getUrl(profileImage as any);
+                    chefProfileImage = (await ctx.storage.getUrl(profileImage as any)) ?? undefined;
                   } catch (error) {
                     console.error('Failed to get storage URL for chef profile image:', profileImage, error);
                     // Fallback to relative path
@@ -1009,7 +1035,7 @@ export const getEnrichedCartBySessionToken = query({
             } else if (firstImage.startsWith('k')) {
               // It's likely a Convex storage ID, get the URL
               try {
-                imageUrl = await ctx.storage.getUrl(firstImage as any);
+                imageUrl = await ctx.storage.getUrl(firstImage as any) ?? undefined;
               } catch (error) {
                 console.error('Failed to get storage URL for image:', firstImage, error);
                 // Fallback to relative path
@@ -1069,6 +1095,7 @@ export const getEnrichedCartBySessionToken = query({
 });
 
 // Check if any chefs in the cart are offline
+// @ts-ignore: Type instantiation is excessively deep
 export const checkCartChefAvailability = query({
   args: {
     userId: v.id("users"),
@@ -1172,6 +1199,7 @@ export const checkCartChefAvailability = query({
 });
 
 // Get count of completed orders (servings) for a chef
+// @ts-ignore: Type instantiation is excessively deep
 export const getChefCompletedOrdersCount = query({
   args: {
     chefId: v.string(),
@@ -1199,7 +1227,7 @@ export const getChefCompletedOrdersCount = query({
 
     const orders = await ctx.db
       .query("orders")
-      .filter((q) =>
+      .filter((q: any) =>
         q.and(
           q.eq(q.field("chef_id"), args.chefId),
           q.eq(q.field("order_status"), "delivered")
@@ -1211,46 +1239,142 @@ export const getChefCompletedOrdersCount = query({
   },
 });
 
-// Get order by payment link token (publicly accessible with valid token)
-export const getOrderByPaymentToken = query({
+
+/**
+ * Customer Get Enriched Orders - reactive replacement for customerGetOrders action
+ */
+// @ts-ignore: Type instantiation is excessively deep
+export const getEnrichedOrdersBySessionToken = query({
   args: {
-    token: v.string(),
+    sessionToken: v.string(),
+    page: v.optional(v.number()),
+    limit: v.optional(v.number()),
+    status: v.optional(v.union(v.literal("ongoing"), v.literal("past"), v.literal("all"))),
+    order_type: v.optional(v.union(v.literal("individual"), v.literal("group"), v.literal("all"))),
   },
   handler: async (ctx, args) => {
-    // Find order with matching token
-    const order = await ctx.db
+    // Authenticate user
+    const user = await requireAuth(ctx, args.sessionToken);
+
+    // Calculate pagination
+    const limit = args.limit || 20;
+    const offset = args.page ? (args.page - 1) * limit : 0;
+
+    // Fetch base orders
+    const allOrders = await ctx.db
       .query('orders')
-      .filter(q => q.eq(q.field('payment_link_token'), args.token))
-      .first();
+      .withIndex('by_customer', (q: any) => q.eq('customer_id', user._id))
+      .collect();
 
-    if (!order) {
-      return null;
+    // Sort by createdAt desc (newest first)
+    allOrders.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    // Apply filters
+    let filtered = allOrders;
+    if (args.status && args.status !== "all") {
+      const ongoingStatuses = ["pending", "confirmed", "preparing", "ready", "on_the_way"];
+      if (args.status === "ongoing") {
+        filtered = filtered.filter((o: any) => ongoingStatuses.includes(o.order_status));
+      } else if (args.status === "past") {
+        filtered = filtered.filter((o: any) =>
+          ["delivered", "cancelled", "completed"].includes(o.order_status)
+        );
+      }
     }
 
-    // Only return un-paid pending orders
-    if (order.payment_status === 'paid' || order.order_status === 'cancelled') {
-      // We might want to return it to show "Already Paid" screen, but for security let's return limited info or handle in UI
-      // For now returning the order so UI can show "Already Paid"
+    if (args.order_type && args.order_type !== "all") {
+      filtered = filtered.filter((o: any) => {
+        if (args.order_type === "group") {
+          return o.is_group_order === true;
+        } else {
+          return o.is_group_order !== true;
+        }
+      });
     }
 
-    // Enrich with chef name
-    let kitchenName = 'Unknown Kitchen';
-    try {
-      const chef = await ctx.db.get(order.chef_id);
-      if (chef) kitchenName = chef.name;
-    } catch (e) {
-      // ignore
-    }
+    const total = filtered.length;
+    const paginatedOrders = filtered.slice(offset, offset + limit);
+
+    // Batch fetch meals for enrichment
+    const mealIds = new Set<string>();
+    paginatedOrders.forEach((order: any) => {
+      (order.order_items || []).forEach((item: any) => {
+        const mealId = item.dish_id || item.dishId || item.id;
+        if (mealId) mealIds.add(mealId);
+      });
+    });
+
+    const meals = await Promise.all(
+      Array.from(mealIds).map(id => ctx.db.get(id as Id<'meals'>))
+    );
+    const mealMap = new Map(meals.filter((m: any): m is any => !!m).map((m: any) => [m._id, m]));
+
+    // Batch fetch chefs for kitchen names
+    const chefIds = new Set<string>();
+    paginatedOrders.forEach((order: any) => {
+      if (order.chef_id) chefIds.add(order.chef_id);
+    });
+    const chefs = await Promise.all(
+      Array.from(chefIds).map(id => ctx.db.get(id as Id<'chefs'>))
+    );
+    const chefMap = new Map(chefs.filter((c: any): c is any => !!c).map((c: any) => [c._id, c]));
+
+    // Enrich orders
+    const enrichedOrders = await Promise.all(paginatedOrders.map(async (order: any) => {
+      const enrichedItems = await Promise.all((order.order_items || []).map(async (item: any) => {
+        const mealId = item.dish_id || item.dishId || item.id;
+        const meal = mealMap.get(mealId);
+
+        // Get first image URL
+        let imageUrl: string | undefined;
+        if (meal?.images && Array.isArray(meal.images) && meal.images.length > 0) {
+          const firstImage = meal.images[0];
+          if (firstImage.startsWith('http')) {
+            imageUrl = firstImage;
+          } else {
+            try {
+              imageUrl = await ctx.storage.getUrl(firstImage) ?? undefined;
+            } catch (e) { /* ignored */ }
+          }
+        }
+
+        return {
+          ...item,
+          imageUrl,
+          image_url: imageUrl, // Backward compatibility
+        };
+      }));
+
+      const chef = chefMap.get(order.chef_id);
+
+      return {
+        ...order,
+        kitchen_name: chef?.name || 'Unknown Kitchen',
+        order_items: enrichedItems,
+      };
+    }));
 
     return {
-      _id: order._id,
-      order_id: order.order_id,
-      total_amount: order.total_amount,
-      status: order.order_status,
-      payment_status: order.payment_status,
-      customer_id: order.customer_id,
-      kitchen_name: kitchenName,
-      items: order.order_items, // minimal details
+      success: true as const,
+      orders: enrichedOrders,
+      total,
+      limit,
+      offset,
     };
+  },
+});
+/**
+ * Get orders by payment ID (Stripe Payment Intent ID)
+ */
+// @ts-ignore: Type instantiation is excessively deep
+export const getByPaymentId = query({
+  args: {
+    payment_id: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("orders")
+      .withIndex("by_payment_id", (q: any) => q.eq("payment_id", args.payment_id))
+      .collect();
   },
 });

@@ -10,30 +10,17 @@ import { action } from "../_generated/server";
 // Initialize Stripe client
 // TODO: REMOVE HARDCODED TEST KEY - This is a temporary fallback for testing
 const getStripe = () => {
-  // TEMPORARY TEST KEY - REMOVE BEFORE PRODUCTION
-  const FALLBACK_TEST_KEY = 'sk_test_51QTHZNGAiAa3ySTVYw75S6tYEYn2uFwRcf24pIobEpVhgF4uhq7toOtwQeH2RTn67PynAKRjiEhNPe0dkTtILQnB00qEyEuMav';
-  
-  // Get from environment variable, fallback to hardcoded test key
-  const envKey = process.env.STRIPE_SECRET_KEY;
-  const usingFallback = !envKey || envKey.trim().length === 0;
-  const stripeSecretKey = usingFallback ? FALLBACK_TEST_KEY : envKey.trim();
-  
-  // Debug logging (only in development)
-  if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
-    console.log('Stripe Key Status:', {
-      hasEnvKey: !!envKey,
-      envKeyLength: envKey?.length || 0,
-      usingFallback,
-      keyPrefix: stripeSecretKey.substring(0, 20) + '...',
-    });
-  }
-  
-  if (!stripeSecretKey || stripeSecretKey.length === 0) {
-    console.error('Stripe secret key is empty or invalid');
+  // Get from environment variable
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!stripeSecretKey || stripeSecretKey.trim().length === 0) {
+    if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+      console.error('Stripe secret key (STRIPE_SECRET_KEY) is missing in environment variables.');
+    }
     return null;
   }
-  
-  return new Stripe(stripeSecretKey, {
+
+  return new Stripe(stripeSecretKey.trim(), {
     apiVersion: '2025-07-30.basil' as Stripe.LatestApiVersion,
   });
 };
@@ -397,6 +384,16 @@ export const customerRemovePaymentMethod = action({
 export const customerCreateCheckout = action({
   args: {
     sessionToken: v.string(),
+    delivery_address: v.optional(v.object({
+      street: v.string(),
+      city: v.string(),
+      postcode: v.string(),
+      country: v.string(),
+    })),
+    special_instructions: v.optional(v.string()),
+    nosh_points_applied: v.optional(v.number()),
+    gameDebtId: v.optional(v.string()),
+    payment_method: v.optional(v.string()),
   },
   returns: v.union(
     v.object({
@@ -510,15 +507,32 @@ export const customerCreateCheckout = action({
           cartId: (cart as { _id?: string })._id?.toString() || 'unknown',
           ...(isFamilyMember && familyProfileId
             ? {
-                family_profile_id: familyProfileId.toString(),
-                member_user_id: memberUserId,
-              }
+              family_profile_id: familyProfileId.toString(),
+              member_user_id: memberUserId,
+            }
             : {}),
         },
         automatic_payment_methods: {
           enabled: true,
         },
         customer: stripeCustomerId,
+      });
+
+      // Save pending order for reconciliation
+      await ctx.runMutation(api.mutations.pendingOrders.create, {
+        paymentIntentId: paymentIntent.id,
+        userId: user._id,
+        cartItemsSnapshot: cart.items.map((item: any) => ({
+          dish_id: item.id,
+          quantity: item.quantity,
+          price: item.price,
+          name: item.name,
+        })),
+        deliveryAddress: args.delivery_address,
+        specialInstructions: args.special_instructions,
+        noshPointsApplied: args.nosh_points_applied,
+        gameDebtId: args.gameDebtId,
+        payment_method: args.payment_method,
       });
 
       return {
@@ -530,14 +544,14 @@ export const customerCreateCheckout = action({
           id: paymentIntent.id,
           ...(isFamilyMember && budgetCheck
             ? {
-                is_family_member: true,
-                budget_check: {
-                  allowed: budgetCheck.allowed,
-                  remaining_daily: budgetCheck.remaining,
-                  remaining_weekly: budgetCheck.remaining,
-                  remaining_monthly: budgetCheck.remaining,
-                },
-              }
+              is_family_member: true,
+              budget_check: {
+                allowed: budgetCheck.allowed,
+                remaining_daily: budgetCheck.remaining,
+                remaining_weekly: budgetCheck.remaining,
+                remaining_monthly: budgetCheck.remaining,
+              },
+            }
             : {}),
         },
       };

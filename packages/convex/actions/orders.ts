@@ -620,7 +620,6 @@ export const customerCreateOrderFromCart = action({
           chef_id: chefId,
           order_items: orderItems,
           total_amount: chefTotal,
-          total_amount: chefTotal,
           payment_id: args.payment_intent_id, // Same payment intent for all orders (or undefined for pay_for_me)
           payment_method: args.payment_method || 'card',
           special_instructions: args.special_instructions,

@@ -17,7 +17,7 @@ http.route({
     const activeOnly = url.searchParams.get("activeOnly") === "true";
     const limit = parseInt(url.searchParams.get("limit") || "50");
 
-    const templates = await ctx.runQuery(api.emailConfig.getEmailTemplates, {
+    const templates = await ctx.runQuery(api.queries.email.getEmailTemplates, {
       activeOnly,
       limit,
     });
@@ -44,7 +44,7 @@ http.route({
       });
     }
 
-    const template = await ctx.runQuery(api.emailConfig.getEmailTemplate, {
+    const template = await ctx.runQuery(api.queries.emailConfig.getTemplate, {
       templateId,
     });
 
@@ -68,12 +68,11 @@ http.route({
   method: "POST",
   handler: httpAction(async (ctx, request) => {
     try {
-      const body = await request.json();
+      const body = (await request.json()) as any;
       const { changedBy, ...templateData } = body;
 
-      const templateId = await ctx.runMutation(api.emailConfig.createEmailTemplate, {
+      const templateId = await ctx.runMutation(api.mutations.emailTemplates.createTemplate, {
         ...templateData,
-        changedBy: changedBy || "system",
       });
 
       return new Response(JSON.stringify({
@@ -112,14 +111,12 @@ http.route({
         });
       }
 
-      const body = await request.json();
+      const body = (await request.json()) as any;
       const { changedBy, changeReason, ...updates } = body;
 
-      await ctx.runMutation(api.emailConfig.updateEmailTemplate, {
-        templateId,
-        updates,
-        changedBy: changedBy || "system",
-        changeReason,
+      await ctx.runMutation(api.mutations.emailTemplates.update, {
+        id: templateId as any,
+        ...updates,
       });
 
       return new Response(JSON.stringify({
@@ -160,10 +157,8 @@ http.route({
       const changedBy = url.searchParams.get("changedBy") || "system";
       const changeReason = url.searchParams.get("changeReason") || undefined;
 
-      await ctx.runMutation(api.emailConfig.deleteEmailTemplate, {
-        templateId,
-        changedBy,
-        changeReason,
+      await ctx.runMutation(api.mutations.emailTemplates.deleteTemplate, {
+        id: templateId as any,
       });
 
       return new Response(JSON.stringify({
@@ -231,16 +226,16 @@ http.route({
       }
 
       // Record click event
-      await ctx.runMutation(api.emailConfig.recordEmailEvent, {
+      await ctx.runMutation(api.mutations.emailAnalytics.recordEmailEvent, {
         emailId,
-        templateId,
-        recipientEmail,
+        templateId: templateId as string,
+        recipientEmail: recipientEmail as string,
         eventType: "clicked",
         metadata: {
-          linkId,
-          redirectUrl,
-          userAgent: request.headers.get("user-agent"),
-          ipAddress: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip"),
+          linkId: linkId || "",
+          redirectUrl: redirectUrl || "",
+          userAgent: request.headers.get("user-agent") || "",
+          ipAddress: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "",
         },
       });
 
@@ -276,14 +271,14 @@ http.route({
       }
 
       // Record open event
-      await ctx.runMutation(api.emailConfig.recordEmailEvent, {
+      await ctx.runMutation(api.mutations.emailAnalytics.recordEmailEvent, {
         emailId: emailId as string,
         templateId: templateId as string,
         recipientEmail: recipientEmail as string,
         eventType: "opened",
         metadata: {
-          userAgent: request.headers.get("user-agent"),
-          ipAddress: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip"),
+          userAgent: request.headers.get("user-agent") || "",
+          ipAddress: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "",
         },
       });
 
@@ -369,6 +364,39 @@ http.route({
 
 // Resend webhook handler - using Next.js API route instead
 // The webhook is handled at /api/webhooks/resend/route.ts
+
+// ============================================================================
+// STRIPE PAYMENT WEBHOOKS
+// ============================================================================
+
+http.route({
+  path: "/api/webhooks/stripe",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const signature = request.headers.get("stripe-signature");
+      if (!signature) {
+        return new Response("Missing stripe-signature", { status: 400 });
+      }
+
+      const body = await request.text();
+
+      const result = await ctx.runAction(api.actions.webhooks.handleStripeWebhook, {
+        signature,
+        body,
+      });
+
+      if (result.success) {
+        return new Response("OK", { status: 200 });
+      } else {
+        return new Response(result.error || "Webhook processing failed", { status: 400 });
+      }
+    } catch (error) {
+      console.error("Stripe webhook error:", error);
+      return new Response("Error processing webhook", { status: 500 });
+    }
+  }),
+});
 
 // ============================================================================
 // STUART DELIVERY WEBHOOKS

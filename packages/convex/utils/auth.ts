@@ -15,7 +15,7 @@ export interface AuthenticatedUser {
   _id: Id<"users">;
   email: string;
   roles: UserRole[];
-  status?: "active" | "inactive" | "suspended";
+  status?: "active" | "inactive" | "suspended" | "provisional";
   sessionToken?: string;
   sessionExpiry?: number;
 }
@@ -62,7 +62,7 @@ export async function getAuthenticatedUser(
       _id: user._id,
       email: user.email,
       roles: (user.roles || []) as UserRole[],
-      status: user.status,
+      status: user.status as AuthenticatedUser["status"],
     };
   } catch (error) {
     console.error("Error getting authenticated user:", error);
@@ -110,7 +110,7 @@ export async function getAuthenticatedUserBySessionToken(
         _id: user._id,
         email: user.email,
         roles: (user.roles || []) as UserRole[],
-        status: user.status,
+        status: user.status as AuthenticatedUser["status"],
         sessionToken: session.sessionToken,
         sessionExpiry: session.expiresAt,
       };
@@ -140,7 +140,7 @@ export async function getAuthenticatedUserBySessionToken(
       _id: user._id,
       email: user.email,
       roles: (user.roles || []) as UserRole[],
-      status: user.status,
+      status: user.status as AuthenticatedUser["status"],
       sessionToken: user.sessionToken,
       sessionExpiry: user.sessionExpiry,
     };

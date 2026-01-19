@@ -1,57 +1,47 @@
-import { useCallback, useState } from "react";
-import { getConvexClient, getSessionToken } from "@/lib/convexClient";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { api } from '@/convex/_generated/api';
+import { getConvexClient } from "@/lib/convexClient";
 import { useToast } from "@/lib/ToastContext";
+import { useQuery } from "convex/react";
+import { useCallback, useMemo, useState } from "react";
 
 export const useCart = () => {
   const { showToast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const { token, isAuthenticated } = useAuthContext();
+  const [isActionLoading, setIsActionLoading] = useState(false);
+
+  // Reactive cart query
+  const cartQuery = useQuery(
+    api.queries.carts.getEnrichedCartBySessionToken,
+    token ? { sessionToken: token } : "skip"
+  );
+
+  const cart = useMemo(() => cartQuery?.cart || [], [cartQuery]);
+  const isCartLoading = cartQuery === undefined;
 
   /**
-   * Get customer cart
+   * Get customer cart (imperative fallback for backward compatibility)
    */
   const getCart = useCallback(async () => {
     try {
-      setIsLoading(true);
+      if (!token) return { success: false, error: "Not authenticated" };
+
       const convex = getConvexClient();
-      const sessionToken = await getSessionToken();
-
-      if (!sessionToken) {
-        throw new Error("Not authenticated");
-      }
-
-      const result = await convex.action(api.actions.users.customerGetCart, {
-        sessionToken,
+      const result = await convex.query(api.queries.carts.getEnrichedCartBySessionToken, {
+        sessionToken: token,
       });
 
-      if (result.success === false) {
-        throw new Error(result.error || "Failed to get cart");
-      }
-
-      // Transform to match expected format: { data: { items: [...] } }
       return {
         success: true,
         data: {
-          items: result.cart || [],
-          cart: result.cart || [], // Also include cart for backward compatibility
+          items: result?.cart || [],
+          cart: result?.cart || [],
         },
       };
     } catch (error: any) {
-      const errorMessage =
-        error?.message ||
-        error?.data?.error?.message ||
-        "Failed to get cart";
-      showToast({
-        type: "error",
-        title: "Cart Error",
-        message: errorMessage,
-        duration: 4000,
-      });
-      throw error;
-    } finally {
-      setIsLoading(false);
+      return { success: false, error: error.message };
     }
-  }, [showToast]);
+  }, [token]);
 
   /**
    * Add item to cart
@@ -59,16 +49,15 @@ export const useCart = () => {
   const addToCart = useCallback(
     async (dishId: string, quantity: number) => {
       try {
-        setIsLoading(true);
+        setIsActionLoading(true);
         const convex = getConvexClient();
-        const sessionToken = await getSessionToken();
 
-        if (!sessionToken) {
+        if (!token) {
           throw new Error("Not authenticated");
         }
 
         const result = await convex.action(api.actions.users.customerAddToCart, {
-          sessionToken,
+          sessionToken: token,
           dish_id: dishId,
           quantity,
         });
@@ -91,10 +80,7 @@ export const useCart = () => {
           },
         };
       } catch (error: any) {
-        const errorMessage =
-          error?.message ||
-          error?.data?.error?.message ||
-          "Failed to add item to cart";
+        const errorMessage = error?.message || "Failed to add item to cart";
         showToast({
           type: "error",
           title: "Add to Cart Failed",
@@ -103,10 +89,10 @@ export const useCart = () => {
         });
         throw error;
       } finally {
-        setIsLoading(false);
+        setIsActionLoading(false);
       }
     },
-    [showToast]
+    [showToast, token]
   );
 
   /**
@@ -115,18 +101,17 @@ export const useCart = () => {
   const updateCartItem = useCallback(
     async (cartItemId: string, quantity: number) => {
       try {
-        setIsLoading(true);
+        setIsActionLoading(true);
         const convex = getConvexClient();
-        const sessionToken = await getSessionToken();
 
-        if (!sessionToken) {
+        if (!token) {
           throw new Error("Not authenticated");
         }
 
         const result = await convex.action(
           api.actions.users.customerUpdateCartItem,
           {
-            sessionToken,
+            sessionToken: token,
             cart_item_id: cartItemId,
             quantity,
           }
@@ -143,10 +128,7 @@ export const useCart = () => {
           },
         };
       } catch (error: any) {
-        const errorMessage =
-          error?.message ||
-          error?.data?.error?.message ||
-          "Failed to update cart item";
+        const errorMessage = error?.message || "Failed to update cart item";
         showToast({
           type: "error",
           title: "Update Failed",
@@ -155,32 +137,29 @@ export const useCart = () => {
         });
         throw error;
       } finally {
-        setIsLoading(false);
+        setIsActionLoading(false);
       }
     },
-    [showToast]
+    [showToast, token]
   );
 
   /**
    * Remove item from cart
-   * @param cartItemId - The ID of the cart item to remove
-   * @param suppressToast - If true, suppresses the success toast (useful for batch removals)
    */
   const removeFromCart = useCallback(
     async (cartItemId: string, suppressToast: boolean = false) => {
       try {
-        setIsLoading(true);
+        setIsActionLoading(true);
         const convex = getConvexClient();
-        const sessionToken = await getSessionToken();
 
-        if (!sessionToken) {
+        if (!token) {
           throw new Error("Not authenticated");
         }
 
         const result = await convex.action(
           api.actions.users.customerRemoveFromCart,
           {
-            sessionToken,
+            sessionToken: token,
             cart_item_id: cartItemId,
           }
         );
@@ -203,10 +182,7 @@ export const useCart = () => {
           message: result.message,
         };
       } catch (error: any) {
-        const errorMessage =
-          error?.message ||
-          error?.data?.error?.message ||
-          "Failed to remove item from cart";
+        const errorMessage = error?.message || "Failed to remove item from cart";
         showToast({
           type: "error",
           title: "Remove Failed",
@@ -215,10 +191,10 @@ export const useCart = () => {
         });
         throw error;
       } finally {
-        setIsLoading(false);
+        setIsActionLoading(false);
       }
     },
-    [showToast]
+    [showToast, token]
   );
 
   /**
@@ -227,16 +203,15 @@ export const useCart = () => {
   const addOrderToCart = useCallback(
     async (orderId: string) => {
       try {
-        setIsLoading(true);
+        setIsActionLoading(true);
         const convex = getConvexClient();
-        const sessionToken = await getSessionToken();
 
-        if (!sessionToken) {
+        if (!token) {
           throw new Error("Not authenticated");
         }
 
         const result = await convex.action(api.actions.users.customerAddOrderToCart, {
-          sessionToken,
+          sessionToken: token,
           order_id: orderId,
         });
 
@@ -259,10 +234,7 @@ export const useCart = () => {
           },
         };
       } catch (error: any) {
-        const errorMessage =
-          error?.message ||
-          error?.data?.error?.message ||
-          "Failed to add order to cart";
+        const errorMessage = error?.message || "Failed to add order to cart";
         showToast({
           type: "error",
           title: "Add Order Failed",
@@ -271,14 +243,17 @@ export const useCart = () => {
         });
         throw error;
       } finally {
-        setIsLoading(false);
+        setIsActionLoading(false);
       }
     },
-    [showToast]
+    [showToast, token]
   );
 
   return {
-    isLoading,
+    cart, // Reactive cart items
+    isCartLoading, // Loading state for query
+    isLoading: isActionLoading || isCartLoading, // Combined loading state
+    isActionLoading,
     getCart,
     addToCart,
     addOrderToCart,
