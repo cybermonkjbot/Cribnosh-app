@@ -1,29 +1,30 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Save, 
-  Eye, 
-  Send, 
-  Settings, 
-  Palette, 
-  Clock, 
-  Target, 
-  TestTube,
-  CheckCircle,
-  XCircle,
+import { Textarea } from '@/components/ui/textarea';
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
+import { EMAIL_TYPES } from '@/convex/emailTemplates';
+import { useMutation, useQuery } from 'convex/react';
+import {
   AlertTriangle,
+  CheckCircle,
+  Code,
+  Eye,
   Plus,
-  Trash2
+  Save,
+  Send,
+  Trash2,
+  XCircle
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface EmailTemplateEditorProps {
   templateId?: string;
@@ -32,11 +33,11 @@ interface EmailTemplateEditorProps {
   className?: string;
 }
 
-export function EmailTemplateEditor({ 
-  templateId, 
-  onSave, 
-  onCancel, 
-  className 
+export function EmailTemplateEditor({
+  templateId,
+  onSave,
+  onCancel,
+  className
 }: EmailTemplateEditorProps) {
   const [config, setConfig] = useState({
     templateId: templateId || '',
@@ -72,105 +73,92 @@ export function EmailTemplateEditor({
       testData: {} as Record<string, any>,
       previewMode: false,
     },
+    htmlContent: '',
+    emailType: '',
+    description: '',
   });
 
   const [activeTab, setActiveTab] = useState('basic');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [validation, setValidation] = useState<any>(null);
 
+  const template = useQuery(
+    api.queries.emailConfig.getById,
+    templateId && templateId !== 'new' ? { id: templateId as Id<"emailTemplates"> } : "skip"
+  );
+
+  const updateTemplate = useMutation(api.mutations.emailTemplates.update);
+  const createTemplateMutation = useMutation(api.mutations.emailTemplates.createTemplate);
+
+  const [isSaving, setIsSaving] = useState(false);
+
   // Load template configuration
   useEffect(() => {
-    if (templateId) {
-      loadTemplateConfig();
+    if (template) {
+      setConfig({
+        ...config,
+        ...template,
+        templateId: template.templateId || template._id,
+        htmlContent: template.htmlContent || '',
+        emailType: template.emailType || '',
+        description: template.description || '',
+      } as any);
     }
-  }, [templateId]);
-
-  const loadTemplateConfig = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch(`/api/admin/email-config?category=templates&id=${templateId}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to load: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      if (data.config) {
-        setConfig(data.config);
-      } else {
-        setError('Template configuration not found');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load template configuration';
-      setError(errorMessage);
-      console.error('Error loading template config:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [template]);
 
   const handleSave = async () => {
     try {
-      setLoading(true);
+      setIsSaving(true);
       setError(null);
+      setSuccess(null);
 
-      // Validate configuration
-      const validationResponse = await fetch('/api/admin/email-config/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category: 'templates', config }),
-      });
+      const templateData = {
+        name: config.name,
+        subject: config.subject,
+        htmlContent: config.htmlContent,
+        emailType: config.emailType,
+        description: config.description,
+        isActive: config.isActive,
+        previewText: config.previewText,
+        senderName: config.senderName,
+        senderEmail: config.senderEmail,
+        replyToEmail: config.replyToEmail,
+        styling: config.styling,
+        scheduling: config.scheduling,
+        targeting: config.targeting,
+        testing: config.testing,
+        customFields: config.customFields,
+      };
 
-      if (!validationResponse.ok) {
-        const errorData = await validationResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || `Validation request failed: ${validationResponse.status}`);
+      if (templateId && templateId !== 'new') {
+        await updateTemplate({
+          id: templateId as Id<"emailTemplates">,
+          ...templateData,
+        });
+      } else {
+        await createTemplateMutation({
+          ...templateData,
+          name: templateData.name || 'New Template',
+          subject: templateData.subject || 'New Subject',
+          htmlContent: templateData.htmlContent || '<div>New Template Content</div>',
+        });
       }
 
-      const validationData = await validationResponse.json();
-      setValidation(validationData);
-
-      if (!validationData.valid) {
-        const errors = Array.isArray(validationData.errors) 
-          ? validationData.errors.join(', ') 
-          : 'Validation failed';
-        setError(`Validation failed: ${errors}`);
-        return;
-      }
-
-      // Save configuration
-      const response = await fetch('/api/admin/email-config', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          category: 'templates', 
-          configId: config.templateId, 
-          config 
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to save: ${response.status} ${response.statusText}`);
-      }
-
-      setSuccess('Template configuration saved successfully');
+      setSuccess('Template saved successfully');
       if (onSave) onSave(config);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save configuration';
       setError(errorMessage);
       console.error('Error saving template config:', err);
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
   const handleTest = async () => {
     try {
-      setLoading(true);
+      setIsSaving(true);
       setError(null);
 
       if (!config.testing.testEmails || config.testing.testEmails.length === 0) {
@@ -178,35 +166,13 @@ export function EmailTemplateEditor({
         return;
       }
 
-      // Send test email via API
-      const response = await fetch('/api/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: config.testing.testEmails[0],
-          subject: config.subject || 'Test Email',
-          html: config.previewText || config.subject || 'Test email content',
-          from: config.senderEmail || 'noreply@cribnosh.com',
-          replyTo: config.replyToEmail,
-          tags: [
-            { name: 'template_id', value: config.templateId },
-            { name: 'test_email', value: 'true' }
-          ]
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to send test email: ${response.status}`);
-      }
-
-      setSuccess(`Test email sent successfully to ${config.testing.testEmails[0]}`);
+      // TODO: Implement test email via Convex action
+      setError('Test email sending via Convex not yet implemented in UI');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to send test email';
       setError(errorMessage);
-      console.error('Error sending test email:', err);
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
@@ -262,7 +228,7 @@ export function EmailTemplateEditor({
     }));
   };
 
-  if (loading && templateId) {
+  if (template === undefined && templateId && templateId !== 'new') {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -291,7 +257,7 @@ export function EmailTemplateEditor({
             <Send className="h-4 w-4 mr-2" />
             Test
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
+          <Button onClick={handleSave} disabled={isSaving}>
             <Save className="h-4 w-4 mr-2" />
             Save
           </Button>
@@ -348,13 +314,22 @@ export function EmailTemplateEditor({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="templateId">Template ID</Label>
-                  <Input
-                    id="templateId"
-                    value={config.templateId}
-                    onChange={(e) => setConfig(prev => ({ ...prev, templateId: e.target.value }))}
-                    placeholder="e.g., welcome-email"
-                  />
+                  <Label htmlFor="emailType">System Email Type</Label>
+                  <Select
+                    value={config.emailType}
+                    onValueChange={(value) => setConfig(prev => ({ ...prev, emailType: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EMAIL_TYPES.map((type: any) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="name">Template Name</Label>
@@ -368,6 +343,16 @@ export function EmailTemplateEditor({
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Input
+                  id="description"
+                  value={config.description}
+                  onChange={(e) => setConfig(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Optional description of this template"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="subject">Subject Line</Label>
                 <Input
                   id="subject"
@@ -375,6 +360,26 @@ export function EmailTemplateEditor({
                   onChange={(e) => setConfig(prev => ({ ...prev, subject: e.target.value }))}
                   placeholder="e.g., Welcome to CribNosh!"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="htmlContent">HTML Content</Label>
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <Code className="h-3 w-3" />
+                    HTML
+                  </Badge>
+                </div>
+                <Textarea
+                  id="htmlContent"
+                  value={config.htmlContent}
+                  onChange={(e) => setConfig(prev => ({ ...prev, htmlContent: e.target.value }))}
+                  placeholder="<div>Enter your email HTML here...</div>"
+                  className="font-mono min-h-[400px]"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Use double curly braces for variables, e.g., <code>{"{{userName}}"}</code>
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -448,15 +453,15 @@ export function EmailTemplateEditor({
                       id="primaryColor"
                       type="color"
                       value={config.styling.primaryColor}
-                      onChange={(e) => setConfig(prev => ({ 
-                        ...prev, 
+                      onChange={(e) => setConfig(prev => ({
+                        ...prev,
                         styling: { ...prev.styling, primaryColor: e.target.value }
                       }))}
                     />
                     <Input
                       value={config.styling.primaryColor}
-                      onChange={(e) => setConfig(prev => ({ 
-                        ...prev, 
+                      onChange={(e) => setConfig(prev => ({
+                        ...prev,
                         styling: { ...prev.styling, primaryColor: e.target.value }
                       }))}
                     />
@@ -469,15 +474,15 @@ export function EmailTemplateEditor({
                       id="secondaryColor"
                       type="color"
                       value={config.styling.secondaryColor}
-                      onChange={(e) => setConfig(prev => ({ 
-                        ...prev, 
+                      onChange={(e) => setConfig(prev => ({
+                        ...prev,
                         styling: { ...prev.styling, secondaryColor: e.target.value }
                       }))}
                     />
                     <Input
                       value={config.styling.secondaryColor}
-                      onChange={(e) => setConfig(prev => ({ 
-                        ...prev, 
+                      onChange={(e) => setConfig(prev => ({
+                        ...prev,
                         styling: { ...prev.styling, secondaryColor: e.target.value }
                       }))}
                     />
@@ -490,15 +495,15 @@ export function EmailTemplateEditor({
                       id="accent"
                       type="color"
                       value={config.styling.accent}
-                      onChange={(e) => setConfig(prev => ({ 
-                        ...prev, 
+                      onChange={(e) => setConfig(prev => ({
+                        ...prev,
                         styling: { ...prev.styling, accent: e.target.value }
                       }))}
                     />
                     <Input
                       value={config.styling.accent}
-                      onChange={(e) => setConfig(prev => ({ 
-                        ...prev, 
+                      onChange={(e) => setConfig(prev => ({
+                        ...prev,
                         styling: { ...prev.styling, accent: e.target.value }
                       }))}
                     />
@@ -511,8 +516,8 @@ export function EmailTemplateEditor({
                   <Label htmlFor="fontFamily">Font Family</Label>
                   <Select
                     value={config.styling.fontFamily}
-                    onValueChange={(value) => setConfig(prev => ({ 
-                      ...prev, 
+                    onValueChange={(value) => setConfig(prev => ({
+                      ...prev,
                       styling: { ...prev.styling, fontFamily: value }
                     }))}
                   >
@@ -533,8 +538,8 @@ export function EmailTemplateEditor({
                   <Input
                     id="logoUrl"
                     value={config.styling.logoUrl}
-                    onChange={(e) => setConfig(prev => ({ 
-                      ...prev, 
+                    onChange={(e) => setConfig(prev => ({
+                      ...prev,
                       styling: { ...prev.styling, logoUrl: e.target.value }
                     }))}
                   />
@@ -546,8 +551,8 @@ export function EmailTemplateEditor({
                 <textarea
                   id="footerText"
                   value={config.styling.footerText}
-                  onChange={(e) => setConfig(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setConfig(prev => ({
+                    ...prev,
                     styling: { ...prev.styling, footerText: e.target.value }
                   }))}
                   rows={3}
@@ -573,8 +578,8 @@ export function EmailTemplateEditor({
                   <Label htmlFor="frequency">Frequency</Label>
                   <Select
                     value={config.scheduling.frequency}
-                    onValueChange={(value) => setConfig(prev => ({ 
-                      ...prev, 
+                    onValueChange={(value) => setConfig(prev => ({
+                      ...prev,
                       scheduling: { ...prev.scheduling, frequency: value as any }
                     }))}
                   >
@@ -592,8 +597,8 @@ export function EmailTemplateEditor({
                   <Label htmlFor="timezone">Timezone</Label>
                   <Select
                     value={config.scheduling.timezone}
-                    onValueChange={(value) => setConfig(prev => ({ 
-                      ...prev, 
+                    onValueChange={(value) => setConfig(prev => ({
+                      ...prev,
                       scheduling: { ...prev.scheduling, timezone: value }
                     }))}
                   >
@@ -618,8 +623,8 @@ export function EmailTemplateEditor({
                     id="sendTime"
                     type="time"
                     value={config.scheduling.sendTime}
-                    onChange={(e) => setConfig(prev => ({ 
-                      ...prev, 
+                    onChange={(e) => setConfig(prev => ({
+                      ...prev,
                       scheduling: { ...prev.scheduling, sendTime: e.target.value }
                     }))}
                   />
@@ -643,8 +648,8 @@ export function EmailTemplateEditor({
                 <Label htmlFor="audience">Target Audience</Label>
                 <Select
                   value={config.targeting.audience}
-                  onValueChange={(value) => setConfig(prev => ({ 
-                    ...prev, 
+                  onValueChange={(value) => setConfig(prev => ({
+                    ...prev,
                     targeting: { ...prev.targeting, audience: value as any }
                   }))}
                 >
@@ -665,8 +670,8 @@ export function EmailTemplateEditor({
                   <Input
                     id="segmentId"
                     value={config.targeting.segmentId}
-                    onChange={(e) => setConfig(prev => ({ 
-                      ...prev, 
+                    onChange={(e) => setConfig(prev => ({
+                      ...prev,
                       targeting: { ...prev.targeting, segmentId: e.target.value }
                     }))}
                     placeholder="e.g., premium-users"
@@ -678,7 +683,7 @@ export function EmailTemplateEditor({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label>Custom Filters</Label>
-                    <Button size="sm" onClick={() => {/* Add filter logic */}}>
+                    <Button size="sm" onClick={() => {/* Add filter logic */ }}>
                       <Plus className="h-4 w-4 mr-1" />
                       Add Filter
                     </Button>
@@ -710,7 +715,7 @@ export function EmailTemplateEditor({
                     Add Email
                   </Button>
                 </div>
-                
+
                 <div className="space-y-2">
                   {config.testing.testEmails.map((email, index) => (
                     <div key={index} className="flex items-center gap-2">
@@ -732,8 +737,8 @@ export function EmailTemplateEditor({
                   type="checkbox"
                   id="previewMode"
                   checked={config.testing.previewMode}
-                  onChange={(e) => setConfig(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setConfig(prev => ({
+                    ...prev,
                     testing: { ...prev.testing, previewMode: e.target.checked }
                   }))}
                   className="h-4 w-4"
@@ -762,7 +767,7 @@ export function EmailTemplateEditor({
                     Add Field
                   </Button>
                 </div>
-                
+
                 <div className="space-y-2">
                   {Object.entries(config.customFields).map(([key, value]) => (
                     <div key={key} className="flex items-center gap-2">

@@ -1,7 +1,17 @@
 import { v } from "convex/values";
 import { internalQuery, query } from "../_generated/server";
 
-// Get email template by ID
+// Get email template by Convex ID
+export const getById = query({
+  args: {
+    id: v.id("emailTemplates"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+
+// Get email template by legacy templateId
 export const getTemplate = query({
   args: {
     templateId: v.string(),

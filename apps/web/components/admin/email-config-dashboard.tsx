@@ -36,13 +36,15 @@ export function EmailConfigDashboard({ className }: EmailConfigDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('templates');
   const data = useQuery(api.email_configs.getConfigs);
+  const templatesData = useQuery(api.queries.emailConfig.getAllTemplates);
   const saveConfig = useMutation(api.email_configs.saveConfig);
   const importConfigs = useMutation(api.email_configs.importConfigs);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const configs = data?.configs || {};
-  const loading = data === undefined;
+  const templates = templatesData || [];
+  const loading = data === undefined || templatesData === undefined;
 
   // No need for separate loading state or useEffect for loading
 
@@ -183,14 +185,14 @@ export function EmailConfigDashboard({ className }: EmailConfigDashboardProps) {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {configs.templates?.map((template: any) => (
-              <Card key={template.templateId}>
+            {templates.map((template: any) => (
+              <Card key={template._id}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
                     {template.name}
                   </CardTitle>
                   <Badge variant={template.isActive ? 'default' : 'secondary'}>
-                    {template.isActive ? 'Active' : 'Inactive'}
+                    {template.isActive !== false ? 'Active' : 'Inactive'}
                   </Badge>
                 </CardHeader>
                 <CardContent>
@@ -206,7 +208,7 @@ export function EmailConfigDashboard({ className }: EmailConfigDashboardProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => router.push(`/admin/email-config/template/${template.templateId}`)}
+                        onClick={() => router.push(`/admin/email-config/template/${template._id}`)}
                       >
                         <Edit className="h-4 w-4 mr-1" />
                         Edit

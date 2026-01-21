@@ -30,7 +30,8 @@
       ],
       "@/convex/*": [
         "./convex/*",
-        "../../packages/convex/convex/*"
+        "../../packages/convex/convex/*",
+        "../../packages/convex/*"
       ]
     }
   },
