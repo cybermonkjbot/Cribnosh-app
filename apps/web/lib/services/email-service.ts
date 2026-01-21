@@ -1,25 +1,19 @@
-import { EmailService } from '@/lib/email/email.service';
+import { api } from '@/convex/_generated/api';
 import { logger } from '@/lib/utils/logger';
+import { ConvexHttpClient } from 'convex/browser';
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const emailService = new EmailService({
-  resend: {
-    apiKey: RESEND_API_KEY,
-  },
-});
+const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || '';
+const httpClient = new ConvexHttpClient(CONVEX_URL);
 
 export async function sendAccountDeletionEmail(email: string, deletionDate: string) {
   try {
-    const html = await emailService.getTemplateRenderer().renderGenericNotificationEmail({
-      title: 'Account Deletion Request Received',
-      message: `Your account deletion request has been received. Your account will be permanently deleted on ${deletionDate}. If you change your mind, please contact support within 7 days.`,
-    });
-
-    await emailService.send({
+    await httpClient.action(api.actions.resend.sendTemplateEmail, {
+      emailType: 'account_deletion',
       to: email,
-      subject: 'Account Deletion Request Confirmed',
-      html,
-      from: 'noreply@cribnosh.com',
+      variables: {
+        deletionDate,
+        userName: 'Customer', // Simplified for now
+      },
     });
   } catch (error) {
     logger.error('Failed to send account deletion email:', error);
@@ -28,16 +22,14 @@ export async function sendAccountDeletionEmail(email: string, deletionDate: stri
 
 export async function sendDataDownloadEmail(email: string, downloadUrl: string, expiresAt: string) {
   try {
-    const html = await emailService.getTemplateRenderer().renderGenericNotificationEmail({
-      title: 'Your Data Download is Ready',
-      message: `Your data download is ready. Click here to download: ${downloadUrl}. This link expires on ${expiresAt}.`,
-    });
-
-    await emailService.send({
+    await httpClient.action(api.actions.resend.sendTemplateEmail, {
+      emailType: 'data_download',
       to: email,
-      subject: 'Your Data Download is Ready',
-      html,
-      from: 'noreply@cribnosh.com',
+      variables: {
+        downloadUrl,
+        expiresAt,
+        userName: 'Customer',
+      },
     });
   } catch (error) {
     logger.error('Failed to send data download email:', error);
@@ -54,16 +46,15 @@ export async function sendFamilyInvitationEmail(
     const acceptUrl = invitationToken
       ? `https://cribnosh.com/family/accept?token=${invitationToken}`
       : `https://cribnosh.com/family/accept?profile=${familyProfileId}`;
-    const html = await emailService.getTemplateRenderer().renderGenericNotificationEmail({
-      title: 'Family Profile Invitation',
-      message: `${inviterName} has invited you to join their family profile on CribNosh. Click here to accept: ${acceptUrl}`,
-    });
 
-    await emailService.send({
+    await httpClient.action(api.actions.resend.sendTemplateEmail, {
+      emailType: 'family_invitation',
       to: email,
-      subject: 'You\'ve been invited to join a family profile',
-      html,
-      from: 'noreply@cribnosh.com',
+      variables: {
+        inviterName,
+        acceptUrl,
+        userName: 'Valued Guest',
+      },
     });
   } catch (error) {
     logger.error('Failed to send family invitation email:', error);
@@ -73,29 +64,25 @@ export async function sendFamilyInvitationEmail(
 export async function sendSupportCaseNotification(supportCaseRef: string, customerEmail: string, subject: string) {
   try {
     // Send to support team
-    const supportHtml = await emailService.getTemplateRenderer().renderGenericNotificationEmail({
-      title: 'New Support Case',
-      message: `New support case ${supportCaseRef}: ${subject}`,
-    });
-
-    await emailService.send({
+    await httpClient.action(api.actions.resend.sendTemplateEmail, {
+      emailType: 'support_case',
       to: 'support@cribnosh.com',
-      subject: `New Support Case: ${supportCaseRef}`,
-      html: supportHtml,
-      from: 'noreply@cribnosh.com',
+      variables: {
+        supportCaseRef,
+        subject,
+        userName: 'Support Team',
+      },
     });
 
     // Send confirmation to customer
-    const customerHtml = await emailService.getTemplateRenderer().renderGenericNotificationEmail({
-      title: 'Support Case Created',
-      message: `Your support case ${supportCaseRef} has been created. We'll get back to you soon.`,
-    });
-
-    await emailService.send({
+    await httpClient.action(api.actions.resend.sendTemplateEmail, {
+      emailType: 'support_case',
       to: customerEmail,
-      subject: `Support Case Created: ${supportCaseRef}`,
-      html: customerHtml,
-      from: 'support@cribnosh.com',
+      variables: {
+        supportCaseRef,
+        subject,
+        userName: 'Valued Customer',
+      },
     });
   } catch (error) {
     logger.error('Failed to send support case notifications:', error);
@@ -104,17 +91,16 @@ export async function sendSupportCaseNotification(supportCaseRef: string, custom
 
 export async function sendReviewNotification(chefEmail: string, customerName: string, rating: number, review?: string) {
   try {
-    const reviewText = review ? `Review: ${review}` : 'No written review provided';
-    const html = await emailService.getTemplateRenderer().renderGenericNotificationEmail({
-      title: 'New Review Received',
-      message: `${customerName} left you a ${rating}-star rating. ${reviewText}`,
-    });
-
-    await emailService.send({
+    const reviewText = review ? review : 'No written review provided';
+    await httpClient.action(api.actions.resend.sendTemplateEmail, {
+      emailType: 'review_received',
       to: chefEmail,
-      subject: `New ${rating}-Star Review from ${customerName}`,
-      html,
-      from: 'noreply@cribnosh.com',
+      variables: {
+        customerName,
+        rating: rating.toString(),
+        reviewText,
+        userName: 'Chef',
+      },
     });
   } catch (error) {
     logger.error('Failed to send review notification:', error);

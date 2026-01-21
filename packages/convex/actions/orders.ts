@@ -39,7 +39,7 @@ const ratingCategoriesValidator = v.object({
 });
 
 /**
- * Complete order from cart flow that handles:
+ * Complete order from cart flofw that handles:
  * - Creating order with payment
  * - Recording family spending (if applicable)
  * - Clearing cart

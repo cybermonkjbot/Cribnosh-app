@@ -1,133 +1,184 @@
-import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { EMAIL_TYPES } from "../emailTemplates";
 
-// This is a simplified "Master" layout for seeding purposes.
-// In a real scenario, this might come from a file or another template.
-const MASTER_LAYOUT = `
-<!DOCTYPE html>
-<html>
+const DEFAULT_TEMPLATES = [
+    {
+        templateId: "welcome",
+        name: "Welcome Email",
+        emailType: "welcome_message",
+        subject: "Welcome to CribNosh!",
+        htmlContent: `<!DOCTYPE html>
+<html dir="ltr" lang="en">
 <head>
-    <style>
-        body { font-family: sans-serif; line-height: 1.6; color: #1A1A1A; background-color: #ffffff; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 20px auto; padding: 0; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .header { background-color: #ffffff; padding: 32px 20px; text-align: center; border-bottom: 1px solid #F3F4F6; }
-        .content { padding: 32px 24px; background-color: #ffffff; }
-        .footer { text-align: center; font-size: 12px; color: #6B7280; margin-top: 20px; padding: 20px; border-top: 1px solid #F3F4F6; }
-        .btn { display: inline-block; padding: 12px 24px; background-color: #ff3b30; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; }
-        h1 { margin: 0; font-size: 24px; color: #1A1A1A; }
-        p { margin: 0 0 16px 0; }
-    </style>
+  <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+  <title>Welcome to CribNosh</title>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>{{headerTitle}}</h1>
-        </div>
-        <div class="content">
-            {{bodyContent}}
-            <br>
-            {{#if actionUrl}}
-            <div style="text-align: center; margin-top: 24px;">
-                <a href="{{actionUrl}}" class="btn">{{actionButtonText}}</a>
-            </div>
-            {{/if}}
-        </div>
-        <div class="footer">
-            <p>&copy; {{year}} CribNosh. All rights reserved.</p>
-        </div>
-    </div>
+<body style="background-color:#ffffff;margin:0;padding:20px">
+  <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation" style="max-width:600px;margin:0 auto;background-color:#ffffff;border:1px solid #E5E7EB;border-radius:12px;padding:32px;">
+    <tbody>
+      <tr>
+        <td>
+          <img alt="CribNosh Logo" height="40" src="https://cribnosh.com/logo.svg" style="display:block;margin:0 auto" width="155" />
+          <h1 style="font-size:32px;font-weight:700;text-align:center;margin-top:24px;">Welcome to CribNosh!</h1>
+          <p style="font-size:18px;line-height:1.6;color:#1A1A1A;">Hi {{userName}},</p>
+          <p style="font-size:16px;line-height:1.6;color:#4B5563;">Thanks for joining CribNosh! We're building a platform where every meal is a vibe and every chef is a storyteller.</p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="{{actionUrl}}" style="background-color:#ff3b30;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:16px;font-weight:500;display:inline-block;">Get Started</a>
+          </div>
+          <footer style="text-align:center;border-top:1px solid #E5E7EB;padding-top:24px;margin-top:32px;font-size:12px;color:#6B7280;">
+            <p>{{companyAddress}}</p>
+            <p><a href="{{unsubscribeUrl}}" style="color:#ff3b30;">Unsubscribe</a></p>
+          </footer>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </body>
-</html>
-`;
-
-export const seedEmailTemplates = mutation({
-    args: {
-        force: v.optional(v.boolean()), // If true, overwrites existing templates
+</html>`
     },
-    handler: async (ctx, args) => {
-        const existingTemplates = await ctx.db.query("emailTemplates").collect();
+    {
+        templateId: "otp-verification",
+        name: "OTP Verification",
+        emailType: "otp_verification",
+        subject: "Verify your email - {{otpCode}}",
+        htmlContent: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Verify your email</title>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+    <h2>Email Verification</h2>
+    <p>Hi {{recipientName}},</p>
+    <p>Your verification code is:</p>
+    <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; text-align: center; padding: 20px; background: #f4f4f4; border-radius: 5px; margin: 20px 0;">
+      {{otpCode}}
+    </div>
+    <p>This code will expire in {{expiryMinutes}} minutes.</p>
+    <p>If you didn't request this, please ignore this email.</p>
+    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+    <p style="font-size: 12px; color: #888;">{{companyAddress}}</p>
+  </div>
+</body>
+</html>`
+    },
+    {
+        templateId: "account-deletion",
+        name: "Account Deletion",
+        emailType: "account_deletion",
+        subject: "Account Deletion Request Confirmed",
+        htmlContent: `<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    <h1>Account Deletion Request Received</h1>
+    <p>Hi {{userName}},</p>
+    <p>Your account deletion request has been received. Your account will be permanently deleted on <strong>{{deletionDate}}</strong>.</p>
+    <p>If you change your mind, please contact support within 7 days.</p>
+    <p>Best regards,<br>The CribNosh Team</p>
+  </div>
+</body>
+</html>`
+    },
+    {
+        templateId: "data-download",
+        name: "Data Download",
+        emailType: "data_download",
+        subject: "Your Data Download is Ready",
+        htmlContent: `<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    <h1>Your Data Download is Ready</h1>
+    <p>Hi {{userName}},</p>
+    <p>Your data download is ready. Click the link below to download your archive:</p>
+    <p><a href="{{downloadUrl}}" style="padding: 10px 20px; background: #ff3b30; color: white; text-decoration: none; border-radius: 5px;">Download Data</a></p>
+    <p>This link expires on {{expiresAt}}.</p>
+  </div>
+</body>
+</html>`
+    },
+    {
+        templateId: "family-invitation",
+        name: "Family Invitation",
+        emailType: "family_invitation",
+        subject: "You've been invited to join a family profile",
+        htmlContent: `<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    <h1>Family Profile Invitation</h1>
+    <p>Hi {{userName}},</p>
+    <p><strong>{{inviterName}}</strong> has invited you to join their family profile on CribNosh.</p>
+    <p><a href="{{acceptUrl}}" style="padding: 10px 20px; background: #ff3b30; color: white; text-decoration: none; border-radius: 5px;">Accept Invitation</a></p>
+  </div>
+</body>
+</html>`
+    },
+    {
+        templateId: "support-case",
+        name: "Support Case Notification",
+        emailType: "support_case",
+        subject: "Support Case Created: {{supportCaseRef}}",
+        htmlContent: `<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    <h1>Support Case Created</h1>
+    <p>Hi {{userName}},</p>
+    <p>Your support case <strong>{{supportCaseRef}}</strong> has been created regarding: {{subject}}</p>
+    <p>We'll get back to you soon.</p>
+  </div>
+</body>
+</html>`
+    },
+    {
+        templateId: "review-received",
+        name: "New Review Received",
+        emailType: "review_received",
+        subject: "New {{rating}}-Star Review from {{customerName}}",
+        htmlContent: `<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    <h1>New Review Received</h1>
+    <p>Hi {{userName}},</p>
+    <p><strong>{{customerName}}</strong> left you a {{rating}}-star rating.</p>
+    <p><em>"{{reviewText}}"</em></p>
+  </div>
+</body>
+</html>`
+    }
+];
 
-        // Create a map of existing templates by type for quick lookup
-        const existingMap = new Map();
-        for (const t of existingTemplates) {
-            if (t.emailType) {
-                existingMap.set(t.emailType, t);
-            }
-        }
+export const seedTemplates = mutation({
+    args: {},
+    handler: async (ctx) => {
+        let createdCount = 0;
+        let updatedCount = 0;
 
-        for (const type of EMAIL_TYPES) {
-            const existing = existingMap.get(type.id);
+        for (const templateData of DEFAULT_TEMPLATES) {
+            const existing = await ctx.db
+                .query("emailTemplates")
+                .withIndex("by_type", (q) => q.eq("emailType", templateData.emailType))
+                .first();
 
-            if (existing && !args.force) {
-                console.log(`Skipping existing template: ${type.id}`);
-                continue;
-            }
-
-            // Generate specific content based on type
-            // This is a basic seeding strategy. You can expand this logic.
-            let headerTitle = type.subject;
-            let bodyContent = `<p>This is a default message for <strong>${type.label}</strong>.</p>`;
-            let actionButtonText = "View Details";
-
-            if (type.id === "tax_deadline_reminder") {
-                bodyContent = `
-          <p>Hello {{userName}},</p>
-          <p>This is a reminder that the tax deadline for <strong>{{taxYear}}</strong> is approaching on <strong>{{deadlineDate}}</strong>.</p>
-          <p>Please ensure all your documents are submitted.</p>
-        `;
-                actionButtonText = "Submit Documents";
-            } else if (type.id === "welcome_message") {
-                headerTitle = "Welcome to CribNosh!";
-                bodyContent = `
-          <p>Hi {{userName}},</p>
-          <p>We are thrilled to have you on board. Explore our platform to find the best meals near you.</p>
-        `;
-                actionButtonText = "Get Started";
-            } else if (type.id === "payment_receipt") {
-                bodyContent = `
-            <p>Hi {{userName}},</p>
-            <p>We received your payment of <strong>{{amount}}</strong> on {{date}}.</p>
-            <p>Thank you for your business.</p>
-          `;
-                actionButtonText = "View Receipt";
-            }
-
-            // Replace placeholders in Master Layout
-            let html = MASTER_LAYOUT
-                .replace("{{headerTitle}}", headerTitle)
-                .replace("{{bodyContent}}", bodyContent)
-                .replace("{{actionButtonText}}", actionButtonText);
-
-            // Simple handlebar-like helpers removal if not used (very basic)
-            // Real implementation might use a proper template engine even for seeding, 
-            // but strict replace is safer for "generating" the template source code.
-            // We leave {{userName}} etc intact because those are runtime variables.
-
-            // Upsert
             if (existing) {
                 await ctx.db.patch(existing._id, {
-                    name: type.label,
-                    description: `Default template for ${type.label}`,
-                    subject: headerTitle, // Set subject
-                    htmlContent: html,
+                    ...templateData,
                     updatedAt: Date.now(),
-                    isSystem: true,
                 });
+                updatedCount++;
             } else {
                 await ctx.db.insert("emailTemplates", {
-                    name: type.label,
-                    description: `Default template for ${type.label}`,
-                    emailType: type.id,
-                    subject: headerTitle, // Set subject
-                    htmlContent: html,
+                    ...templateData,
                     createdAt: Date.now(),
                     updatedAt: Date.now(),
-                    isSystem: true,
                 });
+                createdCount++;
             }
         }
 
-        return "Seeding complete";
+        return { createdCount, updatedCount };
     },
 });
