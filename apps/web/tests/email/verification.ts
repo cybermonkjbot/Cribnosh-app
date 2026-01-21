@@ -20,7 +20,7 @@ async function testEmailSystem() {
         const commonTypes = ['otp_verification', 'welcome_message', 'account_deletion'];
 
         for (const type of commonTypes) {
-            const template = templates.find(t => t.emailType === type);
+            const template = templates.find((t: any) => t.emailType === type);
             if (template) {
                 console.log(`✅ Found template for type: ${type}`);
             } else {

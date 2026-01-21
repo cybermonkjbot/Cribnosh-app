@@ -119,6 +119,10 @@ export default defineSchema({
     status: v.string(),
     responseTime: v.number(),
     uptime: v.optional(v.number()),
+    cpuUsage: v.optional(v.number()),
+    memoryUsage: v.optional(v.number()),
+    diskUsage: v.optional(v.number()),
+    networkLatency: v.optional(v.number()),
     lastChecked: v.number(),
     details: v.optional(v.string()),
   })

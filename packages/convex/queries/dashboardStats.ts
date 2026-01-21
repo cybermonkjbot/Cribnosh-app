@@ -1,5 +1,5 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
+import { query } from "../_generated/server";
 
 export const getDashboardFooterStats = query({
   args: {},
@@ -54,7 +54,7 @@ export const getDashboardFooterStats = query({
       .collect();
 
     const activeUsers = new Set(activeSessions.map(session => session.userId)).size;
-    
+
     // Get previous period active users for trend calculation
     const previousActiveSessions = await ctx.db
       .query("sessions")
@@ -63,7 +63,7 @@ export const getDashboardFooterStats = query({
         q.lt(q.field("expiresAt"), fifteenMinutesAgo)
       ))
       .collect();
-    
+
     const previousActiveUsers = new Set(previousActiveSessions.map(session => session.userId)).size;
 
     // Get live streams
@@ -86,7 +86,7 @@ export const getDashboardFooterStats = query({
       return waitTime > 30 * 60 * 1000; // More than 30 minutes
     }).length;
 
-    const averageWaitTime = pendingOrders.length > 0 
+    const averageWaitTime = pendingOrders.length > 0
       ? pendingOrders.reduce((sum, order) => sum + (Date.now() - order.createdAt), 0) / pendingOrders.length / (1000 * 60) // Convert to minutes
       : 0;
 
@@ -121,8 +121,8 @@ export const getDashboardFooterStats = query({
       .collect()
       .then(orders => orders.reduce((sum, order) => sum + (order.total_amount || 0), 0));
 
-    const revenueTrend = previousWeekRevenue > 0 
-      ? ((weekRevenue - previousWeekRevenue) / previousWeekRevenue) * 100 
+    const revenueTrend = previousWeekRevenue > 0
+      ? ((weekRevenue - previousWeekRevenue) / previousWeekRevenue) * 100
       : 0;
 
     // Get performance metrics from system health data
@@ -131,7 +131,7 @@ export const getDashboardFooterStats = query({
       .filter(q => q.eq(q.field("service"), "main"))
       .order("desc")
       .first();
-    
+
     const performance = {
       cpuUsage: latestHealth?.cpuUsage || 0,
       memoryUsage: latestHealth?.memoryUsage || 0,
@@ -286,10 +286,10 @@ export const getDashboardSummary = query({
   }),
   handler: async (ctx, args) => {
     const timeRange = args.timeRange || "24h";
-    const hours = timeRange === "1h" ? 1 : 
-                  timeRange === "24h" ? 24 : 
-                  timeRange === "7d" ? 168 : 720;
-    
+    const hours = timeRange === "1h" ? 1 :
+      timeRange === "24h" ? 24 :
+        timeRange === "7d" ? 168 : 720;
+
     const startTime = Date.now() - (hours * 60 * 60 * 1000);
     const previousStartTime = startTime - (hours * 60 * 60 * 1000);
 
@@ -343,18 +343,18 @@ export const getDashboardSummary = query({
     const activeChefs = currentChefs.length;
 
     // Calculate growth trends
-    const userGrowth = previousUsers.length > 0 
-      ? ((totalUsers - previousUsers.length) / previousUsers.length) * 100 
+    const userGrowth = previousUsers.length > 0
+      ? ((totalUsers - previousUsers.length) / previousUsers.length) * 100
       : 0;
-    const orderGrowth = previousOrders.length > 0 
-      ? ((totalOrders - previousOrders.length) / previousOrders.length) * 100 
+    const orderGrowth = previousOrders.length > 0
+      ? ((totalOrders - previousOrders.length) / previousOrders.length) * 100
       : 0;
     const previousRevenue = previousOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    const revenueGrowth = previousRevenue > 0 
-      ? ((totalRevenue - previousRevenue) / previousRevenue) * 100 
+    const revenueGrowth = previousRevenue > 0
+      ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
       : 0;
-    const chefGrowth = previousChefs.length > 0 
-      ? ((activeChefs - previousChefs.length) / previousChefs.length) * 100 
+    const chefGrowth = previousChefs.length > 0
+      ? ((activeChefs - previousChefs.length) / previousChefs.length) * 100
       : 0;
 
     // Calculate performance metrics
@@ -368,11 +368,15 @@ export const getDashboardSummary = query({
       .filter(q => q.gte(q.field("createdAt"), startTime))
       .collect();
 
-    const customerSatisfaction = reviews.length > 0 
-      ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length 
+    const customerSatisfaction = reviews.length > 0
+      ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length
       : 0;
 
     // Get system uptime from system health data
+    const systemHealth = await ctx.db
+      .query("systemHealth")
+      .filter(q => q.eq(q.field("service"), "main"))
+      .first();
     const systemUptime = systemHealth?.uptime || 0;
 
     // Get alert counts
