@@ -1,13 +1,15 @@
 import { RegionAvailabilityModal } from "@/components/ui/RegionAvailabilityModal";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { api } from '@/convex/_generated/api';
 import { useRegionAvailability } from "@/hooks/useRegionAvailability";
 import { useUserLocation } from "@/hooks/useUserLocation";
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
 import { setRouteContext } from "@/utils/authErrorHandler";
+import { useQuery } from "convex/react";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { api } from '@/convex/_generated/api';
-import { useAuthContext } from "@/contexts/AuthContext";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -27,9 +29,9 @@ const { height: screenHeight } = Dimensions.get("window");
 
 export default function SharedOrderingIndex() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ 
-    amount?: string; 
-    selectedAmount?: string; 
+  const params = useLocalSearchParams<{
+    amount?: string;
+    selectedAmount?: string;
     selectedDiet?: string;
   }>();
   const { showToast } = useToast();
@@ -45,7 +47,7 @@ export default function SharedOrderingIndex() {
 
   // Get session token for reactive queries
   const [sessionToken, setSessionToken] = useState<string | null>(null);
-  
+
   useEffect(() => {
     const loadToken = async () => {
       if (isAuthenticated) {
@@ -188,10 +190,10 @@ export default function SharedOrderingIndex() {
       // Check regional availability before creating order
       // Use saved address from profile, or check current location city
       let isRegionSupported = false;
-      
+
       if (profileData?.data?.address) {
         // Check saved address
-        isRegionSupported = checkAddress(profileData.data.address);
+        isRegionSupported = await checkAddress(profileData.data.address);
       } else if (userLocation) {
         // If we have coordinates but no saved address, we can't check region
         // For now, we'll allow it and let the server-side check handle it
@@ -230,14 +232,14 @@ export default function SharedOrderingIndex() {
       router.push("/shared-ordering/its-on-you");
     } catch (error: any) {
       console.error("Error creating custom order:", error);
-      
+
       // Skip error handling for 401 errors - global handler already redirected to sign-in
       const errorStatus = error?.status || error?.data?.error?.code || error?.data?.status;
       const errorCode = error?.data?.error?.code;
       if (errorStatus === 401 || errorStatus === "401" || errorCode === 401 || errorCode === "401") {
         return;
       }
-      
+
       // Handle other errors
       const errorMessage =
         error?.data?.error?.message ||
@@ -278,7 +280,7 @@ export default function SharedOrderingIndex() {
             style={[
               styles.continueButton,
               (!isValidAmount() || isCreatingOrder) &&
-                styles.continueButtonDisabled,
+              styles.continueButtonDisabled,
             ]}
             disabled={!isValidAmount() || isCreatingOrder}
           >
@@ -286,7 +288,7 @@ export default function SharedOrderingIndex() {
               style={[
                 styles.continueText,
                 (!isValidAmount() || isCreatingOrder) &&
-                  styles.continueTextDisabled,
+                styles.continueTextDisabled,
               ]}
             >
               {isCreatingOrder ? "Creating..." : "Continue"}
@@ -348,7 +350,7 @@ export default function SharedOrderingIndex() {
                       style={[
                         styles.presetButtonText,
                         selectedAmount === preset &&
-                          styles.presetButtonTextSelected,
+                        styles.presetButtonTextSelected,
                       ]}
                     >
                       {preset}

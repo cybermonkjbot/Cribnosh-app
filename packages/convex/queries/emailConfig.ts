@@ -78,12 +78,20 @@ export const getByType = query({
 
 // Internal query to get template and context for sending emails
 export const getTemplateAndContext = internalQuery({
-  args: { emailType: v.string() },
+  args: {
+    emailType: v.string(),
+    isSystem: v.optional(v.boolean())
+  },
   handler: async (ctx, args) => {
-    const template = await ctx.db
+    let query = ctx.db
       .query("emailTemplates")
-      .withIndex("by_type", (q) => q.eq("emailType", args.emailType))
-      .first();
+      .withIndex("by_type", (q) => q.eq("emailType", args.emailType));
+
+    if (args.isSystem !== undefined) {
+      query = query.filter(q => q.eq(q.field("isSystem"), args.isSystem));
+    }
+
+    const template = await query.first();
 
     // Mock app config for now, or fetch from a config table if it exists
     const appConfig = {

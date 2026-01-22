@@ -1,8 +1,9 @@
 "use node";
 
 import { v } from "convex/values";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import { action } from "../_generated/server";
+import { CACHE_TTL } from "../cacheConfig";
 
 /**
  * Get emotions engine context - aggregates all context data in Convex

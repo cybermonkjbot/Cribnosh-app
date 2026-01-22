@@ -146,7 +146,8 @@ export const sendTemplateEmail = action({
   handler: async (ctx, args) => {
     // 1. Fetch Template & Context from queries
     const { template, appConfig } = await ctx.runQuery(internal.queries.emailConfig.getTemplateAndContext, {
-      emailType: args.emailType
+      emailType: args.emailType,
+      isSystem: true
     });
 
     if (!template) {

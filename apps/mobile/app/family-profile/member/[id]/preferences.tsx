@@ -7,6 +7,7 @@ import { useToast } from '@/lib/ToastContext';
 import type { FamilyMember } from '@/types/customer';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { AlertTriangle, ChevronDown, ChevronUp, Plus, X } from 'lucide-react-native';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ScrollView,
   StatusBar,

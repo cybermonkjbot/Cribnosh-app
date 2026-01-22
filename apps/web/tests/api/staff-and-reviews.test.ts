@@ -1,14 +1,16 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockQuery = vi.fn()
 vi.mock('@/lib/conxed-client', () => ({
   getConvexClient: () => ({ query: mockQuery, mutation: vi.fn() }),
   api: {
     queries: {
-      reviews: { getAll: vi.fn() },
-      users: { getAll: vi.fn() },
-      timelogs: { getTimelogs: vi.fn() },
+      reviews: { getAll: 'reviews:getAll' },
+      users: { getAll: 'users:getAll' },
+      timelogs: { getTimelogs: 'timelogs:getTimelogs' },
+      chefs: { getChefById: 'chefs:getChefById' },
+      meals: { getAll: 'meals:getAll' }
     },
   },
 }))
@@ -38,7 +40,7 @@ describe('Staff & Reviews Endpoints', () => {
   })
 
   it('GET /api/reviews/chef/[chef_id] aggregates chef reviews', async () => {
-    const { GET } = await import('@/app/api/reviews/chef/[chef_id]/route')
+    const { GET } = await import('@/app/api/customer/chefs/[chef_id]/route')
     // getAll reviews, then users.getAll
     mockQuery
       // reviews.getAll
@@ -51,7 +53,7 @@ describe('Staff & Reviews Endpoints', () => {
         { _id: 'u1', name: 'John Doe' },
         { _id: 'u2', name: 'Jane Roe' },
       ])
-    const res = await GET(new NextRequest('http://localhost:3000/api/reviews/chef/chef_1'), { params: { chef_id: 'chef_1' } })
+    const res = await GET(new NextRequest('http://localhost:3000/api/reviews/chef/chef_1'))
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.chef_id).toBe('chef_1')
@@ -60,7 +62,7 @@ describe('Staff & Reviews Endpoints', () => {
   })
 
   it('GET /api/reviews/dish/[dish_id] aggregates dish reviews', async () => {
-    const { GET } = await import('@/app/api/reviews/dish/[dish_id]/route')
+    const { GET } = await import('@/app/api/customer/dishes/[dish_id]/route')
     mockQuery
       // reviews.getAll
       .mockResolvedValueOnce([
@@ -72,7 +74,7 @@ describe('Staff & Reviews Endpoints', () => {
         { _id: 'u1', name: 'Alex Smith' },
         { _id: 'u2', name: 'Mary Ann' },
       ])
-    const res = await GET(new NextRequest('http://localhost:3000/api/reviews/dish/dish_1'), { params: { dish_id: 'dish_1' } })
+    const res = await GET(new NextRequest('http://localhost:3000/api/reviews/dish/dish_1'))
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.dish_id).toBe('dish_1')
