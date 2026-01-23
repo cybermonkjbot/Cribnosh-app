@@ -11,6 +11,15 @@ import { Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRef, useState } from "react";
 
+interface Filter {
+    _id: Id<"filters">;
+    name: string;
+    code: string;
+    iconStorageId: Id<"_storage">;
+    isActive: boolean;
+    iconUrl: string | null;
+}
+
 export default function CameraFiltersPage() {
     const filters = useQuery(api.filters.list);
     const generateUploadUrl = useMutation(api.filters.generateUploadUrl);
@@ -266,7 +275,7 @@ export default function CameraFiltersPage() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filters.map((filter) => (
+                    {filters.map((filter: Filter) => (
                         <div key={filter._id} className="bg-white p-4 rounded-xl border border-gray-200 hover:shadow-md transition-shadow flex items-center gap-4">
                             <div className="w-16 h-16 bg-gray-100 rounded-lg shrink-0 overflow-hidden flex items-center justify-center">
                                 {filter.iconUrl ? (
