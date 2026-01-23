@@ -1,31 +1,33 @@
 import { v } from 'convex/values';
-import type { Id } from '../_generated/dataModel';
+import type { Doc, Id } from '../_generated/dataModel';
 import { QueryCtx, internalQuery, query } from '../_generated/server';
 import { isAdmin, isStaff, requireAuth, requireStaff } from '../utils/auth';
 import { getFormattedDeliveryTime } from '../utils/timeCalculations';
 import { filterAndRankMealsByPreferences, getUserPreferences } from '../utils/userPreferencesFilter';
 
-interface MealDoc {
-  _id: Id<'meals'>;
-  chefId: Id<'chefs'>;
-  rating?: number;
-  [key: string]: unknown;
-}
+type MealDoc = Doc<'meals'>;
+type ChefDoc = Doc<'chefs'>;
+type ReviewDoc = Doc<'reviews'>;
 
-interface ChefDoc {
-  _id: Id<'chefs'>;
-  name?: string;
-  bio?: string;
-  specialties?: string[];
-  rating?: number;
-  profileImage?: string | null;
-  [key: string]: unknown;
-}
-
-interface ReviewDoc {
-  rating?: number;
-  [key: string]: unknown;
-}
+type HydratedMeal = MealDoc & {
+  chef: {
+    _id: Id<'chefs'>;
+    name: string;
+    bio?: string;
+    specialties: string[];
+    rating: number;
+    profileImage?: string | null;
+    verificationStatus?: string;
+    verificationDocuments?: {
+      healthPermit?: boolean;
+    };
+  };
+  reviewCount: number;
+  averageRating: number;
+  reviews?: ReviewDoc[];
+  deliveryTime?: string;
+  popularityScore?: number;
+};
 
 export const getAll = query({
   args: {
@@ -37,14 +39,14 @@ export const getAll = query({
   returns: v.array(v.any()),
   handler: async (ctx: QueryCtx, args: { userId?: Id<'users'>; limit?: number; offset?: number; status?: string }) => {
     const { limit, offset = 0, status } = args;
-    
+
     // Build query with optional status filter
     let mealsQuery = ctx.db.query('meals');
     if (status) {
       mealsQuery = mealsQuery.filter(q => q.eq(q.field('status'), status));
     }
     const meals = await mealsQuery.collect();
-    
+
     // Batch fetch all chefs and reviews to avoid N+1 queries
     const chefIds = new Set(meals.map((meal: MealDoc) => meal.chefId));
     const chefs = await Promise.all(
@@ -53,44 +55,44 @@ export const getAll = query({
     const chefMap = new Map<Id<'chefs'>, ChefDoc>();
     for (const chef of chefs) {
       if (chef) {
-        chefMap.set(chef._id, chef as ChefDoc);
+        chefMap.set(chef._id, chef);
       }
     }
-    
+
     // Get reviews only for the meals we fetched (optimized: don't fetch all reviews)
     const mealIds = meals.map((meal: MealDoc) => meal._id);
-    const reviewPromises = mealIds.map(mealId => 
+    const reviewPromises = mealIds.map(mealId =>
       ctx.db.query('reviews')
         .withIndex('by_meal', q => q.eq('meal_id', mealId))
         .collect()
     );
     const reviewArrays = await Promise.all(reviewPromises);
-    
+
     // Create review map by meal ID
     const reviewMap = new Map<Id<'meals'>, ReviewDoc[]>();
     reviewArrays.forEach((reviews, index) => {
       const mealId = mealIds[index];
       if (reviews.length > 0) {
-        reviewMap.set(mealId, reviews as ReviewDoc[]);
+        reviewMap.set(mealId, reviews);
       }
     });
-    
+
     // Build meals with chef and review data
-    const mealsWithChefData = meals.map((meal: MealDoc) => {
+    const mealsWithChefData: HydratedMeal[] = meals.map((meal: MealDoc) => {
       const chef = chefMap.get(meal.chefId);
       const reviews = reviewMap.get(meal._id) || [];
-      
+
       return {
         ...meal,
         chef: chef ? {
-          _id: (chef as ChefDoc)._id,
-          name: (chef as ChefDoc).name || `Chef ${(chef as ChefDoc)._id}`,
-          bio: (chef as ChefDoc).bio,
-          specialties: (chef as ChefDoc).specialties || [],
-          rating: (chef as ChefDoc).rating || 0,
-          profileImage: (chef as ChefDoc).profileImage,
-          verificationStatus: (chef as { verificationStatus?: string }).verificationStatus,
-          verificationDocuments: (chef as { verificationDocuments?: { healthPermit?: boolean } }).verificationDocuments,
+          _id: chef._id,
+          name: chef.name || `Chef ${chef._id}`,
+          bio: chef.bio,
+          specialties: chef.specialties || [],
+          rating: chef.rating || 0,
+          profileImage: chef.profileImage,
+          verificationStatus: chef.verificationStatus,
+          verificationDocuments: chef.verificationDocuments,
         } : {
           _id: meal.chefId,
           name: `Chef ${meal.chefId}`,
@@ -100,18 +102,18 @@ export const getAll = query({
           profileImage: null,
         },
         reviewCount: reviews.length,
-        averageRating: reviews.length > 0 
+        averageRating: reviews.length > 0
           ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
           : meal.rating || 0
       };
     });
 
     // Apply user preference filtering if userId provided
-    let filteredMeals = mealsWithChefData;
+    let filteredMeals: HydratedMeal[] = mealsWithChefData;
     if (args.userId) {
       try {
         const preferences = await getUserPreferences(ctx, args.userId);
-        const scoredMeals = filterAndRankMealsByPreferences(
+        const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
           mealsWithChefData,
           preferences,
           (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
@@ -127,7 +129,7 @@ export const getAll = query({
     if (limit !== undefined) {
       return filteredMeals.slice(offset, offset + limit);
     }
-    
+
     // If no limit, return all from offset
     return filteredMeals.slice(offset);
   },
@@ -147,34 +149,34 @@ export const getDishesWithDetails = query({
     if (args.dishIds.length === 0) {
       return [];
     }
-    
+
     // Get all meals in one query
     const meals = await Promise.all(
       args.dishIds.map(id => ctx.db.get(id))
     );
-    
+
     // Filter out null meals
     const validMeals = meals.filter((meal): meal is MealDoc => meal !== null);
-    
+
     // Get unique chef IDs
     const chefIds = new Set(validMeals.map(meal => meal.chefId));
-    
+
     // Get all chefs in one batch
     const chefs = await Promise.all(
       Array.from(chefIds).map(id => ctx.db.get(id))
     );
-    
+
     // Create chef map for quick lookup
     const chefMap = new Map<Id<'chefs'>, ChefDoc>();
     for (const chef of chefs) {
       if (chef) {
-        chefMap.set(chef._id, chef as ChefDoc);
+        chefMap.set(chef._id, chef);
       }
     }
-    
+
     // Get reviews for these specific meals only (filter by meal IDs before collecting)
     // Query reviews for each mealId separately to avoid fetching all reviews
-    const reviewPromises = args.dishIds.map(mealId => 
+    const reviewPromises = args.dishIds.map(mealId =>
       ctx.db.query('reviews')
         .filter((q) => {
           const mealIdField = q.field('meal_id');
@@ -182,26 +184,26 @@ export const getDishesWithDetails = query({
         })
         .collect()
     );
-    
+
     const reviewArrays = await Promise.all(reviewPromises);
-    
+
     // Create review map by meal ID
     const reviewMap = new Map<Id<'meals'>, ReviewDoc[]>();
     reviewArrays.forEach((reviews, index) => {
       const mealId = args.dishIds[index];
       if (reviews.length > 0) {
-        reviewMap.set(mealId, reviews as ReviewDoc[]);
+        reviewMap.set(mealId, reviews);
       }
     });
-    
+
     // Build result with all details
-    let dishesWithDetails = validMeals.map((meal: MealDoc) => {
+    let dishesWithDetails: HydratedMeal[] = validMeals.map((meal: MealDoc) => {
       const chef = chefMap.get(meal.chefId);
       const reviews = reviewMap.get(meal._id) || [];
       const avgRating = reviews.length > 0
         ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
         : meal.rating || 0;
-      
+
       return {
         ...meal,
         chef: chef ? {
@@ -211,8 +213,8 @@ export const getDishesWithDetails = query({
           specialties: chef.specialties || [],
           rating: chef.rating || 0,
           profileImage: chef.profileImage,
-          verificationStatus: (chef as { verificationStatus?: string }).verificationStatus,
-          verificationDocuments: (chef as { verificationDocuments?: { healthPermit?: boolean } }).verificationDocuments,
+          verificationStatus: chef.verificationStatus,
+          verificationDocuments: chef.verificationDocuments,
         } : {
           _id: meal.chefId,
           name: `Chef ${meal.chefId}`,
@@ -226,12 +228,12 @@ export const getDishesWithDetails = query({
         reviews: reviews,
       };
     });
-    
+
     // Apply user preference filtering if userId provided
     if (args.userId) {
       try {
         const preferences = await getUserPreferences(ctx, args.userId);
-        const scoredMeals = filterAndRankMealsByPreferences(
+        const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
           dishesWithDetails,
           preferences,
           (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
@@ -242,7 +244,7 @@ export const getDishesWithDetails = query({
         console.error('Error fetching user preferences:', error);
       }
     }
-    
+
     return dishesWithDetails;
   },
 });
@@ -253,7 +255,7 @@ export const getPending = query({
   handler: async (ctx: QueryCtx, args: { sessionToken?: string }) => {
     // Require staff/admin authentication
     await requireStaff(ctx, args.sessionToken);
-    
+
     return await ctx.db.query('meals').filter((q) => q.eq(q.field('status'), 'pending')).collect();
   },
 });
@@ -275,7 +277,7 @@ export const getById = query({
 });
 
 export const getByChefId = query({
-  args: { 
+  args: {
     chefId: v.id('chefs'),
     userId: v.optional(v.id('users')),
     limit: v.optional(v.number()),
@@ -284,7 +286,7 @@ export const getByChefId = query({
     dietary: v.optional(v.array(v.string())),
   },
   returns: v.array(v.any()),
-  handler: async (ctx: QueryCtx, args: { 
+  handler: async (ctx: QueryCtx, args: {
     chefId: Id<'chefs'>;
     userId?: Id<'users'>;
     limit?: number;
@@ -294,39 +296,36 @@ export const getByChefId = query({
   }) => {
     const limit = args.limit || 10;
     const offset = args.offset || 0;
-    
+
     let meals = await ctx.db
       .query('meals')
       .filter((q) => q.eq(q.field('chefId'), args.chefId))
       .collect();
-    
+
     // Apply filters
     if (args.category) {
       meals = meals.filter((meal: MealDoc) => {
-        const mealAny = meal as { category?: string; cuisine?: string[]; [key: string]: unknown };
+        const mealAny = meal as { category?: string; cuisine?: string[];[key: string]: unknown };
         return mealAny.category?.toLowerCase() === args.category!.toLowerCase() ||
           mealAny.cuisine?.some((c: string) => c.toLowerCase() === args.category!.toLowerCase());
       });
     }
-    
+
     if (args.dietary && args.dietary.length > 0) {
       meals = meals.filter((meal: MealDoc) => {
-        const mealAny = meal as { dietaryInfo?: { vegetarian?: boolean; vegan?: boolean; glutenFree?: boolean }; allergens?: string[]; [key: string]: unknown };
-        return args.dietary!.some((diet: string) => 
-          mealAny.dietaryInfo?.vegetarian && diet === 'vegetarian' ||
-          mealAny.dietaryInfo?.vegan && diet === 'vegan' ||
-          mealAny.dietaryInfo?.glutenFree && diet === 'gluten-free' ||
-          mealAny.allergens?.some((a: string) => a.toLowerCase() === diet.toLowerCase())
+        return args.dietary!.some((diet: string) =>
+          meal.dietary?.some(d => d.toLowerCase() === diet.toLowerCase()) ||
+          meal.ingredients?.some(i => i.isAllergen && i.allergenType?.toLowerCase() === diet.toLowerCase())
         );
       });
     }
-    
+
     // Filter by status (only available meals)
     meals = meals.filter((meal: MealDoc) => {
-      const mealAny = meal as { status?: string; [key: string]: unknown };
+      const mealAny = meal as { status?: string;[key: string]: unknown };
       return mealAny.status === 'available' || mealAny.status === 'active';
     });
-    
+
     // Get chef data for meals
     const chefIds = new Set(meals.map((meal: MealDoc) => meal.chefId));
     const chefs = await Promise.all(
@@ -335,31 +334,31 @@ export const getByChefId = query({
     const chefMap = new Map<Id<'chefs'>, ChefDoc>();
     for (const chef of chefs) {
       if (chef) {
-        chefMap.set(chef._id, chef as ChefDoc);
+        chefMap.set(chef._id, chef);
       }
     }
-    
+
     // Get reviews for rating calculation
-    const mealsWithReviews = await Promise.all(
+    const mealsWithReviews: HydratedMeal[] = await Promise.all(
       meals.map(async (meal: MealDoc) => {
         const reviews = await ctx.db
           .query('reviews')
-          .filter((q) => q.eq(q.field('mealId'), meal._id))
+          .filter((q) => q.eq(q.field('meal_id'), meal._id))
           .collect();
-        
+
         const chef = chefMap.get(meal.chefId);
-        
+
         return {
           ...meal,
           chef: chef ? {
-            _id: (chef as ChefDoc)._id,
-            name: (chef as ChefDoc).name || `Chef ${(chef as ChefDoc)._id}`,
-            bio: (chef as ChefDoc).bio,
-            specialties: (chef as ChefDoc).specialties || [],
-            rating: (chef as ChefDoc).rating || 0,
-            profileImage: (chef as ChefDoc).profileImage,
-            verificationStatus: (chef as { verificationStatus?: string }).verificationStatus,
-            verificationDocuments: (chef as { verificationDocuments?: { healthPermit?: boolean } }).verificationDocuments,
+            _id: chef._id,
+            name: chef.name || `Chef ${chef._id}`,
+            bio: chef.bio,
+            specialties: chef.specialties || [],
+            rating: chef.rating || 0,
+            profileImage: chef.profileImage,
+            verificationStatus: chef.verificationStatus,
+            verificationDocuments: chef.verificationDocuments,
           } : {
             _id: meal.chefId,
             name: `Chef ${meal.chefId}`,
@@ -369,19 +368,19 @@ export const getByChefId = query({
             profileImage: null,
           },
           reviewCount: reviews.length,
-          averageRating: reviews.length > 0 
+          averageRating: reviews.length > 0
             ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
             : meal.rating || 0
         };
       })
     );
-    
+
     // Apply user preference filtering if userId provided
-    let results = mealsWithReviews;
+    let results: HydratedMeal[] = mealsWithReviews;
     if (args.userId) {
       try {
         const preferences = await getUserPreferences(ctx, args.userId);
-        const scoredMeals = filterAndRankMealsByPreferences(
+        const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
           mealsWithReviews,
           preferences,
           (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
@@ -393,42 +392,42 @@ export const getByChefId = query({
         results = mealsWithReviews;
       }
     }
-    
+
     return results.slice(offset, offset + limit);
   },
 });
 
 // Get all meals by chef ID for management (includes all statuses)
 export const getAllByChefIdForManagement = query({
-  args: { 
+  args: {
     chefId: v.id('chefs'),
     sessionToken: v.optional(v.string()),
   },
   returns: v.array(v.any()),
-  handler: async (ctx: QueryCtx, args: { 
+  handler: async (ctx: QueryCtx, args: {
     chefId: Id<'chefs'>;
     sessionToken?: string;
   }) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     // Get chef to verify ownership
     const chef = await ctx.db.get(args.chefId);
     if (!chef) {
       throw new Error('Chef not found');
     }
-    
+
     // Users can only view meals for their own chef profile, staff/admin can view any
     if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
       throw new Error('Access denied');
     }
-    
+
     // Get all meals for this chef (no status filtering)
     const meals = await ctx.db
       .query('meals')
       .filter((q) => q.eq(q.field('chefId'), args.chefId))
       .collect();
-    
+
     // Get reviews for rating calculation
     const mealsWithReviews = await Promise.all(
       meals.map(async (meal: MealDoc) => {
@@ -436,17 +435,17 @@ export const getAllByChefIdForManagement = query({
           .query('reviews')
           .withIndex('by_meal', (q) => q.eq('meal_id', meal._id))
           .collect();
-        
+
         return {
           ...meal,
           reviewCount: reviews.length,
-          averageRating: reviews.length > 0 
+          averageRating: reviews.length > 0
             ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
             : meal.rating || 0
         };
       })
     );
-    
+
     // Sort by creation date (newest first)
     return mealsWithReviews.sort((a, b) => {
       const aTime = (a as { createdAt?: number }).createdAt || 0;
@@ -458,46 +457,46 @@ export const getAllByChefIdForManagement = query({
 
 // Get popular meals by chef ID (sorted by rating/reviews)
 export const getPopularByChefId = query({
-  args: { 
+  args: {
     chefId: v.id('chefs'),
     userId: v.optional(v.id('users')),
     limit: v.optional(v.number()),
   },
   returns: v.array(v.any()),
-  handler: async (ctx: QueryCtx, args: { 
+  handler: async (ctx: QueryCtx, args: {
     chefId: Id<'chefs'>;
     userId?: Id<'users'>;
     limit?: number;
   }) => {
     const limit = args.limit || 10;
-    
+
     let meals = await ctx.db
       .query('meals')
       .filter((q) => q.eq(q.field('chefId'), args.chefId))
       .collect();
-    
+
     // Filter by status (only available meals)
     meals = meals.filter((meal: MealDoc) => {
-      const mealAny = meal as { status?: string; [key: string]: unknown };
+      const mealAny = meal as { status?: string;[key: string]: unknown };
       return mealAny.status === 'available' || mealAny.status === 'active';
     });
-    
+
     // Get reviews and calculate popularity score
     const mealsWithPopularity = await Promise.all(
       meals.map(async (meal: MealDoc) => {
         const reviews = await ctx.db
           .query('reviews')
-          .filter((q) => q.eq(q.field('mealId'), meal._id))
+          .filter((q) => q.eq(q.field('meal_id'), meal._id))
           .collect();
-        
+
         const reviewCount = reviews.length;
-        const averageRating = reviews.length > 0 
+        const averageRating = reviews.length > 0
           ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
           : meal.rating || 0;
-        
+
         // Popularity score: rating * log(reviewCount + 1) to balance rating and review count
         const popularityScore = averageRating * Math.log(reviewCount + 1);
-        
+
         return {
           ...meal,
           reviewCount,
@@ -506,35 +505,35 @@ export const getPopularByChefId = query({
         };
       })
     );
-    
+
     // Apply user preference filtering if userId provided
-    let results: Array<MealDoc & { reviewCount: number; averageRating: number; popularityScore: number }> = mealsWithPopularity;
+    let results: HydratedMeal[] = mealsWithPopularity as unknown as HydratedMeal[];
     if (args.userId) {
       try {
         const preferences = await getUserPreferences(ctx, args.userId);
-        const scoredMeals = filterAndRankMealsByPreferences(
-          mealsWithPopularity,
+        const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
+          mealsWithPopularity as unknown as HydratedMeal[],
           preferences,
-          (meal: MealDoc & { popularityScore?: number }) => meal.popularityScore || 0
+          (meal) => meal.popularityScore || 0
         );
-        results = scoredMeals.map((s: { meal: MealDoc & { reviewCount: number; averageRating: number; popularityScore: number } }) => s.meal);
+        results = scoredMeals.map(s => s.meal);
       } catch (error) {
         // If preference fetching fails, return unfiltered meals
         console.error('Error fetching user preferences:', error);
-        results = mealsWithPopularity;
+        results = mealsWithPopularity as unknown as HydratedMeal[];
       }
     } else {
       // Sort by popularity score if no user preferences
-      results.sort((a: MealDoc & { popularityScore?: number }, b: MealDoc & { popularityScore?: number }) => (b.popularityScore || 0) - (a.popularityScore || 0));
+      results.sort((a, b) => (b.popularityScore || 0) - (a.popularityScore || 0));
     }
-    
+
     return results.slice(0, limit);
   },
 });
 
 // Get categories by chef ID
 export const getCategoriesByChefId = query({
-  args: { 
+  args: {
     chefId: v.id('chefs'),
   },
   returns: v.array(v.object({
@@ -546,23 +545,23 @@ export const getCategoriesByChefId = query({
       .query('meals')
       .filter((q) => q.eq(q.field('chefId'), args.chefId))
       .collect();
-    
+
     // Filter by status (only available meals)
     const availableMeals = meals.filter((meal: MealDoc) => {
-      const mealAny = meal as { status?: string; [key: string]: unknown };
+      const mealAny = meal as { status?: string;[key: string]: unknown };
       return mealAny.status === 'available' || mealAny.status === 'active';
     });
-    
+
     // Aggregate by category
     const categoryMap = new Map<string, number>();
-    
+
     availableMeals.forEach((meal: MealDoc) => {
-      const mealAny = meal as { category?: string; cuisine?: string[]; [key: string]: unknown };
+      const mealAny = meal as { category?: string; cuisine?: string[];[key: string]: unknown };
       // Use category if exists, otherwise use first cuisine type
       const category = mealAny.category || (mealAny.cuisine && Array.isArray(mealAny.cuisine) ? mealAny.cuisine[0] : undefined) || 'Other';
       categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
     });
-    
+
     return Array.from(categoryMap.entries()).map(([category, count]) => ({
       category,
       count,
@@ -590,85 +589,99 @@ export const searchMealsByChefId = query({
     limit?: number;
   }) => {
     const limit = args.limit || 20;
-    
+
     let meals = await ctx.db
       .query('meals')
       .filter((q) => q.eq(q.field('chefId'), args.chefId))
       .collect();
-    
+
     // Filter by status (only available meals)
     meals = meals.filter((meal: MealDoc) => {
-      const mealAny = meal as { status?: string; [key: string]: unknown };
-      return mealAny.status === 'available' || mealAny.status === 'active';
+      return meal.status === 'available' || (meal.status as string) === 'active';
     });
-    
+
     // Filter by search query
     if (args.query) {
       const searchTerm = args.query.toLowerCase();
       meals = meals.filter((meal: MealDoc) => {
-        const mealAny = meal as { name?: string; description?: string; cuisine?: string[]; ingredients?: string[]; [key: string]: unknown };
-        return mealAny.name?.toLowerCase().includes(searchTerm) ||
-          mealAny.description?.toLowerCase().includes(searchTerm) ||
-          mealAny.cuisine?.some((c: string) => c.toLowerCase().includes(searchTerm)) ||
-          mealAny.ingredients?.some((i: string) => i.toLowerCase().includes(searchTerm));
+        return meal.name?.toLowerCase().includes(searchTerm) ||
+          meal.description?.toLowerCase().includes(searchTerm) ||
+          meal.cuisine?.some((c: string) => c.toLowerCase().includes(searchTerm)) ||
+          meal.ingredients?.some((i) => i.name.toLowerCase().includes(searchTerm));
       });
     }
-    
+
     // Apply category filter
     if (args.category) {
       meals = meals.filter((meal: MealDoc) => {
-        const mealAny = meal as { category?: string; cuisine?: string[]; [key: string]: unknown };
-        return mealAny.category?.toLowerCase() === args.category!.toLowerCase() ||
-          mealAny.cuisine?.some((c: string) => c.toLowerCase() === args.category!.toLowerCase());
+        return (meal as any).category?.toLowerCase() === args.category!.toLowerCase() ||
+          meal.cuisine?.some((c: string) => c.toLowerCase() === args.category!.toLowerCase());
       });
     }
-    
+
     // Apply dietary filter
     if (args.dietary && args.dietary.length > 0) {
       meals = meals.filter((meal: MealDoc) => {
-        const mealAny = meal as { dietaryInfo?: { vegetarian?: boolean; vegan?: boolean; glutenFree?: boolean }; allergens?: string[]; [key: string]: unknown };
-        return args.dietary!.some((diet: string) => 
-          mealAny.dietaryInfo?.vegetarian && diet === 'vegetarian' ||
-          mealAny.dietaryInfo?.vegan && diet === 'vegan' ||
-          mealAny.dietaryInfo?.glutenFree && diet === 'gluten-free' ||
-          mealAny.allergens?.some((a: string) => a.toLowerCase() === diet.toLowerCase())
+        return args.dietary!.some((diet: string) =>
+          meal.dietary?.some(d => d.toLowerCase() === diet.toLowerCase()) ||
+          meal.ingredients?.some(i => i.isAllergen && i.allergenType?.toLowerCase() === diet.toLowerCase())
         );
       });
     }
-    
+
+    // Get chef data for the query
+    const chef = await ctx.db.get(args.chefId);
+
     // Get reviews for rating
-    const mealsWithReviews = await Promise.all(
+    const mealsWithReviews: HydratedMeal[] = await Promise.all(
       meals.map(async (meal: MealDoc) => {
         const reviews = await ctx.db
           .query('reviews')
-          .filter((q) => q.eq(q.field('mealId'), meal._id))
+          .filter((q) => q.eq(q.field('meal_id'), meal._id))
           .collect();
-        
+
         return {
           ...meal,
+          chef: chef ? {
+            _id: chef._id,
+            name: chef.name || `Chef ${chef._id}`,
+            bio: chef.bio,
+            specialties: chef.specialties || [],
+            rating: chef.rating || 0,
+            profileImage: chef.profileImage,
+            verificationStatus: chef.verificationStatus,
+            verificationDocuments: chef.verificationDocuments,
+          } : {
+            _id: meal.chefId,
+            name: `Chef ${meal.chefId}`,
+            bio: '',
+            specialties: [],
+            rating: 0,
+            profileImage: null,
+          },
           reviewCount: reviews.length,
-          averageRating: reviews.length > 0 
+          averageRating: reviews.length > 0
             ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
             : meal.rating || 0
         };
       })
     );
-    
+
     // Apply user preference filtering if userId provided
-    let results: Array<MealDoc & { reviewCount: number; averageRating: number }> = mealsWithReviews;
+    let results: HydratedMeal[] = mealsWithReviews;
     if (args.userId) {
       const preferences = await getUserPreferences(ctx, args.userId);
-      const scoredMeals = filterAndRankMealsByPreferences(
+      const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
         mealsWithReviews,
         preferences,
-        (meal: MealDoc & { averageRating?: number; reviewCount?: number }) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+        (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
       );
-      results = scoredMeals.map((s: { meal: MealDoc & { reviewCount: number; averageRating: number } }) => s.meal);
+      results = scoredMeals.map(s => s.meal);
     } else {
       // Sort by rating if no user preferences
-      results.sort((a: MealDoc & { averageRating?: number }, b: MealDoc & { averageRating?: number }) => (b.averageRating || 0) - (a.averageRating || 0));
+      results.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
     }
-    
+
     return results.slice(0, limit);
   },
 });
@@ -699,54 +712,50 @@ export const searchMeals = query({
   }) => {
     try {
       let meals = await ctx.db.query('meals').collect();
-      
+
       // Filter by search query
       if (args.query) {
         const searchTerm = args.query.toLowerCase();
         meals = meals.filter((meal: MealDoc) => {
-          const mealAny = meal as { name?: string; description?: string; cuisine?: string[]; [key: string]: unknown };
+          const mealAny = meal as { name?: string; description?: string; cuisine?: string[];[key: string]: unknown };
           return mealAny.name?.toLowerCase().includes(searchTerm) ||
             mealAny.description?.toLowerCase().includes(searchTerm) ||
             mealAny.cuisine?.some((c: string) => c.toLowerCase().includes(searchTerm));
         });
       }
-      
+
       // Apply additional filters
       if (args.filters) {
         if (args.filters.cuisine) {
           meals = meals.filter((meal: MealDoc) => {
-            const mealAny = meal as { cuisine?: string[]; [key: string]: unknown };
-            return mealAny.cuisine?.some((c: string) => c.toLowerCase() === args.filters!.cuisine!.toLowerCase());
+            return meal.cuisine.some(c => c.toLowerCase() === args.filters!.cuisine!.toLowerCase());
           });
         }
-        
+
         if (args.filters.priceRange) {
           const { min, max } = args.filters.priceRange;
           meals = meals.filter((meal: MealDoc) => {
-            const mealAny = meal as { price?: number; [key: string]: unknown };
-            if (min !== undefined && mealAny.price !== undefined && mealAny.price < min) return false;
-            if (max !== undefined && mealAny.price !== undefined && mealAny.price > max) return false;
+            if (min !== undefined && meal.price < min) return false;
+            if (max !== undefined && meal.price > max) return false;
             return true;
           });
         }
-        
+
         if (args.filters.dietary && args.filters.dietary.length > 0) {
           meals = meals.filter((meal: MealDoc) => {
-            const mealAny = meal as { dietary?: string[]; [key: string]: unknown };
-            if (!mealAny.dietary || mealAny.dietary.length === 0) return false;
-            // Case-insensitive matching for dietary restrictions
-            const mealDietaryLower = mealAny.dietary.map((d: string) => d.toLowerCase());
-            return args.filters!.dietary!.some((diet: string) => 
-              mealDietaryLower.includes(diet.toLowerCase())
+            const mealDietaryLower = meal.dietary.map(d => d.toLowerCase());
+            return args.filters!.dietary!.some(diet =>
+              mealDietaryLower.includes(diet.toLowerCase()) ||
+              meal.ingredients?.some(i => i.isAllergen && i.allergenType?.toLowerCase() === diet.toLowerCase())
             );
           });
         }
       }
-      
+
       // Sort by rating and limit results
       const filteredMeals = meals
         .filter((meal: MealDoc) => {
-          const mealAny = meal as { status?: string; [key: string]: unknown };
+          const mealAny = meal as { status?: string;[key: string]: unknown };
           return mealAny.status === 'available';
         })
         .sort((a: MealDoc, b: MealDoc) => ((b as { rating?: number }).rating || 0) - ((a as { rating?: number }).rating || 0))
@@ -760,10 +769,10 @@ export const searchMeals = query({
       const chefMap = new Map<Id<'chefs'>, ChefDoc>();
       for (const chef of chefs) {
         if (chef) {
-          chefMap.set(chef._id, chef as ChefDoc);
+          chefMap.set(chef._id, chef);
         }
       }
-      
+
       // Get all reviews in one query and group by mealId
       const allReviews = await ctx.db.query('reviews').collect();
       const reviewMap = new Map<Id<'meals'>, ReviewDoc[]>();
@@ -778,21 +787,21 @@ export const searchMeals = query({
       }
 
       // Build meals with chef and review data
-      const mealsWithChefData = filteredMeals.map((meal: MealDoc) => {
+      const mealsWithChefData: HydratedMeal[] = filteredMeals.map((meal: MealDoc) => {
         const chef = chefMap.get(meal.chefId);
         const reviews = reviewMap.get(meal._id) || [];
-        
+
         return {
           ...meal,
           chef: chef ? {
-            _id: (chef as ChefDoc)._id,
-            name: (chef as ChefDoc).name || `Chef ${(chef as ChefDoc)._id}`,
-            bio: (chef as ChefDoc).bio,
-            specialties: (chef as ChefDoc).specialties || [],
-            rating: (chef as ChefDoc).rating || 0,
-            profileImage: (chef as ChefDoc).profileImage,
-            verificationStatus: (chef as { verificationStatus?: string }).verificationStatus,
-            verificationDocuments: (chef as { verificationDocuments?: { healthPermit?: boolean } }).verificationDocuments,
+            _id: chef._id,
+            name: chef.name || `Chef ${chef._id}`,
+            bio: chef.bio,
+            specialties: chef.specialties || [],
+            rating: chef.rating || 0,
+            profileImage: chef.profileImage,
+            verificationStatus: chef.verificationStatus,
+            verificationDocuments: chef.verificationDocuments,
           } : {
             _id: meal.chefId,
             name: `Chef ${meal.chefId}`,
@@ -802,24 +811,24 @@ export const searchMeals = query({
             profileImage: null,
           },
           reviewCount: reviews.length,
-          averageRating: reviews.length > 0 
+          averageRating: reviews.length > 0
             ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
             : meal.rating || 0
         };
       });
 
-      let results: Array<MealDoc & { chef: ChefDoc; reviewCount: number; averageRating: number }> = mealsWithChefData;
+      let results: HydratedMeal[] = mealsWithChefData;
 
       // Apply user preference filtering if userId provided
       if (args.userId) {
         try {
           const preferences = await getUserPreferences(ctx, args.userId);
-          const scoredMeals = filterAndRankMealsByPreferences(
+          const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
             mealsWithChefData,
             preferences,
-            (meal: MealDoc & { averageRating?: number; reviewCount?: number }) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+            (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
           );
-          results = scoredMeals.map((s: { meal: MealDoc & { chef: ChefDoc; reviewCount: number; averageRating: number } }) => s.meal);
+          results = scoredMeals.map(s => s.meal);
         } catch (error) {
           // If preference fetching fails, return unfiltered meals
           console.error('Error fetching user preferences:', error);
@@ -837,7 +846,7 @@ export const searchMeals = query({
 
 // Get search suggestions
 export const getSearchSuggestions = query({
-  args: { 
+  args: {
     query: v.string(),
     userId: v.optional(v.id('users'))
   },
@@ -845,10 +854,10 @@ export const getSearchSuggestions = query({
   handler: async (ctx: QueryCtx, args: { query: string; userId?: Id<'users'> }) => {
     try {
       if (args.query.length < 2) return [];
-      
+
       // Get meals - will be filtered by preferences if userId provided
       const allMeals = await ctx.db.query('meals').collect();
-      
+
       // Apply user preference filtering if userId provided
       let meals = allMeals;
       if (args.userId) {
@@ -866,14 +875,14 @@ export const getSearchSuggestions = query({
           meals = allMeals;
         }
       }
-      
+
       const searchTerm = args.query.toLowerCase();
-      
+
       // Get meal names and cuisines that match
       const suggestions = new Set<string>();
-      
+
       meals.forEach((meal: MealDoc) => {
-        const mealAny = meal as { name?: string; cuisine?: string[]; [key: string]: unknown };
+        const mealAny = meal as { name?: string; cuisine?: string[];[key: string]: unknown };
         if (mealAny.name && typeof mealAny.name === 'string' && mealAny.name.toLowerCase().includes(searchTerm)) {
           suggestions.add(mealAny.name);
         }
@@ -885,7 +894,7 @@ export const getSearchSuggestions = query({
           });
         }
       });
-      
+
       return Array.from(suggestions).slice(0, 10);
     } catch (error) {
       console.error('Error getting search suggestions:', error);
@@ -911,7 +920,7 @@ export const getAvailable = query({
         q.eq(q.field('status'), 'active')
       ))
       .collect();
-    
+
     // Batch fetch all chefs and reviews to avoid N+1 queries
     const chefIds = new Set(meals.map((meal: MealDoc) => meal.chefId));
     const chefs = await Promise.all(
@@ -923,7 +932,7 @@ export const getAvailable = query({
         chefMap.set(chef._id, chef as ChefDoc);
       }
     }
-    
+
     // Get all reviews in one query and group by mealId
     const allReviews = await ctx.db.query('reviews').collect();
     const reviewMap = new Map<Id<'meals'>, ReviewDoc[]>();
@@ -936,16 +945,16 @@ export const getAvailable = query({
         reviewMap.get(mealId)!.push(review as ReviewDoc);
       }
     }
-    
+
     // Build meals with chef and review data
-    const mealsWithChefData = meals.map((meal: MealDoc) => {
+    const mealsWithChefData: HydratedMeal[] = meals.map((meal: MealDoc) => {
       const chef = chefMap.get(meal.chefId);
       const reviews = reviewMap.get(meal._id) || [];
-      
+
       // Calculate delivery time if user location and chef location are available
-      let deliveryTime: string | null = null;
+      let deliveryTime: string | undefined = undefined;
       if (args.latitude && args.longitude && chef) {
-        const chefLocation = (chef as any).location;
+        const chefLocation = chef.location;
         if (chefLocation?.coordinates && Array.isArray(chefLocation.coordinates) && chefLocation.coordinates.length === 2) {
           const [chefLat, chefLng] = chefLocation.coordinates;
           const mealAny = meal as { prepTime?: string; prep_time?: string };
@@ -967,23 +976,23 @@ export const getAvailable = query({
               prepTimeMinutes
             );
           } catch (error) {
-            // If calculation fails, leave deliveryTime as null
+            // If calculation fails, leave deliveryTime as undefined
             console.error('Error calculating delivery time:', error);
           }
         }
       }
-      
+
       return {
         ...meal,
         chef: chef ? {
-          _id: (chef as ChefDoc)._id,
-          name: (chef as ChefDoc).name || `Chef ${(chef as ChefDoc)._id}`,
-          bio: (chef as ChefDoc).bio,
-          specialties: (chef as ChefDoc).specialties || [],
-          rating: (chef as ChefDoc).rating || 0,
-          profileImage: (chef as ChefDoc).profileImage,
-          verificationStatus: (chef as { verificationStatus?: string }).verificationStatus,
-          verificationDocuments: (chef as { verificationDocuments?: { healthPermit?: boolean } }).verificationDocuments,
+          _id: chef._id,
+          name: chef.name || `Chef ${chef._id}`,
+          bio: chef.bio,
+          specialties: chef.specialties || [],
+          rating: chef.rating || 0,
+          profileImage: chef.profileImage,
+          verificationStatus: chef.verificationStatus,
+          verificationDocuments: chef.verificationDocuments,
         } : {
           _id: meal.chefId,
           name: `Chef ${meal.chefId}`,
@@ -993,7 +1002,7 @@ export const getAvailable = query({
           profileImage: null,
         },
         reviewCount: reviews.length,
-        averageRating: reviews.length > 0 
+        averageRating: reviews.length > 0
           ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
           : meal.rating || 0,
         deliveryTime,
@@ -1001,11 +1010,11 @@ export const getAvailable = query({
     });
 
     // Apply user preference filtering if userId provided
-    let results = mealsWithChefData;
+    let results: HydratedMeal[] = mealsWithChefData;
     if (args.userId) {
       try {
         const preferences = await getUserPreferences(ctx, args.userId);
-        const scoredMeals = filterAndRankMealsByPreferences(
+        const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
           mealsWithChefData,
           preferences,
           (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
@@ -1058,54 +1067,49 @@ export const search = query({
   }) => {
     try {
       let meals = await ctx.db.query('meals').collect();
-      
+
       // Filter by search query
       if (args.query) {
         const searchTerm = args.query.toLowerCase();
         meals = meals.filter((meal: MealDoc) => {
-          const mealAny = meal as { name?: string; description?: string; cuisine?: string[]; [key: string]: unknown };
-          return mealAny.name?.toLowerCase().includes(searchTerm) ||
-            mealAny.description?.toLowerCase().includes(searchTerm) ||
-            mealAny.cuisine?.some((c: string) => c.toLowerCase().includes(searchTerm));
+          return meal.name.toLowerCase().includes(searchTerm) ||
+            meal.description.toLowerCase().includes(searchTerm) ||
+            meal.cuisine.some(c => c.toLowerCase().includes(searchTerm));
         });
       }
-      
+
       // Apply additional filters
       if (args.filters) {
         if (args.filters.cuisine) {
           meals = meals.filter((meal: MealDoc) => {
-            const mealAny = meal as { cuisine?: string[]; [key: string]: unknown };
-            return mealAny.cuisine?.some((c: string) => c.toLowerCase() === args.filters!.cuisine!.toLowerCase());
+            return meal.cuisine.some(c => c.toLowerCase() === args.filters!.cuisine!.toLowerCase());
           });
         }
-        
+
         if (args.filters.priceRange) {
           const { min, max } = args.filters.priceRange;
           meals = meals.filter((meal: MealDoc) => {
-            const mealAny = meal as { price?: number; [key: string]: unknown };
-            if (min !== undefined && mealAny.price !== undefined && mealAny.price < min) return false;
-            if (max !== undefined && mealAny.price !== undefined && mealAny.price > max) return false;
+            if (min !== undefined && meal.price < min) return false;
+            if (max !== undefined && meal.price > max) return false;
             return true;
           });
         }
-        
+
         if (args.filters.dietary && args.filters.dietary.length > 0) {
           meals = meals.filter((meal: MealDoc) => {
-            const mealAny = meal as { dietary?: string[]; [key: string]: unknown };
-            if (!mealAny.dietary || mealAny.dietary.length === 0) return false;
-            // Case-insensitive matching for dietary restrictions
-            const mealDietaryLower = mealAny.dietary.map((d: string) => d.toLowerCase());
-            return args.filters!.dietary!.some((diet: string) => 
-              mealDietaryLower.includes(diet.toLowerCase())
+            const mealDietaryLower = meal.dietary.map(d => d.toLowerCase());
+            return args.filters!.dietary!.some(diet =>
+              mealDietaryLower.includes(diet.toLowerCase()) ||
+              meal.ingredients?.some(i => i.isAllergen && i.allergenType?.toLowerCase() === diet.toLowerCase())
             );
           });
         }
       }
-      
+
       // Sort by rating (pagination will be applied later)
       const filteredMeals = meals
         .filter((meal: MealDoc) => {
-          const mealAny = meal as { status?: string; [key: string]: unknown };
+          const mealAny = meal as { status?: string;[key: string]: unknown };
           return mealAny.status === 'available';
         })
         .sort((a: MealDoc, b: MealDoc) => ((b as { rating?: number }).rating || 0) - ((a as { rating?: number }).rating || 0));
@@ -1121,7 +1125,7 @@ export const search = query({
           chefMap.set(chef._id, chef as ChefDoc);
         }
       }
-      
+
       // Get all reviews in one query and group by mealId
       const allReviews = await ctx.db.query('reviews').collect();
       const reviewMap = new Map<Id<'meals'>, ReviewDoc[]>();
@@ -1136,21 +1140,21 @@ export const search = query({
       }
 
       // Build meals with chef and review data
-      const mealsWithChefData = filteredMeals.map((meal: MealDoc) => {
+      const mealsWithChefData: HydratedMeal[] = filteredMeals.map((meal: MealDoc) => {
         const chef = chefMap.get(meal.chefId);
         const reviews = reviewMap.get(meal._id) || [];
-        
+
         return {
           ...meal,
           chef: chef ? {
-            _id: (chef as ChefDoc)._id,
-            name: (chef as ChefDoc).name || `Chef ${(chef as ChefDoc)._id}`,
-            bio: (chef as ChefDoc).bio,
-            specialties: (chef as ChefDoc).specialties || [],
-            rating: (chef as ChefDoc).rating || 0,
-            profileImage: (chef as ChefDoc).profileImage,
-            verificationStatus: (chef as { verificationStatus?: string }).verificationStatus,
-            verificationDocuments: (chef as { verificationDocuments?: { healthPermit?: boolean } }).verificationDocuments,
+            _id: chef._id,
+            name: chef.name || `Chef ${chef._id}`,
+            bio: chef.bio,
+            specialties: chef.specialties || [],
+            rating: chef.rating || 0,
+            profileImage: chef.profileImage,
+            verificationStatus: chef.verificationStatus,
+            verificationDocuments: chef.verificationDocuments,
           } : {
             _id: meal.chefId,
             name: `Chef ${meal.chefId}`,
@@ -1160,24 +1164,24 @@ export const search = query({
             profileImage: null,
           },
           reviewCount: reviews.length,
-          averageRating: reviews.length > 0 
+          averageRating: reviews.length > 0
             ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
             : meal.rating || 0
         };
       });
 
-      let results: Array<MealDoc & { chef: ChefDoc; reviewCount: number; averageRating: number }> = mealsWithChefData;
+      let results: HydratedMeal[] = mealsWithChefData;
 
       // Apply user preference filtering if userId provided
       if (args.userId) {
         try {
           const preferences = await getUserPreferences(ctx, args.userId);
-          const scoredMeals = filterAndRankMealsByPreferences(
+          const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
             mealsWithChefData,
             preferences,
-            (meal: MealDoc & { averageRating?: number; reviewCount?: number }) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+            (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
           );
-          results = scoredMeals.map((s: { meal: MealDoc & { chef: ChefDoc; reviewCount: number; averageRating: number } }) => s.meal);
+          results = scoredMeals.map(s => s.meal);
         } catch (error) {
           // If preference fetching fails, return unfiltered meals
           console.error('Error fetching user preferences:', error);
@@ -1206,9 +1210,9 @@ export const getCuisines = query({
   handler: async (ctx: QueryCtx) => {
     const meals = await ctx.db.query('meals').collect();
     const cuisines = new Set<string>();
-    
+
     for (const meal of meals) {
-      const mealAny = meal as { cuisine?: string[]; [key: string]: unknown };
+      const mealAny = meal as { cuisine?: string[];[key: string]: unknown };
       if (mealAny.cuisine && Array.isArray(mealAny.cuisine)) {
         mealAny.cuisine.forEach((c: string) => {
           if (c && typeof c === 'string') {
@@ -1217,14 +1221,14 @@ export const getCuisines = query({
         });
       }
     }
-    
+
     return Array.from(cuisines).sort();
   },
 });
 
 // Get user's previous meals
 export const getPreviousMeals = query({
-  args: { 
+  args: {
     userId: v.id('users'),
     applyPreferences: v.optional(v.boolean()),
     sessionToken: v.optional(v.string())
@@ -1233,7 +1237,7 @@ export const getPreviousMeals = query({
   handler: async (ctx: QueryCtx, args: { userId: Id<'users'>; applyPreferences?: boolean; sessionToken?: string }) => {
     // Require authentication - users can only access their own previous meals
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     // Users can access their own previous meals, staff/admin can access any
     if (!isAdmin(user) && !isStaff(user) && args.userId !== user._id) {
       throw new Error('Access denied');
@@ -1244,11 +1248,11 @@ export const getPreviousMeals = query({
         .query('orders')
         .filter((q) => q.eq(q.field('customer_id'), args.userId))
         .collect();
-      
+
       // Extract meal IDs from orders
       const mealIds = new Set<string>();
-      orders.forEach((order: { order_items?: Array<{ dish_id?: string }>; [key: string]: unknown }) => {
-        const orderAny = order as { order_items?: Array<{ dish_id?: string }>; [key: string]: unknown };
+      orders.forEach((order: { order_items?: Array<{ dish_id?: string }>;[key: string]: unknown }) => {
+        const orderAny = order as { order_items?: Array<{ dish_id?: string }>;[key: string]: unknown };
         if (orderAny.order_items && Array.isArray(orderAny.order_items)) {
           orderAny.order_items.forEach((item: { dish_id?: string }) => {
             if (item.dish_id) {
@@ -1257,14 +1261,14 @@ export const getPreviousMeals = query({
           });
         }
       });
-      
+
       // Get meal details
       const previousMeals = await Promise.all(
         Array.from(mealIds).map(async (mealId: string) => {
           return await ctx.db.get(mealId as Id<'meals'>);
         })
       );
-      
+
       let results = previousMeals
         .filter((meal): meal is MealDoc => meal !== null)
         .sort((a: MealDoc, b: MealDoc) => ((b as { rating?: number }).rating || 0) - ((a as { rating?: number }).rating || 0));
@@ -1302,7 +1306,7 @@ export const getRandomMeals = query({
   returns: v.array(v.any()),
   handler: async (ctx: QueryCtx, args: { userId?: Id<'users'>; limit?: number; latitude?: number; longitude?: number }) => {
     const limit = args.limit || 20;
-    
+
     try {
       // Get all available meals
       const allMeals = await ctx.db
@@ -1315,11 +1319,11 @@ export const getRandomMeals = query({
           );
         })
         .collect();
-      
+
       if (allMeals.length === 0) {
         return [];
       }
-      
+
       // Get chef data for all meals before applying preferences
       const chefIds = new Set(allMeals.map((meal: MealDoc) => meal.chefId));
       const chefs = await Promise.all(
@@ -1331,11 +1335,11 @@ export const getRandomMeals = query({
           chefMap.set(chef._id, chef as ChefDoc);
         }
       }
-      
+
       // Build meals with chef data for preference filtering
       const mealsWithChefData = allMeals.map((meal: MealDoc) => {
         const chef = chefMap.get(meal.chefId);
-        
+
         // Calculate delivery time if user location and chef location are available
         let deliveryTime: string | null = null;
         if (args.latitude && args.longitude && chef) {
@@ -1366,7 +1370,7 @@ export const getRandomMeals = query({
             }
           }
         }
-        
+
         return {
           ...meal,
           chef: chef ? {
@@ -1389,32 +1393,32 @@ export const getRandomMeals = query({
           deliveryTime,
         };
       });
-      
+
       // Apply user preference filtering if userId provided
-      let meals = mealsWithChefData;
+      let meals: HydratedMeal[] = mealsWithChefData as unknown as HydratedMeal[];
       if (args.userId) {
         try {
           const preferences = await getUserPreferences(ctx, args.userId);
-          const scoredMeals = filterAndRankMealsByPreferences(
-            mealsWithChefData,
+          const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
+            mealsWithChefData as unknown as HydratedMeal[],
             preferences,
             () => 0 // Base score doesn't matter for random selection
           );
-          meals = scoredMeals.map((s: { meal: MealDoc }) => s.meal);
+          meals = scoredMeals.map(s => s.meal);
         } catch (error) {
           // If preference fetching fails, use all meals
           console.error('Error fetching user preferences:', error);
-          meals = mealsWithChefData;
+          meals = mealsWithChefData as unknown as HydratedMeal[];
         }
       }
-      
+
       // Shuffle array using Fisher-Yates algorithm
       const shuffled = [...meals];
       for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
-      
+
       // Return selected meals (already have chef data)
       return shuffled.slice(0, limit);
     } catch (error) {
@@ -1435,7 +1439,7 @@ export const getPopular = query({
   returns: v.array(v.any()),
   handler: async (ctx: QueryCtx, args: { userId?: Id<'users'>; limit?: number; sessionToken?: string }) => {
     const limit = args.limit || 20;
-    
+
     try {
       // Get all available meals
       const allMeals = await ctx.db
@@ -1447,27 +1451,27 @@ export const getPopular = query({
           );
         })
         .collect();
-      
+
       if (allMeals.length === 0) {
         return [];
       }
-      
+
       // Get reviews for all meals to calculate popularity
       const mealsWithPopularity = await Promise.all(
         allMeals.map(async (meal: MealDoc) => {
           const reviews = await ctx.db
             .query('reviews')
-            .filter((q) => q.eq(q.field('mealId'), meal._id))
+            .filter((q) => q.eq(q.field('meal_id'), meal._id))
             .collect();
-          
+
           const reviewCount = reviews.length;
-          const averageRating = reviews.length > 0 
+          const averageRating = reviews.length > 0
             ? reviews.reduce((sum: number, review: ReviewDoc) => sum + (review.rating || 0), 0) / reviews.length
             : meal.rating || 0;
-          
+
           // Popularity score: rating * log(reviewCount + 1)
           const popularityScore = averageRating * Math.log(reviewCount + 1);
-          
+
           return {
             ...meal,
             reviewCount,
@@ -1476,27 +1480,27 @@ export const getPopular = query({
           };
         })
       );
-      
+
       // Apply user preference filtering if userId provided
-      let results: Array<MealDoc & { reviewCount: number; averageRating: number; popularityScore: number }> = mealsWithPopularity;
+      let results: HydratedMeal[] = mealsWithPopularity as unknown as HydratedMeal[];
       if (args.userId) {
         try {
           const preferences = await getUserPreferences(ctx, args.userId);
-          const scoredMeals = filterAndRankMealsByPreferences(
-            mealsWithPopularity,
+          const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
+            mealsWithPopularity as unknown as HydratedMeal[],
             preferences,
-            (meal: MealDoc & { popularityScore?: number }) => meal.popularityScore || 0
+            (meal) => meal.popularityScore || 0
           );
-          results = scoredMeals.map((s: { meal: MealDoc & { reviewCount: number; averageRating: number; popularityScore: number } }) => s.meal);
+          results = scoredMeals.map(s => s.meal);
         } catch (error) {
           console.error('Error fetching user preferences:', error);
-          results = mealsWithPopularity;
+          results = mealsWithPopularity as unknown as HydratedMeal[];
         }
       } else {
         // Sort by popularity score if no user preferences
-        results.sort((a: MealDoc & { popularityScore?: number }, b: MealDoc & { popularityScore?: number }) => (b.popularityScore || 0) - (a.popularityScore || 0));
+        results.sort((a, b) => (b.popularityScore || 0) - (a.popularityScore || 0));
       }
-      
+
       // Get chef data for selected meals
       const selectedMeals = results.slice(0, limit);
       const chefIds = new Set(selectedMeals.map((meal: MealDoc) => meal.chefId));
@@ -1509,21 +1513,21 @@ export const getPopular = query({
           chefMap.set(chef._id, chef as ChefDoc);
         }
       }
-      
+
       // Build meals with chef data
-      return selectedMeals.map((meal: MealDoc) => {
+      return selectedMeals.map((meal: HydratedMeal) => {
         const chef = chefMap.get(meal.chefId);
         return {
           ...meal,
           chef: chef ? {
-            _id: (chef as ChefDoc)._id,
-            name: (chef as ChefDoc).name || `Chef ${(chef as ChefDoc)._id}`,
-            bio: (chef as ChefDoc).bio,
-            specialties: (chef as ChefDoc).specialties || [],
-            rating: (chef as ChefDoc).rating || 0,
-            profileImage: (chef as ChefDoc).profileImage,
-            verificationStatus: (chef as { verificationStatus?: string }).verificationStatus,
-            verificationDocuments: (chef as { verificationDocuments?: { healthPermit?: boolean } }).verificationDocuments,
+            _id: chef._id,
+            name: chef.name || `Chef ${chef._id}`,
+            bio: chef.bio,
+            specialties: chef.specialties || [],
+            rating: chef.rating || 0,
+            profileImage: chef.profileImage,
+            verificationStatus: chef.verificationStatus,
+            verificationDocuments: chef.verificationDocuments,
           } : {
             _id: meal.chefId,
             name: `Chef ${meal.chefId}`,
@@ -1548,29 +1552,29 @@ export const getMealByIdForEdit = query({
     sessionToken: v.optional(v.string()),
   },
   returns: v.any(),
-  handler: async (ctx: QueryCtx, args: { 
+  handler: async (ctx: QueryCtx, args: {
     mealId: Id<'meals'>;
     sessionToken?: string;
   }) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     const meal = await ctx.db.get(args.mealId);
     if (!meal) {
       throw new Error('Meal not found');
     }
-    
+
     // Get chef to verify ownership
     const chef = await ctx.db.get(meal.chefId);
     if (!chef) {
       throw new Error('Chef not found');
     }
-    
+
     // Users can only view meals for their own chef profile, staff/admin can view any
     if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
       throw new Error('Access denied');
     }
-    
+
     return meal;
   },
 });
@@ -1593,7 +1597,7 @@ export const getMealsWithoutEmbeddings = internalQuery({
       .query('meals')
       .filter((q) => q.eq(q.field('status'), 'available'))
       .collect();
-    
+
     // Filter meals that don't have embeddings
     return allMeals.filter((meal: { embedding?: number[] }) => !meal.embedding || meal.embedding.length === 0);
   },

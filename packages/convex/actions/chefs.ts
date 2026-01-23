@@ -1,7 +1,9 @@
 // @ts-nocheck - Disable type checking to avoid TS2589 "Type instantiation is excessively deep" errors
 // This is necessary due to complex nested validators in Convex actions
 "use node";
+import { Buffer } from "buffer";
 import { v } from "convex/values";
+import { scryptSync, timingSafeEqual } from "crypto";
 import { api } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
 import { action } from "../_generated/server";
@@ -29,7 +31,7 @@ async function normalizeKitchenId(ctx: any, id: string): Promise<Id<'kitchens'> 
   } catch (error) {
     // If it's not a valid ID format, continue to try chef ID
   }
-  
+
   // If kitchen lookup failed, try as chef ID and convert
   try {
     const chefId = id as Id<'chefs'>;
@@ -37,13 +39,13 @@ async function normalizeKitchenId(ctx: any, id: string): Promise<Id<'kitchens'> 
     if (!chef) {
       return null;
     }
-    
+
     // Find kitchen by owner_id (chef userId)
     const kitchen = await ctx.db
       .query("kitchens")
       .filter((q) => q.eq(q.field("owner_id"), chef.userId))
       .first();
-    
+
     return kitchen?._id || null;
   } catch (error) {
     // If both fail, return null
@@ -270,9 +272,9 @@ export const customerSearchChefs = action({
         // This is a simplified version - you might want to enhance this
         const allChefs = await ctx.runQuery(api.queries.chefs.getAll, {});
         const queryLower = args.q.toLowerCase();
-        
+
         const filteredChefs = allChefs
-          .filter((chef: any) => 
+          .filter((chef: any) =>
             chef.name?.toLowerCase().includes(queryLower) ||
             chef.bio?.toLowerCase().includes(queryLower) ||
             chef.specialties?.some((s: string) => s.toLowerCase().includes(queryLower)) ||
@@ -859,5 +861,78 @@ export const customerStartLiveSession = action({
       return { success: false as const, error: errorMessage };
     }
   },
+});
+
+/**
+ * Chef Login - for web chef portal
+ */
+export const chefLogin = action({
+  args: {
+    email: v.string(),
+    password: v.string(),
+    userAgent: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+    deviceId: v.optional(v.string()),
+    deviceName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Find user by email
+    const user = await ctx.runQuery(api.queries.users.getUserByEmail, { email: args.email });
+    if (!user) return { success: false, error: 'Invalid credentials' };
+
+    // Check if user has chef role
+    if (!user.roles?.includes('chef')) {
+      return { success: false, error: 'Access denied. Chef account required.' };
+    }
+
+    // Check if user has a password set
+    if (!user.password) {
+      return { success: false, error: 'No password set. Please use social login or reset password.' };
+    }
+
+    try {
+      // Check password (assume user.password is a scrypt hash: salt:hash)
+      const [salt, storedHash] = user.password.split(':');
+      if (!salt || !storedHash) {
+        console.error('Invalid password format for user:', args.email);
+        return { success: false, error: 'Invalid credentials' };
+      }
+
+      const hash = scryptSync(args.password, salt, 64).toString('hex');
+      if (!timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(storedHash, 'hex'))) {
+        return { success: false, error: 'Invalid credentials' };
+      }
+    } catch (error) {
+      console.error('Error during password verification for user:', args.email, error);
+      return { success: false, error: 'Invalid credentials' };
+    }
+
+    // Generate and set session token
+    // Chef sessions valid for 30 days
+    let sessionResult;
+    try {
+      sessionResult = await ctx.runMutation(api.mutations.users.createAndSetSessionToken, {
+        userId: user._id,
+        expiresInDays: 30,
+        userAgent: args.userAgent,
+        ipAddress: args.ipAddress,
+        deviceId: args.deviceId,
+        deviceName: args.deviceName,
+      });
+    } catch (err: any) {
+      console.error("Error creating session token for chef:", args.email, err);
+      // Return a proper error instead of crashing
+      return { success: false, error: `Session creation failed: ${err?.message || "Unknown error"}` };
+    }
+    return {
+      success: true,
+      sessionToken: sessionResult.sessionToken,
+      user: {
+        userId: user._id,
+        email: user.email,
+        name: user.name,
+      }
+    };
+  }
 });
 

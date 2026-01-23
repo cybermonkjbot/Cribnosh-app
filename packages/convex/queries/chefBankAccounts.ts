@@ -11,20 +11,21 @@ export const getByChefId = query({
     sessionToken: v.optional(v.string()),
   },
   returns: v.array(v.object({
-    accountId: v.string(),
+    _id: v.id('chefBankAccounts'), // Return the actual ID
+    accountId: v.string(), // Keep for potential virtual/stripe ID if needed, but likely mapped to _id in frontend or ignored
     accountHolderName: v.string(),
     bankName: v.string(),
     last4: v.string(), // Last 4 digits of account
-    sortCode: v.string(), // Format: "XX-XX-XX"
+    sortCode: v.optional(v.string()), // Made optional as it's in metadata
     isPrimary: v.boolean(),
-    verified: v.boolean(),
+    verified: v.boolean(), // We might default this to true or check separate verification status
     verifiedAt: v.optional(v.number()),
     createdAt: v.number(),
   })),
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx, args.sessionToken);
     const chef = await ctx.db.get(args.chefId);
-    
+
     if (!chef) {
       throw new Error('Chef not found');
     }
@@ -34,9 +35,23 @@ export const getByChefId = query({
       throw new Error('Access denied');
     }
 
-    // TODO: Query chefBankAccounts table when implemented
-    // For now, return empty array
-    return [];
+    const accounts = await ctx.db
+      .query('chefBankAccounts')
+      .withIndex('by_chef', q => q.eq('chefId', args.chefId))
+      .collect();
+
+    return accounts.map(acc => ({
+      _id: acc._id,
+      accountId: acc._id, // Mapping _id to accountId for compatibility
+      accountHolderName: acc.accountHolderName,
+      bankName: acc.bankName,
+      last4: acc.last4,
+      sortCode: acc.metadata?.sortCode,
+      isPrimary: acc.isPrimary,
+      verified: acc.status === 'active', // Simplified logic
+      verifiedAt: acc.updatedAt, // Using updated as proxy for valid status
+      createdAt: acc.createdAt,
+    }));
   },
 });
 
@@ -50,11 +65,12 @@ export const getPrimary = query({
   },
   returns: v.union(
     v.object({
+      _id: v.id('chefBankAccounts'),
       accountId: v.string(),
       accountHolderName: v.string(),
       bankName: v.string(),
       last4: v.string(),
-      sortCode: v.string(),
+      sortCode: v.optional(v.string()),
       isPrimary: v.boolean(),
       verified: v.boolean(),
       verifiedAt: v.optional(v.number()),
@@ -65,7 +81,7 @@ export const getPrimary = query({
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx, args.sessionToken);
     const chef = await ctx.db.get(args.chefId);
-    
+
     if (!chef) {
       throw new Error('Chef not found');
     }
@@ -75,8 +91,26 @@ export const getPrimary = query({
       throw new Error('Access denied');
     }
 
-    // TODO: Query chefBankAccounts table when implemented
-    return null;
+    const account = await ctx.db
+      .query('chefBankAccounts')
+      .withIndex('by_chef', q => q.eq('chefId', args.chefId))
+      .filter(q => q.eq(q.field('isPrimary'), true))
+      .first();
+
+    if (!account) return null;
+
+    return {
+      _id: account._id,
+      accountId: account._id,
+      accountHolderName: account.accountHolderName,
+      bankName: account.bankName,
+      last4: account.last4,
+      sortCode: account.metadata?.sortCode,
+      isPrimary: account.isPrimary,
+      verified: account.status === 'active',
+      verifiedAt: account.updatedAt,
+      createdAt: account.createdAt,
+    };
   },
 });
 

@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
-import { mutation } from '../_generated/server';
 import { Id } from '../_generated/dataModel';
+import { mutation } from '../_generated/server';
 
 // Upload file to storage
 export const uploadFile = mutation({
@@ -22,7 +22,7 @@ export const uploadFile = mutation({
       description: `Uploaded file: ${args.fileName}`,
       storageId: args.fileUrl as Id<'_storage'>,
     });
-    
+
     return fileId;
   },
 });
@@ -48,4 +48,12 @@ export const deleteFile = mutation({
   handler: async (ctx, args) => {
     await ctx.db.delete(args.fileId);
   },
-}); 
+});
+
+// Generate upload URL for storage
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
