@@ -22,6 +22,7 @@ import {
   FileSpreadsheet,
   FileText,
   Home,
+  Image,
   LogOut,
   Mail,
   MapPin,
@@ -291,6 +292,20 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
           href: '/admin/content/pages',
           icon: FileText,
           description: 'Static pages',
+        },
+      ]
+    },
+    {
+      name: 'Camera',
+      href: '/admin/camera',
+      icon: Video, // Using Video icon for Camera
+      description: 'Camera feature management',
+      subItems: [
+        {
+          name: 'Filters',
+          href: '/admin/camera/filters',
+          icon: Image, // Using Image icon
+          description: 'Manage camera filters',
         },
       ]
     },

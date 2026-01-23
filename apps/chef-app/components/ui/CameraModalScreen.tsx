@@ -3,25 +3,69 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import type { Sticker } from '@/utils/stickerData';
 import { Ionicons } from '@expo/vector-icons';
+import { Skia } from '@shopify/react-native-skia';
 import { useMutation, useQuery } from 'convex/react';
 import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
-import { CameraView } from 'expo-camera';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { Radio, Type, X } from 'lucide-react-native';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Dimensions, PanResponder, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSharedValue } from 'react-native-reanimated';
 import { SvgXml } from 'react-native-svg';
 import { captureRef } from 'react-native-view-shot';
+import { Camera, useCameraDevice } from 'react-native-vision-camera';
 import { CribNoshLogo } from './CribNoshLogo';
 import { StickerEditor } from './StickerEditor';
 import { StickerItem, type StickerItemData } from './StickerItem';
 import { StickerLibrary } from './StickerLibrary';
 
 const { width, height } = Dimensions.get('window');
+
+// GLSL Shader for Food Filter
+const foodFilterShader = Skia.RuntimeEffect.Make(`
+uniform shader image;
+uniform float saturation;
+uniform float temperature;
+uniform float vignette;
+uniform float contrast;
+uniform float2 resolution;
+
+const float3 W = float3(0.2125, 0.7154, 0.0721);
+
+half4 main(float2 pos) {
+  half4 color = image.eval(pos);
+  
+  // 1. Contrast
+  color.rgb = ((color.rgb - 0.5) * (1.0 + contrast)) + 0.5;
+  
+  // 2. Saturation
+  float3 intensity = float3(dot(color.rgb, W));
+  color.rgb = mix(intensity, color.rgb, 1.0 + saturation);
+  
+  // 3. Temperature (Warm/Cool)
+  if (temperature > 0.0) {
+    color.r += temperature * 0.1;
+    color.g += temperature * 0.05;
+  } else {
+    color.b -= temperature * 0.1;
+  }
+  
+  // 4. Vignette
+  float2 uv = pos / resolution;
+  uv *=  1.0 - uv.yx;
+  float vig = uv.x*uv.y * 15.0; // strength
+  vig = pow(vig, vignette * 0.5); // falloff
+  if (vignette > 0.0) {
+      color.rgb *= min(1.0, vig + (1.0-vignette)); 
+  }
+
+  return color;
+}
+`)!;
 
 // Draggable Text Overlay Component
 interface DraggableTextOverlayProps {
@@ -143,9 +187,10 @@ export function CameraModalScreen({
 }: CameraModalScreenProps) {
   const router = useRouter();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [cameraType, setCameraType] = useState<CameraType>('back');
-  const [flashMode, setFlashMode] = useState<FlashMode>('off');
-  const [selectedFilter, setSelectedFilter] = useState<string>('normal');
+  const [cameraPosition, setCameraPosition] = useState<'front' | 'back'>('back');
+  const device = useCameraDevice(cameraPosition);
+  const [flash, setFlash] = useState<'off' | 'on'>('off');
+  const [selectedFilterCode, setSelectedFilterCode] = useState<string>('normal');
   const [lastCapturedPhoto, setLastCapturedPhoto] = useState<string | null>(null);
   const [showPhotoPreview, setShowPhotoPreview] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -158,9 +203,16 @@ export function CameraModalScreen({
   const [showVideoControls, setShowVideoControls] = useState<boolean>(true);
   const [videoControlsTimeout, setVideoControlsTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const videoRef = useRef<Video>(null);
-  const cameraRef = useRef<any>(null);
+  const cameraRef = useRef<Camera>(null);
   const isMountedRef = useRef(true);
   const simulatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Shader Uniforms
+  const satVal = useSharedValue(0);
+  const tempVal = useSharedValue(0);
+  const vigVal = useSharedValue(0);
+  const conVal = useSharedValue(0);
+
   const panY = useRef(new Animated.Value(0)).current;
   const videoPanY = useRef(new Animated.Value(0)).current;
   const videoControlsOpacity = useRef(new Animated.Value(1)).current;
@@ -176,18 +228,24 @@ export function CameraModalScreen({
   const photoPreviewRef = useRef<View>(null);
   const filterSwipeX = useRef(new Animated.Value(0)).current;
   const activeFilters = useQuery(api.filters.listActive);
-  const filters = activeFilters ? activeFilters.map((f: { code: string }) => f.code) : ['normal'];
-  const filterIndex = useRef(filters.indexOf(selectedFilter));
 
-  // Update filter index when selectedFilter changes
-  React.useEffect(() => {
-    const index = filters.indexOf(selectedFilter);
-    if (index !== -1) {
-      filterIndex.current = index;
-    } else if (filters.length > 0) {
-      filterIndex.current = 0;
+  // Update uniforms when filter changes
+  useEffect(() => {
+    if (!activeFilters) return;
+    const filter = activeFilters.find((f: { code: string }) => f.code === selectedFilterCode);
+    if (filter) {
+      satVal.value = filter.saturation ?? 0;
+      tempVal.value = filter.temperature ?? 0;
+      vigVal.value = filter.vignette ?? 0;
+      conVal.value = filter.contrast ?? 0;
+    } else {
+      // Default / Normal
+      satVal.value = 0;
+      tempVal.value = 0;
+      vigVal.value = 0;
+      conVal.value = 0;
     }
-  }, [selectedFilter, activeFilters]);
+  }, [selectedFilterCode, activeFilters]);
 
   // PanResponder for swipe down to dismiss
   const panResponder = useRef(
@@ -232,19 +290,9 @@ export function CameraModalScreen({
 
   React.useEffect(() => {
     (async () => {
-      try {
-        // @ts-ignore - Dynamic imports are only supported with certain module settings
-        const { Camera } = await import('expo-camera');
-        const { status } = await Camera.requestCameraPermissionsAsync();
-        if (isMountedRef.current) {
-          setHasPermission(status === 'granted');
-        }
-      } catch (error) {
-        console.warn('Failed to load camera module:', error);
-        // Set permission to false if camera module fails to load
-        if (isMountedRef.current) {
-          setHasPermission(false);
-        }
+      const status = await Camera.requestCameraPermission();
+      if (isMountedRef.current) {
+        setHasPermission(status === 'granted');
       }
     })();
 
@@ -257,23 +305,15 @@ export function CameraModalScreen({
   }, []);
 
   const handleFlipCamera = () => {
-    setCameraType((current: CameraType) =>
-      current === 'back' ? 'front' : 'back'
-    );
+    setCameraPosition(p => p === 'back' ? 'front' : 'back');
   };
 
   const handleFlashToggle = () => {
-    setFlashMode((current: FlashMode) => {
-      if (current === 'off') return 'on';
-      if (current === 'on') return 'auto';
-      return 'off';
-    });
+    setFlash(f => f === 'off' ? 'on' : 'off');
   };
 
   const handleCapture = async () => {
-    if (!cameraRef.current || !isMountedRef.current) {
-      return;
-    }
+    if (!cameraRef.current) return;
 
     // If mode is video-only, toggle recording
     if (mode === 'video') {
@@ -291,12 +331,12 @@ export function CameraModalScreen({
     }
 
     try {
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
-        base64: true,
+      const photo = await cameraRef.current.takePhoto({
+        flash: flash,
+        enableShutterSound: true,
       });
-      if (isMountedRef.current && photo?.uri) {
-        setLastCapturedPhoto(photo.uri);
+      if (isMountedRef.current && photo?.path) {
+        setLastCapturedPhoto(photo.path);
         setShowPhotoPreview(true);
         console.log('Photo captured:', photo);
       }
@@ -313,35 +353,22 @@ export function CameraModalScreen({
       if (isMountedRef.current) {
         setIsRecording(true);
       }
-      const recording = await cameraRef.current.recordAsync({
-        quality: '720p',
-        maxDuration: 60000, // 60 seconds in milliseconds
+      cameraRef.current.startRecording({
+        onRecordingFinished: (video) => {
+          if (isMountedRef.current) {
+            setLastRecordedVideo(video.path);
+            setShowVideoPreview(true);
+            console.log('Video recording stopped:', video);
+            if (onVideoRecorded) onVideoRecorded(video.path);
+          }
+        },
+        onRecordingError: (error) => console.error(error),
       });
-      console.log('Video recording started:', recording);
+      console.log('Video recording started');
     } catch (error) {
       console.error('Error starting video recording:', error);
-      // Simulator fallback - create mock recording
-      if (error instanceof Error && error.message?.includes('simulator')) {
-        console.log('Using simulator fallback for video recording');
-        // Simulate recording delay
-        simulatorTimeoutRef.current = setTimeout(() => {
-          if (isMountedRef.current) {
-            setIsRecording(false);
-            // Create mock video URI for simulator testing
-            const mockVideoUri = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-            setLastRecordedVideo(mockVideoUri);
-            setShowVideoPreview(true);
-            console.log('Mock video recording completed for simulator testing');
-            // Call callback if provided
-            if (onVideoRecorded) {
-              onVideoRecorded(mockVideoUri);
-            }
-          }
-        }, 2000); // 2 second mock recording
-      } else {
-        if (isMountedRef.current) {
-          setIsRecording(false);
-        }
+      if (isMountedRef.current) {
+        setIsRecording(false);
       }
     }
   };
@@ -354,19 +381,7 @@ export function CameraModalScreen({
       if (isMountedRef.current) {
         setIsRecording(false);
       }
-      // Get the recorded video URI and show preview
-      if (cameraRef.current && isMountedRef.current) {
-        const video = await cameraRef.current.stopRecordingAsync();
-        if (isMountedRef.current && video && video.uri) {
-          setLastRecordedVideo(video.uri);
-          setShowVideoPreview(true);
-          console.log('Video recording stopped:', video);
-          // Call callback if provided
-          if (onVideoRecorded) {
-            onVideoRecorded(video.uri);
-          }
-        }
-      }
+      await cameraRef.current.stopRecording();
     } catch (error) {
       console.error('Error stopping video recording:', error);
       if (isMountedRef.current) {
@@ -415,7 +430,7 @@ export function CameraModalScreen({
   };
 
   const handleFilterSelect = (filter: string) => {
-    setSelectedFilter(filter);
+    setSelectedFilterCode(filter);
     console.log('Filter selected:', filter);
   };
 
@@ -515,14 +530,19 @@ export function CameraModalScreen({
       },
       onPanResponderRelease: (_, gestureState) => {
         const threshold = 50;
+        if (!activeFilters) return;
+        // Find current index based on code
+        let currentIndex = activeFilters.findIndex((f: { code: string }) => f.code === selectedFilterCode);
+        if (currentIndex === -1) currentIndex = 0;
+
         if (gestureState.dx > threshold) {
           // Swipe right - previous filter
-          filterIndex.current = Math.max(0, filterIndex.current - 1);
-          setSelectedFilter(filters[filterIndex.current]);
+          currentIndex = Math.max(0, currentIndex - 1);
+          setSelectedFilterCode(activeFilters[currentIndex].code);
         } else if (gestureState.dx < -threshold) {
           // Swipe left - next filter
-          filterIndex.current = Math.min(filters.length - 1, filterIndex.current + 1);
-          setSelectedFilter(filters[filterIndex.current]);
+          currentIndex = Math.min(activeFilters.length - 1, currentIndex + 1);
+          setSelectedFilterCode(activeFilters[currentIndex].code);
         }
         Animated.spring(filterSwipeX, {
           toValue: 0,
@@ -561,8 +581,7 @@ export function CameraModalScreen({
     setShowStickerLibrary(false);
     setShowTextInput(false);
     setEditingTextId(null);
-    filterIndex.current = 0;
-    setSelectedFilter('normal');
+    setSelectedFilterCode('normal');
   };
 
   const retakePhoto = () => {
@@ -738,17 +757,7 @@ export function CameraModalScreen({
     onClose();
   };
 
-  if (hasPermission === null) {
-    return <View style={styles.container} />;
-  }
-
-  if (hasPermission === false) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.permissionText}>No access to camera</Text>
-      </View>
-    );
-  }
+  if (!device || !hasPermission) return <View style={styles.container} />;
 
   return (
     <Animated.View
@@ -763,11 +772,14 @@ export function CameraModalScreen({
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
       {/* Camera View */}
-      <CameraView
+      <Camera
         ref={cameraRef}
         style={styles.camera}
-        facing={cameraType}
-        flash={flashMode}
+        device={device}
+        isActive={true}
+        photo={true}
+        video={true}
+        audio={true}
       >
         {/* Swipe Down Indicator */}
         <View style={styles.swipeIndicator}>
@@ -788,7 +800,7 @@ export function CameraModalScreen({
           <View style={styles.topRightControls}>
             <TouchableOpacity style={styles.controlButton} onPress={handleFlashToggle}>
               <SvgXml
-                xml={flashMode === 'off' ? flashOffIconSVG : flashIconSVG}
+                xml={flash === 'off' ? flashOffIconSVG : flashIconSVG}
                 width={24}
                 height={24}
               />
@@ -876,7 +888,7 @@ export function CameraModalScreen({
               {showFilters && (
                 <View style={styles.filterIndicator}>
                   <Text style={styles.filterIndicatorText}>
-                    {selectedFilter.charAt(0).toUpperCase() + selectedFilter.slice(1)}
+                    {selectedFilterCode.charAt(0).toUpperCase() + selectedFilterCode.slice(1)}
                   </Text>
                   <Text style={styles.filterIndicatorHint}>Swipe left/right to change</Text>
                 </View>
@@ -1084,7 +1096,7 @@ export function CameraModalScreen({
                   key={filter._id}
                   style={[
                     styles.filterButton,
-                    selectedFilter === filter.code && styles.filterButtonActive
+                    selectedFilterCode === filter.code && styles.filterButtonActive
                   ]}
                   onPress={() => handleFilterSelect(filter.code)}
                 >
@@ -1093,14 +1105,14 @@ export function CameraModalScreen({
                       source={{ uri: filter.iconUrl }}
                       style={[
                         styles.filterIcon,
-                        selectedFilter === filter.code && styles.filterIconActive
+                        selectedFilterCode === filter.code && styles.filterIconActive
                       ]}
                       contentFit="cover"
                     />
                   ) : (
                     <Text style={[
                       styles.filterEmoji,
-                      selectedFilter === filter.code && styles.filterEmojiActive
+                      selectedFilterCode === filter.code && styles.filterEmojiActive
                     ]}>
                       {filter.name.charAt(0)}
                     </Text>
@@ -1153,7 +1165,7 @@ export function CameraModalScreen({
           )}
           {!showGoLiveButton && <View style={styles.leftControls} />}
         </View>
-      </CameraView>
+      </Camera>
     </Animated.View>
   );
 }
