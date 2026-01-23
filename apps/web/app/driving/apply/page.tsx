@@ -1,5 +1,6 @@
 "use client";
 
+import { JobValuesJsonLd } from '@/components/JobValuesJsonLd';
 import { MasonryBackground } from '@/components/ui/masonry-background';
 import { MobileBackButton } from '@/components/ui/mobile-back-button';
 import { ParallaxContent } from '@/components/ui/parallax-section';
@@ -87,7 +88,8 @@ export default function DrivingApply() {
       setEmailStatus('error');
     }
     try {
-      await createDriver({name: form.name,
+      await createDriver({
+        name: form.name,
         email: form.email,
         vehicle: form.vehicle,
         vehicleType: 'car', // Default to car, could be made configurable
@@ -161,9 +163,8 @@ export default function DrivingApply() {
         </button>
       )}
       {!isMobile && form.vehicle && (
-        <div className={`shrink-0 w-12 h-12 rounded-xl bg-linear-to-br ${
-          vehicleTypes.find(v => v.id === form.vehicle)?.color || 'from-red-50 to-red-100/50'
-        } flex items-center justify-center mb-4`}>
+        <div className={`shrink-0 w-12 h-12 rounded-xl bg-linear-to-br ${vehicleTypes.find(v => v.id === form.vehicle)?.color || 'from-red-50 to-red-100/50'
+          } flex items-center justify-center mb-4`}>
           {vehicleTypes.find(v => v.id === form.vehicle)?.icon}
         </div>
       )}
@@ -254,10 +255,11 @@ export default function DrivingApply() {
 
   return (
     <main className="min-h-screen bg-linear-to-b from-white to-gray-50">
+      <JobValuesJsonLd type="driver" />
       <MasonryBackground className="z-0" />
       {/* Mobile Back Button - only on mobile, fixed top left */}
       <MobileBackButton />
-      
+
       <div className="relative z-10">
         {/* Hero Section - Hidden on mobile */}
         <div className="hidden sm:block">

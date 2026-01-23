@@ -8,6 +8,7 @@ import {
   ReviewSubmitForm,
   UploadPhotosForm
 } from '@/components/cooking';
+import { JobValuesJsonLd } from '@/components/JobValuesJsonLd';
 import { MasonryBackground } from '@/components/ui/masonry-background';
 import { MobileBackButton } from '@/components/ui/mobile-back-button';
 import { ParallaxContent } from '@/components/ui/parallax-section';
@@ -369,6 +370,7 @@ export default function ApplicationPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+      <JobValuesJsonLd type="chef" />
       <MasonryBackground className="z-0" />
       {/* Mobile Back Button - only on mobile, fixed top left */}
       <MobileBackButton />

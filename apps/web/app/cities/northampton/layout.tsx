@@ -1,3 +1,4 @@
+import { CityJsonLd } from '@/components/CityJsonLd';
 import { metadata } from './page.metadata';
 export { metadata };
 
@@ -6,5 +7,10 @@ export default function Layout({
 }: {
     children: React.ReactNode;
 }) {
-    return <>{children}</>;
+    return (
+        <>
+            <CityJsonLd cityName="Northampton" />
+            {children}
+        </>
+    );
 }
