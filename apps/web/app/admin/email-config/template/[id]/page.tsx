@@ -1,5 +1,7 @@
+"use client";
+
 import { EmailTemplateEditor } from '@/components/admin/email-template-editor';
-import { Metadata } from 'next';
+import { use } from 'react';
 
 interface TemplateEditPageProps {
   params: Promise<{
@@ -7,16 +9,9 @@ interface TemplateEditPageProps {
   }>;
 }
 
-export async function generateMetadata({ params }: TemplateEditPageProps): Promise<Metadata> {
-  const { id } = await params;
-  return {
-    title: `Edit Template ${id} - CribNosh Admin`,
-    description: 'Edit email template configuration',
-  };
-}
+export default function TemplateEditPage({ params }: TemplateEditPageProps) {
+  const { id } = use(params);
 
-export default async function TemplateEditPage({ params }: TemplateEditPageProps) {
-  const { id } = await params;
   return (
     <div className="container mx-auto py-6 space-y-[18px]">
       <EmailTemplateEditor
