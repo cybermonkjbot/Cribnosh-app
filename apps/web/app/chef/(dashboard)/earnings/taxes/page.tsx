@@ -66,7 +66,7 @@ export default function TaxPage() {
                             <SelectValue placeholder="Select Tax Year" />
                         </SelectTrigger>
                         <SelectContent>
-                            {availableYears?.map((year) => (
+                            {availableYears?.map((year: number) => (
                                 <SelectItem key={year} value={year.toString()}>
                                     Tax Year {year}-{year + 1}
                                 </SelectItem>

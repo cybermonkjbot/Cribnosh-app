@@ -126,7 +126,7 @@ export default function BankAccountsPage() {
                         </Button>
                     </div>
                 ) : (
-                    accounts.map((account) => (
+                    accounts.map((account: any) => (
                         <Card key={account._id} className={account.isPrimary ? "border-primary" : ""}>
                             <CardContent className="pt-6">
                                 <div className="flex justify-between items-start mb-4">
