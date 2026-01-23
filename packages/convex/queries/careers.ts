@@ -29,9 +29,8 @@ export const getJobPostings = query({
       jobs.map(async (job: any) => {
         const applicantCount = await ctx.db
           .query("jobApplication")
-          .filter((q: any) => q.eq(q.field("jobId"), job._id))
-          .collect()
-          .then((apps: any[]) => apps.length);
+          .withIndex("by_job", (q: any) => q.eq("jobId", job._id))
+          .count();
 
         return {
           _id: job._id,
@@ -67,15 +66,14 @@ export const getJobApplications = query({
     sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
-    let applications = await ctx.db.query("jobApplication").collect();
-
-    if (args.status) {
-      applications = applications.filter((app: any) => app.status === args.status);
-    }
+    let applicationQuery = ctx.db.query("jobApplication");
 
     if (args.jobId) {
-      applications = applications.filter((app: any) => app.jobId === args.jobId);
+      applicationQuery = applicationQuery.withIndex("by_job", (q: any) => q.eq("jobId", args.jobId));
     }
+
+    // Safety limit
+    const applications = await applicationQuery.order("desc").take(200);
 
     return applications.map((app: any) => ({
       _id: app._id,
@@ -105,21 +103,23 @@ export const getApplicationStats = query({
     sessionToken: v.optional(v.string()),
   },
   handler: async (ctx: any) => {
-    const applications = await ctx.db.query("jobApplication").collect();
-    const pending = applications.filter((app: any) => app.status === 'pending').length;
-    const reviewing = applications.filter((app: any) => app.status === 'reviewing').length;
-    const interviewed = applications.filter((app: any) => app.status === 'interviewed').length;
-    const accepted = applications.filter((app: any) => app.status === 'accepted').length;
-    const rejected = applications.filter((app: any) => app.status === 'rejected').length;
+    const [total, pending, reviewing, interviewed, accepted, rejected] = await Promise.all([
+      (ctx.db.query("jobApplication") as any).count(),
+      (ctx.db.query("jobApplication").filter((q: any) => q.eq(q.field("status"), 'pending')) as any).count(),
+      (ctx.db.query("jobApplication").filter((q: any) => q.eq(q.field("status"), 'reviewing')) as any).count(),
+      (ctx.db.query("jobApplication").filter((q: any) => q.eq(q.field("status"), 'interviewed')) as any).count(),
+      (ctx.db.query("jobApplication").filter((q: any) => q.eq(q.field("status"), 'accepted')) as any).count(),
+      (ctx.db.query("jobApplication").filter((q: any) => q.eq(q.field("status"), 'rejected')) as any).count(),
+    ]);
 
     return {
-      total: applications.length,
+      total,
       pending,
       reviewing,
       interviewed,
       accepted,
       rejected,
-      acceptanceRate: applications.length > 0 ? (accepted / applications.length) * 100 : 0
+      acceptanceRate: total > 0 ? (accepted / total) * 100 : 0
     };
   },
 });

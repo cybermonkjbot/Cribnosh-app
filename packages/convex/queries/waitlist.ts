@@ -24,11 +24,13 @@ export const getWaitlistStats = query({
   handler: async (ctx, args: { sessionToken?: string }): Promise<WaitlistStats> => {
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
-    const waitlist = await ctx.db.query("waitlist").collect();
-    const total = waitlist.length;
-    const active = waitlist.filter((entry: Doc<"waitlist">) => entry.status === 'active').length;
-    const converted = waitlist.filter((entry: Doc<"waitlist">) => entry.status === 'converted').length;
-    const inactive = waitlist.filter((entry: Doc<"waitlist">) => entry.status === 'inactive').length;
+
+    const [total, active, converted, inactive] = await Promise.all([
+      (ctx.db.query("waitlist") as any).count(),
+      (ctx.db.query("waitlist").filter(q => q.eq(q.field("status"), "active")) as any).count(),
+      (ctx.db.query("waitlist").filter(q => q.eq(q.field("status"), "converted")) as any).count(),
+      (ctx.db.query("waitlist").filter(q => q.eq(q.field("status"), "inactive")) as any).count(),
+    ]);
 
     return {
       total,
@@ -271,8 +273,7 @@ export const getWaitlistCount = query({
     // Require staff authentication
     await requireStaff(ctx, args.sessionToken);
 
-    const entries = await ctx.db.query("waitlist").collect();
-    return entries.length as any;
+    return await (ctx.db.query("waitlist") as any).count();
   },
 });
 

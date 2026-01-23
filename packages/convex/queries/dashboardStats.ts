@@ -62,7 +62,7 @@ export const getDashboardFooterStats = query({
         q.gte(q.field("expiresAt"), fifteenMinutesAgo - (15 * 60 * 1000)),
         q.lt(q.field("expiresAt"), fifteenMinutesAgo)
       ))
-      .collect();
+      .take(1000); // Safety limit
 
     const previousActiveUsers = new Set(previousActiveSessions.map(session => session.userId)).size;
 
@@ -333,18 +333,19 @@ export const getDashboardSummary = query({
     ]);
 
     // Calculate overview metrics
-    // Get total users count (all users, not just in time range)
-    // Note: Convex doesn't have a count() method, so we must collect to count
-    // This could be optimized with a counter table in the future
-    const allUsers = await ctx.db.query("users").collect();
-    const totalUsers = allUsers.length;
-    const totalOrders = currentOrders.length;
-    const totalRevenue = currentOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    const activeChefs = currentChefs.length;
+    const [totalUsers, totalOrders, totalRevenue, activeChefs] = await Promise.all([
+      (ctx.db.query("users") as any).count(),
+      (ctx.db.query("orders").filter(q => q.gte(q.field("createdAt"), startTime)) as any).count(),
+      currentOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0),
+      (ctx.db.query("chefs").filter(q => q.and(
+        q.gte(q.field("_creationTime"), startTime),
+        q.eq(q.field("status"), "active")
+      )) as any).count(),
+    ]);
 
     // Calculate growth trends
     const userGrowth = previousUsers.length > 0
-      ? ((totalUsers - previousUsers.length) / previousUsers.length) * 100
+      ? ((currentUsers.length - previousUsers.length) / previousUsers.length) * 100
       : 0;
     const orderGrowth = previousOrders.length > 0
       ? ((totalOrders - previousOrders.length) / previousOrders.length) * 100

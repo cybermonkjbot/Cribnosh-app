@@ -17,10 +17,13 @@ export const getAudienceSelectionData = query({
             if (u.roles) u.roles.forEach(r => roles.add(r));
         });
 
+        const pendingWaitlist = waitlist.filter(w => !w.onboardingCompletedAt);
+
         return {
             roles: Array.from(roles),
             totalUsers: users.length,
             totalWaitlist: waitlist.length,
+            totalPendingWaitlist: pendingWaitlist.length,
         };
     },
 });
@@ -51,7 +54,7 @@ export const searchRecipients = query({
 
 export const getRecipientEmails = query({
     args: {
-        type: v.union(v.literal("all"), v.literal("roles"), v.literal("individuals"), v.literal("waitlist")),
+        type: v.union(v.literal("all"), v.literal("roles"), v.literal("individuals"), v.literal("waitlist"), v.literal("waitlist_pending")),
         values: v.optional(v.array(v.string())),
         sessionToken: v.optional(v.string())
     },
@@ -87,6 +90,11 @@ export const getRecipientEmails = query({
         if (args.type === "waitlist") {
             const waitlist = await ctx.db.query("waitlist").collect();
             return waitlist.map(w => w.email);
+        }
+
+        if (args.type === "waitlist_pending") {
+            const waitlist = await ctx.db.query("waitlist").collect();
+            return waitlist.filter(w => !w.onboardingCompletedAt).map(w => w.email);
         }
 
         return [];

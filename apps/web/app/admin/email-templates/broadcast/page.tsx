@@ -44,7 +44,7 @@ export default function BroadcastEmailPage() {
     const [imagesExtracted, setImagesExtracted] = useState(0);
 
     // Audience State
-    const [audienceType, setAudienceType] = useState<"all" | "roles" | "individuals" | "waitlist">("all");
+    const [audienceType, setAudienceType] = useState<"all" | "roles" | "individuals" | "waitlist" | "waitlist_pending">("all");
     const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
     const [selectedIndividuals, setSelectedIndividuals] = useState<{ id: string, name: string, email: string }[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
@@ -379,8 +379,16 @@ export default function BroadcastEmailPage() {
                                 <div className="flex items-start space-x-3 border p-4 rounded-lg cursor-pointer hover:bg-slate-50">
                                     <RadioGroupItem value="waitlist" id="waitlist" className="mt-1" />
                                     <Label htmlFor="waitlist" className="flex-1 cursor-pointer">
-                                        <div className="font-semibold">Waitlist Only</div>
-                                        <div className="text-sm text-muted-foreground">Send to people on the waitlist ({audienceData?.totalWaitlist || "..."})</div>
+                                        <div className="font-semibold">All Waitlist</div>
+                                        <div className="text-sm text-muted-foreground">Send to everyone on the waitlist ({audienceData?.totalWaitlist || "..."})</div>
+                                    </Label>
+                                </div>
+
+                                <div className="flex items-start space-x-3 border p-4 rounded-lg cursor-pointer hover:bg-slate-50">
+                                    <RadioGroupItem value="waitlist_pending" id="waitlist_pending" className="mt-1" />
+                                    <Label htmlFor="waitlist_pending" className="flex-1 cursor-pointer">
+                                        <div className="font-semibold">Waitlist (Pending Onboarding)</div>
+                                        <div className="text-sm text-muted-foreground">Send only to waitlisters who haven't finished onboarding ({audienceData?.totalPendingWaitlist || "..."})</div>
                                     </Label>
                                 </div>
                             </RadioGroup>
@@ -410,7 +418,8 @@ export default function BroadcastEmailPage() {
                                         {audienceType === "all" ? "All Users" :
                                             audienceType === "roles" ? `Roles: ${selectedRoles.join(", ")}` :
                                                 audienceType === "individuals" ? `${selectedIndividuals.length} Selected Individuals` :
-                                                    "Waitlist"}
+                                                    audienceType === "waitlist" ? "Full Waitlist" :
+                                                        "Waitlist (Pending)"}
                                     </div>
                                 </div>
                                 <div className="space-y-1 border-t pt-4">

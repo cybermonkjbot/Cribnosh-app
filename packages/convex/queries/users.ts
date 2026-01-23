@@ -108,7 +108,8 @@ export const getAllUsers = query({
     // Require staff/admin authentication
     await requireStaff(ctx, args.sessionToken);
 
-    return await ctx.db.query('users').collect();
+    // Use take(200) as a safeguard, admin page should eventually use pagination
+    return await ctx.db.query('users').order('desc').take(200);
   },
 });
 
@@ -156,9 +157,7 @@ export const getRecentUsers = query({
     // Require staff/admin authentication
     await requireStaff(ctx, args.sessionToken);
 
-    const users = await ctx.db.query('users').collect();
-    const sorted = users.sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0));
-    return sorted.slice(0, args.limit || 10);
+    return await ctx.db.query('users').order('desc').take(args.limit || 10);
   },
 });
 
@@ -650,8 +649,7 @@ export const getTotalUserCount = query({
     // Require staff/admin authentication
     await requireStaff(ctx, args.sessionToken);
 
-    const users = await ctx.db.query('users').collect();
-    return users.length;
+    return await (ctx.db.query('users') as any).count();
   },
 });
 
