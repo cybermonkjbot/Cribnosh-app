@@ -140,9 +140,9 @@ export default function GDPRCompliancePage() {
 
   const handleResolveIssue = async () => {
     if (!resolvingIssueId) return;
-    
+
     try {
-      await resolveIssue({ 
+      await resolveIssue({
         issueId: resolvingIssueId,
         resolution: resolutionText || undefined,
         notes: resolutionNotes || undefined,
@@ -161,11 +161,11 @@ export default function GDPRCompliancePage() {
 
   const handleGenerateReport = async () => {
     try {
-      const result = await generateReport({ 
+      const result = await generateReport({
         reportType: 'gdpr',
         sessionToken: sessionToken || undefined,
       });
-      
+
       if (result?.downloadUrl) {
         // Trigger download
         const link = document.createElement('a');
@@ -288,7 +288,7 @@ export default function GDPRCompliancePage() {
             Generate Report
           </Button>
           <Button
-            onClick={() => {/* Open settings */}}
+            onClick={() => {/* Open settings */ }}
             className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
           >
             <Settings className="w-4 h-4 mr-2" />
@@ -310,8 +310,8 @@ export default function GDPRCompliancePage() {
                 {gdprData?.complianceScore || 0}%
               </div>
               <div className="text-sm text-gray-600">
-                {gdprData?.complianceScore && gdprData.complianceScore >= 80 ? 'Compliant' : 
-                 gdprData?.complianceScore && gdprData.complianceScore >= 60 ? 'Needs Improvement' : 'Non-Compliant'}
+                {gdprData?.complianceScore && gdprData.complianceScore >= 80 ? 'Compliant' :
+                  gdprData?.complianceScore && gdprData.complianceScore >= 60 ? 'Needs Improvement' : 'Non-Compliant'}
               </div>
             </div>
           </div>
@@ -429,7 +429,7 @@ export default function GDPRCompliancePage() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'open' | 'resolved')}>
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="flex md:grid w-full md:grid-cols-2">
               <TabsTrigger value="open">
                 Open Issues ({gdprData?.issues?.length || 0})
               </TabsTrigger>
@@ -437,7 +437,7 @@ export default function GDPRCompliancePage() {
                 Resolved ({resolvedIssues?.length || 0})
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="open" className="space-y-4 mt-4">
               {gdprData?.issues?.map((issue: any) => (
                 <div key={issue.id} className="flex items-start justify-between p-4 border rounded-lg">
@@ -490,7 +490,7 @@ export default function GDPRCompliancePage() {
                 </div>
               )}
             </TabsContent>
-            
+
             <TabsContent value="resolved" className="space-y-4 mt-4">
               {resolvedIssues?.map((resolution: any) => (
                 <div key={resolution.id || resolution._id} className="flex items-start justify-between p-4 border rounded-lg bg-green-50/50">

@@ -652,7 +652,7 @@ export default function AdminWaitlistPage() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 bg-white/90 backdrop-blur-lg border border-white/20">
+        <TabsList className="flex md:grid w-full md:grid-cols-2 bg-white/90 backdrop-blur-lg border border-white/20">
           <TabsTrigger value="list" className="flex items-center gap-2">
             <Table2 className="w-4 h-4" />
             List View

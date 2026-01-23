@@ -350,7 +350,7 @@ export default function PayrollAdminPage() {
         transition={{ delay: 0.2 }}
       >
         <Tabs defaultValue="periods" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/80 backdrop-blur-sm border border-gray-200 p-1 rounded-xl">
+          <TabsList className="flex md:grid w-full md:grid-cols-4 bg-white/80 backdrop-blur-sm border border-gray-200 p-1 rounded-xl">
             <TabsTrigger
               value="periods"
               className="data-[state=active]:bg-[#F23E2E] data-[state=active]:text-white rounded-lg transition-all"

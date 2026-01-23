@@ -300,7 +300,7 @@ export default function AdminTimeTrackingPage() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 bg-white/90 backdrop-blur-lg border border-white/20">
+        <TabsList className="flex md:grid w-full grid-cols-4 bg-white/90 backdrop-blur-lg border border-white/20">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
             Overview
