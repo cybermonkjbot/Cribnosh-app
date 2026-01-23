@@ -6,7 +6,6 @@ import { AppStoreCTA, CitiesSection, CommunitySpotlightSection, DoomScrollSectio
 import { ParallaxGroup, ParallaxLayer } from '@/components/ui/parallax';
 import { api } from '@/convex/_generated/api';
 import { useQuery } from 'convex/react';
-import { useEffect, useState } from 'react';
 // import CertifiedKitchensFloat from '@/components/ui/certified-kitchens-float';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
 import { useScroll, useTransform } from 'motion/react';
@@ -20,8 +19,7 @@ import { useScroll, useTransform } from 'motion/react';
  */
 export default function Home() {
   const { scrollYProgress } = useScroll();
-  const [isClient, setIsClient] = useState(false);
-  const isMobile = useMobileDevice();
+  const { isMobile } = useMobileDevice();
 
   // Fetch feature flags
   const featureFlags = useQuery(api.featureFlags.get, { group: 'web_home' });
@@ -34,17 +32,11 @@ export default function Home() {
     return flag ? flag.value : defaultValue; // Default to provided defaultValue if flag missing
   };
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   const y = useTransform(scrollYProgress, [0, 1], [0, isMobile ? -5 : -150]);
   const bgY1 = useTransform(scrollYProgress, [0, 1], [0, isMobile ? -2 : -50]);
   const bgY2 = useTransform(scrollYProgress, [0, 1], [0, isMobile ? -3 : -80]);
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, isMobile ? 0.99 : 0.9]);
   const scale = useTransform(scrollYProgress, [0, 0.5], [1, isMobile ? 1 : 1.02]);
-
-  if (!isClient) return null;
 
   return (
     <main className="relative">
