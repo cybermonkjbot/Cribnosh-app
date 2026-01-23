@@ -223,7 +223,7 @@ export default function ApplicationPage() {
         },
         rating: 0, // Start with 0 rating
         image: formData.photos.kitchen[0] || undefined,
-        bio: formData.culinaryBackground.experience || 'Chef passionate about creating delicious meals',
+        bio: formData.culinaryBackground.experience || 'Food Creator passionate about creating delicious meals',
         specialties: formData.culinaryBackground.specialties.length > 0
           ? formData.culinaryBackground.specialties
           : ['Home Cooking'], // Default specialty
@@ -251,10 +251,10 @@ export default function ApplicationPage() {
         body: JSON.stringify(formData),
       });
       const apiData = {
-        formType: 'Chef Application',
+        formType: 'Food Creator Application',
         fullName: formData.personalInfo.firstName && formData.personalInfo.lastName
           ? `${formData.personalInfo.firstName} ${formData.personalInfo.lastName}`
-          : 'Chef Applicant',
+          : 'Food Creator Applicant',
         email: formData.personalInfo.email,
         phone: formData.personalInfo.phone || 'Not provided',
         yearsExperience: formData.culinaryBackground.experience
@@ -302,11 +302,11 @@ export default function ApplicationPage() {
       const emailPayload = {
         to: formData.personalInfo.email,
         from: 'applications@cribnosh.com',
-        subject: 'Your CribNosh Chef Application',
+        subject: 'Your CribNosh Food Creator Application',
         html: `
                   <h1>Thanks for Applying to CribNosh!</h1>
                   <p>Hi ${formData.personalInfo.firstName},</p>
-                  <p>We've received your application to become a CribNosh chef. Our team will review your information and get back to you within 2-3 business days.</p>
+                  <p>We've received your application to become a CribNosh food creator. Our team will review your information and get back to you within 2-3 business days.</p>
                   <p>Next steps:</p>
                   <ul>
                     <li>Application review by our team</li>

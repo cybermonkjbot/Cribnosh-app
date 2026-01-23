@@ -214,7 +214,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
   const results = searchResults.map((meal: any, index: number) => ({
     id: index + 1,
     title: meal.name,
-    chef: meal.chef?.name || `Chef ${meal.chefId}`,
+    chef: meal.chef?.name || `Food Creator ${meal.chefId}`,
     image: meal.images[0] || "/kitchenillus.png",
     rating: meal.averageRating || meal.rating || 4.5,
     reviews: meal.reviewCount || 0,
@@ -347,8 +347,8 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
             onClick={handleDecideForMe}
             disabled={isDeciding || decidedResult !== null}
             className={`px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors ${isDeciding || decidedResult !== null
-                ? 'bg-slate-200  text-slate-500  cursor-not-allowed'
-                : 'bg-[#ff3b30] text-white hover:bg-[#ff5e54]'
+              ? 'bg-slate-200  text-slate-500  cursor-not-allowed'
+              : 'bg-[#ff3b30] text-white hover:bg-[#ff5e54]'
               }`}
           >
             {isDeciding ? (
@@ -580,8 +580,8 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                         <motion.button
                           key={item.id}
                           className={`w-full p-3 border rounded-xl cursor-pointer transition-all duration-300 ${selectedSubItems.includes(item.name)
-                              ? 'border-[#ff3b30] bg-[#ff3b30]/5 shadow-md'
-                              : 'border-slate-200  hover:border-[#ff3b30]/50 hover:shadow-sm'
+                            ? 'border-[#ff3b30] bg-[#ff3b30]/5 shadow-md'
+                            : 'border-slate-200  hover:border-[#ff3b30]/50 hover:shadow-sm'
                             }`}
                           onClick={() => toggleSubItem(item.name)}
                           whileHover={{ scale: 1.01 }}
@@ -592,8 +592,8 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center text-left">
                               <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 transition-colors ${selectedSubItems.includes(item.name)
-                                  ? 'bg-[#ff3b30]'
-                                  : 'bg-slate-100 '
+                                ? 'bg-[#ff3b30]'
+                                : 'bg-slate-100 '
                                 }`}>
                                 {selectedSubItems.includes(item.name) ? (
                                   <Check size={14} className="text-white" />
@@ -756,7 +756,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                         <div>
                           <h4 className="text-lg font-semibold mb-2 line-clamp-1">{meal.name}</h4>
                           <p className="text-slate-600 text-sm mb-3 line-clamp-2">
-                            {meal.description || meal.chef?.name || `Chef ${meal.chefId}`}
+                            {meal.description || meal.chef?.name || `Food Creator ${meal.chefId}`}
                           </p>
                           <div className="flex items-center justify-between mb-4">
                             <span className="text-xl font-bold text-[#ff3b30]">
@@ -796,7 +796,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                   <div className="col-span-1 md:col-span-3 p-8 bg-linear-to-r from-[#ff3b30]/10 to-[#ff7b72]/10 rounded-xl border border-[#ff3b30]/20 shadow-sm">
                     <h4 className="text-xl font-semibold mb-3">No recommendations yet</h4>
                     <p className="text-slate-600 mb-6">
-                      Start liking meals and following chefs to get personalized recommendations!
+                      Start liking meals and following food creators to get personalized recommendations!
                     </p>
                   </div>
                 ) : (

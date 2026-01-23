@@ -1,4 +1,4 @@
-import { generateMetadata, generateAiMetadata } from "../../lib/utils";
+import { generateAiMetadata, generateMetadata } from "../../lib/utils";
 
 export const metadata = {
   ...generateMetadata({
@@ -39,7 +39,7 @@ export const metadata = {
       "User can search for meals by cuisine type",
       "Dietary preferences can be specified",
       "Results can be filtered by location",
-      "Chef profiles are accessible from search results",
+      "Food Creator profiles are accessible from search results",
       "Direct booking available from search results"
     ]
   })

@@ -7,7 +7,25 @@ html {
 
 :root {
   --background: #fdfdfc;
-  --foreground: #171717;
+  --foreground: #0a0a0a;
+  --muted: #64748b;
+  --muted-foreground: #64748b;
+  --card: #ffffff;
+  --card-foreground: #020617;
+  --popover: #ffffff;
+  --popover-foreground: #020617;
+  --primary: #094327;
+  --primary-foreground: #f8fafc;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #ef4444;
+  --destructive-foreground: #f8fafc;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #094327;
+  --radius: 0.5rem;
 }
 
 @theme inline {
@@ -16,9 +34,9 @@ html {
   --font-sans: var(--font-satoshi);
   --font-display: var(--font-asgard);
   --shadow-input:
-  0px 2px 3px -1px rgba(0, 0, 0, 0.1),
-  0px 1px 0px 0px rgba(25, 28, 33, 0.02),
-  0px 0px 0px 1px rgba(25, 28, 33, 0.08);
+    0px 2px 3px -1px rgba(0, 0, 0, 0.1),
+    0px 1px 0px 0px rgba(25, 28, 33, 0.02),
+    0px 0px 0px 1px rgba(25, 28, 33, 0.08);
 }
 
 body {
@@ -27,7 +45,12 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   font-weight: 700;
 }
@@ -38,6 +61,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Cursor styles only apply when custom pointer is enabled */
 [data-custom-pointer="true"] {
+
   /* Hide cursor for interactive elements when custom pointer is active */
   a,
   button,
@@ -69,6 +93,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Default cursor styles when custom pointer is disabled */
 [data-custom-pointer="false"] {
+
   a,
   button,
   [role="button"] {
@@ -97,6 +122,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Fallback: Ensure system cursor is always visible when custom pointer is not explicitly enabled */
 body:not([data-custom-pointer="true"]) {
+
   a,
   button,
   [role="button"] {
@@ -124,46 +150,52 @@ body:not([data-custom-pointer="true"]) {
 
 /* Hide scrollbars for better mobile experience */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* Internet Explorer 10+ */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Safari and Chrome */
+  display: none;
+  /* Safari and Chrome */
 }
 
 /* Mobile-specific improvements for admin dashboard */
 @media (max-width: 640px) {
+
   /* Ensure touch targets are at least 44px for accessibility */
   .admin-filter-button {
     min-height: 44px;
     min-width: 44px;
   }
-  
+
   /* Improve touch scrolling for filter panels */
   .admin-filter-panel {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
-  
+
   /* Better mobile spacing for filter elements */
   .admin-filter-grid {
     gap: 8px;
   }
-  
+
   /* Ensure filter buttons don't get cut off on small screens */
   .admin-filter-option {
     min-width: 0;
     flex-shrink: 0;
   }
-  
+
   /* Improve mobile search input */
   .admin-search-input {
-    font-size: 16px; /* Prevents zoom on iOS */
+    font-size: 16px;
+    /* Prevents zoom on iOS */
     -webkit-appearance: none;
+    appearance: none;
     border-radius: 8px;
   }
-  
+
   /* Better mobile filter toggle button */
   .admin-filter-toggle {
     touch-action: manipulation;
@@ -182,9 +214,12 @@ body:not([data-custom-pointer="true"]) {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
@@ -199,7 +234,8 @@ body:not([data-custom-pointer="true"]) {
 /* Responsive embed containers */
 .embed-responsive {
   position: relative;
-  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  padding-bottom: 56.25%;
+  /* 16:9 aspect ratio */
   height: 0;
   overflow: hidden;
   max-width: 100%;
@@ -247,7 +283,8 @@ body:not([data-custom-pointer="true"]) {
 
 /* TikTok embed specific styles */
 .embed-tiktok {
-  padding-bottom: 177.78%; /* 9:16 aspect ratio for TikTok */
+  padding-bottom: 177.78%;
+  /* 9:16 aspect ratio for TikTok */
 }
 
 .embed-tiktok blockquote.tiktok-embed {

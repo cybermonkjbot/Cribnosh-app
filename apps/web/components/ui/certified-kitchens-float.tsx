@@ -120,7 +120,7 @@ const CertifiedKitchensFloat = () => {
                 <div className="flex items-center gap-2">
                   <ChefHat className="w-5 h-5 text-white drop-shadow-lg" />
                   <h4 className="font-semibold text-white text-lg drop-shadow-lg">
-                    Certified Home Kitchens
+                    Certified Food Creator Kitchens
                   </h4>
                 </div>
               </div>
@@ -129,7 +129,7 @@ const CertifiedKitchensFloat = () => {
             {/* Content Section */}
             <div className="relative p-4 space-y-4">
               <p className="text-gray-700 text-sm leading-relaxed">
-                Every Cribnosh kitchen is thoroughly vetted and regularly inspected to ensure the highest standards of food safety and quality.
+                Every Cribnosh Food Creator kitchen is thoroughly vetted and regularly inspected to ensure the highest standards of food safety and quality.
               </p>
 
               <div className="space-y-2.5">

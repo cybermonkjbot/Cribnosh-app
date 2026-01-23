@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { ChevronRight, Star } from "lucide-react";
-import Image from "next/image";
-import { AllFavoriteChefs } from "./all-favorite-chefs";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { ChevronRight, Star } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import Image from "next/image";
+import { useState } from "react";
+import { AllFavoriteChefs } from "./all-favorite-chefs";
 
 export function FavoriteChefs() {
   const [showAllChefs, setShowAllChefs] = useState(false);
@@ -14,21 +14,21 @@ export function FavoriteChefs() {
   const favoriteChefs = [
     {
       id: 1,
-      name: "Chef Nattaya",
+      name: "Food Creator Nattaya",
       image: "/kitchenillus.png",
       specialty: "Thai Cuisine",
       rating: 4.9
     },
     {
       id: 2,
-      name: "Chef Marco",
+      name: "Food Creator Marco",
       image: "/kitchenillus.png",
       specialty: "Italian",
       rating: 4.6
     },
     {
       id: 3,
-      name: "Chef Tanaka",
+      name: "Food Creator Tanaka",
       image: "/kitchenillus.png",
       specialty: "Japanese",
       rating: 4.9
@@ -39,7 +39,7 @@ export function FavoriteChefs() {
     <>
       <div className="mb-6 md:mb-8">
         <div className="flex justify-between items-center mb-3 md:mb-4">
-          <h3 className="text-base md:text-lg font-semibold">Favorite Chefs</h3>
+          <h3 className="text-base md:text-lg font-semibold">Favorite Food Creators</h3>
           <motion.button
             className="flex items-center gap-1 text-xs md:text-sm font-medium text-[#ff3b30] bg-red-50  px-2.5 md:px-3 py-1.5 rounded-full hover:bg-red-100  transition-colors active:scale-95"
             whileHover={isDesktop ? { scale: 1.05 } : {}}

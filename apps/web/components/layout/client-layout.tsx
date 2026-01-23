@@ -77,6 +77,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useSession();
   const isAdminRoute = pathname?.startsWith('/admin') ?? false;
   const isStaffRoute = pathname?.startsWith('/staff') ?? false;
+  const isChefRoute = pathname?.startsWith('/chef') ?? false;
   const isApplicationPage = pathname === "/cooking/apply" || pathname === "/driving/apply";
   const isTryItPage = pathname === "/try-it";
   const isWaitlistPage = pathname === "/waitlist";
@@ -86,8 +87,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     pathname === "/orders" ||
     pathname === "/profile";
 
-  // Hide footer on pages with floating bottom menu
-  const shouldShowFooter = !isFoodOrderingRoute;
+  // Hide footer on pages with floating bottom menu or chef routes
+  const shouldShowFooter = !isFoodOrderingRoute && !isChefRoute;
 
   // Hide floating bottom menu when sign-in screen is showing (not authenticated on try-it page)
   const shouldShowFloatingBottomMenu = isFoodOrderingRoute && isAuthenticated;
@@ -617,8 +618,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         <div
           className="flex min-h-[var(--viewport-height)] flex-col ios-scroll safe-area-inset"
         >
-          {/* Hide header on mobile for waitlist page */}
-          {!(isAdminRoute || isStaffRoute || isApplicationPage || (isWaitlistPage && isMobile)) && (
+          {/* Hide header on mobile for waitlist page, and always for admin/staff/chef/apps */}
+          {!(isAdminRoute || isStaffRoute || isChefRoute || isApplicationPage || (isWaitlistPage && isMobile)) && (
             <>
               <Header className="h-[var(--header-height)] sticky top-0 z-40" />
               {/* <Footer className="mt-auto h-[var(--footer-height)]" /> */}
@@ -643,7 +644,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             </div>
           </main>
           {/* Hide footer on mobile for waitlist page, and on pages with floating bottom menu */}
-          {shouldShowFooter && !(isAdminRoute || isStaffRoute || isTryItPage || isApplicationPage || (isWaitlistPage && isMobile)) && <Footer className="mt-auto h-[var(--footer-height)]" />}
+          {shouldShowFooter && !(isAdminRoute || isStaffRoute || isChefRoute || isTryItPage || isApplicationPage || (isWaitlistPage && isMobile)) && <Footer className="mt-auto h-[var(--footer-height)]" />}
 
           {/* Floating bottom menu - only show on food ordering experience pages when authenticated */}
           {shouldShowFloatingBottomMenu && !(isAdminRoute || isStaffRoute) && <FloatingBottomMenu />}

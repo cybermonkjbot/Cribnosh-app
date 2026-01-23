@@ -70,7 +70,7 @@ export function CookingPerks() {
             className="order-2 lg:order-1"
           >
             <span className="text-xs sm:text-sm uppercase tracking-widest font-medium text-[#ff3b30]">
-              Chef Benefits
+              Food Creator Benefits
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold text-gray-900 mt-2 mb-4 sm:mb-6">
               Why Cook With Cribnosh?
@@ -110,7 +110,7 @@ export function CookingPerks() {
               <div className="aspect-[4/5] sm:aspect-[4/5] relative">
                 <Image
                   src="/early-access-perks/3.png"
-                  alt="Cribnosh Chef"
+                  alt="Cribnosh Food Creator"
                   fill
                   className="object-cover"
                 />
@@ -125,7 +125,7 @@ export function CookingPerks() {
                       <ChefHat className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                     <div className="min-w-0">
-                      <h4 className="text-lg sm:text-xl font-bold text-white">Chef Success Story</h4>
+                      <h4 className="text-lg sm:text-xl font-bold text-white">Food Creator Success Story</h4>
                       <p className="text-sm sm:text-base text-white/80">Maria's Kitchen</p>
                     </div>
                   </div>

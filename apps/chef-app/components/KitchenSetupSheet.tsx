@@ -235,7 +235,7 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
     const allRequiredDocumentsVerified = documentsSummary?.allRequiredVerified === true;
     const requiredDocsCount = documentsSummary?.required || 0;
     const verifiedDocsCount = documentsSummary?.requiredVerified || 0;
-    
+
     items.push({
       id: 'documents-verification',
       title: 'Verify Required Documents',
@@ -320,11 +320,11 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
               </View>
               <View style={styles.progressBarContainer}>
                 <View style={styles.progressBarBackground}>
-                  <View 
+                  <View
                     style={[
-                      styles.progressBarFill, 
+                      styles.progressBarFill,
                       { width: `${progressPercentage}%` }
-                    ]} 
+                    ]}
                   />
                 </View>
               </View>

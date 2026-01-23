@@ -66,8 +66,6 @@ const config: Config = {
         11: "rgb(var(--gray-11) / <alpha-value>)",
         12: "rgb(var(--gray-12) / <alpha-value>)",
       },
-      white: "#ffffff",
-      black: "#000000",
       primary: {
         50: '#fff1f1',
         100: '#ffdfdf',
@@ -80,6 +78,13 @@ const config: Config = {
         800: '#a4130c',
         900: '#881512',
         950: '#4b0604',
+      },
+      brand: {
+        primary: '#094327',      // Dark green - main brand color
+        secondary: '#166534',    // Green-800 - Deep green for gradients
+        accent: '#15803d',       // Green-700 - Rich accent green
+        background: '#FAFFFA',   // Light green tinted background
+        link: '#FF3B30',         // CribNosh red for links
       },
     },
     fontSize: {
