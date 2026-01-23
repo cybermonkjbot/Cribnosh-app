@@ -30,6 +30,7 @@ import {
   Plus,
   PoundSterling,
   Radio,
+  Send,
   Settings,
   Shield,
   ShoppingCart,
@@ -344,6 +345,12 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
           href: '/admin/email-config/template/new',
           icon: Plus,
           description: 'Create email templates',
+        },
+        {
+          name: 'Email Broadcast',
+          href: '/admin/email-templates/broadcast',
+          icon: Send,
+          description: 'Fire Canva email templates',
         },
         {
           name: 'System',
