@@ -139,7 +139,7 @@ function AddChefModal({ open, onOpenChange }: { open: boolean; onOpenChange: (op
                 <SelectValue placeholder="Select a user to promote" />
               </SelectTrigger>
               <SelectContent>
-                {users?.map((user: { _id: string; name: string; email: string }) => (
+                {users && users.map((user: { _id: string; name: string; email: string }) => (
                   <SelectItem key={user._id} value={user._id}>
                     {user.name} ({user.email})
                   </SelectItem>

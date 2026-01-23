@@ -224,11 +224,20 @@ export default function PayrollReportsPage() {
 
   const periodData: PeriodData[] = summary && 'byPayPeriod' in summary && summary.byPayPeriod
     ? Object.entries(summary.byPayPeriod)
-      .map(([_, data]: [string, any]) => ({
-        name: `${format(new Date(data.startDate), 'MMM d')} - ${format(new Date(data.endDate), 'MMM d, yyyy')}`,
-        payroll: data.payroll || 0,
-        employees: data.employees || 0,
-      }))
+      .map(([_, data]: [string, any]) => {
+        const startDate = data.startDate ? new Date(data.startDate) : null;
+        const endDate = data.endDate ? new Date(data.endDate) : null;
+
+        const name = (startDate && !isNaN(startDate.getTime()) && endDate && !isNaN(endDate.getTime()))
+          ? `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`
+          : 'Invalid Period';
+
+        return {
+          name,
+          payroll: data.payroll || 0,
+          employees: data.employees || 0,
+        };
+      })
       .sort((a, b) => a.name.localeCompare(b.name))
     : [];
 
