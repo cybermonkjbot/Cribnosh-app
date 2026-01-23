@@ -33,7 +33,7 @@ interface DraggableTextOverlayProps {
 
 function DraggableTextOverlay({ textOverlay, imageLayout, onUpdate, onPress }: DraggableTextOverlayProps) {
   const startPos = useRef({ x: textOverlay.x, y: textOverlay.y });
-  
+
   const textPanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -43,16 +43,16 @@ function DraggableTextOverlay({ textOverlay, imageLayout, onUpdate, onPress }: D
       },
       onPanResponderMove: (_, gestureState) => {
         const newX = Math.max(
-          imageLayout.x, 
+          imageLayout.x,
           Math.min(
-            imageLayout.x + imageLayout.width - 100, 
+            imageLayout.x + imageLayout.width - 100,
             startPos.current.x + gestureState.dx
           )
         );
         const newY = Math.max(
-          imageLayout.y, 
+          imageLayout.y,
           Math.min(
-            imageLayout.y + imageLayout.height - 30, 
+            imageLayout.y + imageLayout.height - 30,
             startPos.current.y + gestureState.dy
           )
         );
@@ -130,11 +130,11 @@ const captureButtonSVG = `<svg width="80" height="80" viewBox="0 0 80 80" fill="
 type CameraType = 'front' | 'back';
 type FlashMode = 'off' | 'on' | 'auto';
 
-export function CameraModalScreen({ 
-  onClose, 
-  onStartLiveStream, 
-  autoShowLiveStreamSetup = false, 
-  onPhotoCaptured, 
+export function CameraModalScreen({
+  onClose,
+  onStartLiveStream,
+  autoShowLiveStreamSetup = false,
+  onPhotoCaptured,
   onVideoRecorded,
   showGoLiveButton = true,
   showVideoRecording = true,
@@ -165,7 +165,7 @@ export function CameraModalScreen({
   const videoPanY = useRef(new Animated.Value(0)).current;
   const videoControlsOpacity = useRef(new Animated.Value(1)).current;
   const SWIPE_THRESHOLD = 100; // Minimum distance to trigger dismiss
-  
+
   // Snapchat-like photo preview state
   const [previewStickers, setPreviewStickers] = useState<StickerItemData[]>([]);
   const [showStickerLibrary, setShowStickerLibrary] = useState<boolean>(false);
@@ -175,16 +175,19 @@ export function CameraModalScreen({
   const [imageLayout, setImageLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const photoPreviewRef = useRef<View>(null);
   const filterSwipeX = useRef(new Animated.Value(0)).current;
-  const filters = ['normal', 'vivid', 'warm', 'cool', 'dramatic', 'mono'];
+  const activeFilters = useQuery(api.filters.listActive);
+  const filters = activeFilters ? activeFilters.map((f: { code: string }) => f.code) : ['normal'];
   const filterIndex = useRef(filters.indexOf(selectedFilter));
-  
+
   // Update filter index when selectedFilter changes
   React.useEffect(() => {
     const index = filters.indexOf(selectedFilter);
     if (index !== -1) {
       filterIndex.current = index;
+    } else if (filters.length > 0) {
+      filterIndex.current = 0;
     }
-  }, [selectedFilter]);
+  }, [selectedFilter, activeFilters]);
 
   // PanResponder for swipe down to dismiss
   const panResponder = useRef(
@@ -203,7 +206,7 @@ export function CameraModalScreen({
       },
       onPanResponderRelease: (_, gestureState) => {
         const currentValue = gestureState.dy;
-        
+
         // If swiped down enough, dismiss
         if (currentValue > SWIPE_THRESHOLD) {
           Animated.timing(panY, {
@@ -254,7 +257,7 @@ export function CameraModalScreen({
   }, []);
 
   const handleFlipCamera = () => {
-    setCameraType((current: CameraType) => 
+    setCameraType((current: CameraType) =>
       current === 'back' ? 'front' : 'back'
     );
   };
@@ -271,7 +274,7 @@ export function CameraModalScreen({
     if (!cameraRef.current || !isMountedRef.current) {
       return;
     }
-    
+
     // If mode is video-only, toggle recording
     if (mode === 'video') {
       if (isRecording) {
@@ -281,12 +284,12 @@ export function CameraModalScreen({
       }
       return;
     }
-    
+
     // For photo modes, don't capture if recording
     if (isRecording) {
       return;
     }
-    
+
     try {
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
@@ -484,7 +487,7 @@ export function CameraModalScreen({
 
   const handleTextInputChange = (text: string) => {
     if (editingTextId) {
-      setTextOverlays(textOverlays.map(t => 
+      setTextOverlays(textOverlays.map(t =>
         t.id === editingTextId ? { ...t, text } : t
       ));
     }
@@ -631,9 +634,9 @@ export function CameraModalScreen({
 
   const handleVideoPlayPause = async () => {
     if (!videoRef.current) return;
-    
+
     resetControlsTimeout();
-    
+
     if (isVideoPlaying) {
       await videoRef.current.pauseAsync();
       setIsVideoPlaying(false);
@@ -665,7 +668,7 @@ export function CameraModalScreen({
       },
       onPanResponderRelease: (_, gestureState) => {
         const currentValue = gestureState.dy;
-        
+
         if (currentValue > SWIPE_THRESHOLD) {
           Animated.parallel([
             Animated.timing(videoPanY, {
@@ -702,7 +705,7 @@ export function CameraModalScreen({
 
   const handleVideoShare = async () => {
     if (!lastRecordedVideo) return;
-    
+
     try {
       const isAvailable = await Sharing.isAvailableAsync();
       if (isAvailable) {
@@ -748,7 +751,7 @@ export function CameraModalScreen({
   }
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
         styles.container,
         {
@@ -758,7 +761,7 @@ export function CameraModalScreen({
       {...panResponder.panHandlers}
     >
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
-      
+
       {/* Camera View */}
       <CameraView
         ref={cameraRef}
@@ -776,21 +779,21 @@ export function CameraModalScreen({
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <SvgXml xml={closeIconSVG} width={24} height={24} />
           </TouchableOpacity>
-          
+
           {/* Center - CribNosh Logo */}
           <View style={styles.logoContainer}>
             <CribNoshLogo size={80} variant="white" />
           </View>
-          
+
           <View style={styles.topRightControls}>
             <TouchableOpacity style={styles.controlButton} onPress={handleFlashToggle}>
-              <SvgXml 
-                xml={flashMode === 'off' ? flashOffIconSVG : flashIconSVG} 
-                width={24} 
-                height={24} 
+              <SvgXml
+                xml={flashMode === 'off' ? flashOffIconSVG : flashIconSVG}
+                width={24}
+                height={24}
               />
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.controlButton} onPress={handleFlipCamera}>
               <Ionicons name="camera-reverse" size={24} color="#FFFFFF" />
             </TouchableOpacity>
@@ -813,8 +816,8 @@ export function CameraModalScreen({
           <View style={styles.photoPreviewOverlay}>
             {/* Top Bar - Minimal */}
             <View style={styles.photoPreviewTopBar}>
-              <TouchableOpacity 
-                style={styles.photoPreviewTopButton} 
+              <TouchableOpacity
+                style={styles.photoPreviewTopButton}
                 onPress={retakePhoto}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
@@ -824,22 +827,22 @@ export function CameraModalScreen({
             </View>
 
             {/* Photo with overlays - Swipeable for filters */}
-            <Animated.View 
+            <Animated.View
               style={styles.photoPreviewContainer}
               {...filterSwipeResponder.panHandlers}
             >
-              <View 
-                ref={photoPreviewRef} 
+              <View
+                ref={photoPreviewRef}
                 collapsable={false}
                 style={StyleSheet.absoluteFill}
                 onLayout={handleImageLayout}
               >
-                <Image 
-                  source={{ uri: editedPhotoUri || lastCapturedPhoto }} 
+                <Image
+                  source={{ uri: editedPhotoUri || lastCapturedPhoto }}
                   style={styles.photoPreviewImage}
                   resizeMode="contain"
                 />
-                
+
                 {/* Text Overlays - Draggable */}
                 {textOverlays.map((textOverlay) => (
                   <DraggableTextOverlay
@@ -889,7 +892,7 @@ export function CameraModalScreen({
               >
                 <Type size={24} color="#FFFFFF" />
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={styles.photoPreviewToolButton}
                 onPress={() => setShowStickerLibrary(!showStickerLibrary)}
@@ -953,7 +956,7 @@ export function CameraModalScreen({
 
         {/* Video Preview Overlay - Snapchat/TikTok Style */}
         {showVideoPreview && lastRecordedVideo && (
-          <Animated.View 
+          <Animated.View
             style={[
               styles.videoPreviewOverlay,
               {
@@ -963,7 +966,7 @@ export function CameraModalScreen({
             {...videoPanResponder.panHandlers}
           >
             {/* Full-screen video */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.videoPreviewFullScreen}
               activeOpacity={1}
               onPress={handleVideoTap}
@@ -985,16 +988,16 @@ export function CameraModalScreen({
                   }
                 }}
               />
-              
+
               {/* Large play/pause overlay - shows when paused */}
               {!isVideoPlaying && (
-                <Animated.View 
+                <Animated.View
                   style={[
                     styles.videoPreviewPlayOverlay,
                     { opacity: videoControlsOpacity }
                   ]}
                 >
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.videoPreviewLargePlayButton}
                     onPress={handleVideoPlayPause}
                     activeOpacity={0.8}
@@ -1006,15 +1009,15 @@ export function CameraModalScreen({
             </TouchableOpacity>
 
             {/* Top controls - fade in/out */}
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.videoPreviewTopControls,
                 { opacity: videoControlsOpacity }
               ]}
               pointerEvents="box-none"
             >
-              <TouchableOpacity 
-                style={styles.videoPreviewCloseButton} 
+              <TouchableOpacity
+                style={styles.videoPreviewCloseButton}
                 onPress={closeVideoPreview}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
@@ -1023,13 +1026,13 @@ export function CameraModalScreen({
             </Animated.View>
 
             {/* Bottom action bar - always visible but can fade */}
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.videoPreviewBottomBar,
                 { opacity: videoControlsOpacity }
               ]}
             >
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.videoPreviewBottomAction}
                 onPress={handleVideoShare}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -1039,17 +1042,17 @@ export function CameraModalScreen({
                 </View>
                 <Text style={styles.videoPreviewBottomActionText}>Share</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.videoPreviewBottomCaptureButton}
                 onPress={handleUseVideo}
                 activeOpacity={0.8}
               >
                 <View style={styles.videoPreviewBottomCaptureButtonInner} />
               </TouchableOpacity>
-              
+
               {showGoLiveButton && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.videoPreviewBottomGoLive}
                   onPress={() => {
                     closeVideoPreview();
@@ -1071,107 +1074,40 @@ export function CameraModalScreen({
         {/* Camera Filters Section - Above Shutter */}
         {showFilters && (
           <View style={styles.filtersSection}>
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.filtersContainer}
             >
-            {/* Normal Filter */}
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                selectedFilter === 'normal' && styles.filterButtonActive
-              ]}
-              onPress={() => handleFilterSelect('normal')}
-            >
-              <Text style={[
-                styles.filterEmoji,
-                selectedFilter === 'normal' && styles.filterEmojiActive
-              ]}>
-                😊
-              </Text>
-            </TouchableOpacity>
-
-            {/* Vivid Filter */}
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                selectedFilter === 'vivid' && styles.filterButtonActive
-              ]}
-              onPress={() => handleFilterSelect('vivid')}
-            >
-              <Text style={[
-                styles.filterEmoji,
-                selectedFilter === 'vivid' && styles.filterEmojiActive
-              ]}>
-                🌈
-              </Text>
-            </TouchableOpacity>
-
-            {/* Warm Filter */}
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                selectedFilter === 'warm' && styles.filterButtonActive
-              ]}
-              onPress={() => handleFilterSelect('warm')}
-            >
-              <Text style={[
-                styles.filterEmoji,
-                selectedFilter === 'warm' && styles.filterEmojiActive
-              ]}>
-                🌅
-              </Text>
-            </TouchableOpacity>
-
-            {/* Cool Filter */}
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                selectedFilter === 'cool' && styles.filterButtonActive
-              ]}
-              onPress={() => handleFilterSelect('cool')}
-            >
-              <Text style={[
-                styles.filterEmoji,
-                selectedFilter === 'cool' && styles.filterEmojiActive
-              ]}>
-                ❄️
-              </Text>
-            </TouchableOpacity>
-
-            {/* Dramatic Filter */}
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                selectedFilter === 'dramatic' && styles.filterButtonActive
-              ]}
-              onPress={() => handleFilterSelect('dramatic')}
-            >
-              <Text style={[
-                styles.filterEmoji,
-                selectedFilter === 'dramatic' && styles.filterEmojiActive
-              ]}>
-                ⚡
-              </Text>
-            </TouchableOpacity>
-
-            {/* Mono Filter */}
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                selectedFilter === 'mono' && styles.filterButtonActive
-              ]}
-              onPress={() => handleFilterSelect('mono')}
-            >
-              <Text style={[
-                styles.filterEmoji,
-                selectedFilter === 'mono' && styles.filterButtonActive
-              ]}>
-                🖤
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
+              {activeFilters?.map((filter: { _id: string; code: string; iconUrl?: string; name: string }) => (
+                <TouchableOpacity
+                  key={filter._id}
+                  style={[
+                    styles.filterButton,
+                    selectedFilter === filter.code && styles.filterButtonActive
+                  ]}
+                  onPress={() => handleFilterSelect(filter.code)}
+                >
+                  {filter.iconUrl ? (
+                    <Image
+                      source={{ uri: filter.iconUrl }}
+                      style={[
+                        styles.filterIcon,
+                        selectedFilter === filter.code && styles.filterIconActive
+                      ]}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Text style={[
+                      styles.filterEmoji,
+                      selectedFilter === filter.code && styles.filterEmojiActive
+                    ]}>
+                      {filter.name.charAt(0)}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         )}
 
@@ -1180,8 +1116,8 @@ export function CameraModalScreen({
           {/* Left side - Gallery Button / Last Photo Thumbnail */}
           <TouchableOpacity style={styles.galleryButton} onPress={handleGalleryPress}>
             {lastCapturedPhoto ? (
-              <Image 
-                source={{ uri: lastCapturedPhoto }} 
+              <Image
+                source={{ uri: lastCapturedPhoto }}
                 style={styles.lastPhotoThumbnail}
                 resizeMode="cover"
               />
@@ -1189,10 +1125,10 @@ export function CameraModalScreen({
               <Ionicons name="images" size={32} color="#FFFFFF" />
             )}
           </TouchableOpacity>
-          
+
           {/* Center - Capture Button */}
-          <TouchableOpacity 
-            style={[styles.captureButton, isRecording && styles.captureButtonRecording]} 
+          <TouchableOpacity
+            style={[styles.captureButton, isRecording && styles.captureButtonRecording]}
             onPress={handleCapture}
             onLongPress={(showVideoRecording && (mode === 'both' || mode === 'live')) ? startRecording : undefined}
             onPressOut={(isRecording && (mode === 'both' || mode === 'live')) ? stopRecording : undefined}
@@ -1201,11 +1137,11 @@ export function CameraModalScreen({
             <SvgXml xml={captureButtonSVG} width={80} height={80} />
             {isRecording && <View style={styles.recordingIndicator} />}
           </TouchableOpacity>
-          
+
           {/* Right side - Go Live Button */}
           {showGoLiveButton && (
-            <TouchableOpacity 
-              style={styles.goLiveButton} 
+            <TouchableOpacity
+              style={styles.goLiveButton}
               onPress={() => {
                 onClose();
                 router.push('/(tabs)/chef/live' as any);
@@ -1896,6 +1832,19 @@ const styles = StyleSheet.create({
   filterEmojiActive: {
     opacity: 1,
   },
+  filterIcon: {
+    width: 32,
+    height: 32,
+    opacity: 0.6,
+    borderRadius: 16,
+  },
+  filterIconActive: {
+    opacity: 1,
+    transform: [{ scale: 1.1 }],
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
 });
 
 // Live Stream Setup Overlay Component
@@ -1918,7 +1867,7 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
   // Get chef's meals using Convex query
   // Note: TypeScript has type instantiation depth issues with complex Convex queries
   // This is a known limitation but the query works correctly at runtime
-   
+
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const meals = useQuery(
     api.queries.meals.getByChefId,
@@ -1973,7 +1922,7 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
       setIsStarting(true);
       // Generate a unique channel name
       const channelName = `chef-${chef._id}-${Date.now()}`;
-      
+
       const liveSessionId = await createLiveSession({
         channelName,
         chefId: chef._id,
@@ -1983,7 +1932,7 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
         tags: tags,
         sessionToken,
       });
-      
+
       if (isMountedRef.current) {
         // Generate session ID from channel name for navigation
         const sessionId = channelName;
@@ -2009,14 +1958,14 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
   return (
     <View style={styles.liveStreamOverlay}>
       {/* Backdrop - allows closing by tapping outside */}
-      <TouchableOpacity 
-        style={styles.liveStreamOverlayBackdrop} 
+      <TouchableOpacity
+        style={styles.liveStreamOverlayBackdrop}
         activeOpacity={1}
         onPress={handleClose}
         disabled={isStarting}
       />
-      <ScrollView 
-        style={styles.liveStreamOverlayContent} 
+      <ScrollView
+        style={styles.liveStreamOverlayContent}
         contentContainerStyle={styles.liveStreamOverlayContentContainer}
         keyboardShouldPersistTaps="handled"
       >
@@ -2060,8 +2009,8 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
         {/* Meal Selection */}
         <View style={styles.liveStreamInputContainer}>
           <Text style={styles.liveStreamInputLabel}>Meal Being Cooked *</Text>
-          <TouchableOpacity 
-            style={styles.mealSelectButton} 
+          <TouchableOpacity
+            style={styles.mealSelectButton}
             disabled={isStarting || !meals}
             onPress={() => setShowMealPicker(!showMealPicker)}
           >

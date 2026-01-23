@@ -668,6 +668,20 @@ export default defineSchema({
     description: v.string(),
     image: v.optional(v.string()),
   }),
+  // Filters table
+  filters: defineTable({
+    name: v.string(),
+    code: v.string(), // e.g. "vivid", "bw"
+    iconStorageId: v.id("_storage"),
+    isActive: v.boolean(),
+    order: v.optional(v.number()),
+    // Visual Parameters (Parametric Shaders)
+    saturation: v.optional(v.number()), // -1.0 to 1.0 (0 is normal)
+    temperature: v.optional(v.number()), // -1.0 (cool) to 1.0 (warm)
+    vignette: v.optional(v.number()), // 0.0 to 1.0
+    contrast: v.optional(v.number()), // -1.0 to 1.0
+  }).index("by_active", ["isActive"]),
+
   // Feature Flags table
   featureFlags: defineTable({
     key: v.string(), // e.g., 'home_hero_section'
