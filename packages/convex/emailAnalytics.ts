@@ -31,7 +31,7 @@ export const getEmailDashboardStats = query({
   handler: async (ctx, args) => {
     const startDate = args.startDate || (Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to last 30 days
     const endDate = args.endDate || Date.now();
-    
+
     if (args.templateId) {
       const analyticsData = await ctx.db
         .query("emailAnalyticsData")
@@ -41,27 +41,27 @@ export const getEmailDashboardStats = query({
           q.lte(q.field("timestamp"), endDate)
         ))
         .collect();
-      
+
       // Count events by type
       const eventCounts = analyticsData.reduce((acc, event) => {
         acc[event.eventType] = (acc[event.eventType] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
-      
+
       const sentEmails = eventCounts.sent || 0;
       const deliveredEmails = eventCounts.delivered || 0;
       const openedEmails = eventCounts.opened || 0;
       const clickedEmails = eventCounts.clicked || 0;
       const bouncedEmails = eventCounts.bounced || 0;
       const unsubscribedEmails = eventCounts.unsubscribed || 0;
-      
+
       const totalEmails = sentEmails;
       const openRate = totalEmails > 0 ? (openedEmails / totalEmails) * 100 : 0;
       const clickRate = totalEmails > 0 ? (clickedEmails / totalEmails) * 100 : 0;
       const bounceRate = totalEmails > 0 ? (bouncedEmails / totalEmails) * 100 : 0;
       const unsubscribeRate = totalEmails > 0 ? (unsubscribedEmails / totalEmails) * 100 : 0;
       const deliveryRate = totalEmails > 0 ? (deliveredEmails / totalEmails) * 100 : 0;
-      
+
       return {
         totalEmails,
         sentEmails,
@@ -77,32 +77,32 @@ export const getEmailDashboardStats = query({
         deliveryRate,
       };
     }
-    
+
     const analyticsData = await ctx.db
       .query("emailAnalyticsData")
       .withIndex("by_timestamp", (q) => q.gte("timestamp", startDate).lte("timestamp", endDate))
       .collect();
-    
+
     // Count events by type
     const eventCounts = analyticsData.reduce((acc, event) => {
       acc[event.eventType] = (acc[event.eventType] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     const sentEmails = eventCounts.sent || 0;
     const deliveredEmails = eventCounts.delivered || 0;
     const openedEmails = eventCounts.opened || 0;
     const clickedEmails = eventCounts.clicked || 0;
     const bouncedEmails = eventCounts.bounced || 0;
     const unsubscribedEmails = eventCounts.unsubscribed || 0;
-    
+
     // Calculate rates
     const openRate = sentEmails > 0 ? (openedEmails / sentEmails) * 100 : 0;
     const clickRate = sentEmails > 0 ? (clickedEmails / sentEmails) * 100 : 0;
     const bounceRate = sentEmails > 0 ? (bouncedEmails / sentEmails) * 100 : 0;
     const unsubscribeRate = sentEmails > 0 ? (unsubscribedEmails / sentEmails) * 100 : 0;
     const deliveryRate = sentEmails > 0 ? (deliveredEmails / sentEmails) * 100 : 0;
-    
+
     return {
       totalEmails: sentEmails,
       sentEmails,
@@ -147,7 +147,7 @@ export const getEmailPerformanceMetrics = query({
     const startDate = args.startDate || (Date.now() - 30 * 24 * 60 * 60 * 1000);
     const endDate = args.endDate || Date.now();
     const groupBy = args.groupBy || "day";
-    
+
     if (args.templateId) {
       const analyticsData = await ctx.db
         .query("emailAnalyticsData")
@@ -157,7 +157,7 @@ export const getEmailPerformanceMetrics = query({
           q.lte(q.field("timestamp"), endDate)
         ))
         .collect();
-      
+
       // Group data by time period
       const groupedData = groupAnalyticsByPeriod(analyticsData, groupBy);
       // Ensure all required fields are present and non-optional
@@ -173,12 +173,12 @@ export const getEmailPerformanceMetrics = query({
         bounceRate: data.bounceRate || 0,
       }));
     }
-    
+
     const analyticsData = await ctx.db
       .query("emailAnalyticsData")
       .withIndex("by_timestamp", (q) => q.gte("timestamp", startDate).lte("timestamp", endDate))
       .collect();
-    
+
     // Group data by time period
     const groupedData = new Map<string, {
       period: string;
@@ -189,11 +189,11 @@ export const getEmailPerformanceMetrics = query({
       bounced: number;
       [key: string]: string | number;
     }>();
-    
+
     for (const event of analyticsData) {
       const date = new Date(event.timestamp);
       let periodKey: string;
-      
+
       switch (groupBy) {
         case "hour":
           periodKey = date.toISOString().slice(0, 13) + ":00:00.000Z";
@@ -212,7 +212,7 @@ export const getEmailPerformanceMetrics = query({
         default:
           periodKey = date.toISOString().slice(0, 10);
       }
-      
+
       if (!groupedData.has(periodKey)) {
         groupedData.set(periodKey, {
           period: periodKey,
@@ -223,7 +223,7 @@ export const getEmailPerformanceMetrics = query({
           bounced: 0,
         });
       }
-      
+
       const data = groupedData.get(periodKey);
       if (data) {
         const eventType = event.eventType;
@@ -232,7 +232,7 @@ export const getEmailPerformanceMetrics = query({
         }
       }
     }
-    
+
     // Calculate rates and return sorted data
     const result = Array.from(groupedData.values()).map(data => ({
       ...data,
@@ -240,7 +240,7 @@ export const getEmailPerformanceMetrics = query({
       clickRate: data.sent > 0 ? Math.round((data.clicked / data.sent) * 10000) / 100 : 0,
       bounceRate: data.sent > 0 ? Math.round((data.bounced / data.sent) * 10000) / 100 : 0,
     }));
-    
+
     return result.sort((a, b) => a.period.localeCompare(b.period));
   },
 });
@@ -266,12 +266,12 @@ export const getTopTemplates = query({
     const startDate = args.startDate || (Date.now() - 30 * 24 * 60 * 60 * 1000);
     const endDate = args.endDate || Date.now();
     const limit = args.limit || 10;
-    
+
     const analyticsData = await ctx.db
       .query("emailAnalyticsData")
       .withIndex("by_timestamp", (q) => q.gte("timestamp", startDate).lte("timestamp", endDate))
       .collect();
-    
+
     // Group by template
     const templateStats = new Map<string, {
       templateId: string;
@@ -284,7 +284,7 @@ export const getTopTemplates = query({
       unsubscribed: number;
       [key: string]: string | number;
     }>();
-    
+
     for (const event of analyticsData) {
       if (!templateStats.has(event.templateId)) {
         templateStats.set(event.templateId, {
@@ -298,7 +298,7 @@ export const getTopTemplates = query({
           unsubscribed: 0,
         });
       }
-      
+
       const stats = templateStats.get(event.templateId);
       if (stats) {
         const eventType = event.eventType;
@@ -307,7 +307,7 @@ export const getTopTemplates = query({
         }
       }
     }
-    
+
     // Calculate rates and sort
     const result = Array.from(templateStats.values()).map(stats => ({
       ...stats,
@@ -315,7 +315,7 @@ export const getTopTemplates = query({
       clickRate: stats.sent > 0 ? Math.round((stats.clicked / stats.sent) * 10000) / 100 : 0,
       bounceRate: stats.sent > 0 ? Math.round((stats.bounced / stats.sent) * 10000) / 100 : 0,
     }));
-    
+
     return result
       .sort((a, b) => b.sent - a.sent)
       .slice(0, limit);
@@ -348,7 +348,7 @@ export const getDeviceAnalytics = query({
   handler: async (ctx, args) => {
     const startDate = args.startDate || (Date.now() - 30 * 24 * 60 * 60 * 1000);
     const endDate = args.endDate || Date.now();
-    
+
     if (args.templateId) {
       const analyticsData = await ctx.db
         .query("emailAnalyticsData")
@@ -359,96 +359,96 @@ export const getDeviceAnalytics = query({
           q.neq(q.field("deviceInfo"), undefined)
         ))
         .collect();
-      
+
       const deviceCounts = new Map<string, number>();
       const clientCounts = new Map<string, number>();
       const browserCounts = new Map<string, number>();
-      
+
       for (const event of analyticsData) {
         if (event.deviceInfo) {
           // Count device types
           const deviceType = event.deviceInfo.type || "unknown";
           deviceCounts.set(deviceType, (deviceCounts.get(deviceType) || 0) + 1);
-          
+
           // Count email clients
           const client = event.deviceInfo.client || "unknown";
           clientCounts.set(client, (clientCounts.get(client) || 0) + 1);
-          
+
           // Count browsers
           const browser = event.deviceInfo.browser || "unknown";
           browserCounts.set(browser, (browserCounts.get(browser) || 0) + 1);
         }
       }
-      
+
       const total = analyticsData.length;
-      
+
       const devices = Array.from(deviceCounts.entries()).map(([type, count]) => ({
         type,
         count,
         percentage: total > 0 ? Math.round((count / total) * 10000) / 100 : 0,
       }));
-      
+
       const clients = Array.from(clientCounts.entries()).map(([name, count]) => ({
         name,
         count,
         percentage: total > 0 ? Math.round((count / total) * 10000) / 100 : 0,
       }));
-      
+
       const browsers = Array.from(browserCounts.entries()).map(([name, count]) => ({
         name,
         count,
         percentage: total > 0 ? Math.round((count / total) * 10000) / 100 : 0,
       }));
-      
+
       return { devices, clients, browsers };
     }
-    
+
     const analyticsData = await ctx.db
       .query("emailAnalyticsData")
       .withIndex("by_timestamp", (q) => q.gte("timestamp", startDate).lte("timestamp", endDate))
       .filter((q) => q.neq(q.field("deviceInfo"), undefined))
       .collect();
-    
+
     const deviceCounts = new Map<string, number>();
     const clientCounts = new Map<string, number>();
     const browserCounts = new Map<string, number>();
-    
+
     for (const event of analyticsData) {
       if (event.deviceInfo) {
         // Count device types
         const deviceType = event.deviceInfo.type || "unknown";
         deviceCounts.set(deviceType, (deviceCounts.get(deviceType) || 0) + 1);
-        
+
         // Count email clients
         const client = event.deviceInfo.client || "unknown";
         clientCounts.set(client, (clientCounts.get(client) || 0) + 1);
-        
+
         // Count browsers
         const browser = event.deviceInfo.browser || "unknown";
         browserCounts.set(browser, (browserCounts.get(browser) || 0) + 1);
       }
     }
-    
+
     const total = analyticsData.length;
-    
+
     const devices = Array.from(deviceCounts.entries()).map(([type, count]) => ({
       type,
       count,
       percentage: total > 0 ? Math.round((count / total) * 10000) / 100 : 0,
     }));
-    
+
     const clients = Array.from(clientCounts.entries()).map(([name, count]) => ({
       name,
       count,
       percentage: total > 0 ? Math.round((count / total) * 10000) / 100 : 0,
     }));
-    
+
     const browsers = Array.from(browserCounts.entries()).map(([name, count]) => ({
       name,
       count,
       percentage: total > 0 ? Math.round((count / total) * 10000) / 100 : 0,
     }));
-    
+
     return {
       devices: devices.sort((a, b) => b.count - a.count),
       clients: clients.sort((a, b) => b.count - a.count),
@@ -483,7 +483,7 @@ export const getLocationAnalytics = query({
   handler: async (ctx, args) => {
     const startDate = args.startDate || (Date.now() - 30 * 24 * 60 * 60 * 1000);
     const endDate = args.endDate || Date.now();
-    
+
     if (args.templateId) {
       const analyticsData = await ctx.db
         .query("emailAnalyticsData")
@@ -494,96 +494,96 @@ export const getLocationAnalytics = query({
           q.neq(q.field("locationInfo"), undefined)
         ))
         .collect();
-      
+
       const countryCounts = new Map<string, number>();
       const regionCounts = new Map<string, number>();
       const cityCounts = new Map<string, number>();
-      
+
       for (const event of analyticsData) {
         if (event.locationInfo) {
           // Count countries
           const country = event.locationInfo.country || "unknown";
           countryCounts.set(country, (countryCounts.get(country) || 0) + 1);
-          
+
           // Count regions
           const region = event.locationInfo.region || "unknown";
           regionCounts.set(region, (regionCounts.get(region) || 0) + 1);
-          
+
           // Count cities
           const city = event.locationInfo.city || "unknown";
           cityCounts.set(city, (cityCounts.get(city) || 0) + 1);
         }
       }
-      
+
       const total = analyticsData.length;
-      
+
       const countries = Array.from(countryCounts.entries()).map(([country, count]) => ({
         country,
         count,
         percentage: total > 0 ? Math.round((count / total) * 10000) / 100 : 0,
       }));
-      
+
       const regions = Array.from(regionCounts.entries()).map(([region, count]) => ({
         region,
         count,
         percentage: total > 0 ? Math.round((count / total) * 10000) / 100 : 0,
       }));
-      
+
       const cities = Array.from(cityCounts.entries()).map(([city, count]) => ({
         city,
         count,
         percentage: total > 0 ? Math.round((count / total) * 10000) / 100 : 0,
       }));
-      
+
       return { countries, regions, cities };
     }
-    
+
     const analyticsData = await ctx.db
       .query("emailAnalyticsData")
       .withIndex("by_timestamp", (q) => q.gte("timestamp", startDate).lte("timestamp", endDate))
       .filter((q) => q.neq(q.field("locationInfo"), undefined))
       .collect();
-    
+
     const countryCounts = new Map<string, number>();
     const regionCounts = new Map<string, number>();
     const cityCounts = new Map<string, number>();
-    
+
     for (const event of analyticsData) {
       if (event.locationInfo) {
         // Count countries
         const country = event.locationInfo.country || "unknown";
         countryCounts.set(country, (countryCounts.get(country) || 0) + 1);
-        
+
         // Count regions
         const region = event.locationInfo.region || "unknown";
         regionCounts.set(region, (regionCounts.get(region) || 0) + 1);
-        
+
         // Count cities
         const city = event.locationInfo.city || "unknown";
         cityCounts.set(city, (cityCounts.get(city) || 0) + 1);
       }
     }
-    
+
     const total = analyticsData.length;
-    
+
     const countries = Array.from(countryCounts.entries()).map(([country, count]) => ({
       country,
       count,
       percentage: total > 0 ? Math.round((count / total) * 10000) / 100 : 0,
     }));
-    
+
     const regions = Array.from(regionCounts.entries()).map(([region, count]) => ({
       region,
       count,
       percentage: total > 0 ? Math.round((count / total) * 10000) / 100 : 0,
     }));
-    
+
     const cities = Array.from(cityCounts.entries()).map(([city, count]) => ({
       city,
       count,
       percentage: total > 0 ? Math.round((count / total) * 10000) / 100 : 0,
     }));
-    
+
     return {
       countries: countries.sort((a, b) => b.count - a.count),
       regions: regions.sort((a, b) => b.count - a.count),
@@ -614,43 +614,43 @@ export const getEmailHealthMetrics = query({
   handler: async (ctx, args) => {
     const startDate = args.startDate || (Date.now() - 24 * 60 * 60 * 1000); // Last 24 hours
     const endDate = args.endDate || Date.now();
-    
+
     // Get analytics data
     const analyticsData = await ctx.db
       .query("emailAnalyticsData")
       .withIndex("by_timestamp", (q) => q.gte("timestamp", startDate).lte("timestamp", endDate))
       .collect();
-    
+
     // Get queue data
     const queueData = await ctx.db
       .query("emailQueue")
       .collect();
-    
+
     // Calculate metrics
     const sentEmails = analyticsData.filter(e => e.eventType === "sent").length;
     const deliveredEmails = analyticsData.filter(e => e.eventType === "delivered").length;
     const bouncedEmails = analyticsData.filter(e => e.eventType === "bounced").length;
     const complainedEmails = analyticsData.filter(e => e.eventType === "complained").length;
     const unsubscribedEmails = analyticsData.filter(e => e.eventType === "unsubscribed").length;
-    
+
     const deliveryRate = sentEmails > 0 ? (deliveredEmails / sentEmails) * 100 : 0;
     const bounceRate = sentEmails > 0 ? (bouncedEmails / sentEmails) * 100 : 0;
     const complaintRate = sentEmails > 0 ? (complainedEmails / sentEmails) * 100 : 0;
     const unsubscribeRate = sentEmails > 0 ? (unsubscribedEmails / sentEmails) * 100 : 0;
-    
+
     // Calculate average delivery time (simplified)
     const deliveryEvents = analyticsData.filter(e => e.eventType === "delivered");
-    const averageDeliveryTime = deliveryEvents.length > 0 
+    const averageDeliveryTime = deliveryEvents.length > 0
       ? deliveryEvents.reduce((sum, e) => sum + (e.timestamp - (e.metadata.sentAt || e.timestamp)), 0) / deliveryEvents.length
       : 0;
-    
+
     // Queue metrics
     const queueSize = queueData.filter(e => e.status === "pending").length;
     const processedEmails = queueData.filter(e => e.status === "sent" || e.status === "failed").length;
     const processingRate = (endDate - startDate) > 0 ? (processedEmails / ((endDate - startDate) / 1000 / 60)) : 0; // emails per minute
-    
+
     const errorRate = queueData.length > 0 ? (queueData.filter(e => e.status === "failed").length / queueData.length) * 100 : 0;
-    
+
     return {
       deliveryRate: Math.round(deliveryRate * 100) / 100,
       bounceRate: Math.round(bounceRate * 100) / 100,
@@ -685,13 +685,13 @@ export const getEmailAlerts = query({
         .take(args.limit || 50);
       return alerts;
     }
-    
+
     const alerts = await ctx.db
       .query("systemAlerts")
       .filter((q) => q.eq(q.field("resolved"), false))
       .order("desc")
       .take(args.limit || 50);
-    
+
     return alerts;
   },
 });
@@ -720,7 +720,7 @@ export const createEmailAlert = mutation({
       timestamp: Date.now(),
       resolved: false,
     });
-    
+
     return alertId;
   },
 });
@@ -755,7 +755,7 @@ export const runEmailTest = mutation({
   handler: async (ctx, args) => {
     const testId = `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const startTime = Date.now();
-    
+
     let results = {
       success: false,
       errors: [] as string[],
@@ -764,14 +764,14 @@ export const runEmailTest = mutation({
       validationScore: 0,
       deliveryStatus: "",
     };
-    
+
     try {
       // Get template configuration
       const template = await ctx.db
         .query("emailTemplates")
         .withIndex("by_template_id", (q) => q.eq("templateId", args.templateId))
         .first();
-      
+
       if (!template) {
         results.errors.push("Template not found");
         return await ctx.db.insert("emailTestResults", {
@@ -784,7 +784,7 @@ export const runEmailTest = mutation({
           timestamp: Date.now(),
         });
       }
-      
+
       // Run test based on type
       switch (args.testType) {
         case "preview":
@@ -800,13 +800,13 @@ export const runEmailTest = mutation({
           results = await runRenderingTest();
           break;
       }
-      
+
       results.renderTime = Date.now() - startTime;
-      
+
     } catch (error) {
       results.errors.push(String(error));
     }
-    
+
     return await ctx.db.insert("emailTestResults", {
       testId,
       templateId: args.templateId,
@@ -834,29 +834,29 @@ async function runPreviewTest(): Promise<EmailTestResults> {
 async function runValidationTest(template: EmailTemplate, testData: Record<string, string | number | boolean | null>): Promise<EmailTestResults> {
   const errors: string[] = [];
   const warnings: string[] = [];
-  
+
   // Validate template structure
   if (!template.subject || template.subject.trim() === "") {
     errors.push("Subject line is required");
   }
-  
+
   if (!template.senderEmail || !template.senderEmail.includes("@")) {
     errors.push("Valid sender email is required");
   }
-  
+
   if (!template.styling.primaryColor || !template.styling.primaryColor.startsWith("#")) {
     warnings.push("Primary color should be a valid hex color");
   }
-  
+
   // Validate test data
   for (const [key, value] of Object.entries(testData)) {
     if (typeof value === "string" && value.includes("{{") && value.includes("}}")) {
       warnings.push(`Unresolved template variable in ${key}: ${value}`);
     }
   }
-  
+
   const validationScore = errors.length === 0 ? (warnings.length === 0 ? 100 : 80) : 0;
-  
+
   return {
     success: errors.length === 0,
     errors,
@@ -918,7 +918,7 @@ export const exportEmailConfigurations = query({
       exportedAt: Date.now(),
       configurations: {},
     };
-    
+
     for (const configType of configTypes) {
       switch (configType) {
         case "templates":
@@ -941,7 +941,7 @@ export const exportEmailConfigurations = query({
           break;
       }
     }
-    
+
     return exportData;
   },
 });
@@ -966,7 +966,7 @@ export const importEmailConfigurations = mutation({
     // changedBy is captured but not used in the current implementation
     let imported = 0;
     const errors: string[] = [];
-    
+
     try {
       // Import templates
       if (importData.configurations?.templates) {
@@ -976,12 +976,12 @@ export const importEmailConfigurations = mutation({
               .query("emailTemplates")
               .withIndex("by_template_id", (q) => q.eq("templateId", template.templateId))
               .first();
-            
+
             if (existing && !overwrite) {
               errors.push(`Template ${template.templateId} already exists`);
               continue;
             }
-            
+
             if (existing && overwrite) {
               await ctx.db.patch(existing._id, {
                 ...template,
@@ -995,20 +995,20 @@ export const importEmailConfigurations = mutation({
                 version: 1,
               });
             }
-            
+
             imported++;
           } catch (error) {
             errors.push(`Failed to import template ${template.templateId}: ${error}`);
           }
         }
       }
-      
+
       // Import other configurations similarly...
-      
+
     } catch (error) {
       errors.push(`Import failed: ${error}`);
     }
-    
+
     return {
       success: errors.length === 0,
       imported,
@@ -1026,35 +1026,62 @@ export const cleanupOldAnalyticsData = internalMutation({
   returns: v.null(),
   handler: async (ctx) => {
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-    
-    // Clean up old analytics data
-    const oldAnalytics = await ctx.db
+
+    // Early exit check - see if any old analytics data exists
+    const hasOldAnalytics = await ctx.db
       .query("emailAnalyticsData")
       .withIndex("by_timestamp", (q) => q.lt("timestamp", thirtyDaysAgo))
-      .collect();
-    
-    for (const analytics of oldAnalytics) {
-      await ctx.db.delete(analytics._id);
-    }
-    
-    // Clean up old test results
-    const oldTestResults = await ctx.db
+      .first();
+
+    const hasOldTestResults = await ctx.db
       .query("emailTestResults")
       .withIndex("by_timestamp", (q) => q.lt("timestamp", thirtyDaysAgo))
-      .collect();
-    
-    for (const testResult of oldTestResults) {
-      await ctx.db.delete(testResult._id);
-    }
-    
-    // Clean up old configuration history
-    const oldHistory = await ctx.db
+      .first();
+
+    const hasOldHistory = await ctx.db
       .query("emailConfigHistory")
       .withIndex("by_timestamp", (q) => q.lt("timestamp", thirtyDaysAgo))
-      .collect();
-    
-    for (const history of oldHistory) {
-      await ctx.db.delete(history._id);
+      .first();
+
+    // If nothing to clean up, exit early
+    if (!hasOldAnalytics && !hasOldTestResults && !hasOldHistory) {
+      return;
+    }
+
+    // Clean up old analytics data
+    if (hasOldAnalytics) {
+      const oldAnalytics = await ctx.db
+        .query("emailAnalyticsData")
+        .withIndex("by_timestamp", (q) => q.lt("timestamp", thirtyDaysAgo))
+        .collect();
+
+      for (const analytics of oldAnalytics) {
+        await ctx.db.delete(analytics._id);
+      }
+    }
+
+    // Clean up old test results
+    if (hasOldTestResults) {
+      const oldTestResults = await ctx.db
+        .query("emailTestResults")
+        .withIndex("by_timestamp", (q) => q.lt("timestamp", thirtyDaysAgo))
+        .collect();
+
+      for (const testResult of oldTestResults) {
+        await ctx.db.delete(testResult._id);
+      }
+    }
+
+    // Clean up old configuration history
+    if (hasOldHistory) {
+      const oldHistory = await ctx.db
+        .query("emailConfigHistory")
+        .withIndex("by_timestamp", (q) => q.lt("timestamp", thirtyDaysAgo))
+        .collect();
+
+      for (const history of oldHistory) {
+        await ctx.db.delete(history._id);
+      }
     }
   },
 });
@@ -1123,27 +1150,27 @@ export const generateDailyReports = internalAction({
     yesterdayStart.setHours(0, 0, 0, 0);
     const yesterdayEnd = new Date(yesterday);
     yesterdayEnd.setHours(23, 59, 59, 999);
-    
+
     const startDate = yesterdayStart.getTime();
     const endDate = yesterdayEnd.getTime();
-    
+
     // Fetch stats using internal queries
     const stats = await ctx.runQuery(internal.emailAnalytics.getEmailDashboardStatsInternal, {
       startDate,
       endDate,
     });
-    
+
     const topTemplates = await ctx.runQuery(internal.emailAnalytics.getTopTemplatesInternal, {
       startDate,
       endDate,
       limit: 10,
     });
-    
+
     const deviceAnalytics = await ctx.runQuery(internal.emailAnalytics.getDeviceAnalyticsInternal, {
       startDate,
       endDate,
     });
-    
+
     // Create daily report
     const report = {
       date: new Date(yesterday).toISOString().split('T')[0],
@@ -1152,7 +1179,7 @@ export const generateDailyReports = internalAction({
       deviceAnalytics,
       generatedAt: Date.now(),
     };
-    
+
     // Store report (you could store this in a reports table or send via email)
     console.log("Daily email report generated:", report);
   },
@@ -1215,15 +1242,15 @@ export const checkEmailHealthMetrics = internalAction({
   returns: v.null(),
   handler: async (ctx) => {
     const last24Hours = Date.now() - (24 * 60 * 60 * 1000);
-    
+
     // Get health metrics using internal query
     const healthMetrics = await ctx.runQuery(internal.emailAnalytics.getEmailHealthMetricsInternal, {
       startDate: last24Hours,
     });
-    
+
     // Check for alerts (only if there's actual email data)
     const alerts = [];
-    
+
     // Only check metrics if there are actual emails sent
     if (healthMetrics.sentEmails > 0) {
       if (healthMetrics.deliveryRate < 95) {
@@ -1233,7 +1260,7 @@ export const checkEmailHealthMetrics = internalAction({
           severity: "high" as const,
         });
       }
-      
+
       if (healthMetrics.bounceRate > 5) {
         alerts.push({
           type: "bounce_rate_high",
@@ -1241,7 +1268,7 @@ export const checkEmailHealthMetrics = internalAction({
           severity: "medium" as const,
         });
       }
-      
+
       if (healthMetrics.bounceRate > 10) {
         alerts.push({
           type: "bounce_rate_critical",
@@ -1250,7 +1277,7 @@ export const checkEmailHealthMetrics = internalAction({
         });
       }
     }
-    
+
     // Queue size check doesn't require sent emails, so check it separately
     if (healthMetrics.queueSize > 1000) {
       alerts.push({
@@ -1259,7 +1286,7 @@ export const checkEmailHealthMetrics = internalAction({
         severity: "medium" as const,
       });
     }
-    
+
     // Create alerts - updated
     for (const alert of alerts) {
       await ctx.runMutation(internal.emailAnalytics.createEmailAlertInternal, {
@@ -1287,11 +1314,11 @@ function groupAnalyticsByPeriod(data: EmailAnalyticsData[], groupBy: string) {
     bounceRate?: number;
     [key: string]: string | number | undefined;
   }>();
-  
+
   for (const event of data) {
     const date = new Date(event.timestamp);
     let period: string;
-    
+
     switch (groupBy) {
       case "hour":
         period = date.toISOString().slice(0, 13) + ":00:00.000Z";
@@ -1310,7 +1337,7 @@ function groupAnalyticsByPeriod(data: EmailAnalyticsData[], groupBy: string) {
       default:
         period = date.toISOString().slice(0, 10);
     }
-    
+
     if (!groupedData.has(period)) {
       groupedData.set(period, {
         period,
@@ -1324,7 +1351,7 @@ function groupAnalyticsByPeriod(data: EmailAnalyticsData[], groupBy: string) {
         bounceRate: 0,
       });
     }
-    
+
     const group = groupedData.get(period);
     if (group) {
       const eventType = event.eventType;
@@ -1333,7 +1360,7 @@ function groupAnalyticsByPeriod(data: EmailAnalyticsData[], groupBy: string) {
       }
     }
   }
-  
+
   // Calculate rates and ensure all fields are non-optional
   return Array.from(groupedData.values()).map(group => {
     const sent = group.sent || 0;
@@ -1355,7 +1382,7 @@ function groupAnalyticsByPeriod(data: EmailAnalyticsData[], groupBy: string) {
 export async function getEmailDashboardStatsHandler(ctx: QueryCtx, args: { startDate?: number; endDate?: number; templateId?: string }) {
   const startDate = args.startDate || (Date.now() - 30 * 24 * 60 * 60 * 1000);
   const endDate = args.endDate || Date.now();
-  
+
   if (args.templateId) {
     const analyticsData = await ctx.db
       .query("emailAnalyticsData")
@@ -1365,20 +1392,20 @@ export async function getEmailDashboardStatsHandler(ctx: QueryCtx, args: { start
         q.lte(q.field("timestamp"), endDate)
       ))
       .collect();
-    
+
     // Count events by type
     const eventCounts = analyticsData.reduce((acc: Record<string, number>, event: EmailAnalyticsData) => {
       acc[event.eventType] = (acc[event.eventType] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     const sentEmails = eventCounts.sent || 0;
     const deliveredEmails = eventCounts.delivered || 0;
     const openedEmails = eventCounts.opened || 0;
     const clickedEmails = eventCounts.clicked || 0;
     const bouncedEmails = eventCounts.bounced || 0;
     const unsubscribedEmails = eventCounts.unsubscribed || 0;
-    
+
     return {
       totalEmails: sentEmails,
       sentEmails,
@@ -1394,28 +1421,28 @@ export async function getEmailDashboardStatsHandler(ctx: QueryCtx, args: { start
       deliveryRate: sentEmails > 0 ? (deliveredEmails / sentEmails) * 100 : 0,
     };
   }
-  
+
   // Get all analytics data for the period
   const analyticsData = await ctx.db
     .query("emailAnalyticsData")
-    .withIndex("by_timestamp", (q: any) => 
+    .withIndex("by_timestamp", (q: any) =>
       q.gte("timestamp", startDate).lte("timestamp", endDate)
     )
     .collect();
-  
+
   // Count events by type
-    const eventCounts = analyticsData.reduce((acc: Record<string, number>, event: EmailAnalyticsData) => {
+  const eventCounts = analyticsData.reduce((acc: Record<string, number>, event: EmailAnalyticsData) => {
     acc[event.eventType] = (acc[event.eventType] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  
+
   const sentEmails = eventCounts.sent || 0;
   const deliveredEmails = eventCounts.delivered || 0;
   const openedEmails = eventCounts.opened || 0;
   const clickedEmails = eventCounts.clicked || 0;
   const bouncedEmails = eventCounts.bounced || 0;
   const unsubscribedEmails = eventCounts.unsubscribed || 0;
-  
+
   return {
     totalEmails: sentEmails,
     sentEmails,
@@ -1436,14 +1463,14 @@ export async function getTopTemplatesHandler(ctx: QueryCtx, args: { startDate?: 
   const startDate = args.startDate || (Date.now() - 30 * 24 * 60 * 60 * 1000);
   const endDate = args.endDate || Date.now();
   const limit = args.limit || 10;
-  
+
   const analyticsData = await ctx.db
     .query("emailAnalyticsData")
-    .withIndex("by_timestamp", (q: any) => 
+    .withIndex("by_timestamp", (q: any) =>
       q.gte("timestamp", startDate).lte("timestamp", endDate)
     )
     .collect();
-  
+
   // Group by template ID and count events
   const templateStats = analyticsData.reduce((acc: Record<string, {
     templateId: string;
@@ -1487,7 +1514,7 @@ export async function getTopTemplatesHandler(ctx: QueryCtx, args: { startDate?: 
     unsubscribed: number;
     [key: string]: string | number;
   }>);
-  
+
   // Calculate rates and sort by sent count
   const templates = Object.values(templateStats)
     .map((template) => {
@@ -1516,22 +1543,22 @@ export async function getTopTemplatesHandler(ctx: QueryCtx, args: { startDate?: 
     })
     .sort((a, b) => b.sent - a.sent)
     .slice(0, limit);
-  
+
   return templates;
 }
 
 export async function getDeviceAnalyticsHandler(ctx: QueryCtx, args: { startDate?: number; endDate?: number }): Promise<DeviceAnalyticsStats[]> {
   const startDate = args.startDate || (Date.now() - 30 * 24 * 60 * 60 * 1000);
   const endDate = args.endDate || Date.now();
-  
+
   const analyticsData = await ctx.db
     .query("emailAnalyticsData")
-    .withIndex("by_timestamp", (q: any) => 
+    .withIndex("by_timestamp", (q: any) =>
       q.gte("timestamp", startDate).lte("timestamp", endDate)
     )
     .filter((q: any) => q.eq("eventType", "opened"))
     .collect();
-  
+
   // Group by device type
   const deviceStats = analyticsData.reduce((acc: Record<string, number>, event: EmailAnalyticsData) => {
     const metadata = event.metadata || {};
@@ -1542,9 +1569,9 @@ export async function getDeviceAnalyticsHandler(ctx: QueryCtx, args: { startDate
     acc[deviceType]++;
     return acc;
   }, {} as Record<string, number>);
-  
+
   const total = (Object.values(deviceStats) as number[]).reduce((sum: number, count: number) => sum + count, 0);
-  
+
   return (Object.entries(deviceStats) as [string, number][]).map(([deviceType, count]: [string, number]) => ({
     deviceType,
     count: count,
@@ -1555,31 +1582,31 @@ export async function getDeviceAnalyticsHandler(ctx: QueryCtx, args: { startDate
 async function getEmailHealthMetricsHandler(ctx: QueryCtx, args: { startDate?: number; endDate?: number }): Promise<EmailHealthMetrics> {
   const startDate = args.startDate || (Date.now() - 24 * 60 * 60 * 1000);
   const endDate = args.endDate || Date.now();
-  
+
   const analyticsData = await ctx.db
     .query("emailAnalyticsData")
-    .withIndex("by_timestamp", (q: any) => 
+    .withIndex("by_timestamp", (q: any) =>
       q.gte("timestamp", startDate).lte("timestamp", endDate)
     )
     .collect();
-  
+
   // Count events by type
   const eventCounts = analyticsData.reduce((acc: Record<string, number>, event: EmailAnalyticsData) => {
     acc[event.eventType] = (acc[event.eventType] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  
+
   const sentEmails = eventCounts.sent || 0;
   const deliveredEmails = eventCounts.delivered || 0;
   const openedEmails = eventCounts.opened || 0;
   const clickedEmails = eventCounts.clicked || 0;
   const bouncedEmails = eventCounts.bounced || 0;
   const unsubscribedEmails = eventCounts.unsubscribed || 0;
-  
+
   // Get queue size from emailQueue table
   const queueItems = await ctx.db
     .query("emailQueue")
-    .filter((q: any) => 
+    .filter((q: any) =>
       q.or(
         q.eq(q.field("status"), "pending"),
         q.eq(q.field("status"), "processing")
@@ -1587,7 +1614,7 @@ async function getEmailHealthMetricsHandler(ctx: QueryCtx, args: { startDate?: n
     )
     .collect();
   const queueSize = queueItems.length;
-  
+
   return {
     totalEmails: sentEmails,
     sentEmails,

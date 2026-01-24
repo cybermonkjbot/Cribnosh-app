@@ -74,7 +74,7 @@ export const createOTP = mutation({
       existingOtps = await safeConvexOperation(
         () => ctx.db
           .query('otps')
-          .withIndex('by_phone', (q) => q.eq('phone', args.phone))
+          .withIndex('by_phone', (q: any) => q.eq('phone', args.phone))
           .collect(),
         { operation: 'get_existing_otps', phone: args.phone }
       );
@@ -82,7 +82,7 @@ export const createOTP = mutation({
       existingOtps = await safeConvexOperation(
         () => ctx.db
           .query('otps')
-          .withIndex('by_email', (q) => q.eq('email', args.email))
+          .withIndex('by_email', (q: any) => q.eq('email', args.email))
           .collect(),
         { operation: 'get_existing_otps', email: args.email }
       );
@@ -164,7 +164,7 @@ export const verifyOTP = mutation({
       otp = await safeConvexOperation(
         () => ctx.db
           .query('otps')
-          .withIndex('by_phone', (q) => q.eq('phone', args.phone))
+          .withIndex('by_phone', (q: any) => q.eq('phone', args.phone))
           .order('desc')
           .first(),
         { operation: 'find_otp_by_phone', phone: args.phone }
@@ -173,7 +173,7 @@ export const verifyOTP = mutation({
       otp = await safeConvexOperation(
         () => ctx.db
           .query('otps')
-          .withIndex('by_email', (q) => q.eq('email', args.email))
+          .withIndex('by_email', (q: any) => q.eq('email', args.email))
           .order('desc')
           .first(),
         { operation: 'find_otp_by_email', email: args.email }
@@ -358,7 +358,7 @@ export const createEmailOTP = mutation({
       // Delete any existing OTPs for this email
       const existingOtps = await ctx.db
         .query('otps')
-        .withIndex('by_email', (q) => q.eq('email', args.email))
+        .withIndex('by_email', (q: any) => q.eq('email', args.email))
         .collect();
 
       for (const existingOtp of existingOtps) {
@@ -431,7 +431,7 @@ export const verifyEmailOTP = mutation({
       // Find the OTP for this email
       const otp = await ctx.db
         .query('otps')
-        .withIndex('by_email', (q) => q.eq('email', args.email))
+        .withIndex('by_email', (q: any) => q.eq('email', args.email))
         .order('desc')
         .first();
 
@@ -575,8 +575,8 @@ export const sendSMSOTP = mutation({
       // Check rate limiting (basic implementation)
       const recentOtps = await ctx.db
         .query('otps')
-        .withIndex('by_phone', (q) => q.eq('phone', args.phone))
-        .filter((q) => q.gt(q.field('createdAt'), now - (60 * 60 * 1000))) // Last hour
+        .withIndex('by_phone', (q: any) => q.eq('phone', args.phone))
+        .filter((q: any) => q.gt(q.field('createdAt'), now - (60 * 60 * 1000))) // Last hour
         .collect();
 
       if (recentOtps.length >= SMS_CONFIG.rateLimit.maxOTPsPerPhone) {
@@ -659,10 +659,21 @@ export const cleanupExpiredOTPs = mutation({
   handler: async (ctx: MutationCtx) => {
     const now = Date.now();
 
+    // Early exit check - see if any expired OTPs exist
+    const hasExpired = await ctx.db
+      .query('otps')
+      .withIndex('by_expiry', (q: any) => q.lt('expiresAt', now))
+      .first();
+
+    if (!hasExpired) {
+      // No expired OTPs, exit early
+      return { deleted: 0 };
+    }
+
     // Find all expired OTPs
     const expiredOtps = await ctx.db
       .query('otps')
-      .withIndex('by_expiry', (q) => q.lt('expiresAt', now))
+      .withIndex('by_expiry', (q: any) => q.lt('expiresAt', now))
       .collect();
 
     // Delete expired OTPs

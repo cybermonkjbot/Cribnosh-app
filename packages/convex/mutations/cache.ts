@@ -13,7 +13,7 @@ export const set = internalMutation({
 
     const existing = await ctx.db
       .query("actionCache")
-      .withIndex("by_action_key", (q) =>
+      .withIndex("by_action_key", (q: any) =>
         q.eq("action", args.action).eq("key", args.key)
       )
       .first();
@@ -44,7 +44,7 @@ export const clear = internalMutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("actionCache")
-      .withIndex("by_action_key", (q) =>
+      .withIndex("by_action_key", (q: any) =>
         q.eq("action", args.action).eq("key", args.key)
       )
       .first();
@@ -59,10 +59,22 @@ export const cleanup = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
-    // Find expired entries
+
+    // Early exit check - see if any expired entries exist
+    const hasExpired = await ctx.db
+      .query("actionCache")
+      .withIndex("by_expires_at", (q: any) => q.lt("expiresAt", now))
+      .first();
+
+    if (!hasExpired) {
+      // No expired entries, exit early without logging
+      return;
+    }
+
+    // Find all expired entries
     const expired = await ctx.db
       .query("actionCache")
-      .withIndex("by_expires_at", (q) => q.lt("expiresAt", now))
+      .withIndex("by_expires_at", (q: any) => q.lt("expiresAt", now))
       .collect();
 
     // Delete them

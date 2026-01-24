@@ -1,11 +1,21 @@
-import { internalMutation } from "../_generated/server";
 import { v } from "convex/values";
+import { internalMutation } from "../_generated/server";
 
 export const cleanupExpiredCache = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
-    
+
+    // Early exit check - see if any expired entries exist
+    const hasExpired = await ctx.db
+      .query("cache")
+      .withIndex("by_expiry", (q) => q.lte("expiresAt", now))
+      .first();
+
+    if (!hasExpired) {
+      return { deleted: 0 };
+    }
+
     const expiredEntries = await ctx.db
       .query("cache")
       .withIndex("by_expiry", (q) => q.lte("expiresAt", now))
@@ -25,7 +35,17 @@ export const cleanupExpiredSessions = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
-    
+
+    // Early exit check - see if any expired sessions exist
+    const hasExpired = await ctx.db
+      .query("sessionStorage")
+      .withIndex("by_expiry", (q) => q.lt("expiresAt", now))
+      .first();
+
+    if (!hasExpired) {
+      return { deleted: 0 };
+    }
+
     const expiredSessions = await ctx.db
       .query("sessionStorage")
       .withIndex("by_expiry", (q) => q.lt("expiresAt", now))
@@ -70,10 +90,28 @@ export const cleanupOldJobs = internalMutation({
   },
   handler: async (ctx, { olderThanMs = 7 * 24 * 60 * 60 * 1000 }) => {
     const cutoffTime = Date.now() - olderThanMs;
-    
+
+    // Early exit check - see if any old jobs exist
+    const hasOldJobs = await ctx.db
+      .query("jobQueue")
+      .filter((q) =>
+        q.and(
+          q.or(
+            q.eq(q.field("status"), "completed"),
+            q.eq(q.field("status"), "failed")
+          ),
+          q.lt(q.field("createdAt"), cutoffTime)
+        )
+      )
+      .first();
+
+    if (!hasOldJobs) {
+      return { deleted: 0 };
+    }
+
     const oldJobs = await ctx.db
       .query("jobQueue")
-      .filter((q) => 
+      .filter((q) =>
         q.and(
           q.or(
             q.eq(q.field("status"), "completed"),
@@ -98,10 +136,25 @@ export const cleanupExpiredPresence = internalMutation({
   args: {},
   handler: async (ctx) => {
     const cutoffTime = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
-    
+
+    // Early exit check - see if any expired viewers exist
+    const hasExpired = await ctx.db
+      .query("liveViewers")
+      .filter((q) =>
+        q.and(
+          q.neq(q.field("leftAt"), undefined),
+          q.lt(q.field("leftAt"), cutoffTime)
+        )
+      )
+      .first();
+
+    if (!hasExpired) {
+      return { cleaned: 0 };
+    }
+
     const expiredViewers = await ctx.db
       .query("liveViewers")
-      .filter((q) => 
+      .filter((q) =>
         q.and(
           q.neq(q.field("leftAt"), undefined),
           q.lt(q.field("leftAt"), cutoffTime)
@@ -123,13 +176,34 @@ export const cleanupEndedLiveSessions = internalMutation({
   handler: async (ctx) => {
     const now = Date.now();
     const threeMinutesAgo = now - (3 * 60 * 1000); // 3 minutes ago
-    
+
+    // Early exit check - see if any ended sessions need cleanup
+    const hasEndedSessions = await ctx.db
+      .query("liveSessions")
+      .withIndex("by_status", (q) => q.eq("status", "ended"))
+      .filter((q) =>
+        q.and(
+          q.neq(q.field("endedAt"), undefined),
+          q.lt(q.field("endedAt"), threeMinutesAgo)
+        )
+      )
+      .first();
+
+    if (!hasEndedSessions) {
+      return {
+        deletedSessions: 0,
+        deletedComments: 0,
+        deletedReactions: 0,
+        deletedViewers: 0,
+      };
+    }
+
     // Find all ended livestreams that ended 3+ minutes ago
     // Query by status index first, then filter by endedAt
     const endedSessions = await ctx.db
       .query("liveSessions")
       .withIndex("by_status", (q) => q.eq("status", "ended"))
-      .filter((q) => 
+      .filter((q) =>
         q.and(
           q.neq(q.field("endedAt"), undefined),
           q.lt(q.field("endedAt"), threeMinutesAgo)
@@ -150,7 +224,7 @@ export const cleanupEndedLiveSessions = internalMutation({
         .query("liveComments")
         .withIndex("by_session", (q) => q.eq("session_id", sessionId))
         .collect();
-      
+
       for (const comment of comments) {
         await ctx.db.delete(comment._id);
         deletedComments++;
@@ -161,7 +235,7 @@ export const cleanupEndedLiveSessions = internalMutation({
         .query("liveReactions")
         .withIndex("by_session", (q) => q.eq("session_id", sessionId))
         .collect();
-      
+
       for (const reaction of reactions) {
         await ctx.db.delete(reaction._id);
         deletedReactions++;
@@ -170,9 +244,9 @@ export const cleanupEndedLiveSessions = internalMutation({
       // Delete related liveViewers
       const viewers = await ctx.db
         .query("liveViewers")
-        .withIndex("by_session", (q) => q.eq("sessionId", sessionId))
+        .withIndex("by_session", (q: any) => q.eq("sessionId", sessionId))
         .collect();
-      
+
       for (const viewer of viewers) {
         await ctx.db.delete(viewer._id);
         deletedViewers++;
@@ -183,7 +257,7 @@ export const cleanupEndedLiveSessions = internalMutation({
       deletedSessions++;
     }
 
-    return { 
+    return {
       deletedSessions,
       deletedComments,
       deletedReactions,
@@ -205,9 +279,9 @@ async function deleteSessionAndRelatedData(
   // Delete related liveComments
   const comments = await ctx.db
     .query("liveComments")
-    .withIndex("by_session", (q) => q.eq("session_id", sessionId))
+    .withIndex("by_session", (q: any) => q.eq("session_id", sessionId))
     .collect();
-  
+
   for (const comment of comments) {
     await ctx.db.delete(comment._id);
     deletedComments++;
@@ -216,9 +290,9 @@ async function deleteSessionAndRelatedData(
   // Delete related liveReactions
   const reactions = await ctx.db
     .query("liveReactions")
-    .withIndex("by_session", (q) => q.eq("session_id", sessionId))
+    .withIndex("by_session", (q: any) => q.eq("session_id", sessionId))
     .collect();
-  
+
   for (const reaction of reactions) {
     await ctx.db.delete(reaction._id);
     deletedReactions++;
@@ -227,9 +301,9 @@ async function deleteSessionAndRelatedData(
   // Delete related liveViewers
   const viewers = await ctx.db
     .query("liveViewers")
-    .withIndex("by_session", (q) => q.eq("sessionId", sessionId))
+    .withIndex("by_session", (q: any) => q.eq("sessionId", sessionId))
     .collect();
-  
+
   for (const viewer of viewers) {
     await ctx.db.delete(viewer._id);
     deletedViewers++;
@@ -250,7 +324,27 @@ export const cleanupOrphanedLiveSessions = internalMutation({
   handler: async (ctx, { olderThanHours = 24 }) => {
     const now = Date.now();
     const cutoffTime = now - (olderThanHours * 60 * 60 * 1000); // Default: 24 hours ago
-    
+
+    // Early exit check - see if any ended or live sessions exist at all
+    const hasEndedSessions = await ctx.db
+      .query("liveSessions")
+      .withIndex("by_status", (q) => q.eq("status", "ended"))
+      .first();
+
+    const hasLiveSessions = await ctx.db
+      .query("liveSessions")
+      .withIndex("by_status", (q) => q.eq("status", "live"))
+      .first();
+
+    if (!hasEndedSessions && !hasLiveSessions) {
+      return {
+        deletedSessions: 0,
+        deletedComments: 0,
+        deletedReactions: 0,
+        deletedViewers: 0,
+      };
+    }
+
     let deletedSessions = 0;
     let deletedComments = 0;
     let deletedReactions = 0;
@@ -260,7 +354,7 @@ export const cleanupOrphanedLiveSessions = internalMutation({
     // 1. Sessions with status "ended" that have endedAt older than cutoff (should have been cleaned up)
     // 2. Sessions with status "ended" that don't have endedAt but are old (orphaned)
     // 3. Sessions with status "live" that haven't been updated in a long time (stuck sessions)
-    
+
     // Get all ended sessions
     const allEndedSessions = await ctx.db
       .query("liveSessions")
@@ -277,9 +371,9 @@ export const cleanupOrphanedLiveSessions = internalMutation({
     for (const session of allEndedSessions) {
       const sessionStartTime = session.actual_start_time || session.scheduled_start_time || session._creationTime;
       const sessionEndTime = session.endedAt || sessionStartTime;
-      
+
       // Check if session is old enough to be considered orphaned
-      const isOrphaned = 
+      const isOrphaned =
         // Case 1: Has endedAt but it's older than cutoff (should have been cleaned up)
         (session.endedAt && session.endedAt < cutoffTime) ||
         // Case 2: No endedAt but session is old (orphaned)
@@ -297,7 +391,7 @@ export const cleanupOrphanedLiveSessions = internalMutation({
     // Process potentially stuck live sessions (older than cutoff and no recent activity)
     for (const session of allLiveSessions) {
       const sessionStartTime = session.actual_start_time || session.scheduled_start_time || session._creationTime;
-      
+
       // If session started more than cutoff time ago and has no viewers, consider it stuck
       if (sessionStartTime < cutoffTime && (session.viewerCount === 0 || session.currentViewers === 0)) {
         // Delete directly (no need to mark as ended first since we're deleting it)
@@ -309,7 +403,7 @@ export const cleanupOrphanedLiveSessions = internalMutation({
       }
     }
 
-    return { 
+    return {
       deletedSessions,
       deletedComments,
       deletedReactions,
