@@ -31,7 +31,7 @@ export const sendBroadcast = action({
 
             try {
                 const { data, error } = await resend.batch.send(
-                    batch.map(email => ({
+                    batch.map((email: string) => ({
                         from: "CribNosh <noreply@cribnosh.com>",
                         to: email,
                         subject: subject,

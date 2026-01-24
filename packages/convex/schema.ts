@@ -439,7 +439,8 @@ export default defineSchema({
     price: v.number(),
     cuisine: v.array(v.string()),
     dietary: v.array(v.string()),
-    status: v.union(v.literal("available"), v.literal("unavailable")),
+    category: v.optional(v.string()),
+    status: v.union(v.literal("available"), v.literal("unavailable"), v.literal("active"), v.literal("pending")),
     rating: v.optional(v.number()),
     images: v.array(v.string()),
     linkedRecipeId: v.optional(v.id("recipes")), // Linked recipe
@@ -614,7 +615,7 @@ export default defineSchema({
     teamSize: v.optional(v.string()),
     source: v.optional(v.string()),
     joinedAt: v.number(),
-    location: v.optional(v.any()), // Add location field
+    location: v.optional(v.string()), // Add location field
     priority: v.optional(v.string()), // Add priority field
     status: v.optional(v.string()), // Add status field
     addedBy: v.optional(v.id("users")), // Staff member who added this entry
@@ -1013,10 +1014,16 @@ export default defineSchema({
     responsibilities: v.array(v.string()),
     benefits: v.array(v.string()),
     isActive: v.boolean(),
+    status: v.union(v.literal('draft'), v.literal('published'), v.literal('closed'), v.literal('archived')),
+    salaryMin: v.optional(v.number()),
+    salaryMax: v.optional(v.number()),
+    applicationDeadline: v.optional(v.number()),
+    createdBy: v.optional(v.string()),
     postedAt: v.number(), // timestamp
     updatedAt: v.optional(v.number()),
     slug: v.string(), // URL-friendly version of title
   }).index("by_active", ["isActive"])
+    .index("by_status", ["status"])
     .index("by_department", ["department"])
     .index("by_postedAt", ["postedAt"]),
   jobApplication: defineTable({
@@ -1028,6 +1035,15 @@ export default defineSchema({
     coverLetter: v.optional(v.string()),
     portfolio: v.optional(v.string()),
     status: v.string(), // pending, reviewed, shortlisted, rejected, hired
+    jobTitle: v.optional(v.string()),
+    experience: v.optional(v.string()),
+    skills: v.optional(v.array(v.string())),
+    expectedSalary: v.optional(v.number()),
+    availability: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    rating: v.optional(v.number()),
+    interviewDate: v.optional(v.number()),
+    interviewNotes: v.optional(v.string()),
     submittedAt: v.number(),
     lastUpdated: v.optional(v.number()),
   }).index("by_job", ["jobId"])
@@ -2273,7 +2289,7 @@ export default defineSchema({
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
     // Legacy/Extra fields found in data
-    templateId: v.optional(v.string()),
+    templateId: v.string(),
     isActive: v.optional(v.boolean()),
     lastModified: v.optional(v.number()),
     version: v.optional(v.number()),
@@ -2287,7 +2303,8 @@ export default defineSchema({
     scheduling: v.optional(v.any()),
     targeting: v.optional(v.any()),
     testing: v.optional(v.any()),
-  }).index("by_type", ["emailType"]),
+  }).index("by_type", ["emailType"])
+    .index("by_template_id", ["templateId"]),
 
   // Email Automation Configurations
   emailAutomations: defineTable({

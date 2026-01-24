@@ -28,16 +28,7 @@ export const createOTP = mutation({
     isExistingWaitlistUser: v.boolean(),
     message: v.string(),
   }),
-  handler: withConvexErrorHandling(async (ctx: MutationCtx, args: {
-    phone?: string;
-    email?: string;
-    code: string;
-    maxAttempts?: number;
-    name?: string;
-    location?: string;
-    referralCode?: string;
-    source?: string;
-  }) => {
+  handler: withConvexErrorHandling(async (ctx: any, args: any): Promise<any> => {
     const now = Date.now();
     const expiresAt = now + (5 * 60 * 1000); // 5 minutes expiry
     const maxAttempts = args.maxAttempts || 3;
@@ -69,23 +60,24 @@ export const createOTP = mutation({
     );
 
     // Delete any existing OTPs for this phone or email
-    let existingOtps;
+    // Delete any existing OTPs for this phone or email
+    let existingOtps: Doc<"otps">[];
     if (args.phone) {
-      existingOtps = await safeConvexOperation(
+      existingOtps = (await safeConvexOperation(
         () => ctx.db
           .query('otps')
           .withIndex('by_phone', (q: any) => q.eq('phone', args.phone))
           .collect(),
         { operation: 'get_existing_otps', phone: args.phone }
-      );
+      )) as Doc<"otps">[];
     } else {
-      existingOtps = await safeConvexOperation(
+      existingOtps = (await safeConvexOperation(
         () => ctx.db
           .query('otps')
           .withIndex('by_email', (q: any) => q.eq('email', args.email))
           .collect(),
         { operation: 'get_existing_otps', email: args.email }
-      );
+      )) as Doc<"otps">[];
     }
 
     for (const existingOtp of existingOtps) {
@@ -127,12 +119,7 @@ export const verifyOTP = mutation({
     code: v.string(),
     purpose: v.optional(v.union(v.literal('waitlist'), v.literal('signin'), v.literal('phone_verification'))),
   },
-  handler: withConvexErrorHandling(async (ctx: MutationCtx, args: {
-    phone?: string;
-    email?: string;
-    code: string;
-    purpose?: 'waitlist' | 'signin' | 'phone_verification';
-  }) => {
+  handler: withConvexErrorHandling(async (ctx: any, args: any) => {
     const now = Date.now();
     const isWaitlistSignup = args.purpose === 'waitlist';
 
@@ -271,13 +258,13 @@ export const verifyOTP = mutation({
     });
 
     // Get waitlist information for the verified user
-    const waitlistEntry = await safeConvexOperation(
+    const waitlistEntry = (await safeConvexOperation(
       () => ctx.db
         .query('waitlist')
-        .filter((q) => q.eq(q.field('email'), args.email || `${args.phone}@temp.cribnosh.com`))
+        .filter((q: any) => q.eq(q.field('email'), args.email || `${args.phone}@temp.cribnosh.com`))
         .first(),
       { operation: 'get_waitlist_entry', identifier }
-    );
+    )) as Doc<"waitlist"> | null;
 
     return {
       success: true,
@@ -311,15 +298,7 @@ export const createEmailOTP = mutation({
     isExistingWaitlistUser: v.boolean(),
     message: v.string(),
   }),
-  handler: withConvexErrorHandling(async (ctx: MutationCtx, args: {
-    email: string;
-    code: string;
-    maxAttempts?: number;
-    name?: string;
-    location?: string;
-    referralCode?: string;
-    source?: string;
-  }) => {
+  handler: withConvexErrorHandling(async (ctx: any, args: any) => {
     try {
       const now = Date.now();
       const expiresAt = now + (5 * 60 * 1000); // 5 minutes expiry
@@ -410,11 +389,7 @@ export const verifyEmailOTP = mutation({
     code: v.string(),
     purpose: v.optional(v.union(v.literal('waitlist'), v.literal('signin'), v.literal('phone_verification'))),
   },
-  handler: withConvexErrorHandling(async (ctx: MutationCtx, args: {
-    email: string;
-    code: string;
-    purpose?: 'waitlist' | 'signin' | 'phone_verification';
-  }) => {
+  handler: withConvexErrorHandling(async (ctx: any, args: any) => {
     try {
       const now = Date.now();
       const isWaitlistSignup = args.purpose === 'waitlist';
@@ -504,13 +479,13 @@ export const verifyEmailOTP = mutation({
       });
 
       // Get waitlist information for the verified user
-      const waitlistEntry = await safeConvexOperation(
+      const waitlistEntry = (await safeConvexOperation(
         () => ctx.db
           .query('waitlist')
-          .filter((q) => q.eq(q.field('email'), args.email))
+          .filter((q: any) => q.eq(q.field('email'), args.email))
           .first(),
         { operation: 'get_waitlist_entry', email: args.email }
-      );
+      )) as Doc<"waitlist"> | null;
 
       return {
         success: true,
@@ -544,12 +519,7 @@ export const sendSMSOTP = mutation({
     provider: v.optional(v.string()),
     maxAttempts: v.optional(v.number()),
   },
-  handler: withConvexErrorHandling(async (ctx: MutationCtx, args: {
-    phone: string;
-    code: string;
-    provider?: string;
-    maxAttempts?: number;
-  }) => {
+  handler: withConvexErrorHandling(async (ctx: any, args: any) => {
     try {
       const now = Date.now();
       const expiresAt = now + (5 * 60 * 1000); // 5 minutes expiry

@@ -8,7 +8,7 @@ export const set = internalMutation({
     data: v.any(),
     ttlMs: v.optional(v.number()), // Time to live in milliseconds
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: { action: string; key: string; data: any; ttlMs?: number }) => {
     const expiresAt = args.ttlMs ? Date.now() + args.ttlMs : undefined;
 
     const existing = await ctx.db
@@ -41,7 +41,7 @@ export const clear = internalMutation({
     action: v.string(),
     key: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any) => {
     const existing = await ctx.db
       .query("actionCache")
       .withIndex("by_action_key", (q: any) =>
@@ -57,7 +57,7 @@ export const clear = internalMutation({
 
 export const cleanup = internalMutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: any) => {
     const now = Date.now();
 
     // Early exit check - see if any expired entries exist

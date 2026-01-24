@@ -13,11 +13,11 @@ export const getAudienceSelectionData = query({
 
         // Get unique roles
         const roles = new Set<string>();
-        users.forEach(u => {
-            if (u.roles) u.roles.forEach(r => roles.add(r));
+        users.forEach((u: Doc<"users">) => {
+            if (u.roles) u.roles.forEach((r: string) => roles.add(r));
         });
 
-        const pendingWaitlist = waitlist.filter(w => !w.onboardingCompletedAt);
+        const pendingWaitlist = waitlist.filter((w: Doc<"waitlist">) => !w.onboardingCompletedAt);
 
         return {
             roles: Array.from(roles),
@@ -41,10 +41,10 @@ export const searchRecipients = query({
         const searchStr = args.query.toLowerCase();
 
         const users = await ctx.db.query("users").collect();
-        return users.filter(u =>
+        return users.filter((u: Doc<"users">) =>
             u.name.toLowerCase().includes(searchStr) ||
             u.email.toLowerCase().includes(searchStr)
-        ).slice(0, 10).map(u => ({
+        ).slice(0, 10).map((u: Doc<"users">) => ({
             id: u._id,
             name: u.name,
             email: u.email
@@ -63,15 +63,15 @@ export const getRecipientEmails = query({
 
         if (args.type === "all") {
             const users = await ctx.db.query("users").collect();
-            return users.map(u => u.email);
+            return users.map((u: Doc<"users">) => u.email);
         }
 
         if (args.type === "roles" && args.values) {
             const roles = args.values;
             const users = await ctx.db.query("users").collect();
             return users
-                .filter(u => u.roles?.some(r => roles.includes(r)))
-                .map(u => u.email);
+                .filter((u: Doc<"users">) => u.roles?.some((r: string) => roles.includes(r)))
+                .map((u: Doc<"users">) => u.email);
         }
 
         if (args.type === "individuals" && args.values) {
@@ -89,12 +89,12 @@ export const getRecipientEmails = query({
 
         if (args.type === "waitlist") {
             const waitlist = await ctx.db.query("waitlist").collect();
-            return waitlist.map(w => w.email);
+            return waitlist.map((w: Doc<"waitlist">) => w.email);
         }
 
         if (args.type === "waitlist_pending") {
             const waitlist = await ctx.db.query("waitlist").collect();
-            return waitlist.filter(w => !w.onboardingCompletedAt).map(w => w.email);
+            return waitlist.filter((w: Doc<"waitlist">) => !w.onboardingCompletedAt).map((w: Doc<"waitlist">) => w.email);
         }
 
         return [];

@@ -32,7 +32,7 @@ export const getUserByEmail = query({
   handler: async (ctx: QueryCtx, args: { email: string }) => {
     return await ctx.db
       .query('users')
-      .filter(q => q.eq(q.field('email'), args.email))
+      .filter((q: any) => q.eq(q.field('email'), args.email))
       .first();
   },
 });
@@ -46,7 +46,7 @@ export const getUserByPhone = query({
     // Similar to getUserByEmail, this is safe as it only returns basic user lookup
     return await ctx.db
       .query('users')
-      .withIndex('by_phone', (q) => q.eq('phone_number', args.phone))
+      .withIndex('by_phone', (q: any) => q.eq('phone_number', args.phone))
       .first();
   },
 });
@@ -143,7 +143,7 @@ export const getUsersByStatus = query({
 
     return await ctx.db
       .query('users')
-      .filter(q => q.eq(q.field('status'), args.status))
+      .filter((q: any) => q.eq(q.field('status'), args.status))
       .collect();
   },
 });
@@ -200,7 +200,7 @@ export const getUserDocuments = query({
 
     return await ctx.db
       .query('documents')
-      .filter(q => q.eq(q.field('userEmail'), args.email))
+      .filter((q: any) => q.eq(q.field('userEmail'), args.email))
       .collect();
   },
 });
@@ -246,7 +246,7 @@ export const getUserNotifications = query({
     if (args.roles && args.roles.length > 0) {
       const allGlobalNotifs = await ctx.db
         .query("notifications")
-        .filter(q => q.eq(q.field("global"), true))
+        .filter((q: any) => q.eq(q.field("global"), true))
         .order("desc")
         .collect();
 
@@ -276,7 +276,7 @@ export const countUnreadNotifications = query({
     }
 
     const notifs = await ctx.db.query('notifications')
-      .withIndex('by_user', q => q.eq('userId', args.userId))
+      .withIndex('by_user', (q: any) => q.eq('userId', args.userId))
       .collect();
     return notifs.filter(n => !n.read).length;
   }
@@ -470,7 +470,7 @@ export const getUserBySessionToken = query({
     // First, check the sessions table (supports multiple devices)
     const session = await ctx.db
       .query('sessions')
-      .withIndex('by_token', (q) => q.eq('sessionToken', args.sessionToken))
+      .withIndex('by_token', (q: any) => q.eq('sessionToken', args.sessionToken))
       .first();
 
     if (session) {
@@ -492,7 +492,7 @@ export const getUserBySessionToken = query({
     // This allows old sessions that were created before the sessions table existed
     const user = await ctx.db
       .query('users')
-      .filter(q => q.eq(q.field('sessionToken'), args.sessionToken))
+      .filter((q: any) => q.eq(q.field('sessionToken'), args.sessionToken))
       .first();
     if (!user || !user.sessionExpiry || user.sessionExpiry < Date.now()) {
       return null;
@@ -603,7 +603,7 @@ export const getUserByToken = query({
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query('users')
-      .filter(q => q.eq(q.field('sessionToken'), args.token))
+      .filter((q: any) => q.eq(q.field('sessionToken'), args.token))
       .first();
 
     if (!user || !user.sessionExpiry || user.sessionExpiry < Date.now()) {
@@ -661,7 +661,7 @@ export const getUsersForAdmin = query({
 
     const users = await ctx.db
       .query('users')
-      .filter(q => q.eq(q.field('status'), 'active'))
+      .filter((q: any) => q.eq(q.field('status'), 'active'))
       .collect();
 
     return users.map(user => ({

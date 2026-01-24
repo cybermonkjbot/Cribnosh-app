@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { Doc } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 
 // Job Postings
@@ -13,20 +14,20 @@ export const getJobPostings = query({
     let jobs = await ctx.db.query("jobPosting").collect();
 
     if (args.status) {
-      jobs = jobs.filter((job: any) => job.status === args.status);
+      jobs = jobs.filter((job: Doc<"jobPosting">) => job.status === args.status);
     }
 
     if (args.department) {
-      jobs = jobs.filter((job: any) => job.department === args.department);
+      jobs = jobs.filter((job: Doc<"jobPosting">) => job.department === args.department);
     }
 
     if (args.type) {
-      jobs = jobs.filter((job: any) => job.type === args.type);
+      jobs = jobs.filter((job: Doc<"jobPosting">) => job.type === args.type);
     }
 
     // Get applicant counts for all jobs
     const jobsWithApplicantCounts = await Promise.all(
-      jobs.map(async (job: any) => {
+      jobs.map(async (job: Doc<"jobPosting">) => {
         const applicantCount = await ctx.db
           .query("jobApplication")
           .withIndex("by_job", (q: any) => q.eq("jobId", job._id))
@@ -75,15 +76,15 @@ export const getJobApplications = query({
     // Safety limit
     const applications = await applicationQuery.order("desc").take(200);
 
-    return applications.map((app: any) => ({
+    return applications.map((app: Doc<"jobApplication">) => ({
       _id: app._id,
       jobId: app.jobId,
       jobTitle: app.jobTitle || 'Unknown Position',
-      applicantName: app.applicantName,
-      applicantEmail: app.applicantEmail,
-      applicantPhone: app.applicantPhone,
+      applicantName: app.fullName,
+      applicantEmail: app.email,
+      applicantPhone: app.phone,
       status: app.status as 'pending' | 'reviewing' | 'interviewed' | 'accepted' | 'rejected',
-      appliedAt: app.appliedAt || app._creationTime,
+      appliedAt: app.submittedAt || app._creationTime,
       resumeUrl: app.resumeUrl,
       coverLetter: app.coverLetter,
       experience: app.experience || '',
@@ -199,16 +200,16 @@ export const getJobStats = query({
     const applications = await ctx.db.query("jobApplication").collect();
 
     const totalJobs = jobs.length;
-    const publishedJobs = jobs.filter((job: any) => job.status === 'published').length;
-    const draftJobs = jobs.filter((job: any) => job.status === 'draft').length;
-    const archivedJobs = jobs.filter((job: any) => job.status === 'archived').length;
+    const publishedJobs = jobs.filter((job: Doc<"jobPosting">) => job.status === 'published').length;
+    const draftJobs = jobs.filter((job: Doc<"jobPosting">) => job.status === 'draft').length;
+    const archivedJobs = jobs.filter((job: Doc<"jobPosting">) => job.status === 'archived').length;
 
     const totalApplications = applications.length;
-    const pendingApplications = applications.filter((app: any) => app.status === 'pending').length;
-    const reviewingApplications = applications.filter((app: any) => app.status === 'reviewing').length;
-    const interviewedApplications = applications.filter((app: any) => app.status === 'interviewed').length;
-    const acceptedApplications = applications.filter((app: any) => app.status === 'accepted').length;
-    const rejectedApplications = applications.filter((app: any) => app.status === 'rejected').length;
+    const pendingApplications = applications.filter((app: Doc<"jobApplication">) => app.status === 'pending').length;
+    const reviewingApplications = applications.filter((app: Doc<"jobApplication">) => app.status === 'reviewing').length;
+    const interviewedApplications = applications.filter((app: Doc<"jobApplication">) => app.status === 'interviewed').length;
+    const acceptedApplications = applications.filter((app: Doc<"jobApplication">) => app.status === 'accepted').length;
+    const rejectedApplications = applications.filter((app: Doc<"jobApplication">) => app.status === 'rejected').length;
 
     return {
       totalJobs,

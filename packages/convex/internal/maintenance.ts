@@ -9,7 +9,7 @@ export const cleanupExpiredCache = internalMutation({
     // Early exit check - see if any expired entries exist
     const hasExpired = await ctx.db
       .query("cache")
-      .withIndex("by_expiry", (q) => q.lte("expiresAt", now))
+      .withIndex("by_expiry", (q: any) => q.lte("expiresAt", now))
       .first();
 
     if (!hasExpired) {
@@ -18,7 +18,7 @@ export const cleanupExpiredCache = internalMutation({
 
     const expiredEntries = await ctx.db
       .query("cache")
-      .withIndex("by_expiry", (q) => q.lte("expiresAt", now))
+      .withIndex("by_expiry", (q: any) => q.lte("expiresAt", now))
       .collect();
 
     let deleted = 0;
@@ -39,7 +39,7 @@ export const cleanupExpiredSessions = internalMutation({
     // Early exit check - see if any expired sessions exist
     const hasExpired = await ctx.db
       .query("sessionStorage")
-      .withIndex("by_expiry", (q) => q.lt("expiresAt", now))
+      .withIndex("by_expiry", (q: any) => q.lt("expiresAt", now))
       .first();
 
     if (!hasExpired) {
@@ -48,7 +48,7 @@ export const cleanupExpiredSessions = internalMutation({
 
     const expiredSessions = await ctx.db
       .query("sessionStorage")
-      .withIndex("by_expiry", (q) => q.lt("expiresAt", now))
+      .withIndex("by_expiry", (q: any) => q.lt("expiresAt", now))
       .collect();
 
     let deleted = 0;

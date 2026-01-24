@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { Doc } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 
 export const getDashboardFooterStats = query({
@@ -42,7 +43,7 @@ export const getDashboardFooterStats = query({
     // Get system health
     const systemHealth = await ctx.db
       .query("systemHealth")
-      .filter(q => q.eq(q.field("service"), "main"))
+      .filter((q: any) => q.eq(q.field("service"), "main"))
       .first();
 
     // Get active users (users with sessions in last 15 minutes)
@@ -50,7 +51,7 @@ export const getDashboardFooterStats = query({
     const fifteenMinutesAgo = now - (15 * 60 * 1000);
     const activeSessions = await ctx.db
       .query("sessions")
-      .filter(q => q.gt(q.field("expiresAt"), now))
+      .filter((q: any) => q.gt(q.field("expiresAt"), now))
       .collect();
 
     const activeUsers = new Set(activeSessions.map(session => session.userId)).size;
@@ -58,7 +59,7 @@ export const getDashboardFooterStats = query({
     // Get previous period active users for trend calculation
     const previousActiveSessions = await ctx.db
       .query("sessions")
-      .filter(q => q.and(
+      .filter((q: any) => q.and(
         q.gte(q.field("expiresAt"), fifteenMinutesAgo - (15 * 60 * 1000)),
         q.lt(q.field("expiresAt"), fifteenMinutesAgo)
       ))
@@ -72,8 +73,8 @@ export const getDashboardFooterStats = query({
       .filter(q => q.eq(q.field("status"), "live"))
       .collect();
 
-    const activeChefs = new Set(liveStreams.map(stream => stream.chef_id)).size;
-    const totalViewers = liveStreams.reduce((sum, stream) => sum + (stream.viewerCount || 0), 0);
+    const activeChefs = new Set(liveStreams.map((stream: Doc<"liveSessions">) => stream.chef_id)).size;
+    const totalViewers = liveStreams.reduce((sum: number, stream: Doc<"liveSessions">) => sum + (stream.viewerCount || 0), 0);
 
     // Get pending orders
     const pendingOrders = await ctx.db
@@ -81,13 +82,13 @@ export const getDashboardFooterStats = query({
       .filter(q => q.eq(q.field("order_status"), "pending"))
       .collect();
 
-    const urgentOrders = pendingOrders.filter(order => {
+    const urgentOrders = pendingOrders.filter((order: Doc<"orders">) => {
       const waitTime = Date.now() - order.createdAt;
       return waitTime > 30 * 60 * 1000; // More than 30 minutes
     }).length;
 
     const averageWaitTime = pendingOrders.length > 0
-      ? pendingOrders.reduce((sum, order) => sum + (Date.now() - order.createdAt), 0) / pendingOrders.length / (1000 * 60) // Convert to minutes
+      ? pendingOrders.reduce((sum: number, order: Doc<"orders">) => sum + (Date.now() - order.createdAt), 0) / pendingOrders.length / (1000 * 60) // Convert to minutes
       : 0;
 
     // Get revenue data
@@ -97,29 +98,29 @@ export const getDashboardFooterStats = query({
 
     const [todayOrders, weekOrders, monthOrders] = await Promise.all([
       ctx.db.query("orders")
-        .filter(q => q.gte(q.field("createdAt"), todayStart))
+        .filter((q: any) => q.gte(q.field("createdAt"), todayStart))
         .collect(),
       ctx.db.query("orders")
-        .filter(q => q.gte(q.field("createdAt"), weekStart))
+        .filter((q: any) => q.gte(q.field("createdAt"), weekStart))
         .collect(),
       ctx.db.query("orders")
-        .filter(q => q.gte(q.field("createdAt"), monthStart))
+        .filter((q: any) => q.gte(q.field("createdAt"), monthStart))
         .collect(),
     ]);
 
-    const todayRevenue = todayOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    const weekRevenue = weekOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-    const monthRevenue = monthOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+    const todayRevenue = todayOrders.reduce((sum: number, order: Doc<"orders">) => sum + (order.total_amount || 0), 0);
+    const weekRevenue = weekOrders.reduce((sum: number, order: Doc<"orders">) => sum + (order.total_amount || 0), 0);
+    const monthRevenue = monthOrders.reduce((sum: number, order: Doc<"orders">) => sum + (order.total_amount || 0), 0);
 
     // Calculate revenue trend
     const previousWeekRevenue = await ctx.db
       .query("orders")
-      .filter(q => q.and(
+      .filter((q: any) => q.and(
         q.gte(q.field("createdAt"), now - (14 * 24 * 60 * 60 * 1000)),
         q.lt(q.field("createdAt"), weekStart)
       ))
       .collect()
-      .then(orders => orders.reduce((sum, order) => sum + (order.total_amount || 0), 0));
+      .then((orders: Doc<"orders">[]) => orders.reduce((sum: number, order: Doc<"orders">) => sum + (order.total_amount || 0), 0));
 
     const revenueTrend = previousWeekRevenue > 0
       ? ((weekRevenue - previousWeekRevenue) / previousWeekRevenue) * 100
@@ -128,7 +129,7 @@ export const getDashboardFooterStats = query({
     // Get performance metrics from system health data
     const latestHealth = await ctx.db
       .query("systemHealth")
-      .filter(q => q.eq(q.field("service"), "main"))
+      .filter((q: any) => q.eq(q.field("service"), "main"))
       .order("desc")
       .first();
 
@@ -196,10 +197,10 @@ export const getRealTimeMetrics = query({
     // Optimize: Only fetch sessions, not all data
     const activeSessions = await ctx.db
       .query("sessions")
-      .filter(q => q.gt(q.field("expiresAt"), Date.now()))
+      .filter((q: any) => q.gt(q.field("expiresAt"), Date.now()))
       .collect();
 
-    const activeUsers = new Set(activeSessions.map(session => session.userId)).size;
+    const activeUsers = new Set(activeSessions.map((session: Doc<"sessions">) => session.userId)).size;
 
     // Get pending orders count (optimized: we only need count, but Convex requires collect)
     const pendingOrders = await ctx.db
@@ -222,7 +223,7 @@ export const getRealTimeMetrics = query({
     // Get recent alerts
     const alerts = await ctx.db
       .query("systemAlerts")
-      .filter(q => q.and(
+      .filter((q: any) => q.and(
         q.eq(q.field("resolved"), false),
         q.gte(q.field("timestamp"), Date.now() - (24 * 60 * 60 * 1000))
       ))
@@ -335,9 +336,9 @@ export const getDashboardSummary = query({
     // Calculate overview metrics
     const [totalUsers, totalOrders, totalRevenue, activeChefs] = await Promise.all([
       (ctx.db.query("users") as any).count(),
-      (ctx.db.query("orders").filter(q => q.gte(q.field("createdAt"), startTime)) as any).count(),
-      currentOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0),
-      (ctx.db.query("chefs").filter(q => q.and(
+      (ctx.db.query("orders").filter((q: any) => q.gte(q.field("createdAt"), startTime)) as any).count(),
+      currentOrders.reduce((sum: number, order: Doc<"orders">) => sum + (order.total_amount || 0), 0),
+      (ctx.db.query("chefs").filter((q: any) => q.and(
         q.gte(q.field("_creationTime"), startTime),
         q.eq(q.field("status"), "active")
       )) as any).count(),
@@ -350,7 +351,7 @@ export const getDashboardSummary = query({
     const orderGrowth = previousOrders.length > 0
       ? ((totalOrders - previousOrders.length) / previousOrders.length) * 100
       : 0;
-    const previousRevenue = previousOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+    const previousRevenue = previousOrders.reduce((sum: number, order: Doc<"orders">) => sum + (order.total_amount || 0), 0);
     const revenueGrowth = previousRevenue > 0
       ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
       : 0;
@@ -359,18 +360,18 @@ export const getDashboardSummary = query({
       : 0;
 
     // Calculate performance metrics
-    const completedOrders = currentOrders.filter(order => order.order_status === "completed").length;
+    const completedOrders = currentOrders.filter((order: Doc<"orders">) => order.order_status === "completed").length;
     const orderCompletionRate = totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0;
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
     // Get customer satisfaction from reviews
     const reviews = await ctx.db
       .query("reviews")
-      .filter(q => q.gte(q.field("createdAt"), startTime))
+      .filter((q: any) => q.gte(q.field("createdAt"), startTime))
       .collect();
 
     const customerSatisfaction = reviews.length > 0
-      ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length
+      ? reviews.reduce((sum: number, review: Doc<"reviews">) => sum + (review.rating || 0), 0) / reviews.length
       : 0;
 
     // Get system uptime from system health data
@@ -383,19 +384,19 @@ export const getDashboardSummary = query({
     // Get alert counts
     const [criticalAlerts, warningAlerts, infoAlerts] = await Promise.all([
       ctx.db.query("systemAlerts")
-        .filter(q => q.and(
+        .filter((q: any) => q.and(
           q.eq(q.field("resolved"), false),
           q.eq(q.field("severity"), "critical")
         ))
         .collect(),
       ctx.db.query("systemAlerts")
-        .filter(q => q.and(
+        .filter((q: any) => q.and(
           q.eq(q.field("resolved"), false),
           q.eq(q.field("severity"), "warning")
         ))
         .collect(),
       ctx.db.query("systemAlerts")
-        .filter(q => q.and(
+        .filter((q: any) => q.and(
           q.eq(q.field("resolved"), false),
           q.eq(q.field("severity"), "info")
         ))

@@ -27,9 +27,9 @@ export const getWaitlistStats = query({
 
     const [total, active, converted, inactive] = await Promise.all([
       (ctx.db.query("waitlist") as any).count(),
-      (ctx.db.query("waitlist").filter(q => q.eq(q.field("status"), "active")) as any).count(),
-      (ctx.db.query("waitlist").filter(q => q.eq(q.field("status"), "converted")) as any).count(),
-      (ctx.db.query("waitlist").filter(q => q.eq(q.field("status"), "inactive")) as any).count(),
+      (ctx.db.query("waitlist").filter((q: any) => q.eq(q.field("status"), "active")) as any).count(),
+      (ctx.db.query("waitlist").filter((q: any) => q.eq(q.field("status"), "converted")) as any).count(),
+      (ctx.db.query("waitlist").filter((q: any) => q.eq(q.field("status"), "inactive")) as any).count(),
     ]);
 
     return {
@@ -79,7 +79,7 @@ export const getWaitlistDetails = query({
     // Use database-level filtering for status (more efficient than in-memory)
     let query = ctx.db.query("waitlist");
     if (args.status) {
-      query = query.filter((q) => q.eq(q.field("status"), args.status));
+      query = query.filter((q: any) => q.eq(q.field("status"), args.status));
     }
     let waitlist = await query.collect();
 
