@@ -9,7 +9,7 @@ type MealDoc = Doc<'meals'>;
 type ChefDoc = Doc<'chefs'>;
 type ReviewDoc = Doc<'reviews'>;
 
-type HydratedMeal = MealDoc & {
+interface HydratedMeal extends MealDoc {
   chef: {
     _id: Id<'chefs'>;
     name: string;
@@ -27,7 +27,7 @@ type HydratedMeal = MealDoc & {
   reviews?: ReviewDoc[];
   deliveryTime?: string;
   popularityScore?: number;
-};
+}
 
 export const getAll = query({
   args: {
@@ -61,7 +61,7 @@ export const getAll = query({
 
     // Get reviews only for the meals we fetched (optimized: don't fetch all reviews)
     const mealIds = meals.map((meal: MealDoc) => meal._id);
-    const reviewPromises = mealIds.map(mealId =>
+    const reviewPromises = mealIds.map((mealId: Id<'meals'>) =>
       ctx.db.query('reviews')
         .withIndex('by_meal', q => q.eq('meal_id', mealId))
         .collect()
@@ -113,12 +113,12 @@ export const getAll = query({
     if (args.userId) {
       try {
         const preferences = await getUserPreferences(ctx, args.userId);
-        const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
+        const scoredMeals = filterAndRankMealsByPreferences<any>(
           mealsWithChefData,
           preferences,
-          (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+          (meal: any) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
         );
-        filteredMeals = scoredMeals.map(s => s.meal);
+        filteredMeals = scoredMeals.map(s => s.meal as HydratedMeal);
       } catch (error) {
         // If preference fetching fails, return unfiltered meals
         console.error('Error fetching user preferences:', error);
@@ -159,7 +159,7 @@ export const getDishesWithDetails = query({
     const validMeals = meals.filter((meal): meal is MealDoc => meal !== null);
 
     // Get unique chef IDs
-    const chefIds = new Set(validMeals.map(meal => meal.chefId));
+    const chefIds = new Set(validMeals.map((meal: MealDoc) => meal.chefId));
 
     // Get all chefs in one batch
     const chefs = await Promise.all(
@@ -176,7 +176,7 @@ export const getDishesWithDetails = query({
 
     // Get reviews for these specific meals only (filter by meal IDs before collecting)
     // Query reviews for each mealId separately to avoid fetching all reviews
-    const reviewPromises = args.dishIds.map(mealId =>
+    const reviewPromises = args.dishIds.map((mealId: Id<'meals'>) =>
       ctx.db.query('reviews')
         .filter((q) => {
           const mealIdField = q.field('meal_id');
@@ -233,12 +233,12 @@ export const getDishesWithDetails = query({
     if (args.userId) {
       try {
         const preferences = await getUserPreferences(ctx, args.userId);
-        const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
+        const scoredMeals = filterAndRankMealsByPreferences<any>(
           dishesWithDetails,
           preferences,
-          (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+          (meal: any) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
         );
-        dishesWithDetails = scoredMeals.map(s => s.meal);
+        dishesWithDetails = scoredMeals.map(s => s.meal as HydratedMeal);
       } catch (error) {
         // If preference fetching fails, return unfiltered meals
         console.error('Error fetching user preferences:', error);
@@ -380,12 +380,12 @@ export const getByChefId = query({
     if (args.userId) {
       try {
         const preferences = await getUserPreferences(ctx, args.userId);
-        const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
+        const scoredMeals = filterAndRankMealsByPreferences<any>(
           mealsWithReviews,
           preferences,
-          (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+          (meal: any) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
         );
-        results = scoredMeals.map(s => s.meal);
+        results = scoredMeals.map(s => s.meal as HydratedMeal);
       } catch (error) {
         // If preference fetching fails, return unfiltered meals
         console.error('Error fetching user preferences:', error);
@@ -520,12 +520,12 @@ export const getPopularByChefId = query({
     if (args.userId) {
       try {
         const preferences = await getUserPreferences(ctx, args.userId);
-        const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
-          mealsWithPopularity as unknown as HydratedMeal[],
+        const scoredMeals = filterAndRankMealsByPreferences<any>(
+          mealsWithPopularity,
           preferences,
-          (meal) => meal.popularityScore || 0
+          (meal: any) => meal.popularityScore || 0
         );
-        results = scoredMeals.map(s => s.meal);
+        results = scoredMeals.map(s => s.meal as HydratedMeal);
       } catch (error) {
         // If preference fetching fails, return unfiltered meals
         console.error('Error fetching user preferences:', error);
@@ -616,7 +616,7 @@ export const searchMealsByChefId = query({
         return meal.name?.toLowerCase().includes(searchTerm) ||
           meal.description?.toLowerCase().includes(searchTerm) ||
           meal.cuisine?.some((c: string) => c.toLowerCase().includes(searchTerm)) ||
-          meal.ingredients?.some((i) => i.name.toLowerCase().includes(searchTerm));
+          meal.ingredients?.some((i: { name: string }) => i.name.toLowerCase().includes(searchTerm));
       });
     }
 
@@ -632,8 +632,8 @@ export const searchMealsByChefId = query({
     if (args.dietary && args.dietary.length > 0) {
       meals = meals.filter((meal: MealDoc) => {
         return args.dietary!.some((diet: string) =>
-          meal.dietary?.some(d => d.toLowerCase() === diet.toLowerCase()) ||
-          meal.ingredients?.some(i => i.isAllergen && i.allergenType?.toLowerCase() === diet.toLowerCase())
+          meal.dietary?.some((d: string) => d.toLowerCase() === diet.toLowerCase()) ||
+          meal.ingredients?.some((i: { isAllergen?: boolean; allergenType?: string }) => i.isAllergen && i.allergenType?.toLowerCase() === diet.toLowerCase())
         );
       });
     }
@@ -680,12 +680,12 @@ export const searchMealsByChefId = query({
     let results: HydratedMeal[] = mealsWithReviews;
     if (args.userId) {
       const preferences = await getUserPreferences(ctx, args.userId);
-      const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
+      const scoredMeals = filterAndRankMealsByPreferences<any>(
         mealsWithReviews,
         preferences,
-        (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+        (meal: any) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
       );
-      results = scoredMeals.map(s => s.meal);
+      results = scoredMeals.map(s => s.meal as HydratedMeal);
     } else {
       // Sort by rating if no user preferences
       results.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
@@ -832,12 +832,12 @@ export const searchMeals = query({
       if (args.userId) {
         try {
           const preferences = await getUserPreferences(ctx, args.userId);
-          const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
+          const scoredMeals = filterAndRankMealsByPreferences<any>(
             mealsWithChefData,
             preferences,
-            (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+            (meal: any) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
           );
-          results = scoredMeals.map(s => s.meal);
+          results = scoredMeals.map(s => s.meal as HydratedMeal);
         } catch (error) {
           // If preference fetching fails, return unfiltered meals
           console.error('Error fetching user preferences:', error);
@@ -1023,12 +1023,12 @@ export const getAvailable = query({
     if (args.userId) {
       try {
         const preferences = await getUserPreferences(ctx, args.userId);
-        const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
+        const scoredMeals = filterAndRankMealsByPreferences<any>(
           mealsWithChefData,
           preferences,
-          (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+          (meal: any) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
         );
-        results = scoredMeals.map(s => s.meal);
+        results = scoredMeals.map(s => s.meal as HydratedMeal);
       } catch (error) {
         // If preference fetching fails, return unfiltered meals
         console.error('Error fetching user preferences:', error);
@@ -1091,7 +1091,7 @@ export const search = query({
       if (args.filters) {
         if (args.filters.cuisine) {
           meals = meals.filter((meal: MealDoc) => {
-            return meal.cuisine.some(c => c.toLowerCase() === args.filters!.cuisine!.toLowerCase());
+            return meal.cuisine.some((c: string) => c.toLowerCase() === args.filters!.cuisine!.toLowerCase());
           });
         }
 
@@ -1106,10 +1106,10 @@ export const search = query({
 
         if (args.filters.dietary && args.filters.dietary.length > 0) {
           meals = meals.filter((meal: MealDoc) => {
-            const mealDietaryLower = meal.dietary.map(d => d.toLowerCase());
-            return args.filters!.dietary!.some(diet =>
+            const mealDietaryLower = meal.dietary.map((d: string) => d.toLowerCase());
+            return args.filters!.dietary!.some((diet: string) =>
               mealDietaryLower.includes(diet.toLowerCase()) ||
-              meal.ingredients?.some(i => i.isAllergen && i.allergenType?.toLowerCase() === diet.toLowerCase())
+              meal.ingredients?.some((i: { isAllergen?: boolean; allergenType?: string }) => i.isAllergen && i.allergenType?.toLowerCase() === diet.toLowerCase())
             );
           });
         }
@@ -1185,12 +1185,12 @@ export const search = query({
       if (args.userId) {
         try {
           const preferences = await getUserPreferences(ctx, args.userId);
-          const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
+          const scoredMeals = filterAndRankMealsByPreferences<any>(
             mealsWithChefData,
             preferences,
-            (meal) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
+            (meal: any) => (meal.averageRating || 0) * 10 + (meal.reviewCount || 0)
           );
-          results = scoredMeals.map(s => s.meal);
+          results = scoredMeals.map(s => s.meal as HydratedMeal);
         } catch (error) {
           // If preference fetching fails, return unfiltered meals
           console.error('Error fetching user preferences:', error);
@@ -1408,12 +1408,12 @@ export const getRandomMeals = query({
       if (args.userId) {
         try {
           const preferences = await getUserPreferences(ctx, args.userId);
-          const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
-            mealsWithChefData as unknown as HydratedMeal[],
+          const scoredMeals = filterAndRankMealsByPreferences<any>(
+            mealsWithChefData as any,
             preferences,
             () => 0 // Base score doesn't matter for random selection
           );
-          meals = scoredMeals.map(s => s.meal);
+          meals = scoredMeals.map(s => s.meal as HydratedMeal);
         } catch (error) {
           // If preference fetching fails, use all meals
           console.error('Error fetching user preferences:', error);
@@ -1495,12 +1495,12 @@ export const getPopular = query({
       if (args.userId) {
         try {
           const preferences = await getUserPreferences(ctx, args.userId);
-          const scoredMeals = filterAndRankMealsByPreferences<HydratedMeal>(
-            mealsWithPopularity as unknown as HydratedMeal[],
+          const scoredMeals = filterAndRankMealsByPreferences<any>(
+            mealsWithPopularity as any,
             preferences,
-            (meal) => meal.popularityScore || 0
+            (meal: any) => meal.popularityScore || 0
           );
-          results = scoredMeals.map(s => s.meal);
+          results = scoredMeals.map(s => s.meal as HydratedMeal);
         } catch (error) {
           console.error('Error fetching user preferences:', error);
           results = mealsWithPopularity as unknown as HydratedMeal[];

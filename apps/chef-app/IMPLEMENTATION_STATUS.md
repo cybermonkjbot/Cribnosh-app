@@ -43,133 +43,16 @@
 
 ## 🚧 In Progress / TODO
 
-### Backend Queries (Convex)
-- [ ] Create `chefCourses` queries:
-  - `getByChefId` - Get all courses for a chef
-  - `getCourseProgress` - Get progress for a specific course
-  - `updateModuleProgress` - Mark module as completed
-- [ ] Create `chefDocuments` queries:
-  - `getByChefId` - Get all documents for a chef
-  - `uploadDocument` - Upload a new document
-  - `updateDocumentStatus` - Update verification status
-- [ ] Create chef earnings queries:
-  - `getEarningsSummary` - Get available balance, pending, etc.
-  - `getPayoutHistory` - Get payout requests history
-- [ ] Create chef orders queries:
-  - `getRecentForChef` - Get recent orders (or use existing `listByChef`)
-  - `getOrderDetails` - Get full order details
+### Features to Polish/Enhance
+- [ ] **Content**: Rich text editor for stories (US-015)
+- [ ] **Support**: Support history view (US-034)
+- [ ] **Content**: Advanced search/bulk actions for library (US-017)
 
-### Screens to Implement
-
-#### Onboarding Flow
-- [ ] Course module viewer (`/chef/onboarding/course/[id]`)
-- [ ] Module content screen with quiz
-- [ ] Document upload screen (`/chef/onboarding/documents/[id]`)
-- [ ] Document camera/photo picker integration
-
-#### Profile Management
-- [ ] Chef profile screen (`/chef/profile`)
-- [ ] Kitchen profile screen
-- [ ] Edit profile forms
-- [ ] Image upload for profile/kitchen
-
-#### Content Management
-- [ ] Recipes list (`/chef/content/recipes`)
-- [ ] Create/edit recipe (`/chef/content/recipes/create`)
-- [ ] Stories list (`/chef/content/stories`)
-- [ ] Create/edit story (`/chef/content/stories/create`)
-- [ ] Videos list (`/chef/content/videos`)
-- [ ] Upload video (`/chef/content/videos/upload`)
-
-#### Orders
-- [ ] Orders list (`/chef/orders`)
-- [ ] Order details (`/chef/orders/[id]`)
-- [ ] Order status updates
-- [ ] Order notifications
-
-#### Earnings & Payments
-- [ ] Earnings dashboard (`/chef/earnings`)
-- [ ] Payout history (`/chef/earnings/payouts`)
-- [ ] Request payout (`/chef/earnings/payouts/request`)
-- [ ] Tax records (`/chef/earnings/taxes`)
-
-#### Live Streaming
-- [ ] Go live screen (`/chef/live`)
-- [ ] Live session management
-- [ ] Live orders during stream
-- [ ] Stream controls (start/stop)
-
-#### Support
-- [ ] Support tickets list (`/chef/support`)
-- [ ] Create ticket (`/chef/support/create`)
-- [ ] Ticket details (`/chef/support/[id]`)
-- [ ] Chat interface
-
-### Features to Implement
-
-#### Phase 1: Core Onboarding (Current)
-- [ ] 13-module compliance course
-- [ ] Course progress tracking
-- [ ] Module completion with quizzes
-- [ ] Certificate generation
-- [ ] Document upload flow
-- [ ] Document verification status
-
-#### Phase 2: Profile & Content
-- [ ] Chef profile management
-- [ ] Kitchen profile management
-- [ ] Recipe CRUD operations
-- [ ] Story creation and editing
-- [ ] Video upload and management
-
-#### Phase 3: Orders & Operations
-- [ ] Order management
-- [ ] Order status updates
-- [ ] Online/offline toggle
-- [ ] Order notifications
-- [ ] Order history
-
-#### Phase 4: Financial
-- [ ] Earnings dashboard
-- [ ] Payout requests
-- [ ] Bank account management
-- [ ] Tax record tracking
-- [ ] Financial reports
-
-#### Phase 5: Live & Support
-- [ ] Live streaming integration
-- [ ] Live order management
-- [ ] Support ticket system
-- [ ] In-app chat
-
-### Mutations to Create (Convex)
-
-#### Chef Profile
-- [ ] `updateChefProfile` - Update chef details
-- [ ] `updateKitchenProfile` - Update kitchen details
-- [ ] `toggleOnlineStatus` - Toggle online/offline
-
-#### Orders
-- [ ] `updateOrderStatus` - Update order status
-- [ ] `acceptOrder` - Accept incoming order
-- [ ] `rejectOrder` - Reject order
-
-#### Content
-- [ ] `createRecipe` - Create new recipe
-- [ ] `updateRecipe` - Update recipe
-- [ ] `deleteRecipe` - Delete recipe
-- [ ] `createStory` - Create story
-- [ ] `updateStory` - Update story
-- [ ] `uploadVideo` - Upload video post
-
-#### Financial
-- [ ] `requestPayout` - Request payout
-- [ ] `updateBankAccount` - Update bank details
-
-#### Live
-- [ ] `startLiveSession` - Start live cooking
-- [ ] `stopLiveSession` - Stop live session
-- [ ] `updateLiveStatus` - Update live status
+### ✅ Recently Completed
+- [x] **Availability**: Time ranges, blackout dates, copy week (US-010)
+- [x] **Financial**: Tax summaries, PDF export, Transaction history (US-027, US-028)
+- [x] **Video**: Upload flow, thumbnail generation, linking to meals (US-016, US-018)
+- [x] **Live**: Dashboard with viewer count, order notifications (US-022, US-030)
 
 ## 📝 Notes
 
@@ -184,13 +67,6 @@
 - Convex client configured
 - Toast system in place
 - Error boundaries ready
-
-### Next Steps
-1. Create Convex queries for chefCourses and chefDocuments
-2. Implement course module viewer
-3. Add document upload functionality
-4. Create recipe management screens
-5. Build order management interface
 
 ## 🔗 Related Documentation
 - PRD: `apps/web/docs/CHEF_PLATFORM_PRD.md`

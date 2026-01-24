@@ -39,7 +39,7 @@ export interface TasteProfile {
   preferredPriceRange?: { min: number; max: number };
   preferredChefIds: Set<string>;
   averagePrice?: number;
-  likedMeals: Array<{ _id: Id<'meals'>; cuisine?: string[]; dietary?: string[]; price?: number; chefId?: Id<'chefs'>; [key: string]: unknown }>; // Store liked meals for individual similarity checks
+  likedMeals: Array<{ _id: Id<'meals'>; cuisine?: string[]; dietary?: string[]; price?: number; chefId?: Id<'chefs'>;[key: string]: unknown }>; // Store liked meals for individual similarity checks
 }
 
 // Meal relevance score interface
@@ -135,23 +135,23 @@ export async function getUserPreferences(
 /**
  * Check if a meal should be excluded based on user allergies
  */
-function hasAllergen(meal: { allergens?: string[]; [key: string]: unknown }, userAllergies: Array<{ name: string; severity: string }>): boolean {
+function hasAllergen(meal: { allergens?: string[];[key: string]: unknown }, userAllergies: Array<{ name: string; severity: string }>): boolean {
   if (!meal.allergens || !Array.isArray(meal.allergens)) {
     return false;
   }
 
   const mealAllergens = meal.allergens.map((a: string) => a.toLowerCase());
-  
+
   for (const allergy of userAllergies) {
     const allergyName = allergy.name.toLowerCase();
-    
+
     // Check exact match
     if (mealAllergens.includes(allergyName)) {
       return true;
     }
-    
+
     // Check partial match (e.g., "nuts" matches "tree nuts", "peanuts")
-    if (mealAllergens.some((allergen: string) => 
+    if (mealAllergens.some((allergen: string) =>
       allergen.includes(allergyName) || allergyName.includes(allergen)
     )) {
       return true;
@@ -164,16 +164,16 @@ function hasAllergen(meal: { allergens?: string[]; [key: string]: unknown }, use
 /**
  * Check if meal matches dietary preferences
  */
-function matchesDietaryPreferences(meal: { dietary?: string[]; [key: string]: unknown }, preferences: string[]): boolean {
+function matchesDietaryPreferences(meal: { dietary?: string[];[key: string]: unknown }, preferences: string[]): boolean {
   if (preferences.length === 0) return true;
 
   const mealDietary = meal.dietary || [];
   const mealDietaryLower = mealDietary.map((d: string) => d.toLowerCase());
-  
+
   // Check if meal has any of the user's dietary preferences
   return preferences.some((pref: string) => {
     const prefLower = pref.toLowerCase();
-    return mealDietaryLower.some((d: string) => 
+    return mealDietaryLower.some((d: string) =>
       d.includes(prefLower) || prefLower.includes(d) || d === prefLower
     );
   });
@@ -182,12 +182,12 @@ function matchesDietaryPreferences(meal: { dietary?: string[]; [key: string]: un
 /**
  * Check if meal matches religious requirements
  */
-function matchesReligiousRequirements(meal: { dietary?: string[]; [key: string]: unknown }, requirements: string[]): boolean {
+function matchesReligiousRequirements(meal: { dietary?: string[];[key: string]: unknown }, requirements: string[]): boolean {
   if (requirements.length === 0) return true;
 
   const mealDietary = meal.dietary || [];
   const mealDietaryLower = mealDietary.map((d: string) => d.toLowerCase());
-  
+
   // Check if meal matches religious requirements (halal, kosher, etc.)
   return requirements.some((req: string) => {
     const reqLower = req.toLowerCase();
@@ -198,16 +198,16 @@ function matchesReligiousRequirements(meal: { dietary?: string[]; [key: string]:
 /**
  * Check if meal matches health-driven preferences
  */
-function matchesHealthPreferences(meal: { dietary?: string[]; [key: string]: unknown }, healthPrefs: string[]): boolean {
+function matchesHealthPreferences(meal: { dietary?: string[];[key: string]: unknown }, healthPrefs: string[]): boolean {
   if (healthPrefs.length === 0) return true;
 
   const mealDietary = meal.dietary || [];
   const mealDietaryLower = mealDietary.map((d: string) => d.toLowerCase());
-  
+
   // Check if meal matches health preferences
   return healthPrefs.some((health: string) => {
     const healthLower = health.toLowerCase();
-    return mealDietaryLower.some((d: string) => 
+    return mealDietaryLower.some((d: string) =>
       d.includes(healthLower) || healthLower.includes(d)
     );
   });
@@ -217,21 +217,21 @@ function matchesHealthPreferences(meal: { dietary?: string[]; [key: string]: unk
  * Check if chef follows proper cross-contamination protocols
  * A chef is considered safe if they are verified and have health permits
  */
-function hasProperCrossContaminationProtocols(chef: { verificationStatus?: string; verificationDocuments?: { healthPermit?: boolean }; [key: string]: unknown } | null | undefined): boolean {
+function hasProperCrossContaminationProtocols(chef: { verificationStatus?: string; verificationDocuments?: { healthPermit?: boolean };[key: string]: unknown } | null | undefined): boolean {
   if (!chef) return false;
-  
+
   // Chef must be verified
   const verificationStatus = (chef as { verificationStatus?: string }).verificationStatus;
   if (verificationStatus !== 'verified') {
     return false;
   }
-  
+
   // Chef must have health permit
   const verificationDocuments = (chef as { verificationDocuments?: { healthPermit?: boolean } }).verificationDocuments;
   if (!verificationDocuments?.healthPermit) {
     return false;
   }
-  
+
   return true;
 }
 
@@ -244,7 +244,7 @@ export async function extractTasteProfile(
   userId: Id<'users'>
 ): Promise<TasteProfile> {
   const preferences = await getUserPreferences(ctx, userId);
-  
+
   if (preferences.likedMealIds.size === 0) {
     return {
       preferredCuisines: new Map(),
@@ -262,7 +262,7 @@ export async function extractTasteProfile(
   );
 
   // Filter out null meals and analyze patterns
-  const validLikedMeals: Array<{ _id: Id<'meals'>; cuisine?: string[]; dietary?: string[]; price?: number; chefId?: Id<'chefs'>; [key: string]: unknown }> = [];
+  const validLikedMeals: Array<{ _id: Id<'meals'>; cuisine?: string[]; dietary?: string[]; price?: number; chefId?: Id<'chefs'>;[key: string]: unknown }> = [];
   const cuisineCounts = new Map<string, number>();
   const dietaryTagCounts = new Map<string, number>();
   const chefIds = new Set<string>();
@@ -270,10 +270,10 @@ export async function extractTasteProfile(
 
   for (const meal of likedMeals) {
     if (!meal) continue;
-    
-    const mealAny = meal as { _id: Id<'meals'>; cuisine?: string[]; dietary?: string[]; price?: number; chefId?: Id<'chefs'>; [key: string]: unknown };
+
+    const mealAny = meal as { _id: Id<'meals'>; cuisine?: string[]; dietary?: string[]; price?: number; chefId?: Id<'chefs'>;[key: string]: unknown };
     validLikedMeals.push(mealAny);
-    
+
     // Count cuisines
     if (mealAny.cuisine && Array.isArray(mealAny.cuisine)) {
       for (const cuisine of mealAny.cuisine) {
@@ -326,8 +326,8 @@ export async function extractTasteProfile(
  * Calculate similarity score between two individual meals
  */
 function calculateMealSimilarity(
-  meal1: { cuisine?: string[]; dietary?: string[]; price?: number; chefId?: string | Id<'chefs'>; [key: string]: unknown },
-  meal2: { cuisine?: string[]; dietary?: string[]; price?: number; chefId?: string | Id<'chefs'>; [key: string]: unknown }
+  meal1: { cuisine?: string[]; dietary?: string[]; price?: number; chefId?: string | Id<'chefs'>;[key: string]: unknown },
+  meal2: { cuisine?: string[]; dietary?: string[]; price?: number; chefId?: string | Id<'chefs'>;[key: string]: unknown }
 ): number {
   let similarityScore = 0;
 
@@ -371,7 +371,7 @@ function calculateMealSimilarity(
  * This includes both aggregate patterns and individual meal similarity
  */
 function calculateTasteSimilarity(
-  meal: { cuisine?: string[]; dietary?: string[]; price?: number; chefId?: string | Id<'chefs'>; _id?: string | Id<'meals'>; id?: string; [key: string]: unknown },
+  meal: { cuisine?: string[]; dietary?: string[]; price?: number; chefId?: string | Id<'chefs'>; _id?: string | Id<'meals'>; id?: string;[key: string]: unknown },
   tasteProfile: TasteProfile
 ): number {
   let score = 0;
@@ -380,7 +380,7 @@ function calculateTasteSimilarity(
   // Skip if this is the exact liked meal (it already gets +60 boost)
   const mealId = meal._id || meal.id;
   const isExactLikedMeal = mealId && tasteProfile.likedMeals.some((likedMeal) => likedMeal._id === mealId);
-  
+
   if (tasteProfile.likedMeals.length > 0 && !isExactLikedMeal) {
     let maxSimilarity = 0;
     for (const likedMeal of tasteProfile.likedMeals) {
@@ -445,7 +445,7 @@ function calculateTasteSimilarity(
  * Check if a meal should be included based on user preferences
  */
 export function shouldIncludeMeal(
-  meal: { allergens?: string[]; dietary?: string[]; chef?: { verificationStatus?: string; verificationDocuments?: { healthPermit?: boolean }; [key: string]: unknown }; [key: string]: unknown },
+  meal: { allergens?: string[]; dietary?: string[]; chef?: { verificationStatus?: string; verificationDocuments?: { healthPermit?: boolean };[key: string]: unknown };[key: string]: unknown },
   preferences: UserPreferences
 ): boolean {
   // STRICT EXCLUSION: Check allergies first (most important)
@@ -462,7 +462,7 @@ export function shouldIncludeMeal(
 
   // If user wants to avoid cross-contamination, check chef's food safety protocols
   if (preferences.foodSafetySettings.avoid_cross_contamination) {
-    const chef = (meal as { chef?: { verificationStatus?: string; verificationDocuments?: { healthPermit?: boolean }; [key: string]: unknown } }).chef;
+    const chef = (meal as { chef?: { verificationStatus?: string; verificationDocuments?: { healthPermit?: boolean };[key: string]: unknown } }).chef;
     if (!hasProperCrossContaminationProtocols(chef)) {
       return false;
     }
@@ -476,7 +476,7 @@ export function shouldIncludeMeal(
  * Calculate relevance score for a meal based on user preferences
  */
 export function getMealRelevanceScore(
-  meal: { allergens?: string[]; dietary?: string[]; chefId?: string | Id<'chefs'>; chef?: { _id?: string | Id<'chefs'>; verificationStatus?: string; verificationDocuments?: { healthPermit?: boolean }; [key: string]: unknown }; _id?: string | Id<'meals'>; id?: string; [key: string]: unknown },
+  meal: { allergens?: string[]; dietary?: string[]; chefId?: string | Id<'chefs'>; chef?: { _id?: string | Id<'chefs'>; verificationStatus?: string; verificationDocuments?: { healthPermit?: boolean };[key: string]: unknown }; _id?: string | Id<'meals'>; id?: string;[key: string]: unknown } | any,
   preferences: UserPreferences,
   baseScore: number = 0
 ): MealRelevanceScore {
@@ -492,7 +492,7 @@ export function getMealRelevanceScore(
 
   // Check cross-contamination safety (strict exclusion if preference is set)
   if (preferences.foodSafetySettings.avoid_cross_contamination) {
-    const chef = (meal as { chef?: { verificationStatus?: string; verificationDocuments?: { healthPermit?: boolean }; [key: string]: unknown } }).chef;
+    const chef = (meal as { chef?: { verificationStatus?: string; verificationDocuments?: { healthPermit?: boolean };[key: string]: unknown } }).chef;
     if (!hasProperCrossContaminationProtocols(chef)) {
       score -= 1000; // Heavy penalty
       reasons.push('Does not meet cross-contamination safety standards');
@@ -550,14 +550,14 @@ export function getMealRelevanceScore(
  */
 export async function getMealRelevanceScoreWithTasteProfile(
   ctx: DatabaseCtx,
-  meal: { allergens?: string[]; dietary?: string[]; cuisine?: string[]; price?: number; chefId?: string | Id<'chefs'>; chef?: { _id?: string | Id<'chefs'>; verificationStatus?: string; verificationDocuments?: { healthPermit?: boolean }; [key: string]: unknown }; _id?: string | Id<'meals'>; id?: string; [key: string]: unknown },
+  meal: { allergens?: string[]; dietary?: string[]; cuisine?: string[]; price?: number; chefId?: string | Id<'chefs'>; chef?: { _id?: string | Id<'chefs'>; verificationStatus?: string; verificationDocuments?: { healthPermit?: boolean };[key: string]: unknown }; _id?: string | Id<'meals'>; id?: string;[key: string]: unknown } | any,
   preferences: UserPreferences,
   tasteProfile: TasteProfile,
   baseScore: number = 0
 ): Promise<MealRelevanceScore> {
   // First get the base relevance score
   const baseResult = getMealRelevanceScore(meal, preferences, baseScore);
-  
+
   // If meal was excluded, return early
   if (baseResult.score < -500) {
     return baseResult;
@@ -570,7 +570,7 @@ export async function getMealRelevanceScoreWithTasteProfile(
   if (tasteProfile.likedMeals.length > 0 || tasteProfile.preferredCuisines.size > 0 || tasteProfile.preferredDietaryTags.size > 0) {
     const mealId = meal._id || meal.id;
     const isExactLikedMeal = mealId && tasteProfile.likedMeals.some((likedMeal) => likedMeal._id === mealId);
-    
+
     // Calculate max similarity to individual liked meals for reason message
     let maxIndividualSimilarity = 0;
     if (tasteProfile.likedMeals.length > 0 && !isExactLikedMeal) {
@@ -579,7 +579,7 @@ export async function getMealRelevanceScoreWithTasteProfile(
         maxIndividualSimilarity = Math.max(maxIndividualSimilarity, similarity);
       }
     }
-    
+
     const tasteScore = calculateTasteSimilarity(meal, tasteProfile);
     if (tasteScore > 0) {
       score += tasteScore;
@@ -600,24 +600,24 @@ export async function getMealRelevanceScoreWithTasteProfile(
 /**
  * Filter meals based on user preferences
  */
-export function filterMealsByPreferences<T extends { allergens?: string[]; dietary?: string[]; [key: string]: unknown }>(
+export function filterMealsByPreferences<T extends { allergens?: string[]; dietary?: string[];[key: string]: unknown } | any>(
   meals: T[],
   preferences: UserPreferences
 ): T[] {
-  return meals.filter((meal: T) => shouldIncludeMeal(meal, preferences));
+  return meals.filter((meal: T) => shouldIncludeMeal(meal as any, preferences));
 }
 
 /**
  * Filter and rank meals by user preferences
  */
-export function filterAndRankMealsByPreferences<T extends { allergens?: string[]; dietary?: string[]; rating?: number; [key: string]: unknown }>(
+export function filterAndRankMealsByPreferences<T extends { allergens?: string[]; dietary?: string[]; rating?: number;[key: string]: unknown } | any>(
   meals: T[],
   preferences: UserPreferences,
   baseScoreFn?: (meal: T) => number
 ): MealRelevanceScore<T>[] {
   const scoredMeals: MealRelevanceScore<T>[] = meals.map((meal: T) => {
     const baseScore = baseScoreFn ? baseScoreFn(meal) : ((meal as { rating?: number }).rating || 0) * 10;
-    return getMealRelevanceScore(meal, preferences, baseScore) as MealRelevanceScore<T>;
+    return getMealRelevanceScore(meal as any, preferences, baseScore) as MealRelevanceScore<T>;
   });
 
   // Filter out meals with allergens (score < -500)
@@ -633,7 +633,7 @@ export function filterAndRankMealsByPreferences<T extends { allergens?: string[]
  * Filter and rank meals by user preferences with taste profile analysis
  * This version uses liked meal patterns to boost similar meals
  */
-export async function filterAndRankMealsByPreferencesWithTasteProfile<T extends { allergens?: string[]; dietary?: string[]; cuisine?: string[]; price?: number; rating?: number; chefId?: string | Id<'chefs'>; [key: string]: unknown }>(
+export async function filterAndRankMealsByPreferencesWithTasteProfile<T extends { allergens?: string[]; dietary?: string[]; cuisine?: string[]; price?: number; rating?: number; chefId?: string | Id<'chefs'>;[key: string]: unknown } | any>(
   ctx: DatabaseCtx,
   meals: T[],
   preferences: UserPreferences,
@@ -643,7 +643,7 @@ export async function filterAndRankMealsByPreferencesWithTasteProfile<T extends 
   const scoredMeals: MealRelevanceScore<T>[] = await Promise.all(
     meals.map(async (meal: T) => {
       const baseScore = baseScoreFn ? baseScoreFn(meal) : ((meal as { rating?: number }).rating || 0) * 10;
-      return await getMealRelevanceScoreWithTasteProfile(ctx, meal, preferences, tasteProfile, baseScore) as MealRelevanceScore<T>;
+      return await getMealRelevanceScoreWithTasteProfile(ctx, meal as any, preferences, tasteProfile, baseScore) as MealRelevanceScore<T>;
     })
   );
 
