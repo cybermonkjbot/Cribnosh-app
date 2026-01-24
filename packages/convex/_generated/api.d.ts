@@ -9,6 +9,7 @@
  */
 
 import type * as actions_agora from "../actions/agora.js";
+import type * as actions_broadcast from "../actions/broadcast.js";
 import type * as actions_chefs from "../actions/chefs.js";
 import type * as actions_coupons from "../actions/coupons.js";
 import type * as actions_courseContent from "../actions/courseContent.js";
@@ -44,6 +45,7 @@ import type * as config_complianceIssues from "../config/complianceIssues.js";
 import type * as config_complianceScoring from "../config/complianceScoring.js";
 import type * as convex__generated_api from "../convex/_generated/api.js";
 import type * as convex__generated_server from "../convex/_generated/server.js";
+import type * as convex_emailTemplates from "../convex/emailTemplates.js";
 import type * as crons from "../crons.js";
 import type * as crons_autoRegister from "../crons/autoRegister.js";
 import type * as crons_cleanupExpiredOTPs from "../crons/cleanupExpiredOTPs.js";
@@ -55,9 +57,9 @@ import type * as disabled_delivery from "../disabled/delivery.js";
 import type * as disabled_orders from "../disabled/orders.js";
 import type * as emailAnalytics from "../emailAnalytics.js";
 import type * as emailAutomation from "../emailAutomation.js";
-import type * as emailTemplates from "../emailTemplates.js";
 import type * as email_configs from "../email_configs.js";
 import type * as featureFlags from "../featureFlags.js";
+import type * as filters from "../filters.js";
 import type * as games from "../games.js";
 import type * as http from "../http.js";
 import type * as internal_appleNotifications from "../internal/appleNotifications.js";
@@ -173,6 +175,7 @@ import type * as queries_analytics from "../queries/analytics.js";
 import type * as queries_banks from "../queries/banks.js";
 import type * as queries_blog from "../queries/blog.js";
 import type * as queries_bookings from "../queries/bookings.js";
+import type * as queries_broadcast from "../queries/broadcast.js";
 import type * as queries_cache from "../queries/cache.js";
 import type * as queries_careers from "../queries/careers.js";
 import type * as queries_carts from "../queries/carts.js";
@@ -285,6 +288,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "actions/agora": typeof actions_agora;
+  "actions/broadcast": typeof actions_broadcast;
   "actions/chefs": typeof actions_chefs;
   "actions/coupons": typeof actions_coupons;
   "actions/courseContent": typeof actions_courseContent;
@@ -320,6 +324,7 @@ declare const fullApi: ApiFromModules<{
   "config/complianceScoring": typeof config_complianceScoring;
   "convex/_generated/api": typeof convex__generated_api;
   "convex/_generated/server": typeof convex__generated_server;
+  "convex/emailTemplates": typeof convex_emailTemplates;
   crons: typeof crons;
   "crons/autoRegister": typeof crons_autoRegister;
   "crons/cleanupExpiredOTPs": typeof crons_cleanupExpiredOTPs;
@@ -331,9 +336,9 @@ declare const fullApi: ApiFromModules<{
   "disabled/orders": typeof disabled_orders;
   emailAnalytics: typeof emailAnalytics;
   emailAutomation: typeof emailAutomation;
-  emailTemplates: typeof emailTemplates;
   email_configs: typeof email_configs;
   featureFlags: typeof featureFlags;
+  filters: typeof filters;
   games: typeof games;
   http: typeof http;
   "internal/appleNotifications": typeof internal_appleNotifications;
@@ -449,6 +454,7 @@ declare const fullApi: ApiFromModules<{
   "queries/banks": typeof queries_banks;
   "queries/blog": typeof queries_blog;
   "queries/bookings": typeof queries_bookings;
+  "queries/broadcast": typeof queries_broadcast;
   "queries/cache": typeof queries_cache;
   "queries/careers": typeof queries_careers;
   "queries/carts": typeof queries_carts;
