@@ -477,7 +477,9 @@ export default defineSchema({
       vectorField: "embedding",
       dimensions: 1536,
       filterFields: ["status"],
-    }),
+    })
+    .index("by_chef", ["chefId"])
+    .index("by_status", ["status"]),
   // Bookings table
   bookings: defineTable({
     chef_id: v.id("chefs"),

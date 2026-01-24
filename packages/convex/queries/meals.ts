@@ -402,11 +402,15 @@ export const getAllByChefIdForManagement = query({
   args: {
     chefId: v.id('chefs'),
     sessionToken: v.optional(v.string()),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
   },
   returns: v.array(v.any()),
   handler: async (ctx: QueryCtx, args: {
     chefId: Id<'chefs'>;
     sessionToken?: string;
+    limit?: number;
+    offset?: number;
   }) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
@@ -447,11 +451,16 @@ export const getAllByChefIdForManagement = query({
     );
 
     // Sort by creation date (newest first)
-    return mealsWithReviews.sort((a, b) => {
+    const sortedMeals = mealsWithReviews.sort((a, b) => {
       const aTime = (a as { createdAt?: number }).createdAt || 0;
       const bTime = (b as { createdAt?: number }).createdAt || 0;
       return bTime - aTime;
     });
+
+    const limit = args.limit || 50;
+    const offset = args.offset || 0;
+
+    return sortedMeals.slice(offset, offset + limit);
   },
 });
 
