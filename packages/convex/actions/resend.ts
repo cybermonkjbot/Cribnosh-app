@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { Resend } from "resend";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
-import { EMAIL_TYPES } from "../emailTemplates";
+import { EMAIL_TYPES } from "../convex/emailTemplates";
 
 /**
  * Validates image URLs in HTML content and removes broken ones
