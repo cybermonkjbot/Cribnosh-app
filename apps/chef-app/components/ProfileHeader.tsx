@@ -1,6 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { Bell, MoreVertical, Star, CheckCircle2 } from 'lucide-react-native';
+import { Bell, CheckCircle2, MoreVertical, Star } from 'lucide-react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface ProfileHeaderProps {
   name: string;
@@ -12,6 +11,7 @@ interface ProfileHeaderProps {
     servings: number;
   };
   rating?: number;
+  fsaRating?: number;
   reviewCount?: number;
   isVerified?: boolean;
   specialties?: string[];
@@ -27,6 +27,7 @@ export function ProfileHeader({
   kitchenName,
   stats,
   rating,
+  fsaRating,
   reviewCount,
   isVerified,
   specialties,
@@ -100,6 +101,21 @@ export function ProfileHeader({
           <View style={styles.kitchenNameContainer}>
             <View style={styles.kitchenNameTag}>
               <Text style={styles.kitchenName}>{kitchenName}</Text>
+            </View>
+          </View>
+        )}
+        {fsaRating !== undefined && (
+          <View style={styles.fsaContainer}>
+            <Text style={styles.fsaLabel}>Food Hygiene Rating</Text>
+            <View style={styles.fsaStars}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  size={16}
+                  color={star <= fsaRating ? "#10B981" : "#E5E7EB"}
+                  fill={star <= fsaRating ? "#10B981" : "#E5E7EB"}
+                />
+              ))}
             </View>
           </View>
         )}
@@ -231,6 +247,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'Inter',
     color: '#FFFFFF',
+  },
+  fsaContainer: {
+    marginTop: 12,
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DCFCE7',
+  },
+  fsaLabel: {
+    fontSize: 12,
+    color: '#065F46',
+    fontWeight: '600',
+    marginBottom: 4,
+    fontFamily: 'Inter',
+  },
+  fsaStars: {
+    flexDirection: 'row',
+    gap: 2,
   },
   statsContainer: {
     flexDirection: 'row',

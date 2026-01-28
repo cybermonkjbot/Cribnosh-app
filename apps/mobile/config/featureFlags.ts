@@ -33,7 +33,9 @@ export const FEATURE_FLAGS = {
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;
 
+
 export const isFeatureEnabled = (key: FeatureFlagKey): boolean => {
-    // extended logic: could check remote config or user beta status here
+    // @deprecated: usage of this synchronous check is discouraged. 
+    // Please use `useFeatureFlag()` hook from `context/FeatureFlagContext` for dynamic updates.
     return FEATURE_FLAGS[key];
 };

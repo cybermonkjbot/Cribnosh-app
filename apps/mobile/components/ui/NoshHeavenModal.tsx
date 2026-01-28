@@ -1,4 +1,4 @@
-import { isFeatureEnabled } from '@/config/featureFlags';
+import { useFeatureFlag } from '@/context/FeatureFlagContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { api } from '@/convex/_generated/api';
 import { useCart } from '@/hooks/useCart';
@@ -46,6 +46,7 @@ const transformVideoToMeal = (video: VideoPost): MealData => {
 export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
   const router = useRouter();
   const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
+  const { isEnabled } = useFeatureFlag();
   const [noshHeavenMeals, setNoshHeavenMeals] = useState<MealData[]>([]);
   const [videoCursor, setVideoCursor] = useState<string | undefined>(undefined);
 
@@ -58,8 +59,9 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
   const fetchVideoFeed = useCallback(async () => {
     if (!isAuthenticated) return;
 
+
     // Feature Flag Check: Community Feed (Phase 3)
-    if (!isFeatureEnabled('ENABLE_COMMUNITY_FEED')) {
+    if (!isEnabled('ENABLE_COMMUNITY_FEED')) {
       setVideoFeedData({ success: true, data: { videos: [], nextCursor: undefined } });
       return;
     }

@@ -1,21 +1,14 @@
 import LiveScreenView from "@/components/ui/LiveViewerScreen";
-import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
+import { useFeatureFlag } from "@/context/FeatureFlagContext";
 import { router, useLocalSearchParams } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const LiveScreen = () => {
   const { sessionId } = useLocalSearchParams();
-  const featureFlags = useQuery(api.featureFlags.get, { group: 'mobile_home' });
+  const { isEnabled } = useFeatureFlag();
 
-  const isFeatureEnabled = (key: string) => {
-    if (!featureFlags) return true; // Default to true while loading
-    const flag = featureFlags.find((f: any) => f.key === key);
-    return flag ? flag.value : true;
-  };
-
-  const isLiveEnabled = isFeatureEnabled('mobile_live_sessions');
+  const isLiveEnabled = isEnabled('mobile_live_sessions');
 
   if (!isLiveEnabled) {
     return (

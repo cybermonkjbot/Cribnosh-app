@@ -1,3 +1,4 @@
+import { useFeatureFlag } from '@/context/FeatureFlagContext';
 import { api } from '@/convex/_generated/api';
 import { useQuery } from 'convex/react';
 import { BlurView } from 'expo-blur';
@@ -98,13 +99,8 @@ export default function ProfileScreen() {
     loadToken();
   }, [isAuthenticated]);
   // Feature Flags
-  const featureFlags = useQuery(api.featureFlags.get, { group: 'mobile_home' });
-  const isFeatureEnabled = (key: string) => {
-    if (!featureFlags) return true;
-    const flag = featureFlags.find((f: any) => f.key === key);
-    return flag ? flag.value : true;
-  };
-  const isNoshPointsEnabled = isFeatureEnabled('mobile_nosh_points');
+  const { isEnabled } = useFeatureFlag();
+  const isNoshPointsEnabled = isEnabled('mobile_nosh_points');
 
   // Get user by session token (reactive query)
   const user = useQuery(

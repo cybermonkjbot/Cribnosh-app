@@ -270,6 +270,19 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
       return;
     }
 
+    // Natasha's Law Compliance Check
+    if (formData.status === 'available' && formData.ingredients.length === 0) {
+      showError(
+        'Compliance Error',
+        'To list a meal as Available, you must list all ingredients and allergens.'
+      );
+      // Force status to unavailable if they try to bypass
+      setFormData({ ...formData, status: 'unavailable' });
+      // Navigate to ingredients step
+      setCurrentStep(STEPS.findIndex(s => s.id === 'ingredients'));
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -525,20 +538,25 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
         );
 
       case 'status':
+        const hasIngredients = formData.ingredients.length > 0;
+
         return (
           <View style={styles.stepContent}>
             <View style={styles.statusOptions}>
               <TouchableOpacity
-                onPress={() => setFormData({ ...formData, status: 'available' })}
+                onPress={() => hasIngredients ? setFormData({ ...formData, status: 'available' }) : null}
                 style={[
                   styles.statusCard,
                   formData.status === 'available' && styles.statusCardSelected,
+                  !hasIngredients && { opacity: 0.5, backgroundColor: '#F3F4F6', borderColor: '#E5E7EB' }
                 ]}
+                disabled={!hasIngredients}
               >
                 <Text
                   style={[
                     styles.statusCardText,
                     formData.status === 'available' && styles.statusCardTextSelected,
+                    !hasIngredients && { color: '#9CA3AF' }
                   ]}
                 >
                   Available
@@ -567,7 +585,19 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
                 </Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.hintText}>Set whether this meal is currently available for orders</Text>
+
+            {!hasIngredients ? (
+              <View style={{ marginTop: 24, padding: 16, backgroundColor: '#FEF2F2', borderRadius: 12, borderWidth: 1, borderColor: '#FECACA' }}>
+                <Text style={{ color: '#991B1B', fontWeight: '700', fontSize: 14, marginBottom: 4 }}>
+                  ⚠️ Natasha's Law Compliance
+                </Text>
+                <Text style={{ color: '#B91C1C', fontSize: 13, lineHeight: 18 }}>
+                  You cannot list this meal as "Available" until you have added a full list of ingredients and allergens. Please go back to the "Ingredients" step.
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.hintText}>Set whether this meal is currently available for orders</Text>
+            )}
           </View>
         );
 

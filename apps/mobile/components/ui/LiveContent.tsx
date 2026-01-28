@@ -41,11 +41,11 @@ import { LiveStream } from "@/types/customer";
 import { useQuery } from "convex/react";
 
 // Global toast imports
+import { useFeatureFlag } from "@/context/FeatureFlagContext";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
 import { navigateToSignIn } from "@/utils/signInNavigationGuard";
 import { showError, showInfo, showSuccess, showWarning } from "../../lib/GlobalToastManager";
-import { isFeatureEnabled } from "@/config/featureFlags";
 
 interface LiveKitchen {
   id: string;
@@ -363,6 +363,8 @@ export default function LiveContent({
   const [videoPlayerMeals, setVideoPlayerMeals] = useState<MealData[]>([]);
   const [videoPlayerStartIndex, setVideoPlayerStartIndex] = useState(0);
 
+  const { isEnabled } = useFeatureFlag();
+
   // Auth and cart hooks
   const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
   const { addToCart } = useCart();
@@ -468,7 +470,7 @@ export default function LiveContent({
   // Process live streams data from API
   const liveKitchens = useMemo(() => {
     // Feature Flag Check: Live Streaming (Phase 3)
-    if (!isFeatureEnabled('ENABLE_LIVE_STREAMING')) {
+    if (!isEnabled('ENABLE_LIVE_STREAMING')) {
       return [];
     }
 
@@ -486,288 +488,315 @@ export default function LiveContent({
 
     // Return empty array when not authenticated or no API results
     return [];
-    showInfo(
-      `Found ${transformedData.length} live streams`,
-      "Live Content"
-    );
-  }
-    return transformedData;
-}
+  }, [liveStreamsData, isAuthenticated, transformLiveStreamsData]);
 
-// Return empty array when not authenticated or no API results
-return [];
-}, [liveStreamsData, isAuthenticated, transformLiveStreamsData]);
+  // Error state is shown in UI - no toast needed
 
-// Error state is shown in UI - no toast needed
+  const handleKitchenPress = useCallback((kitchen: LiveKitchen) => {
+    // Pass session ID and kitchen data when opening live viewer
+    setSelectedSessionId(kitchen.id);
+    setSelectedKitchen(kitchen);
+    setShowLiveModal(true);
+  }, []);
 
-const handleKitchenPress = useCallback((kitchen: LiveKitchen) => {
-  // Pass session ID and kitchen data when opening live viewer
-  setSelectedSessionId(kitchen.id);
-  setSelectedKitchen(kitchen);
-  setShowLiveModal(true);
-}, []);
+  const handleCloseLiveModal = useCallback(() => {
+    setShowLiveModal(false);
+    setSelectedSessionId(null);
+    setSelectedKitchen(null);
+  }, []);
 
-const handleCloseLiveModal = useCallback(() => {
-  setShowLiveModal(false);
-  setSelectedSessionId(null);
-  setSelectedKitchen(null);
-}, []);
-
-// Function to format numbers to K, M format
-const formatNumber = useCallback((num: number): string => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, "") + "K";
-  }
-  return num.toString();
-}, []);
-
-const filteredKitchens = useMemo(() => {
-  return liveKitchens.filter((kitchen) => {
-    // For now, show all kitchens since we removed the category filter
-    return true;
-  });
-}, [liveKitchens]);
-
-const handleRefresh = useCallback(async () => {
-  if (externalOnRefresh) {
-    externalOnRefresh();
-  } else {
-    setRefreshing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setRefreshing(false);
-  }
-}, [externalOnRefresh]);
-
-const handleScroll = useCallback(
-  (event: any) => {
-    if (externalOnScroll) {
-      externalOnScroll(event);
-    } else {
-      const y = event.nativeEvent.contentOffset.y;
-      setIsHeaderSticky(y > 0);
+  // Function to format numbers to K, M format
+  const formatNumber = useCallback((num: number): string => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1).replace(/\.0$/, "") + "K";
     }
-  },
-  [externalOnScroll]
-);
+    return num.toString();
+  }, []);
 
-const contentFadeStyle = useAnimatedStyle(() => {
-  return {
-    opacity: contentFadeAnim.value,
-  };
-});
-
-const handleCategoryPress = useCallback((category: NoshHeavenCategory) => {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  setActiveCategory(category);
-  if (externalOnCategoryChange) {
-    externalOnCategoryChange(category);
-  }
-}, [externalOnCategoryChange]);
-
-// Transform video to MealData format for NoshHeavenPlayer
-const transformVideoToMealData = useCallback((video: any): MealData => {
-  // Format price if meal is linked, otherwise empty string (will hide price and button)
-  let price = '';
-  if (video.mealPrice && typeof video.mealPrice === 'number') {
-    // Convert cents to pounds
-    price = `£${(video.mealPrice / 100).toFixed(2)}`;
-  }
-
-  return {
-    id: video._id,
-    videoSource: video.videoUrl || '',
-    title: video.title,
-    description: video.description || '',
-    kitchenName: video.creator?.name || 'Unknown Chef',
-    price,
-    chef: video.creator?.name,
-    likes: video.likesCount || 0,
-    comments: video.commentsCount || 0,
-    mealId: video.mealId, // Include mealId if video is linked to a meal
-  };
-}, []);
-
-// Handle video press - open NoshHeavenPlayer
-const handleVideoPress = useCallback(async (videoId: string) => {
-  try {
-    const convex = getConvexClient();
-    const video = await convex.query(api.queries.videoPosts.getVideoById, {
-      videoId: videoId as any,
+  const filteredKitchens = useMemo(() => {
+    return liveKitchens.filter((kitchen) => {
+      // For now, show all kitchens since we removed the category filter
+      return true;
     });
+  }, [liveKitchens]);
 
-    if (!video) {
-      console.error('Video not found');
-      return;
+  const handleRefresh = useCallback(async () => {
+    if (externalOnRefresh) {
+      externalOnRefresh();
+    } else {
+      setRefreshing(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setRefreshing(false);
     }
+  }, [externalOnRefresh]);
 
-    const mealData = transformVideoToMealData(video);
-    setVideoPlayerMeals([mealData]);
-    setVideoPlayerStartIndex(0);
-    setShowVideoPlayer(true);
-  } catch (error) {
-    console.error('Error fetching video:', error);
-  }
-}, [transformVideoToMealData]);
-
-// Handle video card press - open NoshHeavenPlayer with all videos
-const handleVideoCardPress = useCallback((video: any) => {
-  // Get all videos for the feed
-  const allVideos = videosData?.videos || [];
-  const allMeals = allVideos.map(transformVideoToMealData);
-
-  // Find the index of the clicked video
-  const videoIndex = allMeals.findIndex((m: MealData) => m.id === video._id);
-
-  setVideoPlayerMeals(allMeals);
-  setVideoPlayerStartIndex(videoIndex >= 0 ? videoIndex : 0);
-  setShowVideoPlayer(true);
-}, [videosData, transformVideoToMealData]);
-
-// Close video player
-const handleCloseVideoPlayer = useCallback(() => {
-  setShowVideoPlayer(false);
-  setVideoPlayerMeals([]);
-  setVideoPlayerStartIndex(0);
-}, []);
-
-// Handle add to cart
-const handleAddToCart = useCallback(
-  async (mealId: string) => {
-    // Find the meal data to get mealId
-    const meal = videoPlayerMeals.find((m) => m.id === mealId);
-    if (!meal?.mealId) {
-      showError('Cannot add to cart', 'This video is not linked to a meal');
-      return;
-    }
-
-    // Prevent rapid clicks
-    if (isAddingToCart) return;
-
-    // Check authentication
-    if (!isAuthenticated || !token) {
-      showWarning('Authentication Required', 'Please sign in to add items to cart');
-      navigateToSignIn();
-      return;
-    }
-
-    // Check if token is expired
-    const isExpired = checkTokenExpiration();
-    if (isExpired) {
-      await refreshAuthState();
-      showWarning('Session Expired', 'Please sign in again to add items to cart');
-      navigateToSignIn();
-      return;
-    }
-
-    try {
-      setIsAddingToCart(true);
-      const result = await addToCart(meal.mealId, 1);
-      if (result.success) {
-        showSuccess('Added to Cart!', result.data?.item?.name || meal.title);
+  const handleScroll = useCallback(
+    (event: any) => {
+      if (externalOnScroll) {
+        externalOnScroll(event);
+      } else {
+        const y = event.nativeEvent.contentOffset.y;
+        setIsHeaderSticky(y > 0);
       }
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to add item to cart';
-      showError('Failed to add item to cart', errorMessage);
-    } finally {
-      setIsAddingToCart(false);
-    }
-  },
-  [videoPlayerMeals, isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCart, isAddingToCart]
-);
+    },
+    [externalOnScroll]
+  );
 
-// Handle like video
-const handleLikeVideo = useCallback(
-  async (videoId: string) => {
-    if (!isAuthenticated) {
-      showWarning('Authentication Required', 'Please sign in to like videos');
-      navigateToSignIn();
-      return;
+  const contentFadeStyle = useAnimatedStyle(() => {
+    return {
+      opacity: contentFadeAnim.value,
+    };
+  });
+
+  const handleCategoryPress = useCallback((category: NoshHeavenCategory) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setActiveCategory(category);
+    if (externalOnCategoryChange) {
+      externalOnCategoryChange(category);
+    }
+  }, [externalOnCategoryChange]);
+
+  // Transform video to MealData format for NoshHeavenPlayer
+  const transformVideoToMealData = useCallback((video: any): MealData => {
+    // Format price if meal is linked, otherwise empty string (will hide price and button)
+    let price = '';
+    if (video.mealPrice && typeof video.mealPrice === 'number') {
+      // Convert cents to pounds
+      price = `£${(video.mealPrice / 100).toFixed(2)}`;
     }
 
+    return {
+      id: video._id,
+      videoSource: video.videoUrl || '',
+      title: video.title,
+      description: video.description || '',
+      kitchenName: video.creator?.name || 'Unknown Chef',
+      price,
+      chef: video.creator?.name,
+      likes: video.likesCount || 0,
+      comments: video.commentsCount || 0,
+      mealId: video.mealId, // Include mealId if video is linked to a meal
+    };
+  }, []);
+
+  // Handle video press - open NoshHeavenPlayer
+  const handleVideoPress = useCallback(async (videoId: string) => {
     try {
       const convex = getConvexClient();
-      const sessionToken = await getSessionToken();
-      if (!sessionToken) {
-        throw new Error('Not authenticated');
-      }
-
-      // Optimistically update UI
-      setVideoPlayerMeals((prev) =>
-        prev.map((meal) =>
-          meal.id === videoId
-            ? { ...meal, likes: meal.likes + 1 }
-            : meal
-        )
-      );
-
-      const result = await convex.action(api.actions.search.customerLikeVideo, {
-        sessionToken,
-        videoId,
+      const video = await convex.query(api.queries.videoPosts.getVideoById, {
+        videoId: videoId as any,
       });
 
-      if (result.success === false) {
-        // Revert optimistic update
+      if (!video) {
+        console.error('Video not found');
+        return;
+      }
+
+      const mealData = transformVideoToMealData(video);
+      setVideoPlayerMeals([mealData]);
+      setVideoPlayerStartIndex(0);
+      setShowVideoPlayer(true);
+    } catch (error) {
+      console.error('Error fetching video:', error);
+    }
+  }, [transformVideoToMealData]);
+
+  // Handle video card press - open NoshHeavenPlayer with all videos
+  const handleVideoCardPress = useCallback((video: any) => {
+    // Get all videos for the feed
+    const allVideos = videosData?.videos || [];
+    const allMeals = allVideos.map(transformVideoToMealData);
+
+    // Find the index of the clicked video
+    const videoIndex = allMeals.findIndex((m: MealData) => m.id === video._id);
+
+    setVideoPlayerMeals(allMeals);
+    setVideoPlayerStartIndex(videoIndex >= 0 ? videoIndex : 0);
+    setShowVideoPlayer(true);
+  }, [videosData, transformVideoToMealData]);
+
+  // Close video player
+  const handleCloseVideoPlayer = useCallback(() => {
+    setShowVideoPlayer(false);
+    setVideoPlayerMeals([]);
+    setVideoPlayerStartIndex(0);
+  }, []);
+
+  // Handle add to cart
+  const handleAddToCart = useCallback(
+    async (mealId: string) => {
+      // Find the meal data to get mealId
+      const meal = videoPlayerMeals.find((m) => m.id === mealId);
+      if (!meal?.mealId) {
+        showError('Cannot add to cart', 'This video is not linked to a meal');
+        return;
+      }
+
+      // Prevent rapid clicks
+      if (isAddingToCart) return;
+
+      // Check authentication
+      if (!isAuthenticated || !token) {
+        showWarning('Authentication Required', 'Please sign in to add items to cart');
+        navigateToSignIn();
+        return;
+      }
+
+      // Check if token is expired
+      const isExpired = checkTokenExpiration();
+      if (isExpired) {
+        await refreshAuthState();
+        showWarning('Session Expired', 'Please sign in again to add items to cart');
+        navigateToSignIn();
+        return;
+      }
+
+      try {
+        setIsAddingToCart(true);
+        const result = await addToCart(meal.mealId, 1);
+        if (result.success) {
+          showSuccess('Added to Cart!', result.data?.item?.name || meal.title);
+        }
+      } catch (error: any) {
+        const errorMessage = error?.message || 'Failed to add item to cart';
+        showError('Failed to add item to cart', errorMessage);
+      } finally {
+        setIsAddingToCart(false);
+      }
+    },
+    [videoPlayerMeals, isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCart, isAddingToCart]
+  );
+
+  // Handle like video
+  const handleLikeVideo = useCallback(
+    async (videoId: string) => {
+      if (!isAuthenticated) {
+        showWarning('Authentication Required', 'Please sign in to like videos');
+        navigateToSignIn();
+        return;
+      }
+
+      try {
+        const convex = getConvexClient();
+        const sessionToken = await getSessionToken();
+        if (!sessionToken) {
+          throw new Error('Not authenticated');
+        }
+
+        // Optimistically update UI
         setVideoPlayerMeals((prev) =>
           prev.map((meal) =>
             meal.id === videoId
-              ? { ...meal, likes: Math.max(0, meal.likes - 1) }
+              ? { ...meal, likes: meal.likes + 1 }
               : meal
           )
         );
-        throw new Error(result.error || 'Failed to like video');
-      }
-    } catch (error: any) {
-      showError('Failed to like video', error?.message || 'Please try again');
-    }
-  },
-  [isAuthenticated]
-);
 
-// Handle share video
-const handleShareVideo = useCallback(
-  async (videoId: string) => {
-    try {
-      const meal = videoPlayerMeals.find((m) => m.id === videoId);
-      if (!meal) return;
+        const result = await convex.action(api.actions.search.customerLikeVideo, {
+          sessionToken,
+          videoId,
+        });
 
-      // Create share message
-      const shareMessage = `Check out this video: ${meal.title}\n\n${meal.videoSource}`;
-
-      // Use native share sheet
-      const result = await Share.share({
-        message: shareMessage,
-        title: meal.title,
-      });
-
-      // Record share in backend if authenticated
-      if (isAuthenticated && result.action === Share.sharedAction) {
-        try {
-          const convex = getConvexClient();
-          const sessionToken = await getSessionToken();
-          if (sessionToken) {
-            await convex.action(api.actions.search.customerShareVideo, {
-              sessionToken,
-              videoId,
-              platform: 'other',
-            });
-          }
-        } catch (error) {
-          // Silently fail - share was successful even if backend recording fails
-          if (__DEV__) console.error('Failed to record share:', error);
+        if (result.success === false) {
+          // Revert optimistic update
+          setVideoPlayerMeals((prev) =>
+            prev.map((meal) =>
+              meal.id === videoId
+                ? { ...meal, likes: Math.max(0, meal.likes - 1) }
+                : meal
+            )
+          );
+          throw new Error(result.error || 'Failed to like video');
         }
+      } catch (error: any) {
+        showError('Failed to like video', error?.message || 'Please try again');
       }
-    } catch (error: any) {
-      showError('Failed to share video', error?.message || 'Please try again');
-    }
-  },
-  [videoPlayerMeals, isAuthenticated]
-);
+    },
+    [isAuthenticated]
+  );
 
-// Memoized render functions for FlatList
-const renderAllContentItem = useCallback(({ item }: { item: any }) => {
-  if (item.type === 'recipe') {
+  // Handle share video
+  const handleShareVideo = useCallback(
+    async (videoId: string) => {
+      try {
+        const meal = videoPlayerMeals.find((m) => m.id === videoId);
+        if (!meal) return;
+
+        // Create share message
+        const shareMessage = `Check out this video: ${meal.title}\n\n${meal.videoSource}`;
+
+        // Use native share sheet
+        const result = await Share.share({
+          message: shareMessage,
+          title: meal.title,
+        });
+
+        // Record share in backend if authenticated
+        if (isAuthenticated && result.action === Share.sharedAction) {
+          try {
+            const convex = getConvexClient();
+            const sessionToken = await getSessionToken();
+            if (sessionToken) {
+              await convex.action(api.actions.search.customerShareVideo, {
+                sessionToken,
+                videoId,
+                platform: 'other',
+              });
+            }
+          } catch (error) {
+            // Silently fail - share was successful even if backend recording fails
+            if (__DEV__) console.error('Failed to record share:', error);
+          }
+        }
+      } catch (error: any) {
+        showError('Failed to share video', error?.message || 'Please try again');
+      }
+    },
+    [videoPlayerMeals, isAuthenticated]
+  );
+
+  // Memoized render functions for FlatList
+  const renderAllContentItem = useCallback(({ item }: { item: any }) => {
+    if (item.type === 'recipe') {
+      return (
+        <RecipeCard
+          recipe={item}
+          onPress={(recipeId) => setSelectedRecipeId(recipeId)}
+          onVideoPress={handleVideoPress}
+          hasVideo={!!item.videoId}
+        />
+      );
+    } else if (item.type === 'story') {
+      return (
+        <StoryCard
+          story={item}
+          onPress={(storyId) => setSelectedStoryId(storyId)}
+          onVideoPress={handleVideoPress}
+          hasVideo={!!item.videoId}
+        />
+      );
+    } else if (item.type === 'video') {
+      return (
+        <VideoCard
+          video={item}
+          onPress={handleVideoCardPress}
+        />
+      );
+    } else if (item.type === 'live') {
+      return (
+        <KitchenCard
+          kitchen={item}
+          onPress={handleKitchenPress}
+          formatNumber={formatNumber}
+        />
+      );
+    }
+    return null;
+  }, [handleVideoPress, handleVideoCardPress, handleKitchenPress, formatNumber]);
+
+  const renderRecipeItem = useCallback(({ item }: { item: any }) => {
     return (
       <RecipeCard
         recipe={item}
@@ -776,23 +805,29 @@ const renderAllContentItem = useCallback(({ item }: { item: any }) => {
         hasVideo={!!item.videoId}
       />
     );
-  } else if (item.type === 'story') {
-    return (
-      <StoryCard
-        story={item}
-        onPress={(storyId) => setSelectedStoryId(storyId)}
-        onVideoPress={handleVideoPress}
-        hasVideo={!!item.videoId}
-      />
-    );
-  } else if (item.type === 'video') {
-    return (
-      <VideoCard
-        video={item}
-        onPress={handleVideoCardPress}
-      />
-    );
-  } else if (item.type === 'live') {
+  }, [handleVideoPress]);
+
+  const renderStoryItem = useCallback(({ item }: { item: any }) => {
+    if (item.type === 'story') {
+      return (
+        <StoryCard
+          story={item}
+          onPress={(storyId) => setSelectedStoryId(storyId)}
+          onVideoPress={handleVideoPress}
+          hasVideo={!!item.videoId}
+        />
+      );
+    } else {
+      return (
+        <VideoCard
+          video={item}
+          onPress={handleVideoCardPress}
+        />
+      );
+    }
+  }, [handleVideoPress, handleVideoCardPress]);
+
+  const renderLiveItem = useCallback(({ item }: { item: LiveKitchen }) => {
     return (
       <KitchenCard
         kitchen={item}
@@ -800,247 +835,88 @@ const renderAllContentItem = useCallback(({ item }: { item: any }) => {
         formatNumber={formatNumber}
       />
     );
-  }
-  return null;
-}, [handleVideoPress, handleVideoCardPress, handleKitchenPress, formatNumber]);
+  }, [handleKitchenPress, formatNumber]);
 
-const renderRecipeItem = useCallback(({ item }: { item: any }) => {
-  return (
-    <RecipeCard
-      recipe={item}
-      onPress={(recipeId) => setSelectedRecipeId(recipeId)}
-      onVideoPress={handleVideoPress}
-      hasVideo={!!item.videoId}
-    />
-  );
-}, [handleVideoPress]);
+  // Key extractors
+  const keyExtractorAll = useCallback((item: any) => {
+    if (item.type === 'recipe') return `recipe-${item._id}`;
+    if (item.type === 'story') return `story-${item._id}`;
+    if (item.type === 'video') return `video-${item._id}`;
+    if (item.type === 'live') return `live-${item.id}`;
+    return `item-${item._id || item.id}`;
+  }, []);
 
-const renderStoryItem = useCallback(({ item }: { item: any }) => {
-  if (item.type === 'story') {
-    return (
-      <StoryCard
-        story={item}
-        onPress={(storyId) => setSelectedStoryId(storyId)}
-        onVideoPress={handleVideoPress}
-        hasVideo={!!item.videoId}
-      />
-    );
-  } else {
-    return (
-      <VideoCard
-        video={item}
-        onPress={handleVideoCardPress}
-      />
-    );
-  }
-}, [handleVideoPress, handleVideoCardPress]);
+  const keyExtractorRecipe = useCallback((item: any) => item._id, []);
+  const keyExtractorStory = useCallback((item: any) => item._id, []);
+  const keyExtractorLive = useCallback((item: LiveKitchen) => item.id, []);
 
-const renderLiveItem = useCallback(({ item }: { item: LiveKitchen }) => {
-  return (
-    <KitchenCard
-      kitchen={item}
-      onPress={handleKitchenPress}
-      formatNumber={formatNumber}
-    />
-  );
-}, [handleKitchenPress, formatNumber]);
+  const renderContent = () => {
+    switch (activeCategory) {
+      case 'all':
+        // Show all content types combined
+        const isLoadingAll = (activeCategory === 'all' && recipesData === undefined) ||
+          (activeCategory === 'all' && storiesData === undefined) ||
+          (activeCategory === 'all' && videosData === undefined);
+        const allRecipesForAll = recipesData?.recipes || [];
+        const allStoriesForAll = storiesData || [];
+        const allVideosForAll = videosData?.videos || [];
+        const allLiveKitchensForAll = filteredKitchens || [];
 
-// Key extractors
-const keyExtractorAll = useCallback((item: any) => {
-  if (item.type === 'recipe') return `recipe-${item._id}`;
-  if (item.type === 'story') return `story-${item._id}`;
-  if (item.type === 'video') return `video-${item._id}`;
-  if (item.type === 'live') return `live-${item.id}`;
-  return `item-${item._id || item.id}`;
-}, []);
+        // Transform each content type with metadata
+        const recipesWithType = allRecipesForAll.map((recipe: any) => ({ type: 'recipe', ...recipe }));
+        const storiesWithType = allStoriesForAll.map((story: any) => ({ type: 'story', ...story }));
+        const videosWithType = allVideosForAll.map((video: any) => ({ type: 'video', ...video }));
+        const liveWithType = allLiveKitchensForAll.map((kitchen: any) => ({ type: 'live', ...kitchen }));
 
-const keyExtractorRecipe = useCallback((item: any) => item._id, []);
-const keyExtractorStory = useCallback((item: any) => item._id, []);
-const keyExtractorLive = useCallback((item: LiveKitchen) => item.id, []);
+        // Interleave content types for better mixing
+        const allContentArrays = [
+          recipesWithType,
+          storiesWithType,
+          videosWithType,
+          liveWithType,
+        ].filter(arr => arr.length > 0); // Remove empty arrays
 
-const renderContent = () => {
-  switch (activeCategory) {
-    case 'all':
-      // Show all content types combined
-      const isLoadingAll = (activeCategory === 'all' && recipesData === undefined) ||
-        (activeCategory === 'all' && storiesData === undefined) ||
-        (activeCategory === 'all' && videosData === undefined);
-      const allRecipesForAll = recipesData?.recipes || [];
-      const allStoriesForAll = storiesData || [];
-      const allVideosForAll = videosData?.videos || [];
-      const allLiveKitchensForAll = filteredKitchens || [];
-
-      // Transform each content type with metadata
-      const recipesWithType = allRecipesForAll.map((recipe: any) => ({ type: 'recipe', ...recipe }));
-      const storiesWithType = allStoriesForAll.map((story: any) => ({ type: 'story', ...story }));
-      const videosWithType = allVideosForAll.map((video: any) => ({ type: 'video', ...video }));
-      const liveWithType = allLiveKitchensForAll.map((kitchen: any) => ({ type: 'live', ...kitchen }));
-
-      // Interleave content types for better mixing
-      const allContentArrays = [
-        recipesWithType,
-        storiesWithType,
-        videosWithType,
-        liveWithType,
-      ].filter(arr => arr.length > 0); // Remove empty arrays
-
-      const allContent: any[] = [];
-      const maxLength = Math.max(
-        recipesWithType.length,
-        storiesWithType.length,
-        videosWithType.length,
-        liveWithType.length
-      );
-
-      // Round-robin mixing: take one from each array in turn
-      for (let i = 0; i < maxLength; i++) {
-        allContentArrays.forEach((arr) => {
-          if (arr[i]) {
-            allContent.push(arr[i]);
-          }
-        });
-      }
-
-      if (isLoadingAll) {
-        return <SkeletonGrid count={6} />;
-      }
-
-      if (allContent.length === 0) {
-        return (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateSubtitle}>
-              Discover recipes, stories, videos, and live cooking sessions
-            </Text>
-          </View>
+        const allContent: any[] = [];
+        const maxLength = Math.max(
+          recipesWithType.length,
+          storiesWithType.length,
+          videosWithType.length,
+          liveWithType.length
         );
-      }
 
-      return (
-        <View style={styles.kitchensContainer}>
-          <FlatList
-            data={allContent}
-            renderItem={renderAllContentItem}
-            keyExtractor={keyExtractorAll}
-            numColumns={3}
-            contentContainerStyle={{ gap: 12 }}
-            columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
-            scrollEnabled={false}
-            // Performance optimizations
-            removeClippedSubviews={true}
-            maxToRenderPerBatch={9}
-            windowSize={10}
-            initialNumToRender={9}
-            updateCellsBatchingPeriod={50}
-          />
-        </View>
-      );
+        // Round-robin mixing: take one from each array in turn
+        for (let i = 0; i < maxLength; i++) {
+          allContentArrays.forEach((arr) => {
+            if (arr[i]) {
+              allContent.push(arr[i]);
+            }
+          });
+        }
 
-    case 'recipes':
-      if (recipesData === undefined) {
-        return <SkeletonGrid count={6} />;
-      }
-      if (!recipesData?.recipes || recipesData.recipes.length === 0) {
+        if (isLoadingAll) {
+          return <SkeletonGrid count={6} />;
+        }
+
+        if (allContent.length === 0) {
+          return (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateSubtitle}>
+                Discover recipes, stories, videos, and live cooking sessions
+              </Text>
+            </View>
+          );
+        }
+
         return (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateSubtitle}>
-              Discover amazing recipes from our community chefs
-            </Text>
-          </View>
-        );
-      }
-      return (
-        <View style={styles.kitchensContainer}>
-          <FlatList
-            data={recipesData.recipes}
-            renderItem={renderRecipeItem}
-            keyExtractor={keyExtractorRecipe}
-            numColumns={3}
-            contentContainerStyle={{ gap: 12 }}
-            columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
-            scrollEnabled={false}
-            // Performance optimizations
-            removeClippedSubviews={true}
-            maxToRenderPerBatch={9}
-            windowSize={10}
-            initialNumToRender={9}
-            updateCellsBatchingPeriod={50}
-          />
-        </View>
-      );
-
-    case 'stories':
-      const isLoadingStories = storiesData === undefined || videosData === undefined;
-      const hasStories = storiesData && storiesData.length > 0;
-      const hasVideos = videosData && videosData.videos && videosData.videos.length > 0;
-
-      if (isLoadingStories) {
-        return <SkeletonGrid count={6} />;
-      }
-      if (!hasStories && !hasVideos) {
-        return (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateSubtitle}>
-              Watch videos and read engaging food stories
-            </Text>
-          </View>
-        );
-      }
-
-      // Combine stories and videos
-      const allStories = [
-        ...(storiesData || []).map((story: any) => ({ type: 'story', ...story })),
-        ...(videosData?.videos || []).map((video: any) => ({ type: 'video', ...video })),
-      ];
-
-      return (
-        <View style={styles.kitchensContainer}>
-          <FlatList
-            data={allStories}
-            renderItem={renderStoryItem}
-            keyExtractor={keyExtractorStory}
-            numColumns={3}
-            contentContainerStyle={{ gap: 12 }}
-            columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
-            scrollEnabled={false}
-            // Performance optimizations
-            removeClippedSubviews={true}
-            maxToRenderPerBatch={9}
-            windowSize={10}
-            initialNumToRender={9}
-            updateCellsBatchingPeriod={50}
-          />
-        </View>
-      );
-
-    case 'live':
-    default:
-      // Show skeleton while loading live streams
-      // Show skeleton if: loading session token, or authenticated and loading live streams
-      const isLoadingLive = isLoadingSessionToken ||
-        (isAuthenticated && sessionToken && liveStreamsData === null && !liveStreamsError);
-
-      if (isLoadingLive) {
-        return <SkeletonGrid count={6} />;
-      }
-
-      return (
-        <View style={styles.kitchensContainer}>
-          {filteredKitchens.length > 0 ? (
+          <View style={styles.kitchensContainer}>
             <FlatList
-              data={filteredKitchens}
-              renderItem={renderLiveItem}
-              keyExtractor={keyExtractorLive}
+              data={allContent}
+              renderItem={renderAllContentItem}
+              keyExtractor={keyExtractorAll}
               numColumns={3}
               contentContainerStyle={{ gap: 12 }}
               columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
               scrollEnabled={false}
-              ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateSubtitle}>
-                    You&apos;ll be able to order meals right from the stove from here when anyone goes live
-                  </Text>
-                </View>
-              }
               // Performance optimizations
               removeClippedSubviews={true}
               maxToRenderPerBatch={9}
@@ -1048,113 +924,229 @@ const renderContent = () => {
               initialNumToRender={9}
               updateCellsBatchingPeriod={50}
             />
-          ) : (
+          </View>
+        );
+
+      case 'recipes':
+        if (recipesData === undefined) {
+          return <SkeletonGrid count={6} />;
+        }
+        if (!recipesData?.recipes || recipesData.recipes.length === 0) {
+          return (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateSubtitle}>
-                You&apos;ll be able to order meals right from the stove from here when anyone goes live
+                Discover amazing recipes from our community chefs
               </Text>
             </View>
-          )}
-        </View>
-      );
-  }
-};
-
-return (
-  <>
-    <LinearGradient
-      colors={["#f8e6f0", "#faf2e8"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
-      <Animated.ScrollView
-        ref={scrollViewRef}
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-        bounces={true}
-        alwaysBounceVertical={true}
-        contentContainerStyle={{
-          paddingBottom: 100,
-          paddingTop: isHeaderSticky ? 0 : 320,
-          paddingHorizontal: 0,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#FF3B30"
-            colors={["#FF3B30"]}
-            progressBackgroundColor="rgba(255, 255, 255, 0.8)"
-            progressViewOffset={0}
-            title="Pull to refresh"
-            titleColor="#FF3B30"
-          />
+          );
         }
-        onScroll={externalOnScroll || handleScroll}
-        scrollEventThrottle={8}
+        return (
+          <View style={styles.kitchensContainer}>
+            <FlatList
+              data={recipesData.recipes}
+              renderItem={renderRecipeItem}
+              keyExtractor={keyExtractorRecipe}
+              numColumns={3}
+              contentContainerStyle={{ gap: 12 }}
+              columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
+              scrollEnabled={false}
+              // Performance optimizations
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={9}
+              windowSize={10}
+              initialNumToRender={9}
+              updateCellsBatchingPeriod={50}
+            />
+          </View>
+        );
+
+      case 'stories':
+        const isLoadingStories = storiesData === undefined || videosData === undefined;
+        const hasStories = storiesData && storiesData.length > 0;
+        const hasVideos = videosData && videosData.videos && videosData.videos.length > 0;
+
+        if (isLoadingStories) {
+          return <SkeletonGrid count={6} />;
+        }
+        if (!hasStories && !hasVideos) {
+          return (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateSubtitle}>
+                Watch videos and read engaging food stories
+              </Text>
+            </View>
+          );
+        }
+
+        // Combine stories and videos
+        const allStories = [
+          ...(storiesData || []).map((story: any) => ({ type: 'story', ...story })),
+          ...(videosData?.videos || []).map((video: any) => ({ type: 'video', ...video })),
+        ];
+
+        return (
+          <View style={styles.kitchensContainer}>
+            <FlatList
+              data={allStories}
+              renderItem={renderStoryItem}
+              keyExtractor={keyExtractorStory}
+              numColumns={3}
+              contentContainerStyle={{ gap: 12 }}
+              columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
+              scrollEnabled={false}
+              // Performance optimizations
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={9}
+              windowSize={10}
+              initialNumToRender={9}
+              updateCellsBatchingPeriod={50}
+            />
+          </View>
+        );
+
+      case 'live':
+      default:
+        // Show skeleton while loading live streams
+        // Show skeleton if: loading session token, or authenticated and loading live streams
+        const isLoadingLive = isLoadingSessionToken ||
+          (isAuthenticated && sessionToken && liveStreamsData === null && !liveStreamsError);
+
+        if (isLoadingLive) {
+          return <SkeletonGrid count={6} />;
+        }
+
+        return (
+          <View style={styles.kitchensContainer}>
+            {filteredKitchens.length > 0 ? (
+              <FlatList
+                data={filteredKitchens}
+                renderItem={renderLiveItem}
+                keyExtractor={keyExtractorLive}
+                numColumns={3}
+                contentContainerStyle={{ gap: 12 }}
+                columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
+                scrollEnabled={false}
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateSubtitle}>
+                      You&apos;ll be able to order meals right from the stove from here when anyone goes live
+                    </Text>
+                  </View>
+                }
+                // Performance optimizations
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={9}
+                windowSize={10}
+                initialNumToRender={9}
+                updateCellsBatchingPeriod={50}
+              />
+            ) : (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateSubtitle}>
+                  You&apos;ll be able to order meals right from the stove from here when anyone goes live
+                </Text>
+              </View>
+            )}
+          </View>
+        );
+    }
+  };
+
+  return (
+    <>
+      <LinearGradient
+        colors={["#f8e6f0", "#faf2e8"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.container}
       >
-        {/* Main Content with fade animation */}
-        <Animated.View style={contentFadeStyle}>
-          {/* Content based on selected category */}
-          {renderContent()}
+        <Animated.ScrollView
+          ref={scrollViewRef}
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+          alwaysBounceVertical={true}
+          contentContainerStyle={{
+            paddingBottom: 100,
+            paddingTop: isHeaderSticky ? 0 : 320,
+            paddingHorizontal: 0,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#FF3B30"
+              colors={["#FF3B30"]}
+              progressBackgroundColor="rgba(255, 255, 255, 0.8)"
+              progressViewOffset={0}
+              title="Pull to refresh"
+              titleColor="#FF3B30"
+            />
+          }
+          onScroll={externalOnScroll || handleScroll}
+          scrollEventThrottle={8}
+        >
+          {/* Main Content with fade animation */}
+          <Animated.View style={contentFadeStyle}>
+            {/* Content based on selected category */}
+            {renderContent()}
 
-          {/* Bottom Spacing */}
-          <View style={styles.bottomSpacing} />
-        </Animated.View>
-      </Animated.ScrollView>
-    </LinearGradient>
+            {/* Bottom Spacing */}
+            <View style={styles.bottomSpacing} />
+          </Animated.View>
+        </Animated.ScrollView>
+      </LinearGradient>
 
-    {/* Live Screen Modal */}
-    {showLiveModal && selectedSessionId && (
-      <LiveScreenView
-        sessionId={selectedSessionId}
-        mockKitchenData={selectedKitchen}
-        onClose={handleCloseLiveModal}
-      />
-    )}
-
-    {/* Recipe Detail Modal */}
-    {selectedRecipeId && (
-      <RecipeDetailScreen
-        recipeId={selectedRecipeId}
-        onClose={() => setSelectedRecipeId(null)}
-      />
-    )}
-
-    {/* Story Detail Modal */}
-    {selectedStoryId && (
-      <StoryDetailScreen
-        storyId={selectedStoryId}
-        onClose={() => setSelectedStoryId(null)}
-      />
-    )}
-
-    {/* NoshHeaven Video Player */}
-    <Modal
-      visible={showVideoPlayer && videoPlayerMeals.length > 0}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={handleCloseVideoPlayer}
-      statusBarTranslucent={true}
-      hardwareAccelerated={true}
-    >
-      {showVideoPlayer && videoPlayerMeals.length > 0 && (
-        <NoshHeavenPlayer
-          isVisible={showVideoPlayer}
-          meals={videoPlayerMeals}
-          mode="meals"
-          initialIndex={videoPlayerStartIndex}
-          onClose={handleCloseVideoPlayer}
-          onAddToCart={handleAddToCart}
-          onMealLike={handleLikeVideo}
-          onMealShare={handleShareVideo}
+      {/* Live Screen Modal */}
+      {showLiveModal && selectedSessionId && (
+        <LiveScreenView
+          sessionId={selectedSessionId}
+          mockKitchenData={selectedKitchen}
+          onClose={handleCloseLiveModal}
         />
       )}
-    </Modal>
 
-  </>
-);
+      {/* Recipe Detail Modal */}
+      {selectedRecipeId && (
+        <RecipeDetailScreen
+          recipeId={selectedRecipeId}
+          onClose={() => setSelectedRecipeId(null)}
+        />
+      )}
+
+      {/* Story Detail Modal */}
+      {selectedStoryId && (
+        <StoryDetailScreen
+          storyId={selectedStoryId}
+          onClose={() => setSelectedStoryId(null)}
+        />
+      )}
+
+      {/* NoshHeaven Video Player */}
+      <Modal
+        visible={showVideoPlayer && videoPlayerMeals.length > 0}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={handleCloseVideoPlayer}
+        statusBarTranslucent={true}
+        hardwareAccelerated={true}
+      >
+        {showVideoPlayer && videoPlayerMeals.length > 0 && (
+          <NoshHeavenPlayer
+            isVisible={showVideoPlayer}
+            meals={videoPlayerMeals}
+            mode="meals"
+            initialIndex={videoPlayerStartIndex}
+            onClose={handleCloseVideoPlayer}
+            onAddToCart={handleAddToCart}
+            onMealLike={handleLikeVideo}
+            onMealShare={handleShareVideo}
+          />
+        )}
+      </Modal>
+
+    </>
+  );
 }
 
 const styles = StyleSheet.create({

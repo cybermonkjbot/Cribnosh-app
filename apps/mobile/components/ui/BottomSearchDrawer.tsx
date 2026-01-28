@@ -5,46 +5,46 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { AlertCircle, BookOpen, Clock, Play, Search, Video } from "lucide-react-native";
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
-    AccessibilityInfo,
-    ActivityIndicator,
-    Dimensions,
-    Platform,
-    ScrollView,
-    Share,
-    Text,
-    TouchableOpacity,
-    View
+  AccessibilityInfo,
+  ActivityIndicator,
+  Dimensions,
+  Platform,
+  ScrollView,
+  Share,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-    Extrapolate,
-    interpolate,
-    runOnJS,
-    useAnimatedStyle,
-    useDerivedValue,
-    useSharedValue,
-    withSpring,
+  Extrapolate,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withSpring,
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import {
-    HeaderMessage,
-    getCompleteDynamicHeader,
+  HeaderMessage,
+  getCompleteDynamicHeader,
 } from "../../utils/dynamicHeaderMessages";
 import {
-    SearchPrompt,
-    getDynamicSearchPrompt,
+  SearchPrompt,
+  getDynamicSearchPrompt,
 } from "../../utils/dynamicSearchPrompts";
 import SearchArea from "../SearchArea";
 import {
-    DynamicContent,
-    DynamicSearchContent
+  DynamicContent,
+  DynamicSearchContent
 } from "./BottomSearchDrawer/DynamicSearchContent";
 import { FilterDropdown, FilterOption } from "./BottomSearchDrawer/FilterDropdown";
 import { SearchSuggestionsSkeleton } from "./BottomSearchDrawer/SearchSkeletons";
@@ -58,9 +58,9 @@ import { useOffers } from "@/hooks/useOffers";
 import { useSearch } from "@/hooks/useSearch";
 import { getConvexClient, getSessionToken } from "@/lib/convexClient";
 import {
-    SearchChef,
-    SearchSuggestion,
-    TrendingItem
+  SearchChef,
+  SearchSuggestion,
+  TrendingItem
 } from "@/types/customer";
 import { api } from "../../../../packages/convex/_generated/api";
 
@@ -77,10 +77,10 @@ import { BlurEffect } from "@/utils/blurEffects";
 import { useModalSheet } from "@/context/ModalSheetContext";
 
 // AI Chat components
-import { AISearchResponseOverlay, ProductCardProps } from "./AISearchResponseOverlay";
-import { InlineAILoader } from "./InlineAILoader";
 import { sendChatMessage, transformDishToProductCard } from "@/utils/aiChatUtils";
 import { AIChatDrawer } from "./AIChatDrawer";
+import { AISearchResponseOverlay, ProductCardProps } from "./AISearchResponseOverlay";
+import { InlineAILoader } from "./InlineAILoader";
 
 // Error boundary for icon components
 const SafeIcon = ({
@@ -407,18 +407,18 @@ export function BottomSearchDrawer({
   const { setSearchDrawerExpanded } = useModalSheet();
   const { isAuthenticated: authIsAuthenticated } = useAuthContext();
   const effectiveIsAuthenticated = isAuthenticated || authIsAuthenticated;
-  
+
   // Profile state for preferences
   const [profileData, setProfileData] = useState<any>(null);
-  
+
   // Recipe detail modal state
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
-  
+
   // Fetch profile data to extract preferences
   useEffect(() => {
     const fetchProfile = async () => {
       if (!effectiveIsAuthenticated) return;
-      
+
       try {
         const convex = getConvexClient();
         const sessionToken = await getSessionToken();
@@ -449,7 +449,7 @@ export function BottomSearchDrawer({
       fetchProfile();
     }
   }, [effectiveIsAuthenticated]);
-  
+
   // Core animation values - using height instead of translateY
   const drawerHeight = useSharedValue(SNAP_POINTS.COLLAPSED);
   const currentSnapPoint = useSharedValue<SnapPoint>(SNAP_POINTS.COLLAPSED);
@@ -506,7 +506,7 @@ export function BottomSearchDrawer({
     try {
       // Use search query or default prompt
       const message = searchQuery.trim() || "What are some great meal recommendations for me?";
-      
+
       // Prepare location data
       const location = userLocation ? {
         latitude: userLocation.latitude,
@@ -647,7 +647,7 @@ export function BottomSearchDrawer({
         return { dietary_restrictions: ["keto"] };
       case "healthy":
         return { dietary_restrictions: ["healthy"] };
-      
+
       // Spice Levels
       case "spicy":
         return { spice_level: "spicy" };
@@ -659,7 +659,7 @@ export function BottomSearchDrawer({
         return { spice_level: "hot" };
       case "extrahot":
         return { spice_level: "extra-hot" };
-      
+
       // Price Ranges (prices are stored in pence, so multiply by 100)
       case "budget":
       case "under15":
@@ -672,7 +672,7 @@ export function BottomSearchDrawer({
         return { priceRange: { max: 2500 } }; // £25.00 = 2500 pence
       case "premium":
         return { priceRange: { min: 2500 } }; // £25.00 = 2500 pence
-      
+
       // Delivery Time
       case "fast":
       case "delivery15":
@@ -681,13 +681,13 @@ export function BottomSearchDrawer({
         return { delivery_time_max: 30 };
       case "delivery45":
         return { delivery_time_max: 45 };
-      
+
       // Rating
       case "rating45":
         return { rating_min: 4.5 };
       case "rating4":
         return { rating_min: 4 };
-      
+
       // Cuisine Types
       case "italian":
       case "mexican":
@@ -700,7 +700,7 @@ export function BottomSearchDrawer({
       case "american":
       case "french":
         return { cuisine: filterId };
-      
+
       // Content Types
       case "videos":
         // Videos filter - return empty to handle separately
@@ -708,7 +708,7 @@ export function BottomSearchDrawer({
       case "recipes":
         // Recipes filter - return empty to handle separately
         return {};
-      
+
       case "all":
       default:
         return undefined;
@@ -721,28 +721,28 @@ export function BottomSearchDrawer({
   const [isLoadingSearch, setIsLoadingSearch] = useState(false);
   const [isErrorSearch, setIsErrorSearch] = useState(false);
   const [searchError, setSearchError] = useState<any>(null);
-  
+
   // Natural language search (emotions) state
   const [emotionsSearchData, setEmotionsSearchData] = useState<any>(null);
   const [isLoadingEmotionsSearch, setIsLoadingEmotionsSearch] = useState(false);
   const [isErrorEmotionsSearch, setIsErrorEmotionsSearch] = useState(false);
   const [emotionsSearchError, setEmotionsSearchError] = useState<any>(null);
-  
+
   // Filtered meals for display when filter is active
   const [filteredMealsData, setFilteredMealsData] = useState<any>(null);
   const [isLoadingFilteredMeals, setIsLoadingFilteredMeals] = useState(false);
   const [isErrorFilteredMeals, setIsErrorFilteredMeals] = useState(false);
-  
+
   // Memoize dietary filters to prevent infinite loops
   const dietaryFilters = useMemo(() => {
     return getDietaryFiltersFromActiveFilter(activeFilter);
   }, [activeFilter]);
-  
+
   // Load unified search results (all content types)
   useEffect(() => {
     // Determine which content types to search based on active filter
     let contentTypes: ("dishes" | "chefs" | "videos" | "recipes" | "stories" | "livestreams")[] | undefined;
-    
+
     if (activeSearchFilter === "all") {
       // Search all content types
       contentTypes = undefined;
@@ -762,7 +762,7 @@ export function BottomSearchDrawer({
       // For other filters (cuisines, ingredients, dietary), search dishes by default
       contentTypes = ["dishes"];
     }
-    
+
     // Only search if we have a query and it's not a natural language query
     // Natural language queries use the emotions search (requires authentication)
     // Regular search works for both authenticated and unauthenticated users
@@ -826,17 +826,17 @@ export function BottomSearchDrawer({
         setIsErrorFilteredMeals(false);
         return;
       }
-      
+
       // Clear old data and set loading state immediately to prevent flicker
       setFilteredMealsData(null);
       setIsLoadingFilteredMeals(true);
       setIsErrorFilteredMeals(false);
-      
+
       const loadFilteredContent = async () => {
         try {
           // Determine content type based on active filter
           let contentTypes: ("dishes" | "chefs" | "videos" | "recipes" | "stories" | "livestreams")[] = ["dishes"];
-          
+
           if (activeFilter === "videos") {
             contentTypes = ["videos"];
           } else if (activeFilter === "recipes") {
@@ -849,7 +849,7 @@ export function BottomSearchDrawer({
             contentTypes = ["chefs"];
           }
           // For dietary, price, cuisine, and other filters, default to dishes
-          
+
           // Build filters based on active filter
           const filters: any = {};
           if (dietaryFilters?.dietary_restrictions) {
@@ -861,7 +861,7 @@ export function BottomSearchDrawer({
           if (dietaryFilters?.cuisine) {
             filters.cuisine = dietaryFilters.cuisine;
           }
-          
+
           // Use a generic search query that will match content with the filter
           // For cuisine filters, use the cuisine name as query
           let searchQuery = "";
@@ -870,7 +870,7 @@ export function BottomSearchDrawer({
           } else if (["italian", "mexican", "chinese", "indian", "turkish", "japanese", "thai", "mediterranean", "american", "french"].includes(activeFilter)) {
             searchQuery = activeFilter;
           }
-          
+
           const result = await searchAction({
             query: searchQuery,
             limit: 20, // Show more results for videos/recipes/stories
@@ -898,10 +898,10 @@ export function BottomSearchDrawer({
               // Default to dishes/meals
               content = result.data?.dishes || [];
             }
-            
+
             // Store as meals for backward compatibility (the component expects meals structure)
             setFilteredMealsData({ success: true, data: { meals: content } });
-            
+
             // Track if this filter resulted in empty state
             if (content.length === 0) {
               emptyFiltersCacheRef.current.add(activeFilter);
@@ -940,7 +940,7 @@ export function BottomSearchDrawer({
 
   // Emotions search mutation for natural language queries
   const [isSearchingWithEmotions, setIsSearchingWithEmotions] = useState(false);
-  
+
   // Chef search using useChefs hook (kept for backward compatibility, but unified search will be primary)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { searchChefs } = useChefs();
@@ -962,7 +962,7 @@ export function BottomSearchDrawer({
   const [isLoadingSuggestionsQuery, setIsLoadingSuggestionsQuery] = useState(false);
   const [isErrorSuggestionsQuery, setIsErrorSuggestionsQuery] = useState(false);
   const [suggestionsError, setSuggestionsError] = useState<any>(null);
-  
+
   useEffect(() => {
     if (searchQuery.trim()) {
       const loadSuggestions = async () => {
@@ -993,7 +993,7 @@ export function BottomSearchDrawer({
   const [isLoadingTrendingQuery, setIsLoadingTrendingQuery] = useState(false);
   const [isErrorTrendingQuery, setIsErrorTrendingQuery] = useState(false);
   const [trendingError, setTrendingError] = useState<any>(null);
-  
+
   useEffect(() => {
     const loadTrending = async () => {
       try {
@@ -1014,7 +1014,7 @@ export function BottomSearchDrawer({
         setIsLoadingTrendingQuery(false);
       }
     };
-    
+
     // Load trending data regardless of authentication status
     loadTrending();
   }, [maxSuggestions, getTrendingSearches]);
@@ -1059,7 +1059,7 @@ export function BottomSearchDrawer({
   // Custom order and link generation state
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
-  
+
   const handleInviteFriend = useCallback(async (): Promise<void> => {
     if (!isAuthenticated) {
       showError("Authentication required", "Please sign in to invite friends");
@@ -1070,7 +1070,7 @@ export function BottomSearchDrawer({
       // Step 1: Create a custom order with default budget
       showInfo("Creating order", "Setting up your invite...");
       setIsCreatingOrder(true);
-      
+
       const convex = getConvexClient();
       const sessionToken = await getSessionToken();
 
@@ -1096,7 +1096,7 @@ export function BottomSearchDrawer({
       // Step 2: Generate shareable link
       showInfo("Generating link", "Creating your share link...");
       setIsGeneratingLink(true);
-      
+
       const linkResult = await (convex as any).action((api.actions as any).orders.customerGenerateSharedOrderLink, {
         sessionToken,
         order_id: orderId,
@@ -1135,7 +1135,7 @@ export function BottomSearchDrawer({
       }
     } catch (error: unknown) {
       console.error("Error in invite friend flow:", error);
-      
+
       // Handle network errors with deduplication
       const { isNetworkError, handleConvexError } = require("@/utils/networkErrorHandler");
       if (isNetworkError(error)) {
@@ -1144,7 +1144,7 @@ export function BottomSearchDrawer({
         const errorMessage = error instanceof Error ? error.message : "Failed to create invite link";
         showError("Invite failed", errorMessage);
       }
-      
+
       setIsCreatingOrder(false);
       setIsGeneratingLink(false);
     }
@@ -1307,7 +1307,7 @@ export function BottomSearchDrawer({
     const options: FilterOption[] = [
       // Quick filters (same as main chips)
       ...filterCategories,
-      
+
       // Dietary Restrictions
       {
         id: "vegetarian",
@@ -1351,7 +1351,7 @@ export function BottomSearchDrawer({
         color: "#06b6d4",
         icon: <VeganIcon size={14} color="#06b6d4" />,
       },
-      
+
       // Price Ranges
       {
         id: "under10",
@@ -1383,7 +1383,7 @@ export function BottomSearchDrawer({
         color: "#f59e0b",
         icon: <RestaurantIcon size={14} color="#f59e0b" />,
       },
-      
+
       // Spice Levels
       {
         id: "mild",
@@ -1409,7 +1409,7 @@ export function BottomSearchDrawer({
         color: "#991b1b",
         icon: <SpicyIcon size={14} color="#991b1b" />,
       },
-      
+
       // Cuisine Types
       {
         id: "italian",
@@ -1471,7 +1471,7 @@ export function BottomSearchDrawer({
         color: "#6366f1",
         icon: <RestaurantIcon size={14} color="#6366f1" />,
       },
-      
+
       // Rating Filters
       {
         id: "rating45",
@@ -1485,7 +1485,7 @@ export function BottomSearchDrawer({
         color: "#f59e0b",
         icon: <RestaurantIcon size={14} color="#f59e0b" />,
       },
-      
+
       // Delivery Time
       {
         id: "delivery15",
@@ -1506,7 +1506,7 @@ export function BottomSearchDrawer({
         icon: <LinkIcon size={14} color="#4488ff" />,
       },
     ];
-    
+
     return options;
   }, []);
 
@@ -1734,7 +1734,7 @@ export function BottomSearchDrawer({
   useDerivedValue(() => {
     const intensity =
       currentGestureState.value === "dragging" ||
-      currentGestureState.value === "settling"
+        currentGestureState.value === "settling"
         ? 120
         : 80;
     runOnJS(setBlurIntensityState)(intensity);
@@ -1773,11 +1773,11 @@ export function BottomSearchDrawer({
 
     const opacity = shouldShowBackdrop
       ? interpolate(
-          drawerHeight.value,
-          [SNAP_POINTS.COLLAPSED + 50, SNAP_POINTS.EXPANDED],
-          [0.1, 0.3],
-          Extrapolate.CLAMP
-        )
+        drawerHeight.value,
+        [SNAP_POINTS.COLLAPSED + 50, SNAP_POINTS.EXPANDED],
+        [0.1, 0.3],
+        Extrapolate.CLAMP
+      )
       : 0;
 
     return {
@@ -1916,7 +1916,7 @@ export function BottomSearchDrawer({
   // Focus input when entering search focus mode (only once)
   const hasFocusedRef = useRef(false);
   const shouldMaintainFocusRef = useRef(false);
-  
+
   useEffect(() => {
     if (isSearchFocused && !hasFocusedRef.current) {
       // Small delay to ensure the input is mounted
@@ -1950,11 +1950,11 @@ export function BottomSearchDrawer({
   // Handles unified search response: { dishes: [], chefs: [], videos: [], recipes: [], stories: [], livestreams: [], total: number }
   const transformSearchResults = useCallback((apiResults: any) => {
     console.log('[BottomSearchDrawer] Transforming unified search results:', apiResults);
-    
+
     // Handle unified API format: { dishes: [], chefs: [], videos: [], recipes: [], stories: [], livestreams: [], total: number }
     if (apiResults && typeof apiResults === 'object' && !Array.isArray(apiResults)) {
       const results: any[] = [];
-      
+
       // Transform dishes/meals
       if (Array.isArray(apiResults.dishes)) {
         console.log('[BottomSearchDrawer] Found', apiResults.dishes.length, 'dishes');
@@ -1974,7 +1974,7 @@ export function BottomSearchDrawer({
           });
         });
       }
-      
+
       // Transform chefs
       if (Array.isArray(apiResults.chefs)) {
         console.log('[BottomSearchDrawer] Found', apiResults.chefs.length, 'chefs');
@@ -1992,7 +1992,7 @@ export function BottomSearchDrawer({
           });
         });
       }
-      
+
       // Transform videos
       if (Array.isArray(apiResults.videos)) {
         console.log('[BottomSearchDrawer] Found', apiResults.videos.length, 'videos');
@@ -2014,7 +2014,7 @@ export function BottomSearchDrawer({
           });
         });
       }
-      
+
       // Transform recipes
       if (Array.isArray(apiResults.recipes)) {
         console.log('[BottomSearchDrawer] Found', apiResults.recipes.length, 'recipes');
@@ -2036,7 +2036,7 @@ export function BottomSearchDrawer({
           });
         });
       }
-      
+
       // Transform stories
       if (Array.isArray(apiResults.stories)) {
         console.log('[BottomSearchDrawer] Found', apiResults.stories.length, 'stories');
@@ -2057,7 +2057,7 @@ export function BottomSearchDrawer({
           });
         });
       }
-      
+
       // Transform livestreams
       if (Array.isArray(apiResults.livestreams)) {
         console.log('[BottomSearchDrawer] Found', apiResults.livestreams.length, 'livestreams');
@@ -2078,11 +2078,11 @@ export function BottomSearchDrawer({
           });
         });
       }
-      
+
       console.log('[BottomSearchDrawer] Transformed', results.length, 'total results from unified search');
       return results;
     }
-    
+
     // Handle old format: SearchResult[] array (for backward compatibility)
     if (Array.isArray(apiResults)) {
       return apiResults.map((result: any) => ({
@@ -2108,7 +2108,7 @@ export function BottomSearchDrawer({
         originalResult: result,
       }));
     }
-    
+
     return [];
   }, []);
 
@@ -2183,7 +2183,7 @@ export function BottomSearchDrawer({
   // Transform natural language search results (emotions) to component format
   const transformEmotionsSearchResults = useCallback((chefs: any[], dishes: any[]) => {
     const results: any[] = [];
-    
+
     // Transform chefs
     if (Array.isArray(chefs)) {
       chefs.forEach((chef) => {
@@ -2201,7 +2201,7 @@ export function BottomSearchDrawer({
         });
       });
     }
-    
+
     // Transform dishes/meals
     if (Array.isArray(dishes)) {
       dishes.forEach((dish) => {
@@ -2219,24 +2219,24 @@ export function BottomSearchDrawer({
         });
       });
     }
-    
+
     return results;
   }, []);
 
   // Individual transform functions removed - now integrated into transformSearchResults
 
   // Determine which loading state to use based on active query
-  const isLoadingSuggestions = searchQuery.trim() 
+  const isLoadingSuggestions = searchQuery.trim()
     ? (isNaturalLanguageQuery(searchQuery) && isLoadingEmotionsSearch
-        ? isLoadingEmotionsSearch
-        : isLoadingSuggestionsQuery || isLoadingSearch)
+      ? isLoadingEmotionsSearch
+      : isLoadingSuggestionsQuery || isLoadingSearch)
     : isLoadingTrendingQuery;
 
   // Determine which error state to use based on active query
   const isErrorSuggestions = searchQuery.trim()
     ? (isNaturalLanguageQuery(searchQuery) && isErrorEmotionsSearch
-        ? isErrorEmotionsSearch
-        : isErrorSuggestionsQuery || isErrorSearch)
+      ? isErrorEmotionsSearch
+      : isErrorSuggestionsQuery || isErrorSearch)
     : isErrorTrendingQuery;
 
   // Process search suggestions from unified API - no fallback to mock data
@@ -2295,7 +2295,7 @@ export function BottomSearchDrawer({
       const filtered = searchSuggestions.filter((suggestion) => {
         if (!suggestion || !suggestion.type) return false;
         if (activeSearchFilter === "all") return true;
-        
+
         // Map filter IDs to suggestion types
         const filterTypeMap: Record<string, string> = {
           "meals": "meals",
@@ -2307,7 +2307,7 @@ export function BottomSearchDrawer({
           "livestreams": "livestreams",
           "cuisines": "cuisines",
         };
-        
+
         const expectedType = filterTypeMap[activeSearchFilter];
         return expectedType ? suggestion.type === expectedType : false;
       });
@@ -2379,7 +2379,7 @@ export function BottomSearchDrawer({
     if (!searchQuery.trim() && (activeFilter === "all" || !activeFilter) && trendingData?.success && trendingData.data?.trending) {
       const trending = trendingData.data.trending;
       const groups: any = { ...emptyGroups };
-      
+
       // Transform trending items into grouped format
       if (Array.isArray(trending)) {
         trending.forEach((item: any) => {
@@ -2458,7 +2458,7 @@ export function BottomSearchDrawer({
         if (onSearchSubmit) {
           onSearchSubmit(trimmedQuery, activeSearchFilter);
         }
-        
+
         // Try natural language search if detected, with fallback to regular search
         if (isNaturalLanguage && isAuthenticated) {
           // Use emotions engine for natural language queries
@@ -2466,7 +2466,7 @@ export function BottomSearchDrawer({
             setIsLoadingEmotionsSearch(true);
             setIsErrorEmotionsSearch(false);
             setEmotionsSearchError(null);
-            
+
             const convex = getConvexClient();
             const sessionToken = await getSessionToken();
 
@@ -2508,14 +2508,14 @@ export function BottomSearchDrawer({
             setIsErrorEmotionsSearch(true);
             setEmotionsSearchError(err);
             setIsSearchingWithEmotions(false);
-            
+
             // Fallback to regular search if natural language search fails
             let fallbackSucceeded = false;
             try {
               setIsLoadingSearch(true);
               setIsErrorSearch(false);
               setSearchError(null);
-              
+
               const fallbackResult = await searchAction({
                 query: trimmedQuery,
                 limit: maxSuggestions,
@@ -2527,7 +2527,7 @@ export function BottomSearchDrawer({
                   dietary: dietaryFilters.dietary_restrictions,
                 } : undefined,
               });
-              
+
               if (fallbackResult.success) {
                 setSearchData({ success: true, data: fallbackResult.data });
                 fallbackSucceeded = true;
@@ -2539,7 +2539,7 @@ export function BottomSearchDrawer({
             } finally {
               setIsLoadingSearch(false);
             }
-            
+
             // Handle network errors with deduplication
             const { isNetworkError, handleConvexError } = require("@/utils/networkErrorHandler");
             if (isNetworkError(err)) {
@@ -2555,7 +2555,7 @@ export function BottomSearchDrawer({
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : "Search failed. Please try again.";
         setError(errorMessage);
-        
+
         // Handle network errors with deduplication
         const { isNetworkError, handleConvexError } = require("@/utils/networkErrorHandler");
         if (isNetworkError(error)) {
@@ -2896,7 +2896,7 @@ export function BottomSearchDrawer({
   const handleSuggestionSelect = useCallback(
     (suggestion: any) => {
       if (!suggestion) return;
-      
+
       // Allow suggestions without text if they have an id and type
       if (!suggestion.text && !suggestion.id) return;
 
@@ -3030,7 +3030,7 @@ export function BottomSearchDrawer({
     if (isSearchFocused) {
       AccessibilityInfo.announceForAccessibility("Search mode activated");
     }
-    
+
     // Announce drawer state changes
     try {
       const isExpanded = snapPointState === SNAP_POINTS.EXPANDED;
@@ -3885,160 +3885,160 @@ export function BottomSearchDrawer({
                           </>
                         ) : filteredSuggestions.length > 0 ? (
                           filteredSuggestions.map((suggestion, index) => (
-                      <TouchableOpacity
-                        key={suggestion.id}
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          paddingVertical: 14,
-                          paddingHorizontal: 12,
-                          backgroundColor: "rgba(255, 255, 255, 0.06)",
-                          borderRadius: 14,
-                          marginBottom: 8,
-                          borderWidth: 1,
-                          borderColor: "rgba(255, 255, 255, 0.12)",
-                          shadowColor: "#000",
-                          shadowOffset: { width: 0, height: 1 },
-                          shadowOpacity: 0.05,
-                          shadowRadius: 2,
-                          elevation: 1,
-                        }}
-                        onPress={() => {
-                          handleSuggestionSelect(suggestion);
-                        }}
-                        activeOpacity={0.85}
-                        disabled={isSearching}
-                      >
-                        {/* Compact Icon */}
-                        <View
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 18,
-                            backgroundColor: "rgba(255, 255, 255, 0.12)",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            marginRight: 12,
-                            shadowColor: "#000",
-                            shadowOffset: { width: 0, height: 1 },
-                            shadowOpacity: 0.1,
-                            shadowRadius: 2,
-                            elevation: 1,
-                          }}
-                        >
-                          {suggestion.type === "kitchens" ? (
-                            <RestaurantIcon size={16} color="#8a9a8f" />
-                          ) : suggestion.type === "videos" ? (
-                            <VideoIcon size={16} color="#8a9a8f" />
-                          ) : suggestion.type === "recipes" ? (
-                            <RecipeIcon size={16} color="#8a9a8f" />
-                          ) : suggestion.type === "stories" ? (
-                            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-                              <Path
-                                d="M4 19.5C4 18.837 4.263 18.201 4.732 17.732C5.201 17.263 5.837 17 6.5 17H20"
-                                stroke="#8a9a8f"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <Path
-                                d="M6.5 2H20V22H6.5C5.837 22 5.201 21.737 4.732 21.268C4.263 20.799 4 20.163 4 19.5V4.5C4 3.837 4.263 3.201 4.732 2.732C5.201 2.263 5.837 2 6.5 2Z"
-                                stroke="#8a9a8f"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </Svg>
-                          ) : suggestion.type === "livestreams" ? (
-                            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-                              <Path
-                                d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z"
-                                fill="#ef4444"
-                              />
-                              <Path
-                                d="M10 8L15 12L10 16V8Z"
-                                fill="#ffffff"
-                              />
-                            </Svg>
-                          ) : (
-                            <Svg
-                              width={16}
-                              height={16}
-                              viewBox="0 0 24 24"
-                              fill="none"
+                            <TouchableOpacity
+                              key={suggestion.id}
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                paddingVertical: 14,
+                                paddingHorizontal: 12,
+                                backgroundColor: "rgba(255, 255, 255, 0.06)",
+                                borderRadius: 14,
+                                marginBottom: 8,
+                                borderWidth: 1,
+                                borderColor: "rgba(255, 255, 255, 0.12)",
+                                shadowColor: "#000",
+                                shadowOffset: { width: 0, height: 1 },
+                                shadowOpacity: 0.05,
+                                shadowRadius: 2,
+                                elevation: 1,
+                              }}
+                              onPress={() => {
+                                handleSuggestionSelect(suggestion);
+                              }}
+                              activeOpacity={0.85}
+                              disabled={isSearching}
                             >
-                              <Path
-                                d="M12 2L13.09 8.26L16 7L14.5 12.5L19 10.5L16.5 16.5L22 15L18.5 20L12 22L5.5 20L2 15L7.5 16.5L5 10.5L9.5 12.5L8 7L10.91 8.26L12 2Z"
-                                fill="#8a9a8f"
-                              />
-                            </Svg>
-                          )}
-                        </View>
+                              {/* Compact Icon */}
+                              <View
+                                style={{
+                                  width: 36,
+                                  height: 36,
+                                  borderRadius: 18,
+                                  backgroundColor: "rgba(255, 255, 255, 0.12)",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  marginRight: 12,
+                                  shadowColor: "#000",
+                                  shadowOffset: { width: 0, height: 1 },
+                                  shadowOpacity: 0.1,
+                                  shadowRadius: 2,
+                                  elevation: 1,
+                                }}
+                              >
+                                {suggestion.type === "kitchens" ? (
+                                  <RestaurantIcon size={16} color="#8a9a8f" />
+                                ) : suggestion.type === "videos" ? (
+                                  <VideoIcon size={16} color="#8a9a8f" />
+                                ) : suggestion.type === "recipes" ? (
+                                  <RecipeIcon size={16} color="#8a9a8f" />
+                                ) : suggestion.type === "stories" ? (
+                                  <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                                    <Path
+                                      d="M4 19.5C4 18.837 4.263 18.201 4.732 17.732C5.201 17.263 5.837 17 6.5 17H20"
+                                      stroke="#8a9a8f"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                    <Path
+                                      d="M6.5 2H20V22H6.5C5.837 22 5.201 21.737 4.732 21.268C4.263 20.799 4 20.163 4 19.5V4.5C4 3.837 4.263 3.201 4.732 2.732C5.201 2.263 5.837 2 6.5 2Z"
+                                      stroke="#8a9a8f"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </Svg>
+                                ) : suggestion.type === "livestreams" ? (
+                                  <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                                    <Path
+                                      d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z"
+                                      fill="#ef4444"
+                                    />
+                                    <Path
+                                      d="M10 8L15 12L10 16V8Z"
+                                      fill="#ffffff"
+                                    />
+                                  </Svg>
+                                ) : (
+                                  <Svg
+                                    width={16}
+                                    height={16}
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                  >
+                                    <Path
+                                      d="M12 2L13.09 8.26L16 7L14.5 12.5L19 10.5L16.5 16.5L22 15L18.5 20L12 22L5.5 20L2 15L7.5 16.5L5 10.5L9.5 12.5L8 7L10.91 8.26L12 2Z"
+                                      fill="#8a9a8f"
+                                    />
+                                  </Svg>
+                                )}
+                              </View>
 
-                        {/* Compact Content */}
-                        <View style={{ flex: 1 }}>
-                          <Text
-                            style={{
-                              color: "#1a1a1a",
-                              fontSize: 15,
-                              fontWeight: "600",
-                              marginBottom: 3,
-                              letterSpacing: -0.2,
-                            }}
-                          >
-                            {suggestion.text}
-                          </Text>
-                          <Text
-                            style={{
-                              color: "#5a5a5a",
-                              fontSize: 12,
-                              fontWeight: "400",
-                              lineHeight: 16,
-                            }}
-                          >
-                            {suggestion.type === "kitchens"
-                              ? `${suggestion.category} • ${suggestion.rating}★ • ${suggestion.time}`
-                              : suggestion.type === "videos"
-                                ? `${suggestion.category} • ${suggestion.rating}`
-                                : suggestion.type === "recipes"
-                                  ? `${suggestion.category} • ${suggestion.time}`
-                                  : suggestion.type === "stories"
-                                    ? `${suggestion.category} • ${suggestion.time}`
-                                    : suggestion.type === "livestreams"
-                                      ? `${suggestion.kitchen} • ${suggestion.rating}`
-                                      : `${suggestion.category} • ${suggestion.kitchen} • ${suggestion.time}`}
-                          </Text>
-                        </View>
+                              {/* Compact Content */}
+                              <View style={{ flex: 1 }}>
+                                <Text
+                                  style={{
+                                    color: "#1a1a1a",
+                                    fontSize: 15,
+                                    fontWeight: "600",
+                                    marginBottom: 3,
+                                    letterSpacing: -0.2,
+                                  }}
+                                >
+                                  {suggestion.text}
+                                </Text>
+                                <Text
+                                  style={{
+                                    color: "#5a5a5a",
+                                    fontSize: 12,
+                                    fontWeight: "400",
+                                    lineHeight: 16,
+                                  }}
+                                >
+                                  {suggestion.type === "kitchens"
+                                    ? `${suggestion.category} • ${suggestion.rating}★ • ${suggestion.time}`
+                                    : suggestion.type === "videos"
+                                      ? `${suggestion.category} • ${suggestion.rating}`
+                                      : suggestion.type === "recipes"
+                                        ? `${suggestion.category} • ${suggestion.time}`
+                                        : suggestion.type === "stories"
+                                          ? `${suggestion.category} • ${suggestion.time}`
+                                          : suggestion.type === "livestreams"
+                                            ? `${suggestion.kitchen} • ${suggestion.rating}`
+                                            : `${suggestion.category} • ${suggestion.kitchen} • ${suggestion.time}`}
+                                </Text>
+                              </View>
 
-                        {/* Compact Action Icon */}
-                        <View
-                          style={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: 14,
-                            backgroundColor: "rgba(255, 255, 255, 0.08)",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            marginLeft: 8,
-                          }}
-                        >
-                          <Svg
-                            width={12}
-                            height={12}
-                            viewBox="0 0 24 24"
-                            fill="none"
-                          >
-                            <Path
-                              d="M7 17L17 7M17 7H7M17 7V17"
-                              stroke="#8a9a8f"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </Svg>
-                        </View>
-                      </TouchableOpacity>
-                    ))
+                              {/* Compact Action Icon */}
+                              <View
+                                style={{
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: 14,
+                                  backgroundColor: "rgba(255, 255, 255, 0.08)",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  marginLeft: 8,
+                                }}
+                              >
+                                <Svg
+                                  width={12}
+                                  height={12}
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                >
+                                  <Path
+                                    d="M7 17L17 7M17 7H7M17 7V17"
+                                    stroke="#8a9a8f"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </Svg>
+                              </View>
+                            </TouchableOpacity>
+                          ))
                         ) : (
                           <View
                             style={{
@@ -4086,7 +4086,7 @@ export function BottomSearchDrawer({
                                 fontWeight: "400",
                               }}
                             >
-                              {searchQuery.trim() 
+                              {searchQuery.trim()
                                 ? "Try adjusting your search or\nbrowse different categories"
                                 : "Check back later for trending items"}
                             </Text>
@@ -4343,15 +4343,15 @@ export function BottomSearchDrawer({
                             onPress={() => {
                               console.log('[BottomSearchDrawer] Nosh Heaven button pressed');
                               triggerHaptic();
-                              
+
                               // Blur search input if focused
                               if (searchInputRef.current) {
                                 searchInputRef.current.blur();
                               }
-                              
+
                               // Close search focus
                               handleSearchBlur();
-                              
+
                               // Navigate to Nosh Heaven modal
                               console.log('[BottomSearchDrawer] Navigating to /nosh-heaven');
                               try {
@@ -4655,11 +4655,11 @@ export function BottomSearchDrawer({
                       >
                         {filterCategories.find(f => f.id === activeFilter)?.label || "Filtered"} Options
                       </Text>
-                      
+
                       {(() => {
                         // Check if we already know this filter is empty (cached)
                         const isCachedEmpty = emptyFiltersCacheRef.current.has(activeFilter);
-                        
+
                         // Show skeleton only when loading (not if we already know this filter is empty)
                         if ((isLoadingFilteredMeals || !filteredMealsData) && !isCachedEmpty) {
                           return (
@@ -4678,7 +4678,7 @@ export function BottomSearchDrawer({
                             </View>
                           );
                         }
-                        
+
                         // Show error state
                         if (isErrorFilteredMeals) {
                           return (
@@ -4689,10 +4689,10 @@ export function BottomSearchDrawer({
                             </View>
                           );
                         }
-                        
+
                         // Extract content array safely (could be meals, videos, recipes, stories, etc.)
                         const content = filteredMealsData?.data?.meals || [];
-                        
+
                         // Show content if we have any
                         if (Array.isArray(content) && content.length > 0) {
                           return (
@@ -4705,30 +4705,30 @@ export function BottomSearchDrawer({
                                 // Handle different content types
                                 const itemData = item.meal || item.result || item;
                                 const itemId = itemData._id || itemData.id || item.id;
-                                
+
                                 // For videos, recipes, stories - use different fields
                                 let itemName: string;
                                 let itemPrice: string;
                                 let itemImage: any;
                                 let creatorName: string;
-                                
+
                                 if (activeFilter === "videos") {
                                   itemName = itemData.title || "Untitled Video";
                                   itemPrice = ""; // Videos don't have prices
-                                  itemImage = itemData.thumbnailUrl 
+                                  itemImage = itemData.thumbnailUrl
                                     ? { uri: itemData.thumbnailUrl }
                                     : itemData.thumbnail
-                                    ? { uri: itemData.thumbnail }
-                                    : require("../../assets/images/cribnoshpackaging.png");
+                                      ? { uri: itemData.thumbnail }
+                                      : require("../../assets/images/cribnoshpackaging.png");
                                   creatorName = itemData.creator?.name || "Food Creator";
                                 } else if (activeFilter === "recipes") {
                                   itemName = itemData.title || "Untitled Recipe";
                                   itemPrice = ""; // Recipes don't have prices
-                                  itemImage = itemData.featuredImage 
+                                  itemImage = itemData.featuredImage
                                     ? { uri: itemData.featuredImage }
                                     : itemData.image
-                                    ? { uri: itemData.image }
-                                    : require("../../assets/images/cribnoshpackaging.png");
+                                      ? { uri: itemData.image }
+                                      : require("../../assets/images/cribnoshpackaging.png");
                                   creatorName = itemData.author || "Chef";
                                 } else if (activeFilter === "stories") {
                                   itemName = itemData.title || "Untitled Story";
@@ -4744,14 +4744,14 @@ export function BottomSearchDrawer({
                                   const priceInPence = itemData.price || 0;
                                   const priceInPounds = priceInPence / 100;
                                   itemPrice = priceInPounds > 0 ? `£${priceInPounds.toFixed(2)}` : "";
-                                  itemImage = itemData.image_url 
+                                  itemImage = itemData.image_url
                                     ? { uri: itemData.image_url }
                                     : itemData.image
-                                    ? itemData.image
-                                    : require("../../assets/images/cribnoshpackaging.png");
+                                      ? itemData.image
+                                      : require("../../assets/images/cribnoshpackaging.png");
                                   creatorName = itemData.chef?.name || itemData.kitchen || "Various Kitchens";
                                 }
-                                
+
                                 const mealId = itemId;
                                 const mealName = itemName;
                                 const mealPrice = itemPrice;
@@ -4902,7 +4902,7 @@ export function BottomSearchDrawer({
                             </ScrollView>
                           );
                         }
-                        
+
                         // Empty state with same height as skeleton to prevent flicker
                         return (
                           <View style={{ height: 180, justifyContent: "center", alignItems: "center", paddingHorizontal: 20 }}>
@@ -4993,7 +4993,7 @@ export function BottomSearchDrawer({
                         }}
                         onInviteFriend={handleInviteFriend}
                         onSetupFamily={handleSetupFamily}
-                        onGroupOrder={handleNavigate}
+                        onGroupOrder={isFeatureEnabled('ENABLE_GROUP_CART') ? handleNavigate : undefined}
                         onNoshHeaven={() => {
                           triggerHaptic();
                           if (searchInputRef.current) {
@@ -5031,7 +5031,7 @@ export function BottomSearchDrawer({
                         }}
                         onInviteFriend={handleInviteFriend}
                         onSetupFamily={handleSetupFamily}
-                        onGroupOrder={handleNavigate}
+                        onGroupOrder={isFeatureEnabled('ENABLE_GROUP_CART') ? handleNavigate : undefined}
                         onNoshHeaven={() => {
                           triggerHaptic();
                           if (searchInputRef.current) {
@@ -5137,12 +5137,12 @@ export function BottomSearchDrawer({
                           style={
                             discoveredFeatures.includes("inviteFriend")
                               ? {
-                                  shadowColor: "#ef4444",
-                                  shadowOffset: { width: 0, height: 2 },
-                                  shadowOpacity: 0.3,
-                                  shadowRadius: 4,
-                                  elevation: 4,
-                                }
+                                shadowColor: "#ef4444",
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 4,
+                                elevation: 4,
+                              }
                               : undefined
                           }
                         >
@@ -5187,12 +5187,12 @@ export function BottomSearchDrawer({
                           style={
                             discoveredFeatures.includes("setupFamily")
                               ? {
-                                  shadowColor: "#ef4444",
-                                  shadowOffset: { width: 0, height: 2 },
-                                  shadowOpacity: 0.3,
-                                  shadowRadius: 4,
-                                  elevation: 4,
-                                }
+                                shadowColor: "#ef4444",
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 4,
+                                elevation: 4,
+                              }
                               : undefined
                           }
                         >
@@ -5218,22 +5218,22 @@ export function BottomSearchDrawer({
                       </View>
                     </View>
 
-                    {/* Start Group Order Button */}
-
-                    <Button
-                      backgroundColor={
-                        discoveredFeatures.includes("groupOrder")
-                          ? "#ef4444"
-                          : "#ef4444"
-                      }
-                      textColor="#ffffff"
-                      borderRadius={20}
-                      paddingVertical={12}
-                      paddingHorizontal={16}
-                      onPress={handleNavigate}
-                      style={
-                        discoveredFeatures.includes("groupOrder")
-                          ? {
+                    {/* Start Group Order Button - Feature Flagged */}
+                    {isFeatureEnabled('ENABLE_GROUP_CART') && (
+                      <Button
+                        backgroundColor={
+                          discoveredFeatures.includes("groupOrder")
+                            ? "#ef4444"
+                            : "#ef4444"
+                        }
+                        textColor="#ffffff"
+                        borderRadius={20}
+                        paddingVertical={12}
+                        paddingHorizontal={16}
+                        onPress={handleNavigate}
+                        style={
+                          discoveredFeatures.includes("groupOrder")
+                            ? {
                               width: "100%",
                               shadowColor: "#ef4444",
                               shadowOffset: { width: 0, height: 2 },
@@ -5241,29 +5241,30 @@ export function BottomSearchDrawer({
                               shadowRadius: 6,
                               elevation: 5,
                             }
-                          : { width: "100%" }
-                      }
-                    >
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 6,
-                        }}
+                            : { width: "100%" }
+                        }
                       >
-                        <Text
+                        <View
                           style={{
-                            color: "#ffffff",
-                            fontSize: 15,
-                            fontWeight: "600",
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 6,
                           }}
                         >
-                          Start Group Order
-                        </Text>
-                        <GroupOrderIcon size={14} />
-                      </View>
-                    </Button>
+                          <Text
+                            style={{
+                              color: "#ffffff",
+                              fontSize: 15,
+                              fontWeight: "600",
+                            }}
+                          >
+                            Start Group Order
+                          </Text>
+                          <GroupOrderIcon size={14} />
+                        </View>
+                      </Button>
+                    )}
                   </Animated.View>
 
                   {/* Food Illustration - Only show when expanded */}
@@ -5288,7 +5289,7 @@ export function BottomSearchDrawer({
           </Animated.View>
         </Animated.View>
       </GestureDetector>
-      
+
       {/* Recipe Detail Modal */}
       {selectedRecipeId && (
         <RecipeDetailScreen
@@ -5298,9 +5299,9 @@ export function BottomSearchDrawer({
       )}
 
       {/* AI Chat Drawer */}
-      <AIChatDrawer 
-        isVisible={isAIChatDrawerVisible} 
-        onClose={handleCloseAIChatDrawer} 
+      <AIChatDrawer
+        isVisible={isAIChatDrawerVisible}
+        onClose={handleCloseAIChatDrawer}
       />
     </>
   );

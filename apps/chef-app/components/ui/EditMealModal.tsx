@@ -173,6 +173,25 @@ export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps
     });
   };
 
+
+
+  const handleAddIngredient = () => {
+    if (!newIngredient.name.trim()) return;
+
+    setFormData({
+      ...formData,
+      ingredients: [...formData.ingredients, { ...newIngredient, name: newIngredient.name.trim() }],
+    });
+    setNewIngredient({ name: '', quantity: '', isAllergen: false, allergenType: '' });
+  };
+
+  const handleRemoveIngredient = (index: number) => {
+    setFormData({
+      ...formData,
+      ingredients: formData.ingredients.filter((_, i) => i !== index),
+    });
+  };
+
   const handleToggleCuisine = (cuisine: string) => {
     setFormData({
       ...formData,
@@ -211,6 +230,17 @@ export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps
     const price = parseFloat(formData.price);
     if (isNaN(price) || price <= 0) {
       showError('Validation Error', 'Please enter a valid price');
+      return;
+    }
+
+    // Natasha's Law Compliance Check
+    if (formData.status === 'available' && formData.ingredients.length === 0) {
+      showError(
+        'Compliance Error',
+        'To list a meal as Available, you must list all ingredients.'
+      );
+      // Force status to unavailable
+      setFormData({ ...formData, status: 'unavailable' });
       return;
     }
 
@@ -414,16 +444,19 @@ export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps
                   <Text style={styles.sectionTitle}>Availability</Text>
                   <View style={styles.statusOptions}>
                     <TouchableOpacity
-                      onPress={() => setFormData({ ...formData, status: 'available' })}
+                      onPress={() => formData.ingredients.length > 0 ? setFormData({ ...formData, status: 'available' }) : null}
                       style={[
                         styles.statusCard,
                         formData.status === 'available' && styles.statusCardSelected,
+                        formData.ingredients.length === 0 && { opacity: 0.5, backgroundColor: '#F3F4F6', borderColor: '#E5E7EB' }
                       ]}
+                      disabled={formData.ingredients.length === 0}
                     >
                       <Text
                         style={[
                           styles.statusCardText,
                           formData.status === 'available' && styles.statusCardTextSelected,
+                          formData.ingredients.length === 0 && { color: '#9CA3AF' }
                         ]}
                       >
                         Available
@@ -452,6 +485,17 @@ export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps
                       </Text>
                     </TouchableOpacity>
                   </View>
+
+                  {formData.ingredients.length === 0 && (
+                    <View style={{ marginTop: 16, padding: 12, backgroundColor: '#FEF2F2', borderRadius: 8, borderWidth: 1, borderColor: '#FECACA' }}>
+                      <Text style={{ color: '#991B1B', fontWeight: '700', fontSize: 13, marginBottom: 4 }}>
+                        ⚠️ Compliance Required
+                      </Text>
+                      <Text style={{ color: '#B91C1C', fontSize: 12, lineHeight: 16 }}>
+                        You must list all ingredients to make this meal available.
+                      </Text>
+                    </View>
+                  )}
                 </View>
               </ScrollView>
 
@@ -805,3 +849,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+

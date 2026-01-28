@@ -20,6 +20,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
 import { STRIPE_CONFIG } from '@/constants/api';
+import { FeatureFlagProvider } from '@/context/FeatureFlagContext';
 import { ModalSheetProvider } from '@/context/ModalSheetContext';
 import { AddressSelectionProvider } from '@/contexts/AddressSelectionContext';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -375,22 +376,24 @@ export default function RootLayout() {
     <ErrorBoundary>
       <ConvexProvider client={convexClient}>
         <AuthProvider>
-          <EmotionsUIProvider>
-            <AppProvider>
-              <AddressSelectionProvider>
-                <ModalSheetProvider>
-                  <ToastProvider>
-                    {wrappedContent}
-                    <UpdateAvailableModal
-                      isVisible={showUpdateModal}
-                      onUpdate={handleUpdateNow}
-                      onLater={handleUpdateLater}
-                    />
-                  </ToastProvider>
-                </ModalSheetProvider>
-              </AddressSelectionProvider>
-            </AppProvider>
-          </EmotionsUIProvider>
+          <FeatureFlagProvider>
+            <EmotionsUIProvider>
+              <AppProvider>
+                <AddressSelectionProvider>
+                  <ModalSheetProvider>
+                    <ToastProvider>
+                      {wrappedContent}
+                      <UpdateAvailableModal
+                        isVisible={showUpdateModal}
+                        onUpdate={handleUpdateNow}
+                        onLater={handleUpdateLater}
+                      />
+                    </ToastProvider>
+                  </ModalSheetProvider>
+                </AddressSelectionProvider>
+              </AppProvider>
+            </EmotionsUIProvider>
+          </FeatureFlagProvider>
         </AuthProvider>
       </ConvexProvider>
     </ErrorBoundary>

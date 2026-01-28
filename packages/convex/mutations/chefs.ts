@@ -649,3 +649,27 @@ export const updateChefLocation = mutation({
     return { success: true };
   }
 });
+
+export const updateFsaRating = mutation({
+  args: {
+    chefId: v.id('chefs'),
+    rating: v.number(), // 0-5
+    sessionToken: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
+
+    if (!isAdmin(user) && !isStaff(user)) {
+      throw new Error("Only admins and staff can update FSA ratings");
+    }
+
+    if (args.rating < 0 || args.rating > 5) {
+      throw new Error("FSA Rating must be between 0 and 5");
+    }
+
+    await ctx.db.patch(args.chefId, {
+      fsaRating: args.rating,
+      updatedAt: Date.now(),
+    });
+  }
+});

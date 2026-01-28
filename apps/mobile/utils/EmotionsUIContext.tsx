@@ -1,4 +1,4 @@
-import { isFeatureEnabled } from '@/config/featureFlags';
+import { useFeatureFlag } from '@/context/FeatureFlagContext';
 import { createContext, ReactNode, useContext, useState } from 'react';
 
 // Emotion types for the Shake to Eat feature
@@ -140,11 +140,12 @@ interface EmotionsUIProviderProps {
 }
 
 export function EmotionsUIProvider({ children }: EmotionsUIProviderProps) {
+  const { isEnabled } = useFeatureFlag();
   const [internalEmotion, setInternalEmotion] = useState<EmotionType>('neutral');
 
   const setCurrentEmotion = (emotion: EmotionType) => {
     // Feature Flag Check: Emotion Engine (Phase 2)
-    if (!isFeatureEnabled('ENABLE_EMOTION_SEARCH')) {
+    if (!isEnabled('ENABLE_EMOTION_SEARCH')) {
       // If disabled, always force neutral
       setInternalEmotion('neutral');
       return;
@@ -152,7 +153,7 @@ export function EmotionsUIProvider({ children }: EmotionsUIProviderProps) {
     setInternalEmotion(emotion);
   };
 
-  const currentEmotion = isFeatureEnabled('ENABLE_EMOTION_SEARCH') ? internalEmotion : 'neutral';
+  const currentEmotion = isEnabled('ENABLE_EMOTION_SEARCH') ? internalEmotion : 'neutral';
 
   const getEmotionConfig = (emotion: EmotionType): EmotionConfig => {
     return EMOTION_CONFIGS[emotion];

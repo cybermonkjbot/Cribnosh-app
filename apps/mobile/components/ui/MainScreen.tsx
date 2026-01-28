@@ -1,7 +1,6 @@
+import { useFeatureFlag } from "@/context/FeatureFlagContext";
 import { api } from "@/convex/_generated/api";
 import { useAppContext } from "@/utils/AppContext";
-import { useQuery } from "convex/react";
-import Constants from "expo-constants";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -115,13 +114,9 @@ export function MainScreen() {
     refreshAuthState,
   } = useAuthContext();
 
+
   // Feature Flags
-  const featureFlags = useQuery(api.featureFlags.get, { group: 'mobile_home' });
-  const isFeatureEnabled = useCallback((key: string) => {
-    if (featureFlags === undefined) return true; // Default to enabled while loading to prevent flicker
-    const flag = featureFlags.find((f: any) => f.key === key);
-    return flag ? flag.value : true; // Default to true if flag defined but missing (or new)
-  }, [featureFlags]);
+  const { isEnabled: isFeatureEnabled } = useFeatureFlag();
 
   // Cuisines using useCuisines hook
   const { getCuisines } = useCuisines();

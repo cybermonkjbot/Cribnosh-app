@@ -327,6 +327,7 @@ export default function ChefProfileScreen() {
           reviewCount={reviewsCount}
           isVerified={isVerified}
           specialties={chef.specialties}
+          fsaRating={chef.fsaRating}
           onMenu={() => setIsMenuVisible(true)}
         />
 
