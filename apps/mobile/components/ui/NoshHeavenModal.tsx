@@ -1,3 +1,4 @@
+import { isFeatureEnabled } from '@/config/featureFlags';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { api } from '@/convex/_generated/api';
 import { useCart } from '@/hooks/useCart';
@@ -27,7 +28,7 @@ const transformVideoToMeal = (video: VideoPost): MealData => {
     // Convert cents to pounds
     price = `£${((video as any).mealPrice / 100).toFixed(2)}`;
   }
-  
+
   return {
     id: video._id,
     videoSource: video.videoUrl || '',
@@ -56,6 +57,12 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
   // Fetch video feed from Convex
   const fetchVideoFeed = useCallback(async () => {
     if (!isAuthenticated) return;
+
+    // Feature Flag Check: Community Feed (Phase 3)
+    if (!isFeatureEnabled('ENABLE_COMMUNITY_FEED')) {
+      setVideoFeedData({ success: true, data: { videos: [], nextCursor: undefined } });
+      return;
+    }
 
     try {
       setIsLoadingVideos(true);

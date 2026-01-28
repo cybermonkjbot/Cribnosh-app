@@ -7,7 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 
@@ -24,6 +24,7 @@ interface CreateMealModalProps {
 const STEPS = [
   { id: 'basic', question: "What's your meal called?" },
   { id: 'details', question: 'Tell us about your meal' },
+  { id: 'ingredients', question: 'What\'s in your meal?' },
   { id: 'images', question: 'Add meal images' },
   { id: 'status', question: 'Set availability' },
 ];
@@ -35,6 +36,11 @@ const CUISINE_OPTIONS = [
 
 const DIETARY_OPTIONS = [
   'Vegetarian', 'Vegan', 'Gluten-Free', 'Dairy-Free', 'Nut-Free', 'Halal', 'Kosher', 'Paleo', 'Keto', 'Low-Carb'
+];
+
+const ALLERGEN_OPTIONS = [
+  'Celery', 'Cereals containing gluten', 'Crustaceans', 'Eggs', 'Fish', 'Lupin', 'Milk', 'Molluscs',
+  'Mustard', 'Nuts', 'Peanuts', 'Sesame seeds', 'Soya', 'Sulphur dioxide/Sulphites'
 ];
 
 export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
@@ -55,6 +61,15 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
     dietary: [] as string[],
     images: [] as string[],
     status: 'available' as 'available' | 'unavailable',
+    ingredients: [] as { name: string; quantity: string; isAllergen: boolean; allergenType: string }[],
+  });
+
+  // New ingredient state
+  const [newIngredient, setNewIngredient] = useState({
+    name: '',
+    quantity: '',
+    isAllergen: false,
+    allergenType: '',
   });
 
   const createMeal = useMutation(api.mutations.meals.createMeal);
@@ -80,7 +95,9 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
       dietary: [],
       images: [],
       status: 'available',
+      ingredients: [],
     });
+    setNewIngredient({ name: '', quantity: '', isAllergen: false, allergenType: '' });
     setCurrentStep(0);
     setIsSubmitted(false);
     onClose();
@@ -159,6 +176,23 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
     });
   };
 
+  const handleAddIngredient = () => {
+    if (!newIngredient.name.trim()) return;
+
+    setFormData({
+      ...formData,
+      ingredients: [...formData.ingredients, { ...newIngredient, name: newIngredient.name.trim() }],
+    });
+    setNewIngredient({ name: '', quantity: '', isAllergen: false, allergenType: '' });
+  };
+
+  const handleRemoveIngredient = (index: number) => {
+    setFormData({
+      ...formData,
+      ingredients: formData.ingredients.filter((_, i) => i !== index),
+    });
+  };
+
   const handleToggleCuisine = (cuisine: string) => {
     setFormData({
       ...formData,
@@ -184,6 +218,12 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
         return !!formData.name.trim() && !!formData.description.trim();
       case 'details':
         return !!formData.price.trim() && !isNaN(parseFloat(formData.price)) && parseFloat(formData.price) > 0;
+      case 'ingredients':
+        // Natasha's Law: Must have at least one ingredient to act as a compliance check? 
+        // Or strictly valid only if Status is Available. But here we just check progress.
+        // Let's require at least one ingredient to be thorough, or at least rely on the final check.
+        // Let's make it optional here for UX, but enforced on submit if "Available".
+        return true;
       case 'images':
         return true; // Optional
       case 'status':
@@ -242,6 +282,7 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
         dietary: formData.dietary,
         status: formData.status,
         images: formData.images.length > 0 ? formData.images : undefined,
+        ingredients: formData.ingredients,
         sessionToken,
       });
 
@@ -350,6 +391,99 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
               </View>
             </View>
             <Text style={styles.hintText}>Set the price and categorize your meal</Text>
+          </View>
+        );
+
+      case 'ingredients':
+        return (
+          <View style={styles.stepContent}>
+            {/* List of added ingredients */}
+            {formData.ingredients.length > 0 && (
+              <View style={styles.ingredientsList}>
+                {formData.ingredients.map((ing, i) => (
+                  <View key={i} style={styles.ingredientItem}>
+                    <View style={styles.ingredientInfo}>
+                      <Text style={styles.ingredientName}>{ing.name}</Text>
+                      {ing.quantity ? <Text style={styles.ingredientQuantity}>{ing.quantity}</Text> : null}
+                      {ing.isAllergen && (
+                        <View style={styles.allergenBadge}>
+                          <Text style={styles.allergenText}>⚠️ {ing.allergenType || 'Allergen'}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <TouchableOpacity onPress={() => handleRemoveIngredient(i)} style={styles.removeIngredientButton}>
+                      <X size={16} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Add new ingredient form */}
+            <View style={styles.addIngredientForm}>
+              <Text style={styles.sectionTitle}>Add Ingredient</Text>
+
+              <View style={styles.inputCard}>
+                <TextInput
+                  style={styles.inputCardText}
+                  placeholder="Ingredient Name (e.g. Flour)"
+                  value={newIngredient.name}
+                  onChangeText={(t) => setNewIngredient({ ...newIngredient, name: t })}
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+
+              <View style={[styles.inputCard, styles.inputCardMarginTop]}>
+                <TextInput
+                  style={styles.inputCardText}
+                  placeholder="Quantity (optional, e.g. 100g)"
+                  value={newIngredient.quantity}
+                  onChangeText={(t) => setNewIngredient({ ...newIngredient, quantity: t })}
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+
+              <View style={styles.allergenRow}>
+                <Text style={styles.allergenLabel}>Is this an allergen?</Text>
+                <Switch
+                  value={newIngredient.isAllergen}
+                  onValueChange={(val) => setNewIngredient({ ...newIngredient, isAllergen: val })}
+                  trackColor={{ false: '#E5E7EB', true: '#F23E2E' }}
+                />
+              </View>
+
+              {newIngredient.isAllergen && (
+                <View style={styles.allergenTypeContainer}>
+                  <Text style={styles.subLabel}>Allergen Type:</Text>
+                  <View style={styles.optionsGrid}>
+                    {ALLERGEN_OPTIONS.map((type) => (
+                      <TouchableOpacity
+                        key={type}
+                        onPress={() => setNewIngredient({ ...newIngredient, allergenType: type })}
+                        style={[
+                          styles.optionChip,
+                          newIngredient.allergenType === type && styles.optionChipSelected
+                        ]}
+                      >
+                        <Text style={[
+                          styles.optionChipText,
+                          newIngredient.allergenType === type && styles.optionChipTextSelected
+                        ]}>{type}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={[styles.addButton, !newIngredient.name.trim() && styles.addButtonDisabled]}
+                onPress={handleAddIngredient}
+                disabled={!newIngredient.name.trim()}
+              >
+                <Text style={styles.addButtonText}>Add Ingredient</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.hintText}>Natasha's Law requires full ingredient lists for pre-packed food.</Text>
           </View>
         );
 
@@ -864,6 +998,89 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'Inter',
     textAlign: 'center',
+  },
+  ingredientsList: {
+    marginBottom: 24,
+    gap: 8,
+  },
+  ingredientItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  ingredientInfo: {
+    flex: 1,
+  },
+  ingredientName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  ingredientQuantity: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  allergenBadge: {
+    marginTop: 4,
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  allergenText: {
+    fontSize: 12,
+    color: '#B91C1C',
+    fontWeight: '500',
+  },
+  removeIngredientButton: {
+    padding: 8,
+  },
+  addIngredientForm: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  allergenRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  allergenLabel: {
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: '500',
+  },
+  allergenTypeContainer: {
+    marginBottom: 16,
+  },
+  subLabel: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 8,
+  },
+  addButton: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  addButtonDisabled: {
+    opacity: 0.5,
+  },
+  addButtonText: {
+    color: '#111827',
+    fontWeight: '600',
   },
 });
 

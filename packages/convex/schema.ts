@@ -426,6 +426,8 @@ export default defineSchema({
       lastOrderDate: v.optional(v.number())
     })),
     complianceTrainingSkipped: v.optional(v.boolean()),
+    // UK Specific Compliance
+    fsaRating: v.optional(v.number()), // 0-5 Star Hygiene Rating (UK FSA)
     updatedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
@@ -470,6 +472,14 @@ export default defineSchema({
     )),
     servingCount: v.optional(v.number()), // Number of people this serves
     packageWeight: v.optional(v.number()), // Estimated weight in grams
+    // Sustainability & Packaging (UK Plastic Tax)
+    packagingType: v.optional(v.union(
+      v.literal("eco_friendly"),
+      v.literal("recyclable"),
+      v.literal("compostable"),
+      v.literal("reusable"),
+      v.literal("standard")
+    )),
     requiresSpecialPackaging: v.optional(v.boolean()), // Fragile, needs insulation, etc.
     // Vector embedding for semantic search (1536 dimensions for OpenAI text-embedding-3-small)
     embedding: v.optional(v.array(v.number())),

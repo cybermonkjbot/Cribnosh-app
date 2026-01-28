@@ -31,6 +31,11 @@ const DIETARY_OPTIONS = [
   'Vegetarian', 'Vegan', 'Gluten-Free', 'Dairy-Free', 'Nut-Free', 'Halal', 'Kosher', 'Paleo', 'Keto', 'Low-Carb'
 ];
 
+const ALLERGEN_OPTIONS = [
+  'Celery', 'Cereals containing gluten', 'Crustaceans', 'Eggs', 'Fish', 'Lupin', 'Milk', 'Molluscs',
+  'Mustard', 'Nuts', 'Peanuts', 'Sesame seeds', 'Soya', 'Sulphur dioxide/Sulphites'
+];
+
 export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps) {
   const { chef, sessionToken } = useChefAuth();
   const { showSuccess, showError } = useToast();
@@ -46,6 +51,14 @@ export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps
     dietary: [] as string[],
     images: [] as string[],
     status: 'available' as 'available' | 'unavailable',
+    ingredients: [] as { name: string; quantity?: string; isAllergen?: boolean; allergenType?: string }[],
+  });
+
+  const [newIngredient, setNewIngredient] = useState({
+    name: '',
+    quantity: '',
+    isAllergen: false,
+    allergenType: '',
   });
 
   const updateMeal = useMutation(api.mutations.meals.updateMeal);
@@ -67,6 +80,7 @@ export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps
         dietary: Array.isArray(meal.dietary) ? meal.dietary : [],
         images: Array.isArray(meal.images) ? meal.images : [],
         status: meal.status === 'available' || meal.status === 'active' ? 'available' : 'unavailable',
+        ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
       });
     }
   }, [meal, isVisible]);
@@ -80,7 +94,9 @@ export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps
       dietary: [],
       images: [],
       status: 'available',
+      ingredients: [],
     });
+    setNewIngredient({ name: '', quantity: '', isAllergen: false, allergenType: '' });
     onClose();
   };
 
@@ -211,6 +227,7 @@ export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps
           dietary: formData.dietary,
           status: formData.status,
           images: formData.images.length > 0 ? formData.images : undefined,
+          ingredients: formData.ingredients,
         },
         sessionToken,
       });
@@ -671,5 +688,120 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     fontFamily: 'Inter',
+  },
+  hintText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: 'Inter',
+    marginBottom: 12,
+  },
+  subTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  ingredientsList: {
+    marginBottom: 24,
+    gap: 8,
+  },
+  ingredientItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  ingredientInfo: {
+    flex: 1,
+  },
+  ingredientName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  ingredientQuantity: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  allergenBadge: {
+    marginTop: 4,
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  allergenText: {
+    fontSize: 12,
+    color: '#B91C1C',
+    fontWeight: '500',
+  },
+  removeIngredientButton: {
+    padding: 8,
+  },
+  addIngredientForm: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  inputCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    minHeight: 48,
+  },
+  inputCardMarginTop: {
+    marginTop: 12,
+  },
+  inputCardText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#111827',
+    fontFamily: 'Inter',
+  },
+  allergenRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  allergenLabel: {
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: '500',
+  },
+  allergenTypeContainer: {
+    marginBottom: 16,
+  },
+  subLabel: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 8,
+  },
+  addButton: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  addButtonDisabled: {
+    opacity: 0.5,
+  },
+  addButtonText: {
+    color: '#111827',
+    fontWeight: '600',
   },
 });

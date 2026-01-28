@@ -1,9 +1,8 @@
 "use node";
 
-import { action } from "../_generated/server";
 import { api, internal } from "../_generated/api";
-import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
+import { action } from "../_generated/server";
 
 /**
  * Seed data for all home screen sections
@@ -29,6 +28,7 @@ export const seedAllHomeScreenData = action({
       { name: "French", description: "Elegant French cuisine and pastries", image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=400&h=400&fit=crop" },
       { name: "Korean", description: "Korean BBQ and traditional dishes", image: "https://images.unsplash.com/photo-1559314809-0d155014e29e?w=400&h=400&fit=crop" },
       { name: "Kebab", description: "Delicious kebabs and grilled meats", image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop" },
+      { name: "Caribbean", description: "Authentic island flavors, jerk, and curries", image: "https://images.unsplash.com/photo-1547592180-85f173990554?w=400&h=400&fit=crop" },
     ];
 
     // Sample dishes - expanded list
@@ -109,6 +109,9 @@ export const seedAllHomeScreenData = action({
       // More kebab variations
       { name: "Beef Doner Kebab", description: "Tender beef doner with fresh vegetables", price: 1299, cuisine: ["Kebab"], dietary: [], image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=120&h=120&fit=crop", rating: 4.7 },
       { name: "Chicken Shish Kebab", description: "Marinated chicken skewers", price: 1399, cuisine: ["Kebab"], dietary: [], image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=120&h=120&fit=crop", rating: 4.8 },
+      // UK Marketing Specifics (Caribbean & Roast)
+      { name: "Jerk Chicken", description: "Spicy grilled chicken with rice and peas", price: 1450, cuisine: ["Caribbean"], dietary: ["Halal"], image: "https://images.unsplash.com/photo-1547592180-85f173990554?w=120&h=120&fit=crop", rating: 4.9, packagingType: "eco_friendly" },
+      { name: "Sunday Roast Beef", description: "Roast beef with Yorkshire pudding and gravy", price: 1899, cuisine: ["British"], dietary: [], image: "https://images.unsplash.com/photo-1582234057039-2a132cb07185?w=120&h=120&fit=crop", rating: 4.8, packagingType: "recyclable" },
     ];
 
     try {
@@ -149,6 +152,8 @@ export const seedAllHomeScreenData = action({
         { name: "Taco Fiesta", bio: "Authentic Mexican street food", specialties: ["Mexican"], lat: 51.5120, lng: -0.1100, rating: 4.7 },
         { name: "Kebab House", bio: "Traditional kebabs and grilled meats", specialties: ["Kebab"], lat: 51.5080, lng: -0.1050, rating: 4.8 },
         { name: "Nigerian Delights", bio: "Traditional Nigerian cuisine", specialties: ["Nigerian"], lat: 51.5030, lng: -0.1000, rating: 4.6 },
+        { name: "Mama's Caribbean", bio: "Authentic Jamaican and Trinidadian dishes", specialties: ["Caribbean"], lat: 51.5040, lng: -0.0900, rating: 4.9, fsaRating: 5 },
+        { name: "The Roast Club", bio: "Best Sunday Roasts in London", specialties: ["British"], lat: 51.5160, lng: -0.1200, rating: 4.7, fsaRating: 5 },
       ];
 
       const chefIds: Id<"chefs">[] = [];
@@ -177,7 +182,7 @@ export const seedAllHomeScreenData = action({
         chefIds.push(chefId);
         console.log(`Created chef: ${chefData.name} (${chefId})`);
       }
-      
+
       // Use first chef as primary chef
       const chefId = chefIds[0];
 
@@ -185,7 +190,7 @@ export const seedAllHomeScreenData = action({
       console.log("Creating meals...");
       const mealIds: Id<"meals">[] = [];
       const mealToChefMap: Map<Id<"meals">, Id<"chefs">> = new Map();
-      
+
       // Create a map of cuisine to chef index
       const cuisineToChefIndex: Record<string, number> = {
         "Japanese": 3, // Tokyo Express
@@ -195,8 +200,10 @@ export const seedAllHomeScreenData = action({
         "Mexican": 5, // Taco Fiesta
         "Kebab": 6, // Kebab House
         "Nigerian": 7, // Nigerian Delights
+        "Caribbean": 8, // Mama's Caribbean
+        "British": 9, // The Roast Club
       };
-      
+
       for (let i = 0; i < sampleDishes.length; i++) {
         const dish = sampleDishes[i];
         // Assign meal to chef based on cuisine match
@@ -208,7 +215,7 @@ export const seedAllHomeScreenData = action({
             assignedChefId = chefIds[chefIndex];
           }
         }
-        
+
         const mealId = await ctx.runMutation(internal.mutations.meals.createMealForSeed, {
           chefId: assignedChefId,
           name: dish.name,
@@ -421,19 +428,19 @@ export const seedAllHomeScreenData = action({
           status: "all",
           order_type: "all",
         });
-        
+
         // Find the order we just created (most recent one)
         const orderDoc = recentOrders
           .filter((o: any) => o._id === orderDocId)
           .sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0))[0];
-        
+
         // Update order status to completed
         if (orderDoc && orderDoc.order_id) {
           await ctx.runMutation(api.mutations.orders.updateStatus, {
             order_id: orderDoc.order_id,
             status: "completed",
           });
-          
+
           // Mark as paid
           await ctx.runMutation(api.mutations.orders.markPaid, {
             order_id: orderDoc.order_id,
@@ -931,12 +938,12 @@ export const seedAllHomeScreenData = action({
       ];
 
       const videoIds: Id<"videoPosts">[] = [];
-      
+
       // Helper function to upload a placeholder file and get storage ID
       const uploadPlaceholderFile = async (contentType: string, fileName: string): Promise<Id<"_storage">> => {
         // Generate upload URL
         const uploadUrl = await ctx.storage.generateUploadUrl();
-        
+
         // Create a minimal placeholder file
         // For videos, we'll use a very small test video file
         // For thumbnails, we'll use a 1x1 pixel PNG
@@ -967,7 +974,7 @@ export const seedAllHomeScreenData = action({
             0x42, 0x60, 0x82
           ]);
         }
-        
+
         // Upload the file
         const uploadResponse = await fetch(uploadUrl, {
           method: 'POST',
@@ -976,16 +983,16 @@ export const seedAllHomeScreenData = action({
           },
           body: fileContent,
         });
-        
+
         if (!uploadResponse.ok) {
           throw new Error(`Failed to upload ${fileName}: ${uploadResponse.statusText}`);
         }
-        
+
         const result = await uploadResponse.json();
         if (!result.storageId) {
           throw new Error(`No storageId in upload response for ${fileName}`);
         }
-        
+
         return result.storageId as Id<"_storage">;
       };
 
@@ -994,18 +1001,18 @@ export const seedAllHomeScreenData = action({
           // Assign video to a random chef
           const randomChefIndex = Math.floor(Math.random() * chefIds.length);
           const chefId = chefIds[randomChefIndex];
-          
+
           // Get the chef's user ID
           const chef = await ctx.runQuery(api.queries.chefs.getChefById, { chefId });
           if (!chef || !chef.userId) {
             console.warn(`Skipping video ${videoData.title} - chef not found`);
             continue;
           }
-          
+
           // Upload placeholder video and thumbnail
           const videoStorageId = await uploadPlaceholderFile('video/mp4', `video-${Date.now()}.mp4`);
           const thumbnailStorageId = await uploadPlaceholderFile('image/png', `thumbnail-${Date.now()}.png`);
-          
+
           // Create video post using mutation that accepts userId
           const videoId = await ctx.runMutation(api.mutations.videoPosts.createVideoPostByUserId, {
             userId: chef.userId,
@@ -1025,15 +1032,15 @@ export const seedAllHomeScreenData = action({
             visibility: "public",
             isLive: false,
           });
-          
+
           // Publish the video using internal mutation (bypasses auth)
           await ctx.runMutation(internal.mutations.videoPosts.publishVideoPostForSeed, {
             videoId,
           });
-          
+
           // Note: Engagement metrics (likes, views, comments, shares) start at 0
           // They will be updated as users interact with the videos
-          
+
           videoIds.push(videoId);
           console.log(`Created video: ${videoData.title} (${videoId})`);
         } catch (error) {
