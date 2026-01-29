@@ -263,7 +263,7 @@ export default function ReferralDashboard() {
 
   const userStats = useQuery(
     api.queries.users.getUserReferralStats,
-    userId ? { userId, sessionToken: sessionToken || undefined } : "skip"
+    userId && sessionToken ? { userId, sessionToken } : "skip"
   );
   const referralHistory = useQuery(
     api.queries.users.getUserReferralHistory,
