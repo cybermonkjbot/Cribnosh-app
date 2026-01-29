@@ -1,8 +1,8 @@
 "use client";
 
-import { motion, AnimatePresence } from 'motion/react';
-import { ReactNode, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { AnimatePresence, motion } from 'motion/react';
+import { ReactNode, useState } from 'react';
 
 interface Tab {
   id: string;
@@ -21,10 +21,10 @@ interface AdminTabsProps {
   activeTab?: string;
 }
 
-export function AdminTabs({ 
-  tabs, 
-  defaultTab, 
-  children, 
+export function AdminTabs({
+  tabs,
+  defaultTab,
+  children,
   className,
   onTabChange,
   activeTab: externalActiveTab
@@ -40,18 +40,18 @@ export function AdminTabs({
   return (
     <div className={cn("w-full", className)}>
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200/50 bg-white/50 backdrop-blur-sm rounded-t-xl">
-        <nav className="flex space-x-0 overflow-x-auto scrollbar-hide" aria-label="Tabs">
+      <div className="border-b border-gray-200/50 bg-white/50 backdrop-blur-sm rounded-t-xl overflow-hidden">
+        <nav className="flex space-x-0 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent max-w-full" aria-label="Tabs">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
-            
+
             return (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
                 className={cn(
-                  "relative flex items-center gap-2 px-4 py-3 text-sm font-medium font-satoshi transition-all duration-200 whitespace-nowrap min-h-[44px]",
+                  "relative flex-shrink-0 flex items-center gap-2 px-4 py-3 text-sm font-medium font-satoshi transition-all duration-200 whitespace-nowrap min-h-[44px]",
                   "hover:bg-gray-50/80 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:z-10",
                   isActive
                     ? "text-gray-900 border-b-2 border-gray-900 bg-gray-50"
@@ -64,8 +64,8 @@ export function AdminTabs({
                 {tab.badge && (
                   <span className={cn(
                     "ml-2 px-2 py-0.5 text-xs font-medium rounded-full",
-                    isActive 
-                      ? "bg-gray-200 text-gray-900" 
+                    isActive
+                      ? "bg-gray-200 text-gray-900"
                       : "bg-gray-100 text-gray-600"
                   )}>
                     {tab.badge}
@@ -97,12 +97,12 @@ export function AdminTabs({
 }
 
 // Mobile-optimized version for smaller screens
-export function AdminTabsMobile({ 
-  tabs, 
-  defaultTab, 
-  children, 
+export function AdminTabsMobile({
+  tabs,
+  defaultTab,
+  children,
   className,
-  onTabChange 
+  onTabChange
 }: AdminTabsProps) {
   const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id);
 

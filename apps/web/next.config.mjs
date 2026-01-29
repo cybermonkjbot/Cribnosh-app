@@ -67,6 +67,20 @@ const nextConfig = {
   // Output configuration
   output: 'standalone',
 
+  // URL Rewrites
+  async rewrites() {
+    return [
+      {
+        source: '/blog',
+        destination: '/by-us',
+      },
+      {
+        source: '/blog/:slug*',
+        destination: '/by-us/:slug*',
+      },
+    ];
+  },
+
   // Enable source maps in production for error tracking (Sentry can use them)
   productionBrowserSourceMaps: true,
 
