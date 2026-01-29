@@ -1,87 +1,33 @@
 "use client";
 
-import { useMediaQuery } from "@/hooks/use-media-query";
 import { motion } from "motion/react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
 
 interface MasonryBackgroundProps {
   className?: string;
 }
 
 export function MasonryBackground({ className }: MasonryBackgroundProps) {
-  const [isMounted, setIsMounted] = useState(false);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const isDesktop = useMediaQuery("(min-width: 768px)");
-
   const images = [
     {
       src: "/backgrounds/masonry-1.jpg",
       alt: "Kitchen background",
-      position: {
-        top: isDesktop ? "25vh" : "15vh",
-        left: isDesktop ? undefined : "5vw",
-        right: isDesktop ? "5vw" : undefined
-      },
-      size: {
-        width: isDesktop ? "25vw" : "30vw",
-        height: isDesktop ? "30vh" : "20vh"
-      },
+      className: "top-[15vh] md:top-[25vh] left-[5vw] md:left-auto md:right-[5vw] w-[30vw] md:w-[25vw] h-[20vh] md:h-[30vh]",
       delay: 0.2,
     },
     {
       src: "/backgrounds/masonry-2.jpg",
       alt: "Cooking background",
-      position: {
-        top: isDesktop ? "45vh" : "40vh",
-        left: isDesktop ? undefined : "35vw",
-        right: isDesktop ? "15vw" : undefined
-      },
-      size: {
-        width: isDesktop ? "20vw" : "30vw",
-        height: isDesktop ? "35vh" : "20vh"
-      },
+      className: "top-[40vh] md:top-[45vh] left-[35vw] md:left-auto md:right-[15vw] w-[30vw] md:w-[20vw] h-[20vh] md:h-[35vh] [transform:rotateY(15deg)] md:[transform:none]",
       delay: 0.3,
     },
     {
       src: "/backgrounds/masonry-3.jpg",
       alt: "Food background",
-      position: {
-        top: isDesktop ? "70vh" : "70vh",
-        left: isDesktop ? undefined : "60vw",
-        right: isDesktop ? "8vw" : "5vw"
-      },
-      size: {
-        width: isDesktop ? "22vw" : "30vw",
-        height: isDesktop ? "25vh" : "20vh"
-      },
+      className: "top-[70vh] left-[60vw] md:left-auto md:right-[8vw] w-[30vw] md:w-[22vw] h-[20vh] md:h-[25vh]",
       delay: 0.4,
     },
   ];
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsMounted(true);
-    setDimensions({
-      width: window.innerWidth,
-      height: window.innerHeight
-    });
-
-    const handleResize = () => {
-      setDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight
-      });
-    };
-
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
-
-  if (!isMounted) return null;
 
   return (
     <div
@@ -92,26 +38,15 @@ export function MasonryBackground({ className }: MasonryBackgroundProps) {
       }}
     >
       <motion.div
-        className="relative w-full h-full"
+        className="relative w-full h-full opacity-50 md:opacity-100 [perspective:none] md:[perspective:1000px] [transform-style:flat] md:[transform-style:preserve-3d]"
         style={{
-          transformStyle: isDesktop ? "preserve-3d" : "flat",
-          perspective: isDesktop ? "1000px" : "none",
           pointerEvents: "none",
-          opacity: isDesktop ? 1 : 0.5,
         }}
       >
         {images.map((image, index) => (
           <motion.div
             key={image.src}
-            className="absolute rounded-2xl overflow-hidden shadow-2xl"
-            style={{
-              top: image.position.top,
-              [isDesktop ? 'right' : 'left']: isDesktop ? image.position.right : image.position.left,
-              width: image.size.width,
-              height: image.size.height,
-              pointerEvents: "none",
-              rotateY: !isDesktop && index === 1 ? '15deg' : 0,
-            }}
+            className={`absolute rounded-2xl overflow-hidden shadow-2xl pointer-events-none ${image.className}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{
               opacity: 0.9 - (index * 0.05),
@@ -126,27 +61,21 @@ export function MasonryBackground({ className }: MasonryBackgroundProps) {
               src={image.src}
               alt={image.alt}
               fill
-              sizes={`(max-width: 768px) ${image.size.width}, ${image.size.width}`}
+              sizes="(max-width: 768px) 30vw, 25vw"
               className="object-cover"
               priority={index === 0}
-              loading={index === 0 ? "eager" : "lazy"}
             />
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent"
-              style={{
-                opacity: 0.2,
-                pointerEvents: "none"
-              }}
+            <div
+              className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent pointer-events-none opacity-20"
             />
           </motion.div>
         ))}
 
         {/* Decorative gradient overlay */}
         <div
-          className="absolute inset-0 bg-gradient-to-l from-white/50 to-transparent"
-          style={{ pointerEvents: "none" }}
+          className="absolute inset-0 bg-gradient-to-l from-white/50 to-transparent pointer-events-none"
         />
       </motion.div>
     </div>
   );
-} 
+}

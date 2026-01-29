@@ -72,7 +72,7 @@ export default function FoundersStoryPage() {
                         Today, we are more than a platform; we are a community celebrating culture, connection, and the universal language of food.
                     </p>
                     <Image
-                        src="/cribnoshlivescreen.png"
+                        src="/mobilemockstatic.png"
                         alt="CribNosh Launch"
                         width={800}
                         height={500}
@@ -179,15 +179,15 @@ export default function FoundersStoryPage() {
                             <div className="relative">
                                 <div className="aspect-square relative rounded-2xl overflow-hidden shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
                                     <Image
-                                        src="/backgrounds/masonry-1.jpg" // Placeholder for team/founder image
+                                        src="/IMG_3491.jpg"
                                         alt="CribNosh Team"
                                         fill
                                         className="object-cover"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                                     <div className="absolute bottom-8 left-8 text-white">
-                                        <p className="font-display text-2xl font-bold">The CribNosh Team</p>
-                                        <p className="opacity-80">Building the future of food</p>
+                                        <p className="font-display text-2xl font-bold">Doyle Omachonu</p>
+                                        <p className="opacity-80">Founder</p>
                                     </div>
                                 </div>
                             </div>
