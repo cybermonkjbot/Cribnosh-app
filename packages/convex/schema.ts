@@ -625,7 +625,7 @@ export default defineSchema({
     teamSize: v.optional(v.string()),
     source: v.optional(v.string()),
     joinedAt: v.number(),
-    location: v.optional(v.string()), // Add location field
+    location: v.optional(v.any()), // Add location field
     priority: v.optional(v.string()), // Add priority field
     status: v.optional(v.string()), // Add status field
     addedBy: v.optional(v.id("users")), // Staff member who added this entry
