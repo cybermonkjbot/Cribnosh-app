@@ -15,7 +15,7 @@ const nextConfig = {
   },
 
   // Server-side initialization
-  serverExternalPackages: ['winston', '@opentelemetry/api', '@opentelemetry/instrumentation', '@sentry/nextjs', 'next/cache'],
+  serverExternalPackages: ['winston'],
 
   // Image optimization
   images: {
