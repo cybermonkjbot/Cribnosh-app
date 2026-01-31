@@ -38,6 +38,9 @@ const nextConfig = {
   // Transpile packages for better compatibility
   transpilePackages: ['convex'],
 
+  // Turbopack configuration (Next.js 16 requirement)
+  turbopack: {},
+
   /*
   // Turbopack configuration for faster development
   turbopack: {
