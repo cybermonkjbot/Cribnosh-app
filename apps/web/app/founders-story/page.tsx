@@ -237,12 +237,12 @@ export default function FoundersStoryPage() {
                                 <p className="text-xl font-display font-bold text-gray-900 mb-8">
                                     Welcome to CribNosh — where every bite brings us closer to home.
                                 </p>
-                                <Link href="/staff" className="inline-flex items-center gap-2 text-[#ff3b30] font-bold hover:gap-3 transition-all group">
-                                    Meet the whole team
-                                    <span className="bg-[#ff3b30]/10 p-2 rounded-full group-hover:bg-[#ff3b30] group-hover:text-white transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-                                    </span>
-                                </Link>
+                                {/* <Link href="/staff" className="inline-flex items-center gap-2 text-[#ff3b30] font-bold hover:gap-3 transition-all group">
+    Meet the whole team
+    <span className="bg-[#ff3b30]/10 p-2 rounded-full group-hover:bg-[#ff3b30] group-hover:text-white transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+    </span>
+</Link> */}
                             </div>
                             <div className="relative">
                                 <div className="aspect-square relative rounded-2xl overflow-hidden shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
