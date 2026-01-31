@@ -13,7 +13,7 @@ import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 
 type Post = {
   title: string;
@@ -34,7 +34,7 @@ const CATEGORIES = [
   "Recipe Collections"
 ];
 
-export default function ByUsPage() {
+function ByUsContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -377,5 +377,13 @@ export default function ByUsPage() {
         </ParallaxGroup>
       </main>
     </>
+  );
+}
+
+export default function ByUsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <ByUsContent />
+    </Suspense>
   );
 }

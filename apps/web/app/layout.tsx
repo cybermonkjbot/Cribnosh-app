@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { headers } from "next/headers";
 import { AiMetadata } from "../components/AiMetadata";
+import { CanonicalTag } from "../components/CanonicalTag";
 import { ConvexClientProvider } from '../components/ConvexClientProvider';
 import { JsonLd } from "../components/JsonLd";
 import { ClientLayout } from "../components/layout/client-layout";
@@ -75,16 +75,14 @@ export const metadata: Metadata = {
   }
 };
 
+// Force dynamic rendering for the entire app to avoid static generation issues with auth/cookies
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const h = await headers();
-  const pathname = h.get('x-pathname') || '/';
-  const canonical = `https://cribnosh.com${pathname}`;
-  const altCom = `https://cribnosh.com${pathname}`;
-  const altUk = `https://cribnosh.co.uk${pathname}`;
   return (
     <html lang="en-GB" className="light" suppressHydrationWarning>
       <head>
@@ -99,10 +97,9 @@ export default async function RootLayout({
         <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
         <meta name="googlebot" content="index, follow" />
         <meta name="google-site-verification" content="YOUR_GOOGLE_SITE_VERIFICATION_CODE" />
-        <link rel="canonical" href={canonical} />
-        <link rel="alternate" href={altCom} hrefLang="en" />
-        <link rel="alternate" href={altUk} hrefLang="en-gb" />
-        <link rel="alternate" href={altCom} hrefLang="x-default" />
+
+        <CanonicalTag />
+
         <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
 
         {/* Open Graph tags */}
