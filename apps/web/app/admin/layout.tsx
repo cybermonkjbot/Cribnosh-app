@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
 import { GlassNavbar } from "@/components/admin/glass-navbar";
 import { GlassSidebar } from "@/components/admin/glass-sidebar";
-import { motion, AnimatePresence } from "motion/react";
-import React from "react";
-import { AdminUserProvider, useAdminUser } from "./AdminUserProvider";
-import { useMobileDevice } from '@/hooks/use-mobile-device';
 import { UnauthenticatedState } from '@/components/ui/UnauthenticatedState';
+import { useMobileDevice } from '@/hooks/use-mobile-device';
+import { AnimatePresence, motion } from "motion/react";
+import { usePathname, useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { AdminUserProvider, useAdminUser } from "./AdminUserProvider";
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -57,7 +56,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   // Authentication is session-based via session token in cookies (convex-auth-token)
   // The session token is validated server-side by middleware (proxy.ts) and API routes
   // Client-side hook (useAdminUser) checks for session token and fetches user data
-  
+
   // Show loading state while checking session token and fetching user data
   if (adminLoading) {
     return <UnauthenticatedState type="loading" role="admin" />;
@@ -70,61 +69,61 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        {/* Enhanced Navbar (hide if sidebar open on mobile) */}
-        {!(sidebarOpen && isMobile) && (
-          <motion.div
-            initial={{ y: -100 }}
-            animate={{ y: 0 }}
-            className="fixed top-0 left-0 right-0 z-50"
-          >
-            <GlassNavbar 
-              onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-              notifications={notifications}
-              onNotificationClick={() => setNotifications(0)}
-            />
-          </motion.div>
-        )}
-        {/* Sidebar Overlay (mobile only) */}
-        <AnimatePresence>
-          {sidebarOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[100] lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-          )}
-        </AnimatePresence>
-        {/* Sidebar: fixed on mobile, static on desktop */}
-        <div
-          className={`lg:fixed lg:top-0 lg:left-0 lg:h-full lg:w-64 z-[101] lg:z-40 ${sidebarOpen ? 'block' : 'hidden'} lg:block`}
-          style={{ 
-            transition: 'transform 0.3s ease-in-out', 
-            transform: sidebarOpen || (typeof window !== 'undefined' && window.innerWidth >= 1024) ? 'translateX(0)' : 'translateX(-100%)' 
-          }}
+      {/* Enhanced Navbar (hide if sidebar open on mobile) */}
+      {!(sidebarOpen && isMobile) && (
+        <motion.div
+          initial={{ y: -100 }}
+          animate={{ y: 0 }}
+          className="fixed top-0 left-0 right-0 z-50"
         >
-          <GlassSidebar 
-            isOpen={sidebarOpen || (typeof window !== 'undefined' && window.innerWidth >= 1024)}
-            onClose={() => setSidebarOpen(false)}
-            onLogout={handleLogout}
+          <GlassNavbar
+            onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+            notifications={notifications}
+            onNotificationClick={() => setNotifications(0)}
           />
-        </div>
-
-        {/* Main Content */}
-        <div className="flex">
-          <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 xl:p-8 ml-0 lg:ml-64 mt-16 lg:mt-20 transition-all duration-300">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="pt-20 sm:pt-24 lg:pt-0"
-            >
-              {children}
-            </motion.div>
-          </main>
-        </div>
+        </motion.div>
+      )}
+      {/* Sidebar Overlay (mobile only) */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[100] lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+      {/* Sidebar: fixed on mobile, static on desktop */}
+      <div
+        className={`lg:fixed lg:top-0 lg:left-0 lg:h-full lg:w-64 z-[101] lg:z-40 ${sidebarOpen ? 'block' : 'hidden'} lg:block`}
+        style={{
+          transition: 'transform 0.3s ease-in-out',
+          transform: sidebarOpen || (typeof window !== 'undefined' && window.innerWidth >= 1024) ? 'translateX(0)' : 'translateX(-100%)'
+        }}
+      >
+        <GlassSidebar
+          isOpen={sidebarOpen || (typeof window !== 'undefined' && window.innerWidth >= 1024)}
+          onClose={() => setSidebarOpen(false)}
+          onLogout={handleLogout}
+        />
       </div>
+
+      {/* Main Content */}
+      <div className="flex">
+        <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 xl:p-8 ml-0 lg:ml-64 mt-16 lg:mt-20 transition-all duration-300">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="pt-20 sm:pt-24 lg:pt-0"
+          >
+            {children}
+          </motion.div>
+        </main>
+      </div>
+    </div>
   );
 }
 

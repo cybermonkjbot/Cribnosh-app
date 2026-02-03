@@ -176,12 +176,13 @@ COPY . .
 # We need to create a convex directory at the root for @/convex imports to work
 # Remove any existing convex directory/symlink first
 RUN rm -rf convex || true && \
-    if [ -d "packages/convex/convex" ]; then \
+    if [ -d "packages/convex" ]; then \
       mkdir -p convex && \
-      cp -r packages/convex/convex/* convex/ && \
-      echo "Created convex directory from packages/convex/convex"; \
+      cp -r packages/convex/convex/* convex/ 2>/dev/null || true && \
+      cp packages/convex/*.ts convex/ 2>/dev/null || true && \
+      echo "Created convex directory from packages/convex"; \
     else \
-      echo "Warning: packages/convex/convex not found. Creating empty convex directory."; \
+      echo "Warning: packages/convex not found. Creating empty convex directory."; \
       mkdir -p convex/_generated || true; \
     fi
 

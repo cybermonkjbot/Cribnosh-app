@@ -3,6 +3,7 @@ import { fetchQuery } from 'convex/nextjs';
 import { notFound } from 'next/navigation';
 import SessionDetailContent from './session-detail-content';
 
+
 interface PageProps {
   params: Promise<{ sessionId: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

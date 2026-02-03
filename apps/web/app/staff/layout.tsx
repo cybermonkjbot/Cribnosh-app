@@ -23,20 +23,20 @@ function StaffLayoutContent({
   const { staff: staffUser, loading: staffAuthLoading, sessionToken } = useStaffAuthContext();
   const userId = staffUser?._id;
   const userRoles = staffUser?.roles;
-  
+
   const queryArgs = staffUser && staffUser._id && sessionToken
     ? { userId: staffUser._id, roles: staffUser.roles, sessionToken }
     : "skip";
   const queryFn = api.queries.users.getUserNotifications as any;
   const staffNotifications = useQuery(queryFn, queryArgs as any);
   const markNotificationRead = useMutation(api.mutations.users.markNotificationRead);
-  
+
   // Helper to mark notification as read with session token
   const handleMarkNotificationRead = async (notificationId: any) => {
     if (!sessionToken) return;
-    await markNotificationRead({ 
-      notificationId, 
-      sessionToken 
+    await markNotificationRead({
+      notificationId,
+      sessionToken
     });
   };
   const unreadCount = staffNotifications?.filter((n: any) => !n.read).length || 0;
@@ -79,7 +79,7 @@ function StaffLayoutContent({
   // Middleware validates session token and redirects unauthenticated users to login
   // If we reach this point, the user is authenticated (middleware verified)
   // We only need to wait for user data to load, then redirect if account is inactive
-  
+
   // Show loading state while fetching user data
   if (staffAuthLoading) {
     return (
@@ -110,8 +110,8 @@ function StaffLayoutContent({
         animate={{ y: 0 }}
         className="fixed top-0 left-0 right-0 z-50"
       >
-        <GlassNavbar 
-          onMenuClick={() => {}} // No sidebar for staff
+        <GlassNavbar
+          onMenuClick={() => { }} // No sidebar for staff
           notifications={unreadCount}
           onNotificationClick={() => setShowNotifications(true)}
           staffUser={staffUser}
@@ -153,15 +153,14 @@ function StaffLayoutContent({
                 {staffNotifications.map((notification: any) => (
                   <div
                     key={notification._id}
-                    className={`flex items-center justify-between p-4 rounded-xl border font-satoshi ${
-                      notification.type === 'success'
-                        ? 'bg-[#F23E2E]/10 border-[#F23E2E]/30 text-[#F23E2E]'
-                        : notification.type === 'warning'
+                    className={`flex items-center justify-between p-4 rounded-xl border font-satoshi ${notification.type === 'success'
+                      ? 'bg-[#F23E2E]/10 border-[#F23E2E]/30 text-[#F23E2E]'
+                      : notification.type === 'warning'
                         ? 'bg-gray-100 border-gray-300 text-gray-800'
                         : notification.type === 'error'
-                        ? 'bg-gray-100 border-gray-300 text-gray-800'
-                        : 'bg-gray-100 border-gray-300 text-gray-800'
-                    }`}
+                          ? 'bg-gray-100 border-gray-300 text-gray-800'
+                          : 'bg-gray-100 border-gray-300 text-gray-800'
+                      }`}
                   >
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">{notification.message}</p>
