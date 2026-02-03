@@ -47,7 +47,7 @@ export function ParallaxSection({
           [direction === "left" || direction === "right" ? "x" : "y"]: transform,
           opacity,
         }}
-        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        className="[will-change:transform,opacity]"
       >
         {children}
       </motion.div>

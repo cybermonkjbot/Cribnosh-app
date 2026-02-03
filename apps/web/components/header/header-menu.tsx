@@ -1,10 +1,9 @@
 "use client"
 
-import type * as React from "react"
+import { env } from '@/lib/config/env'
 import { motion, Variants } from "motion/react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
-import { env } from '@/lib/config/env'
 
 interface MenuItem {
   label: string
@@ -102,11 +101,10 @@ export function MenuBar() {
       whileHover="hover"
     >
       <motion.div
-        className={`absolute -inset-2 bg-gradient-radial from-transparent ${
-          isDarkTheme
-            ? "via-blue-400/30 via-30% via-purple-400/30 via-60% via-red-400/30 via-90%"
-            : "via-blue-400/20 via-30% via-purple-400/20 via-60% via-red-400/20 via-90%"
-        } to-transparent rounded-3xl z-0 pointer-events-none`}
+        className={`absolute -inset-2 bg-gradient-radial from-transparent ${isDarkTheme
+          ? "via-blue-400/30 via-30% via-purple-400/30 via-60% via-red-400/30 via-90%"
+          : "via-blue-400/20 via-30% via-purple-400/20 via-60% via-red-400/20 via-90%"
+          } to-transparent rounded-3xl z-0 pointer-events-none`}
         variants={navGlowVariants}
       />
       <ul className="flex items-center gap-1 relative z-10">
@@ -131,7 +129,7 @@ export function MenuBar() {
                 <motion.div
                   className="flex items-center justify-center px-4 py-1.5 relative z-10 bg-transparent text-muted-foreground group-hover:text-foreground/90 transition-colors rounded-xl text-sm font-medium"
                   variants={itemVariants}
-                  transition={{ 
+                  transition={{
                     duration: 0.5,
                     ease: "easeInOut"
                   }}
@@ -143,12 +141,12 @@ export function MenuBar() {
                   </span>
                 </motion.div>
               </Link>
-              
+
               <Link href={item.href} passHref>
                 <motion.div
                   className="flex items-center justify-center px-4 py-1.5 absolute inset-0 z-10 bg-transparent text-muted-foreground group-hover:text-foreground/90 transition-colors rounded-xl text-sm font-medium"
                   variants={backVariants}
-                  transition={{ 
+                  transition={{
                     duration: 0.5,
                     ease: "easeInOut"
                   }}

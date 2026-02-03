@@ -171,7 +171,7 @@ export default function FoundersStoryPage() {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 1.5, ease: "easeOut" }}
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#ff3b30]/20 rounded-full blur-[120px]"
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#ff3b30]/20 rounded-full blur-[80px] [backface-visibility:hidden] [transform:translateZ(0)]"
                 />
 
                 <ParallaxContent>
@@ -181,7 +181,7 @@ export default function FoundersStoryPage() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.8 }}
                         >
-                            <span className="inline-block py-1 px-3 rounded-full bg-white/10 border border-white/20 text-[#ff3b30] text-sm font-medium mb-6 backdrop-blur-md">
+                            <span className="inline-block py-1 px-3 rounded-full bg-white/10 border border-white/20 text-[#ff3b30] text-sm font-medium mb-6 backdrop-blur-md [backface-visibility:hidden] [transform:translateZ(0)]">
                                 The CribNosh Story
                             </span>
                             <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold text-white mb-8 tracking-tight">
@@ -198,7 +198,7 @@ export default function FoundersStoryPage() {
                 </ParallaxContent>
 
                 <motion.div
-                    className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/50"
+                    className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/50 [will-change:transform]"
                     animate={{ y: [0, 10, 0] }}
                     transition={{ duration: 2, repeat: Infinity }}
                 >
