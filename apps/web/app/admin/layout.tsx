@@ -4,9 +4,10 @@ import { GlassNavbar } from "@/components/admin/glass-navbar";
 import { GlassSidebar } from "@/components/admin/glass-sidebar";
 import { UnauthenticatedState } from '@/components/ui/UnauthenticatedState';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
+import { Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { AdminUserProvider, useAdminUser } from "./AdminUserProvider";
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
@@ -119,7 +120,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             transition={{ delay: 0.1 }}
             className="pt-20 sm:pt-24 lg:pt-0"
           >
-            {children}
+            <Suspense fallback={<div className="flex h-full items-center justify-center pt-20"><Loader2 className="w-8 h-8 animate-spin text-[#F23E2E]" /></div>}>
+              {children}
+            </Suspense>
           </motion.div>
         </main>
       </div>

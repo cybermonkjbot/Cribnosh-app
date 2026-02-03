@@ -8,7 +8,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { Bell } from "lucide-react";
 import { motion } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { StaffAuthProvider, useStaffAuthContext } from './staff-auth-context';
 
 function StaffLayoutContent({
@@ -127,7 +127,9 @@ function StaffLayoutContent({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            {children}
+            <Suspense fallback={<div className="flex h-full items-center justify-center pt-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#F23E2E]" /></div>}>
+              {children}
+            </Suspense>
           </motion.div>
         </main>
       </div>

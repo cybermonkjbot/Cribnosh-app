@@ -20,7 +20,7 @@
     "chef:android": "cd apps/chef-app && expo start --android --port 8083",
     "chef:ios": "cd apps/chef-app && expo start --ios --port 8083",
     "web:dev": "cd apps/web && next dev --turbo",
-    "web:build": "cd apps/web && next build",
+    "web:build": "cd apps/web && next build --webpack",
     "convex:dev": "cd packages/convex && convex dev",
     "convex:deploy": "cd packages/convex && convex deploy",
     "dev:all": "concurrently \"npm run convex:dev\" \"npm run web:dev\" \"npm run mobile:dev\" --names \"CONVEX,WEB,MOBILE\"",

@@ -3,7 +3,7 @@
 import { ChefSidebar } from "@/components/chef/ChefSidebar";
 import { useChefAuth } from "@/lib/chef-auth";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, isLoading } = useChefAuth();
@@ -33,8 +33,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
         <div className="flex h-screen overflow-hidden">
             <ChefSidebar />
-            <main className="flex-1 overflow-y-auto bg-[#02120A] text-white">
-                {children}
+            <main className="flex-1 overflow-y-auto bg-slate-50">
+                <div className="container mx-auto p-4 md:p-6 lg:p-8">
+                    <Suspense fallback={<div className="flex h-full items-center justify-center pt-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#F23E2E]" /></div>}>
+                        {children}
+                    </Suspense>
+                </div>
             </main>
         </div>
     );
