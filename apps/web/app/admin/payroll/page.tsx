@@ -608,7 +608,7 @@ export default function PayrollAdminPage() {
                             : { totalHours: 0 };
                           return [staffId, typedData];
                         })
-                        .sort(([, a], [, b]) => b.totalHours - a.totalHours)
+                        .sort(([, a]: [string, StaffHoursData], [, b]: [string, StaffHoursData]) => b.totalHours - a.totalHours)
                         .slice(0, 10)
                         .map(([staffId, data]) => (
                           <div key={staffId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
