@@ -1,4 +1,4 @@
-// @ts-nocheck - Disable type checking to avoid TS2589 "Type instantiation is excessively deep" errors
+// @ts-nocheck
 // This is necessary due to complex nested validators in Convex actions
 "use node";
 import { v } from "convex/values";

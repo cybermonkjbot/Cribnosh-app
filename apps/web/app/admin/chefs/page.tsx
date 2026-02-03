@@ -708,7 +708,7 @@ export default function ChefManagementPage() {
               <CardContent>
                 <div className="space-y-4">
                   {filteredChefs
-                    .sort((a, b) => b.performance.totalEarnings - a.performance.totalEarnings)
+                    .sort((a: any, b: any) => b.performance.totalEarnings - a.performance.totalEarnings)
                     .slice(0, 5)
                     .map((chef, index) => (
                       <div key={chef._id} className="flex items-center justify-between">
@@ -738,7 +738,7 @@ export default function ChefManagementPage() {
               <CardContent>
                 <div className="space-y-4">
                   {filteredChefs
-                    .sort((a, b) => b.rating - a.rating)
+                    .sort((a: any, b: any) => b.rating - a.rating)
                     .slice(0, 5)
                     .map((chef, index) => (
                       <div key={chef._id} className="flex items-center justify-between">

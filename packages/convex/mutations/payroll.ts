@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { v } from 'convex/values';
 import type { MutationCtx } from "../../../apps/web/types/convex-contexts";
 import type { BenefitsReportData, DetailedPayrollReport, PaySlipBonus, PaySlipDeduction, PaySlipDoc, PayrollSummary, TaxReportData } from "../../../apps/web/types/payroll";

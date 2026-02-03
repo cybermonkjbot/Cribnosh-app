@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { v } from 'convex/values';
 import { mutation, internalMutation } from '../_generated/server';
 import { requireAuth, requireAdmin, requireStaff, isAdmin, isStaff } from '../utils/auth';

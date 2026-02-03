@@ -1,12 +1,12 @@
 import { api } from '@/convex/_generated/api';
 import { ResponseFactory } from '@/lib/api';
-import { withAPIMiddleware } from '@/lib/api/middleware';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
+import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 /**
  * @swagger
@@ -157,23 +157,23 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
               existing.last_ordered_at = orderDate;
             }
           } else {
-          // Get meal details
-          let meal: any = null;
-          try {
-            meal = await convex.query((api as any).queries.meals.getById, { mealId: dishId as any });
-          } catch {
-            // Meal not found, skip
-          }
-
-          // Get chef/kitchen details
-          let chef: any = null;
-          if (meal?.chefId) {
+            // Get meal details
+            let meal: any = null;
             try {
-              chef = await convex.query((api as any).queries.chefs.getById, { chefId: meal.chefId as any });
+              meal = await convex.query((api as any).queries.meals.getById, { mealId: dishId as any });
             } catch {
-              // Chef not found
+              // Meal not found, skip
             }
-          }
+
+            // Get chef/kitchen details
+            let chef: any = null;
+            if (meal?.chefId) {
+              try {
+                chef = await convex.query((api as any).queries.chefs.getById, { chefId: meal.chefId as any });
+              } catch {
+                // Chef not found
+              }
+            }
 
             dinnerItemsMap.set(dishId, {
               dish_id: dishId,
@@ -190,7 +190,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     // Sort by order count and limit to top 6
     const usualDinnerItems = Array.from(dinnerItemsMap.values())
-      .sort((a, b) => b.order_count - a.order_count)
+      .sort((a: { order_count: number }, b: { order_count: number }) => b.order_count - a.order_count)
       .slice(0, 6);
 
     // Get colleague connections (mutual follows)

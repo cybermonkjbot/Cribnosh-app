@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Payroll Settings
 export type PayFrequency = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly';
 

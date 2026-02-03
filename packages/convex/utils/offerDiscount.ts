@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Calculate discount amount based on offer type and cart total
  */

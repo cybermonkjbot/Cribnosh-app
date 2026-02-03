@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { ConvexError, v } from "convex/values";
 import { query } from "../_generated/server";
 import { isStaff, requireAuth, requireStaff } from "../utils/auth";

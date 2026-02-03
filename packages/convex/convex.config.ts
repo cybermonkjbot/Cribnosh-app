@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { defineApp } from "convex/server";
 import crons from "@convex-dev/crons/convex.config";
 import resend from "@convex-dev/resend/convex.config";

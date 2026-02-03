@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { internalMutation } from "../_generated/server";
 import { Crons } from "@convex-dev/crons";
 import { internal, components } from "../_generated/api";

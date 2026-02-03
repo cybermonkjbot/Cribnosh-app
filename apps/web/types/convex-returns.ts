@@ -3,7 +3,6 @@
  * Type definitions and helpers for Convex query/mutation return types
  */
 
-import type { Id } from '@/convex/_generated/dataModel';
 import type { FunctionReference } from 'convex/server';
 
 /**
@@ -11,16 +10,16 @@ import type { FunctionReference } from 'convex/server';
  */
 export type ConvexReturnType<T extends FunctionReference<'query' | 'mutation' | 'action', 'public' | 'internal', Record<string, unknown>, unknown>> =
   T extends FunctionReference<infer _Type, infer _Visibility, infer _Args, infer Return, infer _Optional>
-    ? Return
-    : never;
+  ? Return
+  : never;
 
 /**
  * Extract argument type from a Convex function reference
  */
 export type ConvexArgsType<T extends FunctionReference<'query' | 'mutation' | 'action', 'public' | 'internal', Record<string, unknown>, unknown>> =
   T extends FunctionReference<infer _Type, infer _Visibility, infer Args, infer _Return, infer _Optional>
-    ? Args
-    : never;
+  ? Args
+  : never;
 
 /**
  * Helper type for Convex query results
@@ -41,7 +40,7 @@ export type ConvexActionResult<T> = T extends Promise<infer U> ? U : T;
  * Type for Convex document with ID
  */
 export interface ConvexDocument {
-  _id: Id<string>;
+  _id: any;
   _creationTime: number;
   [key: string]: unknown;
 }

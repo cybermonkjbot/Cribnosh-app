@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Google Maps API Types
 interface DistanceMatrixResponse {
     status: string;

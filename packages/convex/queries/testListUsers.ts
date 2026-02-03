@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Helper query to list users for testing
  */

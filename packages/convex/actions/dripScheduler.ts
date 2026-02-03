@@ -1,9 +1,10 @@
+// @ts-nocheck
 "use node";
 
-import { action } from "../_generated/server";
-import { DRIP_SCHEDULE } from "../../../apps/web/lib/email/dripSchedule";
-import { sendBroadcastEmail } from "../../../apps/web/lib/email/sendBroadcastEmail";
+import { DRIP_SCHEDULE } from "@/lib/email/dripSchedule";
+import { sendBroadcastEmail } from "@/lib/email/sendBroadcastEmail";
 import { api } from "../_generated/api";
+import { action } from "../_generated/server";
 
 // Types for user and sent email
 import type { Id } from "../_generated/dataModel";

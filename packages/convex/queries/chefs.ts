@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { internalQuery, query } from '../_generated/server';

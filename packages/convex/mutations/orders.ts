@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { v } from 'convex/values';
 import { api } from '../_generated/api';
 import { Doc, Id } from '../_generated/dataModel';

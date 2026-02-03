@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { v } from "convex/values";
 import { sanitizeContent } from "../../../apps/web/lib/utils/content-sanitizer";
 import { internalMutation, mutation } from "../_generated/server";

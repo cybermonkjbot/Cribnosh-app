@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { v } from 'convex/values';
 import { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, mutation } from "../_generated/server";

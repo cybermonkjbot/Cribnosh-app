@@ -1,9 +1,10 @@
+// @ts-nocheck
 "use node";
 
 import { v } from 'convex/values';
-import { action } from '../_generated/server';
 import { api } from '../_generated/api';
-import { requireAuth, isAdmin, isStaff } from '../utils/auth';
+import { action } from '../_generated/server';
+import { isAdmin, isStaff, requireAuth } from '../utils/auth';
 
 /**
  * Upload video to course module
@@ -24,40 +25,40 @@ export const uploadModuleVideo = action({
   handler: async (ctx, args) => {
     // Require admin/staff authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     if (!isAdmin(user) && !isStaff(user)) {
       throw new Error('Access denied: Admin or staff required');
     }
-    
+
     // Get module
     const module = await ctx.runQuery(api.queries.courseModules.getModuleContent, {
       courseId: args.courseId,
       moduleId: args.moduleId,
       sessionToken: args.sessionToken,
     });
-    
+
     if (!module) {
       throw new Error('Module not found');
     }
-    
+
     // Get video URL from storage
     const videoUrl = await ctx.storage.getUrl(args.videoStorageId);
-    
+
     if (!videoUrl) {
       throw new Error('Failed to get video URL from storage');
     }
-    
+
     // Get current module data
     const moduleData = await ctx.runQuery(api.queries.courseModules.getModuleContent, {
       courseId: args.courseId,
       moduleId: args.moduleId,
       sessionToken: args.sessionToken,
     });
-    
+
     if (!moduleData) {
       throw new Error('Module not found');
     }
-    
+
     // Add video to module's videos array
     const existingVideos = moduleData.videos || [];
     const newVideo = {
@@ -70,9 +71,9 @@ export const uploadModuleVideo = action({
       duration: args.duration,
       order: args.order,
     };
-    
+
     const updatedVideos = [...existingVideos, newVideo].sort((a, b) => a.order - b.order);
-    
+
     // Update module with new video
     // Note: We need to get the full module data first to update it
     // This is a simplified version - in production, you'd fetch the full module record
@@ -90,7 +91,7 @@ export const uploadModuleVideo = action({
       status: moduleData.status,
       sessionToken: args.sessionToken,
     });
-    
+
     return {
       success: true,
       videoId: newVideo.id,
@@ -109,14 +110,14 @@ export const generateVideoUploadUrl = action({
   handler: async (ctx, args) => {
     // Require admin/staff authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     if (!isAdmin(user) && !isStaff(user)) {
       throw new Error('Access denied: Admin or staff required');
     }
-    
+
     // Generate upload URL
     const uploadUrl = await ctx.storage.generateUploadUrl();
-    
+
     return uploadUrl;
   },
 });

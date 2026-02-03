@@ -1,4 +1,4 @@
-// @ts-nocheck - Disable type checking for complex nested validators
+// @ts-nocheck
 "use node";
 
 import { v } from "convex/values";

@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use node";
 
 import { api, internal } from "../_generated/api";

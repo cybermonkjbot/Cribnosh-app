@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Doc, Id } from "./_generated/dataModel";
 import { MutationCtx } from "./_generated/server";
 

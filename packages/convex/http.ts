@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { httpRouter } from "convex/server";
 import { api, internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";

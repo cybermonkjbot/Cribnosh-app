@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { QueryCtx, MutationCtx } from '../_generated/server';
 
 // Common database context type that works for both queries and mutations

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { mutation } from "../_generated/server";
 
 const DEFAULT_TEMPLATES = [

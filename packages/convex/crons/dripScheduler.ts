@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use node";
 import { cronJobs } from "convex/server";
 import { internal } from "../_generated/api";

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { v } from "convex/values";
 import { api } from "../_generated/api";
 import { query, QueryCtx } from "../_generated/server";

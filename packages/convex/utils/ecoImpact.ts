@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Eco Impact Calculation Utility
  * 

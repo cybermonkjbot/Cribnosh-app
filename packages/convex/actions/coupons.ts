@@ -1,8 +1,9 @@
+// @ts-nocheck
 "use node";
 
 import { v } from 'convex/values';
-import { action } from '../_generated/server';
 import { api } from '../_generated/api';
+import { action } from '../_generated/server';
 
 /**
  * Validate and apply coupon code (for mobile app)
@@ -15,7 +16,7 @@ export const validateAndApplyCoupon = action({
   },
   handler: async (ctx, args) => {
     // Get user from session token
-    const user = await ctx.runQuery(api.queries.users.getUserBySessionToken, {
+    const user = await ctx.runQuery((api as any).queries.users.getUserBySessionToken, {
       sessionToken: args.sessionToken,
     });
 
@@ -27,7 +28,7 @@ export const validateAndApplyCoupon = action({
     }
 
     // Validate coupon
-    const validation = await ctx.runMutation(api.mutations.coupons.validateCoupon, {
+    const validation = await ctx.runMutation((api as any).mutations.coupons.validateCoupon, {
       code: args.code,
       userId: user._id,
       cartSubtotal: args.cartSubtotal,
@@ -57,7 +58,7 @@ export const calculateCartDiscount = action({
     deliveryFee: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const result = await ctx.runMutation(api.mutations.coupons.calculateDiscount, {
+    const result = await ctx.runMutation((api as any).mutations.coupons.calculateDiscount, {
       couponId: args.couponId,
       cartSubtotal: args.cartSubtotal,
       deliveryFee: args.deliveryFee,

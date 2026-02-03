@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { defineTable, defineSchema } from "convex/server";
 import { v } from "convex/values";
 

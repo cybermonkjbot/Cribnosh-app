@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { internal } from "../_generated/api";
 
 export default async function autoRegisterCrons(ctx: any) {

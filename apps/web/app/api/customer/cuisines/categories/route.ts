@@ -1,15 +1,14 @@
 import type { Id } from '@/convex/_generated/dataModel';
 import { ResponseFactory } from '@/lib/api';
-import { withAPIMiddleware } from '@/lib/api/middleware';
 import { withCaching } from '@/lib/api/cache';
+import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
+import { withAPIMiddleware } from '@/lib/api/middleware';
 import { extractUserIdFromRequest } from '@/lib/api/userContext';
 import { getApiQueries, getConvexClientFromRequest } from '@/lib/conxed-client';
-import { handleConvexError, isAuthenticationError, isAuthorizationError } from '@/lib/api/error-handler';
 import { withErrorHandling } from '@/lib/errors';
 import { getErrorMessage } from '@/types/errors';
 import type { FunctionReference } from 'convex/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedCustomer } from '@/lib/api/session-auth';
 
 // Type definitions for meal and chef data structures
 interface MealData {
@@ -80,61 +79,61 @@ interface ChefData {
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const convex = getConvexClientFromRequest(request);
-    
+
     // Extract userId from request (optional for public endpoints)
     const userId = extractUserIdFromRequest(request);
-    
+
     // Get all meals to extract cuisines (with user preferences)
     // Type-safe access using helper function
     const apiQueries = getApiQueries();
     type MealsQuery = FunctionReference<"query", "public", { userId?: string }, MealData[]>;
     type ChefsQuery = FunctionReference<"query", "public", Record<string, never>, ChefData[]>;
-    
+
     const mealsQuery = (apiQueries.meals.getAll as unknown as MealsQuery);
     const meals = await convex.query(mealsQuery, { userId }) as MealData[];
-    
+
     // Get all chefs to count kitchens per cuisine
     const chefsQuery = (apiQueries.chefs.getAll as unknown as ChefsQuery);
     const chefs = await convex.query(chefsQuery, {}) as ChefData[];
-    
+
     // Map to track cuisine -> kitchen count
     // A kitchen counts if it has at least one meal in that cuisine
     const cuisineKitchenMap = new Map<string, Set<string>>();
-    
+
     // Process meals to build cuisine -> chef mapping
     for (const meal of meals) {
       if (!meal.cuisine || !Array.isArray(meal.cuisine) || !meal.chefId) continue;
-      
+
       for (const cuisine of meal.cuisine) {
         if (!cuisine) continue;
-        
+
         const cuisineKey = cuisine.toLowerCase();
         if (!cuisineKitchenMap.has(cuisineKey)) {
           cuisineKitchenMap.set(cuisineKey, new Set());
         }
-        
+
         // Add chef to this cuisine's kitchen set
         cuisineKitchenMap.get(cuisineKey)!.add(meal.chefId);
       }
     }
-    
+
     // Also check chef specialties for additional cuisine coverage
     for (const chef of chefs) {
       if (!chef.specialties || !Array.isArray(chef.specialties)) continue;
-      
+
       for (const specialty of chef.specialties) {
         if (!specialty) continue;
-        
+
         const cuisineKey = specialty.toLowerCase();
         if (!cuisineKitchenMap.has(cuisineKey)) {
           cuisineKitchenMap.set(cuisineKey, new Set());
         }
-        
+
         // Add chef to this cuisine's kitchen set
         cuisineKitchenMap.get(cuisineKey)!.add(chef._id);
       }
     }
-    
+
     // Convert to array format with counts
     const categories = Array.from(cuisineKitchenMap.entries())
       .map(([cuisineKey, kitchenSet]) => {
@@ -143,7 +142,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
           .split(' ')
           .map(word => word.charAt(0).toUpperCase() + word.slice(1))
           .join(' ');
-        
+
         return {
           id: cuisineKey,
           name: cuisineName,
@@ -152,17 +151,17 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
           is_active: true,
         };
       })
-      .sort((a, b) => b.kitchen_count - a.kitchen_count); // Sort by kitchen count descending
-    
+      .sort((a: { kitchen_count: number }, b: { kitchen_count: number }) => b.kitchen_count - a.kitchen_count); // Sort by kitchen count descending
+
     const response = ResponseFactory.success({
       categories,
       total: categories.length,
     });
-    
+
     // Add cache headers - categories don't change frequently, cache for 1 hour
     response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
     response.headers.set('CDN-Cache-Control', 'public, s-maxage=3600');
-    
+
     return response;
   } catch (error: unknown) {
     if (isAuthenticationError(error) || isAuthorizationError(error)) {

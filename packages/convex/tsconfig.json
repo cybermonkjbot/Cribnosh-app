@@ -23,6 +23,9 @@
     /* Path aliases for web app imports */
     "baseUrl": ".",
     "paths": {
+      "@/*": [
+        "../../apps/web/*"
+      ],
       "../../lib/*": [
         "../../apps/web/lib/*"
       ],

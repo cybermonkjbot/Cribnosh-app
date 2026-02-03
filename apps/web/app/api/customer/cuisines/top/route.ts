@@ -172,10 +172,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const convex = getConvexClientFromRequest(request);
     const sessionToken = getSessionTokenFromRequest(request);
-    
+
     // Extract userId from request (optional for public endpoints)
     const userId = extractUserIdFromRequest(request);
-    
+
     // Aggregate cuisine popularity from meals/orders (with user preferences)
     const apiQueries = getApiQueries();
     type MealsQuery = FunctionReference<"query", "public", { userId?: string; sessionToken?: string }, MealData[]>;
@@ -185,7 +185,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       sessionToken: sessionToken || undefined
     }) as MealData[];
     const cuisineCount: Record<string, number> = {};
-    
+
     for (const meal of meals) {
       if (meal.cuisine && Array.isArray(meal.cuisine)) {
         meal.cuisine.forEach((c: string) => {
@@ -193,9 +193,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
         });
       }
     }
-    
+
     const topCuisines = Object.entries(cuisineCount)
-      .sort((a, b) => b[1] - a[1])
+      .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
       .slice(0, 10)
       .map(([cuisine, count]) => ({ cuisine, count }));
     return ResponseFactory.success({ top_cuisines: topCuisines });

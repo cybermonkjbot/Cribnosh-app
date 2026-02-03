@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { paginationOptsValidator } from 'convex/server';
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';

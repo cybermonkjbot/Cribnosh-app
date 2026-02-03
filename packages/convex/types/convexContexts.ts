@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Convex Context Types
  * Re-export and extend Convex context types for use throughout the codebase

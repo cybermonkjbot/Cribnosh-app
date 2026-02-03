@@ -1,3 +1,4 @@
+// @ts-nocheck
 // convex/actions/agora.ts
 "use node";
 

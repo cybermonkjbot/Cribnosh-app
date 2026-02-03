@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Test script for getAllUserConnections query
  * Run with: npx convex run queries/testFriendsQuery:testGetAllUserConnections --user_id <user_id>

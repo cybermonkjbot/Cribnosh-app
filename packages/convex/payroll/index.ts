@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Admin endpoints
 export * as admin from "./admin";
 

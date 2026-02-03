@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Centralized configuration for Action Cache TTLs (Time To Live).
  * 

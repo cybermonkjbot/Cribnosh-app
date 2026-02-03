@@ -1,4 +1,4 @@
-// @ts-nocheck - Convex action type instantiation depth issues
+// @ts-nocheck
 "use node";
 
 import { v } from "convex/values";

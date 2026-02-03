@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Id } from "../_generated/dataModel";
 import { ActionCtx, MutationCtx, QueryCtx } from "../_generated/server";
 

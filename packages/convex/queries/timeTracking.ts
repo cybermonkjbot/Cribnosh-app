@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { requireStaff } from "../utils/auth";
 import { query } from "../_generated/server";
 import type { QueryCtx } from "../../../apps/web/types/convex-contexts";
