@@ -11,8 +11,8 @@ const path = require('path');
 const projectRoot = __dirname;
 const webRoot = path.resolve(projectRoot, '..');
 const convexSymlink = path.join(webRoot, 'convex');
-const convexMonorepo = path.resolve(webRoot, '../../packages/convex/convex');
-const convexDocker = path.join(webRoot, 'packages/convex/convex');
+const convexMonorepo = path.resolve(webRoot, '../../packages/convex');
+const convexDocker = path.join(webRoot, 'packages/convex');
 
 // Check which source path exists
 let sourcePath = null;
@@ -41,7 +41,7 @@ if (fs.existsSync(convexSymlink)) {
       const linkTarget = fs.readlinkSync(convexSymlink);
       const resolvedTarget = path.resolve(webRoot, linkTarget);
       const resolvedSource = path.resolve(sourcePath);
-      
+
       // If symlink already points to the correct source, skip
       if (resolvedTarget === resolvedSource) {
         console.log('Convex symlink already exists and points to correct source, skipping');
@@ -59,7 +59,7 @@ if (fs.existsSync(convexSymlink)) {
           // Compare modification times
           const destTime = fs.statSync(generatedPath).mtime;
           const sourceTime = fs.statSync(sourceGenerated).mtime;
-          
+
           // If destination is up to date, skip
           if (destTime >= sourceTime) {
             console.log('Convex directory already exists and is up to date, skipping');
@@ -84,14 +84,14 @@ try {
   console.log('Symlink failed, copying directory instead:', error.message);
   try {
     fs.mkdirSync(convexSymlink, { recursive: true });
-    
+
     // Copy all files recursively
     function copyRecursive(src, dest) {
       const entries = fs.readdirSync(src, { withFileTypes: true });
       for (const entry of entries) {
         const srcPath = path.join(src, entry.name);
         const destPath = path.join(dest, entry.name);
-        
+
         if (entry.isDirectory()) {
           fs.mkdirSync(destPath, { recursive: true });
           copyRecursive(srcPath, destPath);
@@ -100,7 +100,7 @@ try {
         }
       }
     }
-    
+
     copyRecursive(sourcePath, convexSymlink);
     console.log('Copied Convex directory to:', convexSymlink);
   } catch (copyError) {

@@ -99,8 +99,8 @@ const nextConfig = {
     if (config.resolve) {
       // Try to resolve Convex path - check symlink first, then monorepo, then Docker build context
       const convexPathSymlink = resolve(__dirname, './convex');
-      const convexPathMonorepo = resolve(__dirname, '../../packages/convex/convex');
-      const convexPathDocker = resolve(__dirname, './packages/convex/convex');
+      const convexPathMonorepo = resolve(__dirname, '../../packages/convex');
+      const convexPathDocker = resolve(__dirname, './packages/convex');
 
       // In Docker builds, files are copied to apps/web/packages/convex/convex/_generated/
       // Check which path exists using fs.existsSync
