@@ -208,31 +208,6 @@ export default function WaitlistPage() {
         }
       }
 
-      // Send admin notification (only for new signups)
-      if (!(result as any).isExisting) {
-        // Send confirmation email with onboarding token
-        await fetch('/api/waitlist/user-confirmation', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
-          },
-          body: JSON.stringify({
-            email: contact,
-            token: (result as any).token
-          }),
-        });
-
-        await fetch('/api/waitlist', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
-          },
-          body: JSON.stringify({ email: contact, location }),
-        });
-      }
-
       setCurrentStep('success');
       setIsSuccess(true);
     } catch (err) {
@@ -303,30 +278,6 @@ export default function WaitlistPage() {
     // For phone numbers, we need to create a temporary email for the waitlist
     const tempEmail = `${contact.replace(/\D/g, '')}@phone.cribnosh.com`;
 
-    try {
-      // Queue email for sending (admin notification)
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
-        body: JSON.stringify({ email: tempEmail, location }),
-      });
-      if (res.ok) setEmailStatus('success');
-      else setEmailStatus('error');
-      // Send confirmation email to user
-      await fetch('/api/waitlist/user-confirmation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
-        body: JSON.stringify({ email: tempEmail }),
-      });
-    } catch {
-      setEmailStatus('error');
-    }
     try {
       // Call Convex action to add to waitlist and get userId
       const result = await addToWaitlist({

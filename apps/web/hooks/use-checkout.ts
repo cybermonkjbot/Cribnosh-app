@@ -1,28 +1,37 @@
-/**
- * Checkout Hook
- * React Query hook for managing checkout operations
- */
-
-import { useMutation } from '@tanstack/react-query';
-import * as checkoutAPI from '@/lib/api/checkout';
+import { api } from '@/convex/_generated/api';
+import { useSession } from '@/lib/auth/use-session';
+import { useAction } from 'convex/react';
 
 /**
  * Hook to create checkout (payment intent)
  */
 export function useCreateCheckout() {
-  return useMutation({
-    mutationFn: async () => {
-      return await checkoutAPI.createCheckout();
+  const { sessionToken } = useSession();
+  const createCheckout = useAction(api.actions.payments.customerCreateCheckout);
+
+  return {
+    mutateAsync: async () => {
+      if (!sessionToken) throw new Error('Authentication required');
+      const result = await createCheckout({
+        sessionToken,
+      });
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create checkout');
+      }
+      return result;
     },
-  });
+  };
 }
 
 /**
  * Hook to create order from cart after payment
  */
 export function useCreateOrderFromCart() {
-  return useMutation({
-    mutationFn: async (request: {
+  const { sessionToken } = useSession();
+  const createOrder = useAction(api.actions.orders.customerCreateOrderFromCart);
+
+  return {
+    mutateAsync: async (request: {
       payment_intent_id: string;
       delivery_address?: {
         street?: string;
@@ -35,8 +44,26 @@ export function useCreateOrderFromCart() {
       special_instructions?: string;
       delivery_time?: string;
     }) => {
-      return await checkoutAPI.createOrderFromCart(request);
+      if (!sessionToken) throw new Error('Authentication required');
+
+      const result = await createOrder({
+        sessionToken,
+        payment_intent_id: request.payment_intent_id,
+        delivery_address: request.delivery_address ? {
+          street: request.delivery_address.street || '',
+          city: request.delivery_address.city,
+          postcode: request.delivery_address.postal_code || '',
+          country: request.delivery_address.country,
+        } : undefined,
+        special_instructions: request.special_instructions,
+        delivery_time: request.delivery_time,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create order');
+      }
+      return result;
     },
-  });
+  };
 }
 

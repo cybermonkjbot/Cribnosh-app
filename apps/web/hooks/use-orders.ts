@@ -1,16 +1,12 @@
-/**
- * Orders Hook
- * React Query hook for managing order operations
- */
+import { api } from '@/convex/_generated/api';
+import { useSession } from '@/lib/auth/use-session';
+import { useQuery } from 'convex/react';
 
-import { useQuery } from '@tanstack/react-query';
-import * as ordersAPI from '@/lib/api/orders';
-
-// Query keys
+// Query keys (keep for compatibility if needed for manual cache invalidation, though Convex is reactive)
 export const orderKeys = {
   all: ['orders'] as const,
   lists: () => [...orderKeys.all, 'list'] as const,
-  list: (params?: { limit?: number; offset?: number; status?: string; order_type?: string }) => 
+  list: (params?: { limit?: number; offset?: number; status?: string; order_type?: string }) =>
     [...orderKeys.lists(), params] as const,
   order: (orderId: string) => [...orderKeys.all, orderId] as const,
   status: (orderId: string) => [...orderKeys.all, orderId, 'status'] as const,
@@ -20,35 +16,40 @@ export const orderKeys = {
  * Hook to get order details
  */
 export function useOrder(orderId: string | null) {
-  return useQuery({
-    queryKey: orderKeys.order(orderId || ''),
-    queryFn: async () => {
-      if (!orderId) throw new Error('Order ID is required');
-      const response = await ordersAPI.getOrder(orderId);
-      return response.data;
-    },
-    enabled: !!orderId,
-    staleTime: 30 * 1000, // 30 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
-  });
+  const { sessionToken } = useSession();
+
+  const order = useQuery(
+    api.queries.orders.getById,
+    orderId
+      ? { order_id: orderId, sessionToken: sessionToken || undefined }
+      : 'skip'
+  );
+
+  return {
+    data: order,
+    isLoading: orderId !== null && order === undefined,
+    error: null,
+  };
 }
 
 /**
  * Hook to get order status
  */
 export function useOrderStatus(orderId: string | null) {
-  return useQuery({
-    queryKey: orderKeys.status(orderId || ''),
-    queryFn: async () => {
-      if (!orderId) throw new Error('Order ID is required');
-      const response = await ordersAPI.getOrderStatus(orderId);
-      return response.data?.order;
-    },
-    enabled: !!orderId,
-    staleTime: 10 * 1000, // 10 seconds
-    gcTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 30 * 1000, // Refetch every 30 seconds for real-time updates
-  });
+  const { sessionToken } = useSession();
+
+  const order = useQuery(
+    api.queries.orders.getById,
+    orderId
+      ? { order_id: orderId, sessionToken: sessionToken || undefined }
+      : 'skip'
+  );
+
+  return {
+    data: order,
+    isLoading: orderId !== null && order === undefined,
+    error: null,
+  };
 }
 
 /**
@@ -60,14 +61,24 @@ export function useOrdersList(params?: {
   status?: 'ongoing' | 'past' | 'all';
   order_type?: 'individual' | 'group' | 'all';
 }) {
-  return useQuery({
-    queryKey: orderKeys.list(params),
-    queryFn: async () => {
-      const response = await ordersAPI.getOrdersList(params);
-      return response.data;
-    },
-    staleTime: 30 * 1000, // 30 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
-  });
+  const { user, sessionToken } = useSession();
+
+  const orders = useQuery(
+    api.queries.orders.listByCustomer,
+    user?._id ? {
+      customer_id: user._id,
+      status: params?.status,
+      order_type: params?.order_type,
+      limit: params?.limit,
+      offset: params?.offset,
+      sessionToken: sessionToken || undefined,
+    } : 'skip'
+  );
+
+  return {
+    data: orders,
+    isLoading: user === undefined || (!!user && orders === undefined),
+    error: null,
+  };
 }
 

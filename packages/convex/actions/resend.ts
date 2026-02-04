@@ -192,3 +192,30 @@ export const sendTemplateEmail = action({
     return { success: true };
   },
 });
+
+export const addContactToAudience = action({
+  args: {
+    email: v.string(),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    audienceId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const audienceId = args.audienceId || process.env.RESEND_AUDIENCE_ID || '93c15e49-f327-478e-8fc7-b7846fd19a23';
+
+    try {
+      await resend.contacts.create({
+        email: args.email,
+        firstName: args.firstName,
+        lastName: args.lastName,
+        unsubscribed: false,
+        audienceId,
+      });
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to add contact to Resend:', error);
+      return { success: false, error: error.message };
+    }
+  },
+});

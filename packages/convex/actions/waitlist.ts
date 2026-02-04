@@ -148,6 +148,29 @@ export const addToWaitlistComplete = action({
       }
     }
 
+    // Step 5: Send confirmation email and add to broadcast list (only for new signups)
+    if (!waitlistResult.isExisting) {
+      try {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://cribnosh.com';
+        const onboardingLink = `${appUrl}/waitlist/onboarding/${waitlistResult.token}`;
+
+        await ctx.runAction(api.actions.resend.sendEmail, {
+          from: 'earlyaccess@emails.cribnosh.com',
+          to: args.email,
+          subject: 'You are on the waitlist!',
+          html: `<p>Thank you for joining the CribNosh waitlist! We will notify you as soon as we launch in your area.</p><p>Please complete your onboarding here: <a href="${onboardingLink}">${onboardingLink}</a></p>`,
+        });
+
+        // Step 6: Add to broadcast list
+        await ctx.runAction(api.actions.resend.addContactToAudience, {
+          email: args.email,
+          firstName: args.name?.split(' ')[0],
+        });
+      } catch (err) {
+        console.error("Failed to process waitlist automated tasks:", err);
+      }
+    }
+
     return {
       success: true,
       id: waitlistId,
@@ -156,6 +179,7 @@ export const addToWaitlistComplete = action({
       sessionToken: sessionResult.sessionToken,
       referralLink: referralLink,
       referralAttributed,
+      token: waitlistResult.token, // Include token for completeness
     };
   }
 });
