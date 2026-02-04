@@ -1,11 +1,11 @@
 "use client";
 
-import React from "react";
-import { motion } from "motion/react";
-import Link from "next/link";
 import { ParallaxGroup, ParallaxLayer } from "@/components/ui/parallax";
 import { ArrowLeft } from "lucide-react";
-import Image from "next/image";
+import { motion } from "motion/react";
+import Link from "next/link";
+
+export const dynamic = "force-dynamic";
 
 export default function NotFound() {
   return (
@@ -15,7 +15,7 @@ export default function NotFound() {
         <ParallaxLayer asBackground speed={0.2} className="z-0">
           <div className="fixed inset-0 bg-gradient-to-br from-[#ff3b30] to-[#ff5e54] opacity-90" />
         </ParallaxLayer>
-        
+
         <ParallaxLayer asBackground speed={0.4} className="z-0 pointer-events-none">
           <div className="fixed inset-0">
             <div className="absolute w-[500px] h-[500px] rounded-full bg-[#ff7b54] blur-[120px] -top-20 -right-20 opacity-50" />
@@ -112,4 +112,4 @@ export default function NotFound() {
       </ParallaxGroup>
     </main>
   );
-} 
+}

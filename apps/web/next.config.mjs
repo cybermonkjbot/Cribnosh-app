@@ -103,40 +103,40 @@ const nextConfig = {
       const convexPathDocker = resolve(__dirname, './packages/convex');
 
       // In Docker builds, files are copied to apps/web/packages/convex/convex/_generated/
-      // Check which path exists using fs.existsSync
+      // or symlinked to /app/convex
       let convexPath = convexPathSymlink;
-      try {
-        // Check symlink first (for local development)
-        const symlinkGeneratedPath = path.join(convexPathSymlink, '_generated');
-        const dockerGeneratedPath = path.join(convexPathDocker, '_generated');
-        const monorepoGeneratedPath = path.join(convexPathMonorepo, '_generated');
 
-        if (fs.existsSync(symlinkGeneratedPath)) {
-          convexPath = convexPathSymlink;
-          console.log('Using symlink path for Convex:', convexPath);
-        } else if (fs.existsSync(dockerGeneratedPath)) {
-          convexPath = convexPathDocker;
-          console.log('Using Docker build context path for Convex:', convexPath);
-        } else if (fs.existsSync(monorepoGeneratedPath)) {
-          convexPath = convexPathMonorepo;
-          console.log('Using monorepo path for Convex:', convexPath);
-        } else {
-          // Default to symlink path if neither exists
-          console.log('Defaulting to symlink path for Convex:', convexPath);
+      const pathsToTry = [
+        { path: convexPathSymlink, name: 'symlink' },
+        { path: convexPathDocker, name: 'Docker' },
+        { path: convexPathMonorepo, name: 'monorepo' }
+      ];
+
+      for (const tryPath of pathsToTry) {
+        try {
+          // Check if the directory exists and has the required files
+          if (fs.existsSync(tryPath.path)) {
+            const hasGenerated = fs.existsSync(path.join(tryPath.path, '_generated'));
+            // Also check for emailTemplates specifically as it's the one failing
+            const hasEmailTemplates = fs.existsSync(path.join(tryPath.path, 'emailTemplates.ts')) ||
+              fs.existsSync(path.join(tryPath.path, 'emailTemplates.js'));
+
+            if (hasGenerated || hasEmailTemplates) {
+              convexPath = tryPath.path;
+              console.log(`Using ${tryPath.name} path for Convex:`, convexPath);
+              break;
+            }
+          }
+        } catch (e) {
+          console.log(`Error checking ${tryPath.name} path:`, e.message);
         }
-      } catch (e) {
-        // If fs check fails, default to symlink path
-        console.log('Error checking Convex paths, defaulting to symlink:', e.message);
-        convexPath = convexPathSymlink;
       }
 
-      // Only add the alias if it doesn't already exist (preserves local behavior)
-      if (!config.resolve.alias?.['@/convex']) {
-        config.resolve.alias = {
-          ...config.resolve.alias,
-          '@/convex': convexPath,
-        };
-      }
+      // Force the alias in Docker/Production to ensure it's picked up
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@/convex': convexPath,
+      };
 
       // Also add module resolution fallback to help webpack find the files
       if (!config.resolve.modules) {

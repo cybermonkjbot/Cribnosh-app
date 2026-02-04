@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from 'react';
 import { AiMetadata } from "../components/AiMetadata";
 import { CanonicalTag } from "../components/CanonicalTag";
 import { ConvexClientProvider } from '../components/ConvexClientProvider';
@@ -75,8 +76,9 @@ export const metadata: Metadata = {
   }
 };
 
-// Force dynamic rendering for the entire app to avoid static generation issues with auth/cookies
-export const dynamic = "force-dynamic";
+// We use Suspense boundaries below to isolate components using usePathname/useSearchParams
+// during static generation. This avoids the need for force-dynamic at the root level.
+// export const dynamic = "force-dynamic";
 
 export default async function RootLayout({
   children,
@@ -98,7 +100,9 @@ export default async function RootLayout({
         <meta name="googlebot" content="index, follow" />
         <meta name="google-site-verification" content="YOUR_GOOGLE_SITE_VERIFICATION_CODE" />
 
-        <CanonicalTag />
+        <Suspense fallback={null}>
+          <CanonicalTag />
+        </Suspense>
 
         <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
 
@@ -128,13 +132,7 @@ export default async function RootLayout({
         <link rel="apple-touch-icon" sizes="120x120" href="/apple-icon.png" />
         <link rel="apple-touch-icon" sizes="152x152" href="/apple-icon.png" />
         <link rel="apple-touch-icon" sizes="167x167" href="/apple-icon.png" />
-        {/*
-          To support iOS splash screens, add images named and sized as per Apple's documentation:
-          https://developer.apple.com/design/human-interface-guidelines/ios/icons-and-images/launch-screen/
-          Example:
-          <link rel="apple-touch-startup-image" href="/apple-splash-2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
-          (Add these files to /public and uncomment the lines above for full support.)
-        */}
+
         <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#ff3b30" />
 
         {/* Other meta tags */}
@@ -200,15 +198,17 @@ export default async function RootLayout({
       <body>
         <ConvexClientProvider>
           <AppProviders>
-            <RootLayoutClient>
-              <ClientLayout>
-                <LocationProvider>
-                  {children}
-                  <ScrollToTop />
-                  <CustomScrollbar />
-                </LocationProvider>
-              </ClientLayout>
-            </RootLayoutClient>
+            <Suspense fallback={null}>
+              <RootLayoutClient>
+                <ClientLayout>
+                  <LocationProvider>
+                    {children}
+                    <ScrollToTop />
+                    <CustomScrollbar />
+                  </LocationProvider>
+                </ClientLayout>
+              </RootLayoutClient>
+            </Suspense>
           </AppProviders>
         </ConvexClientProvider>
       </body>

@@ -16,16 +16,28 @@ const convexDocker = path.join(webRoot, 'packages/convex');
 
 // Check which source path exists
 let sourcePath = null;
-if (fs.existsSync(convexMonorepo)) {
-  sourcePath = convexMonorepo;
-  console.log('Found Convex at monorepo path:', convexMonorepo);
-} else if (fs.existsSync(convexDocker)) {
+
+// Docker environment usually has files at packages/convex
+// Local monorepo environment has files at ../../packages/convex
+if (fs.existsSync(convexDocker)) {
   sourcePath = convexDocker;
   console.log('Found Convex at Docker path:', convexDocker);
+} else if (fs.existsSync(convexMonorepo)) {
+  sourcePath = convexMonorepo;
+  console.log('Found Convex at monorepo path:', convexMonorepo);
 } else {
-  console.warn('Warning: Convex directory not found at expected locations');
+  console.warn('Warning: Convex source directory not found at expected locations');
   console.warn('  Monorepo path:', convexMonorepo);
   console.warn('  Docker path:', convexDocker);
+
+  // If we don't have a source but we have a convex directory already, keep it
+  if (fs.existsSync(convexSymlink)) {
+    const generatedPath = path.join(convexSymlink, '_generated');
+    if (fs.existsSync(generatedPath)) {
+      console.log('Existing convex directory with _generated found, keeping it as fallback');
+      process.exit(0);
+    }
+  }
   process.exit(0); // Don't fail, just warn
 }
 
@@ -52,21 +64,26 @@ if (fs.existsSync(convexSymlink)) {
     } else if (stats.isDirectory()) {
       // Check if directory has _generated folder (valid)
       const generatedPath = path.join(convexSymlink, '_generated');
-      if (fs.existsSync(generatedPath)) {
-        // Check if source is newer or different
-        const sourceGenerated = path.join(sourcePath, '_generated');
-        if (fs.existsSync(sourceGenerated)) {
-          // Compare modification times
-          const destTime = fs.statSync(generatedPath).mtime;
-          const sourceTime = fs.statSync(sourceGenerated).mtime;
+      const sourceGenerated = path.join(sourcePath, '_generated');
 
-          // If destination is up to date, skip
-          if (destTime >= sourceTime) {
-            console.log('Convex directory already exists and is up to date, skipping');
-            process.exit(0);
-          }
+      if (fs.existsSync(generatedPath) && fs.existsSync(sourceGenerated)) {
+        // Compare modification times
+        const destTime = fs.statSync(generatedPath).mtime;
+        const sourceTime = fs.statSync(sourceGenerated).mtime;
+
+        // If destination is up to date, skip
+        if (destTime >= sourceTime) {
+          console.log('Convex directory already exists and is up to date, skipping');
+          process.exit(0);
         }
       }
+
+      // If we are in Docker and sourcePath is same as where we might have copied from, avoid loop
+      if (path.resolve(convexSymlink) === path.resolve(sourcePath)) {
+        console.log('Collision between symlink target and source path, skipping');
+        process.exit(0);
+      }
+
       fs.rmSync(convexSymlink, { recursive: true, force: true });
       console.log('Removed existing directory:', convexSymlink);
     }

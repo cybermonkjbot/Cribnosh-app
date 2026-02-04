@@ -30,6 +30,7 @@
       ],
       "@/convex/*": [
         "./convex/*",
+        "./packages/convex/*",
         "../../packages/convex/convex/*",
         "../../packages/convex/*"
       ]
