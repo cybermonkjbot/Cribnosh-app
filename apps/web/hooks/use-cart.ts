@@ -10,9 +10,41 @@ export const cartKeys = {
 };
 
 /**
+ * Cart item type definition
+ */
+export interface CartItemType {
+  _id: string;
+  id: string;
+  dish_id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  dish_name?: string;
+  image_url?: string;
+  chef_name?: string;
+  updatedAt?: number;
+  sides?: {
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+  }[];
+}
+
+/**
+ * Cart type definition
+ */
+export interface CartType {
+  userId: string;
+  items: CartItemType[];
+  updatedAt: number;
+  delivery_fee?: number;
+}
+
+/**
  * Hook to get cart data
  */
-export function useCart() {
+export function useCart(): { data: CartType | undefined; isLoading: boolean; error: any } {
   const { user, sessionToken } = useSession();
 
   const cart = useQuery(
@@ -20,8 +52,19 @@ export function useCart() {
     user?._id ? { userId: user._id as Id<'users'>, sessionToken: sessionToken || undefined } : 'skip'
   );
 
+  // Map Convex cart items to the format expected by the UI components
+  const mappedCart = cart ? {
+    ...cart,
+    items: (cart.items || []).map((item: any) => ({
+      ...item,
+      _id: item.id,
+      dish_id: item.id,
+      dish_name: item.dish_name || item.name,
+    }))
+  } : undefined;
+
   return {
-    data: cart ? { cart } : undefined,
+    data: mappedCart as CartType | undefined,
     isLoading: user === undefined || (!!user && cart === undefined),
     error: null, // Convex handles errors via try/catch in components or global handlers
   };
@@ -110,8 +153,7 @@ export function useClearCart() {
  * Hook to get cart item count
  */
 export function useCartItemCount() {
-  const { data: cartData } = useCart();
-  const cart = cartData?.cart;
+  const { data: cart } = useCart();
 
   const itemCount = cart?.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
 
@@ -122,8 +164,7 @@ export function useCartItemCount() {
  * Hook to get cart total
  */
 export function useCartTotal() {
-  const { data: cartData } = useCart();
-  const cart = cartData?.cart;
+  const { data: cart } = useCart();
 
   const subtotal = cart?.items?.reduce(
     (sum, item) => sum + (item.price || 0) * (item.quantity || 0),

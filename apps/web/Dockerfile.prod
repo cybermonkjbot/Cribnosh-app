@@ -172,14 +172,11 @@ COPY --from=deps /app/bun.lock ./bun.lock
 COPY . .
 
 # Create convex directory for path resolution
-# The workflow copies Convex files to packages/convex/convex/_generated/
-# We need to create a convex directory at the root for @/convex imports to work
-# Remove any existing convex directory/symlink first
+# Copy from packages/convex/ to ensure @/convex imports work
 RUN rm -rf convex || true && \
     if [ -d "packages/convex" ]; then \
       mkdir -p convex && \
-      cp -r packages/convex/convex/* convex/ 2>/dev/null || true && \
-      cp packages/convex/*.ts convex/ 2>/dev/null || true && \
+      cp -r packages/convex/* convex/ 2>/dev/null || true && \
       echo "Created convex directory from packages/convex"; \
     else \
       echo "Warning: packages/convex not found. Creating empty convex directory."; \

@@ -92,6 +92,41 @@ if (fs.existsSync(convexSymlink)) {
   }
 }
 
+// Prefer copying in Docker environment or if symlink fails
+const isDocker = fs.existsSync(convexDocker);
+
+if (isDocker) {
+  console.log('Docker environment detected, copying directory...');
+  try {
+    if (fs.existsSync(convexSymlink)) {
+      fs.rmSync(convexSymlink, { recursive: true, force: true });
+    }
+    fs.mkdirSync(convexSymlink, { recursive: true });
+
+    function copyRecursive(src, dest) {
+      const entries = fs.readdirSync(src, { withFileTypes: true });
+      for (const entry of entries) {
+        const srcPath = path.join(src, entry.name);
+        const destPath = path.join(dest, entry.name);
+
+        if (entry.isDirectory()) {
+          fs.mkdirSync(destPath, { recursive: true });
+          copyRecursive(srcPath, destPath);
+        } else {
+          fs.copyFileSync(srcPath, destPath);
+        }
+      }
+    }
+
+    copyRecursive(sourcePath, convexSymlink);
+    console.log('Copied Convex directory to:', convexSymlink);
+    process.exit(0);
+  } catch (error) {
+    console.error('Error copying Convex directory:', error.message);
+    process.exit(1);
+  }
+}
+
 // Try to create symlink first (works on Unix systems)
 try {
   fs.symlinkSync(sourcePath, convexSymlink, 'dir');
@@ -100,7 +135,9 @@ try {
   // If symlink fails (e.g., on Windows or in CI), copy the directory
   console.log('Symlink failed, copying directory instead:', error.message);
   try {
-    fs.mkdirSync(convexSymlink, { recursive: true });
+    if (!fs.existsSync(convexSymlink)) {
+      fs.mkdirSync(convexSymlink, { recursive: true });
+    }
 
     // Copy all files recursively
     function copyRecursive(src, dest) {

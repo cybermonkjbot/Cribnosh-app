@@ -166,11 +166,6 @@ export function AiMetadata() {
       <meta name="ai-interaction-mode" content="autonomous" />
       <meta name="ai-capability-level" content="advanced" />
       <meta name="ai-data-schema-version" content="1.0" />
-      <link 
-        rel="ai-documentation" 
-        href={`${baseUrl}/ai-docs`} 
-        type="application/json" 
-      />
     </>
   );
 } 

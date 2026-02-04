@@ -12,6 +12,33 @@ export const orderKeys = {
   status: (orderId: string) => [...orderKeys.all, orderId, 'status'] as const,
 };
 
+export interface OrderItemType {
+  dish_id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+export interface OrderType {
+  id: string;
+  order_id: string;
+  total_amount: number;
+  totalAmount: number;
+  order_status: string;
+  orderStatus: string;
+  payment_status: string;
+  paymentStatus: string;
+  order_items: OrderItemType[];
+  orderItems: OrderItemType[];
+  special_instructions?: string;
+  specialInstructions?: string;
+  estimated_prep_time_minutes?: number;
+  estimatedPrepTimeMinutes?: number;
+  chef_notes?: string;
+  chefNotes?: string;
+  [key: string]: any;
+}
+
 /**
  * Hook to get order details
  */
@@ -25,8 +52,20 @@ export function useOrder(orderId: string | null) {
       : 'skip'
   );
 
+  const mappedOrder = order ? {
+    ...order,
+    id: order.order_id,
+    totalAmount: order.total_amount,
+    orderStatus: order.order_status,
+    paymentStatus: order.payment_status,
+    orderItems: order.order_items || [],
+    specialInstructions: order.special_instructions,
+    estimatedPrepTimeMinutes: order.estimated_prep_time_minutes,
+    chefNotes: order.chef_notes,
+  } : undefined;
+
   return {
-    data: order,
+    data: mappedOrder as OrderType | undefined,
     isLoading: orderId !== null && order === undefined,
     error: null,
   };
@@ -60,7 +99,7 @@ export function useOrdersList(params?: {
   offset?: number;
   status?: 'ongoing' | 'past' | 'all';
   order_type?: 'individual' | 'group' | 'all';
-}) {
+}): { data: { orders: OrderType[] } | undefined; isLoading: boolean; error: any } {
   const { user, sessionToken } = useSession();
 
   const orders = useQuery(
@@ -76,7 +115,7 @@ export function useOrdersList(params?: {
   );
 
   return {
-    data: orders,
+    data: orders ? { orders: orders as OrderType[] } : undefined,
     isLoading: user === undefined || (!!user && orders === undefined),
     error: null,
   };

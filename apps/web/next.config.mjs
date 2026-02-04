@@ -39,7 +39,11 @@ const nextConfig = {
   transpilePackages: ['convex'],
 
   // Turbopack configuration (Next.js 16 requirement)
-  turbopack: {},
+  turbopack: {
+    resolveAlias: {
+      '@/convex': './convex',
+    },
+  },
 
   /*
   // Turbopack configuration for faster development
