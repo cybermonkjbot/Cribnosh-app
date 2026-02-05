@@ -39,7 +39,7 @@
     "next-env.d.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "../../packages/convex/convex/_generated/**/*"
+    "convex/_generated/**/*"
   ],
   "exclude": [
     "node_modules",

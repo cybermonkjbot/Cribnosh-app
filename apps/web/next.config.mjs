@@ -139,11 +139,19 @@ const nextConfig = {
         }
       }
 
-      // Force the alias in Docker/Production to ensure it's picked up
+      // Log to stdout directly to bypass Next.js console suppression
+      process.stdout.write(`[DEBUG] Final Convex path determined: ${convexPath}\n`);
+
+      // Force the alias in Docker/Production and ensure it's at the beginning of the alias object
       config.resolve.alias = {
-        ...config.resolve.alias,
         '@/convex': convexPath,
+        ...config.resolve.alias,
       };
+
+      // Specifically alias the generated files to be sure
+      config.resolve.alias['@/convex/_generated/api'] = path.join(convexPath, '_generated/api');
+      config.resolve.alias['@/convex/_generated/dataModel'] = path.join(convexPath, '_generated/dataModel');
+      config.resolve.alias['@/convex/_generated/server'] = path.join(convexPath, '_generated/server');
 
       // Also add module resolution fallback to help webpack find the files
       if (!config.resolve.modules) {
