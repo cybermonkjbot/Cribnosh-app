@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { ResponseFactory } from '@/lib/api';
 import { securityMiddleware } from '@/lib/api/security';
-import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
+import { NextRequest, NextResponse } from 'next/server';
+// Note: We avoid importing session management or Convex here to ensure 
+// the health check is as lightweight as possible and doesn't fail 
+// during initial startup or if path resolution for those modules is tricky.
 
 /**
  * Fast health check endpoint for App Runner
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
         ttl: 0
       }
     });
-    
+
     // Apply CORS headers
     return securityMiddleware.applyCORSHeaders(response, request);
   } catch (error) {
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
         }
       }
     );
-    
+
     return securityMiddleware.applyCORSHeaders(errorResponse, request);
   }
 }

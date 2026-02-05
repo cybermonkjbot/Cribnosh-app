@@ -80,4 +80,4 @@ EXPOSE 3000
 
 # Start the application using node
 # The standalone entrypoint is server.js in the corresponding workspace
-CMD ["node", "apps/web/server.js"]
+CMD ["node", "server.js"]
