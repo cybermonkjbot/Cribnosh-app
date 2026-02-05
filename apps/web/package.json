@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbo",
     "prebuild": "node scripts/setup-convex.js",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run tests --config=vitest.config.ts",

@@ -29,8 +29,7 @@
         "./*"
       ],
       "@/convex/*": [
-        "./convex/*",
-        "../../packages/convex/*"
+        "./convex/*"
       ]
     }
   },

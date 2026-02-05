@@ -41,7 +41,10 @@ const nextConfig = {
   // Turbopack configuration (Next.js 16 requirement)
   turbopack: {
     resolveAlias: {
-      '@/convex': './convex',
+      '@/convex': resolve(__dirname, './convex'),
+      '@/convex/_generated/api': resolve(__dirname, './convex/_generated/api'),
+      '@/convex/_generated/dataModel': resolve(__dirname, './convex/_generated/dataModel'),
+      '@/convex/_generated/server': resolve(__dirname, './convex/_generated/server'),
     },
   },
 
