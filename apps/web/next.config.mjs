@@ -75,7 +75,7 @@ const nextConfig = {
   */
 
   // Output configuration
-  // output: 'standalone',
+  output: 'standalone',
 
   // URL Rewrites
   async rewrites() {
@@ -176,12 +176,18 @@ const nextConfig = {
 
       // Try to find the real core directories
       const allGenFolders = findDirectories(convexPath, '_generated');
+
       if (allGenFolders.length > 0) {
-        process.stdout.write(`[DEBUG] Found _generated at: ${allGenFolders.join(', ')}\n`);
-        // Use the first one found
+        // Sort by path depth to find the shallowest _generated folder (most likely the root)
+        allGenFolders.sort((a, b) => a.split(path.sep).length - b.split(path.sep).length);
+
+        process.stdout.write(`[DEBUG] Found _generated folders at: ${allGenFolders.join(', ')}\n`);
+
+        // Use the shallowest one found
         const safeGenPath = allGenFolders[0];
         const realParent = path.dirname(safeGenPath);
 
+        process.stdout.write(`[DEBUG] Using safeGenPath: ${safeGenPath}\n`);
         process.stdout.write(`[DEBUG] Setting @/convex root to: ${realParent}\n`);
 
         const robustAliases = {
@@ -193,12 +199,16 @@ const nextConfig = {
         };
 
         // Try to find emailTemplates specifically if it's missing from realParent
-        if (!fs.existsSync(path.join(realParent, 'emailTemplates.ts')) && !fs.existsSync(path.join(realParent, 'emailTemplates.js'))) {
+        const emailTemplateInRoot = path.join(realParent, 'emailTemplates');
+        if (!fs.existsSync(emailTemplateInRoot + '.ts') && !fs.existsSync(emailTemplateInRoot + '.js')) {
+          process.stdout.write(`[DEBUG] emailTemplates NOT found in ${realParent}, searching...\n`);
           const emailTemplatePath = findFile(convexPath, 'emailTemplates');
           if (emailTemplatePath) {
             process.stdout.write(`[DEBUG] Found emailTemplates at: ${emailTemplatePath}\n`);
             robustAliases['@/convex/emailTemplates'] = emailTemplatePath.replace(/\.(ts|js)$/, '');
           }
+        } else {
+          process.stdout.write(`[DEBUG] Found emailTemplates in root: ${emailTemplateInRoot}\n`);
         }
 
         // Apply aliases with precedence

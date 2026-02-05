@@ -1,58 +1,42 @@
-# Multi-stage build optimized for AWS App Runner
+# Multi-stage build optimized for AWS App Runner from monorepo root
 FROM oven/bun:1.2.17-alpine AS deps
 WORKDIR /app
 
-# Force consistent registry resolution inside Docker
-COPY .npmrc ./
+# Copy root manifest and web/convex manifests
+COPY package.json bun.lock .npmrc ./
+COPY apps/web/package.json ./apps/web/
+COPY packages/convex/package.json ./packages/convex/
 
-# Only copy manifests first for better layer caching
-COPY package.json bun.lock ./
-
-# Single install (includes dev deps for building)
+# Install dependencies for the whole monorepo
 RUN bun install --frozen-lockfile --no-progress
 
 # Use Node.js for build stage since Next.js requires worker_threads
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy installed modules and lockfile
+# Copy bun from deps stage if we need it
+COPY --from=deps /usr/local/bin/bun /usr/local/bin/bun
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./package.json
-COPY --from=deps /app/bun.lock ./bun.lock
+COPY --from=deps /app/apps/web/package.json ./apps/web/package.json
+COPY --from=deps /app/packages/convex/package.json ./packages/convex/package.json
 
 # Copy the rest of the source
 COPY . .
 
 # Ensure Convex generated files exist
-# Note: Generated files should be committed to git. If missing, they need to be generated.
-# This step verifies they exist and warns if they don't.
-RUN if [ ! -f "packages/convex/convex/_generated/api.js" ]; then \
-      echo "ERROR: Convex generated files not found!"; \
-      echo "Please ensure packages/convex/convex/_generated/ files are committed to git."; \
-      echo "Or run 'cd packages/convex && npx convex dev' to generate them."; \
-      exit 1; \
-    fi
+RUN cd packages/convex && npx convex codegen
 
-# Set build-time environment variables to prevent API key errors during build
+# Set build-time environment variables
 ENV RESEND_API_KEY="re_EQsb5GpW_HkaiK9VCCYjwAYH2Jd8xP5VN"
-ENV OPENAI_API_KEY=""
-ENV ANTHROPIC_API_KEY=""
-ENV STRIPE_SECRET_KEY=""
 ENV NEXT_PUBLIC_CONVEX_URL="https://wandering-finch-293.convex.cloud"
 ENV CONVEX_URL="https://wandering-finch-293.convex.cloud"
-ENV CONVEX_DEPLOY_KEY=""
-ENV JWT_SECRET="cribnosh-dev-secret"
-ENV NOTION_TOKEN="ntn_H36001900014bCHIwtL24KM5tmGAW2IzmnZolV3FZoNaKH"
-ENV NOTION_DATABASE_ID="2240d6968a31808388bddafaefdec9b3"
-ENV BASEHUB_TOKEN="bshb_pk_puctvrqlvn8s55v47kqswt021acbzvcr0k3vwfrm0vg5u1z5w4y5g5eutbnsgcgc"
-ENV HUGGINGFACE_API_KEY="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"
-ENV MINIO_ACCESS_KEY="ERI3IOzELagPdGzB"
-ENV MINIO_SECRET_KEY="I1x1wQw8sVePs3URofF909pnrlMa4I7p"
-# Disable custom cursor by default to prevent cursor issues
 ENV NEXT_PUBLIC_USE_CUSTOM_POINTER="false"
 ENV DISABLE_TRY_IT="true"
 
-# Build the app using Node.js (Next.js requires Node.js worker threads)
+# Build the app from the workspace
+WORKDIR /app/apps/web
+# Ensure standalone mode is enabled in next.config.mjs if not already
 RUN npm run build
 
 FROM node:20-alpine AS production
@@ -60,26 +44,16 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Copy standalone output from builder
-# Next.js standalone output includes everything needed to run the server
-# The structure depends on monorepo setup - check for both possible locations
-COPY --from=builder /app/.next/standalone ./
-
-# Handle monorepo structure: if standalone is nested, move it to root
-RUN if [ -d "./apps/web" ]; then \
-      cp -r ./apps/web/* ./ && \
-      rm -rf ./apps; \
-    fi
-
-# Copy static files - these need to be at .next/static relative to server.js
-COPY --from=builder /app/.next/static ./.next/static
-
-# Copy public directory
-COPY --from=builder /app/public ./public
+# Next.js standalone output structure: .next/standalone/apps/web/server.js
+# and it needs .next/static and public.
+COPY --from=builder /app/apps/web/.next/standalone ./
+COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder /app/apps/web/public ./apps/web/public
 
 # Install curl for health checks
 RUN apk add --no-cache curl
 
-# Health check for AWS App Runner
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
@@ -87,6 +61,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Use the standalone server instead of next start
-# The server.js should be in the root after copying standalone output
-CMD ["node", "server.js"]
+# The entrypoint for standalone mode is apps/web/server.js
+CMD ["node", "apps/web/server.js"]

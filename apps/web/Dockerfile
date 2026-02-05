@@ -1,47 +1,45 @@
-# Multi-stage build to avoid double installs and integrity issues on Coolify
+# Multi-stage build for monorepo from root context
 FROM oven/bun:1.2.17-alpine AS deps
 WORKDIR /app
 
-# Force consistent registry resolution inside Docker/Coolify
-COPY .npmrc ./
+# Copy root manifest and workspace manifests
+COPY package.json bun.lock .npmrc ./
+COPY apps/web/package.json ./apps/web/
+COPY packages/convex/package.json ./packages/convex/
 
-# Only copy manifests first for better layer caching
-COPY package.json bun.lock ./
-
-# Single install (includes dev deps for building)
+# Single install for monorepo
 RUN bun install --frozen-lockfile --no-progress
 
-
-# Use Node.js for build stage since Next.js requires worker_threads
+# Use Node.js for build stage
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy installed modules and lockfile from Bun stage
+# Copy bun and dependencies
+COPY --from=deps /usr/local/bin/bun /usr/local/bin/bun
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./package.json
-COPY --from=deps /app/bun.lock ./bun.lock
+COPY --from=deps /app/apps/web/package.json ./apps/web/package.json
+COPY --from=deps /app/packages/convex/package.json ./packages/convex/package.json
 
 # Copy the rest of the source
 COPY . .
 
-# Build the app using Node.js (Next.js requires Node.js worker threads)
-RUN npm run build
+# Ensure Convex generated files exist
+RUN cd packages/convex && npx convex codegen
 
+# Build the app using Node.js
+WORKDIR /app/apps/web
+RUN npm run build
 
 FROM oven/bun:1.2.17-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Reuse artifacts and modules from builder; do NOT reinstall in production
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/bun.lock ./bun.lock
-COPY --from=builder /app/node_modules ./node_modules
-
-# Next.js outputs (adjust if you have a custom output)
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
+# Copy standalone output
+COPY --from=builder /app/apps/web/.next/standalone ./
+COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder /app/apps/web/public ./apps/web/public
 
 EXPOSE 3000
-CMD ["bun", "run", "start"]
-
-
+# The entrypoint for standalone mode is apps/web/server.js
+CMD ["bun", "run", "apps/web/server.js"]

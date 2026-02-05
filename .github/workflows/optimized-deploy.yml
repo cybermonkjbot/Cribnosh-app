@@ -232,27 +232,20 @@ jobs:
           fi
           echo "✅ Convex generated files found"
 
-      - name: Copy Convex generated files to build context
-        working-directory: apps/web
-        run: |
-          # Copy Convex generated files into the build context
-          # This ensures they're accessible during Docker build
-          mkdir -p packages/convex/convex/_generated
-          cp -r ../../packages/convex/convex/_generated/* packages/convex/convex/_generated/
-          echo "✅ Copied Convex generated files to build context"
-
       - name: Build optimized Docker image
-        working-directory: apps/web
         run: |
-          # Build with optimizations for App Runner
-          # Using the ECR repository URL from Terraform
+          # Build from monorepo root to allow access to all packages
           docker build \
             --platform linux/amd64 \
             --build-arg NODE_ENV=production \
             --build-arg NEXT_TELEMETRY_DISABLED=1 \
+            --build-arg CONVEX_DEPLOY_KEY=${{ secrets.CONVEX_DEPLOY_KEY }} \
+            --build-arg CONVEX_DEPLOYMENT=${{ secrets.CONVEX_DEPLOYMENT }} \
+            --build-arg RESEND_API_KEY=${{ secrets.RESEND_API_KEY }} \
+            --build-arg NEXT_PUBLIC_CONVEX_URL=${{ secrets.NEXT_PUBLIC_CONVEX_URL }} \
             -t ${{ steps.ecr-url.outputs.ecr-url }}:latest \
             -t ${{ steps.ecr-url.outputs.ecr-url }}:${{ github.sha }} \
-            -f Dockerfile.prod .
+            -f apps/web/Dockerfile.prod .
 
       - name: Push image to ECR
         run: |

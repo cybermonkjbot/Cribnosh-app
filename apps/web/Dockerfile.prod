@@ -2,188 +2,49 @@
 FROM oven/bun:1.2.20-alpine AS deps
 WORKDIR /app
 
-# Copy package files first for better layer caching
-COPY package.json ./
+# Copy root package files
+COPY package.json bun.lock ./
 
-# Install all dependencies (including dev deps for building)
-# Note: Not using --frozen-lockfile because this is a monorepo workspace
-# The lockfile is managed at the root level, bun will resolve dependencies
+# Copy workspace package files for better layer caching
+COPY apps/web/package.json ./apps/web/
+COPY packages/convex/package.json ./packages/convex/
+
+# Install dependencies for the whole monorepo
 RUN bun install --no-progress
 
 # --- Build Stage ---
-# Use Node.js for build stage since Next.js requires worker_threads
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Environment variables needed for build (Coolify deployment)
-ARG RESEND_API_KEY="re_EQsb5GpW_HkaiK9VCCYjwAYH2Jd8xP5VN"
-ENV RESEND_API_KEY=${RESEND_API_KEY}
-ARG NEXT_PUBLIC_CONVEX_URL="https://wandering-finch-293.convex.cloud"
-ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
-ARG BASEHUB_TOKEN="bshb_pk_puctvrqlvn8s55v47kqswt021acbzvcr0k3vwfrm0vg5u1z5w4y5g5eutbnsgcgc"
-ENV BASEHUB_TOKEN=${BASEHUB_TOKEN}
-ARG SMTP_HOST="smtp.example.com"
-ENV SMTP_HOST=${SMTP_HOST}
-ARG SMTP_PORT="587"
-ENV SMTP_PORT=${SMTP_PORT}
-ARG SMTP_SECURE="false"
-ENV SMTP_SECURE=${SMTP_SECURE}
-ARG SMTP_USER="your-email@cribnosh.co.uk"
-ENV SMTP_USER=${SMTP_USER}
-ARG SMTP_PASSWORD="your-password"
-ENV SMTP_PASSWORD=${SMTP_PASSWORD}
-ARG SMTP_PASS="your-password"
-ENV SMTP_PASS=${SMTP_PASS}
-ARG DEFAULT_EMAILs_PROVIDER="smtp"
-ENV DEFAULT_EMAILs_PROVIDER=${DEFAULT_EMAILs_PROVIDER}
-ARG NEXT_PUBLIC_USE_CUSTOM_POINTER=false
-ENV NEXT_PUBLIC_USE_CUSTOM_POINTER=${NEXT_PUBLIC_USE_CUSTOM_POINTER}
-ARG NOTION_TOKEN="ntn_H36001900014bCHIwtL24KM5tmGAW2IzmnZolV3FZoNaKH"
-ENV NOTION_TOKEN=${NOTION_TOKEN}
-ARG NOTION_DATABASE_ID="2240d6968a31808388bddafaefdec9b3"
-ENV NOTION_DATABASE_ID=${NOTION_DATABASE_ID}
-ARG NEXT_PUBLIC_DISABLE_TRY_IT="true"
-ENV NEXT_PUBLIC_DISABLE_TRY_IT=${NEXT_PUBLIC_DISABLE_TRY_IT}
-ARG CONVEX_DEPLOYMENT="dev:wandering-finch-293"
-ENV CONVEX_DEPLOYMENT=${CONVEX_DEPLOYMENT}
-ARG CONVEX_DEPLOY_KEY=""
-ENV CONVEX_DEPLOY_KEY=${CONVEX_DEPLOY_KEY}
-ARG DATABASE_URL=""
-ENV DATABASE_URL=${DATABASE_URL}
-ARG NEXT_PUBLIC_API_URL=""
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-ARG NEXT_PUBLIC_BASE_URL="cribnosh.com"
-ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
-ARG NEXT_PUBLIC_DISABLE_DARK_MODE="true"
-ENV NEXT_PUBLIC_DISABLE_DARK_MODE=${NEXT_PUBLIC_DISABLE_DARK_MODE}
-ARG DISABLE_TRY_IT="true"
-ENV DISABLE_TRY_IT=${DISABLE_TRY_IT}
-ARG NEXT_PUBLIC_DISABLE_CERTIFIED_KITCHENS_FLOAT="true"
-ENV NEXT_PUBLIC_DISABLE_CERTIFIED_KITCHENS_FLOAT=${NEXT_PUBLIC_DISABLE_CERTIFIED_KITCHENS_FLOAT}
-ARG CLOUDFLARE_ZONE_ID="your_zone_id"
-ENV CLOUDFLARE_ZONE_ID=${CLOUDFLARE_ZONE_ID}
-ARG CLOUDFLARE_API_TOKEN="your_api_token"
-ENV CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
-ARG CACHE_PURGE_SECRET="k4R7pXz8vLq2NmT1Ys9UwEc0BhG5ZdQx"
-ENV CACHE_PURGE_SECRET=${CACHE_PURGE_SECRET}
-ARG DRAGONFLY_URL="redis://dragonfly:6379"
-ENV DRAGONFLY_URL=${DRAGONFLY_URL}
-ARG REDIS_URL="redis://localhost:6379"
-ENV REDIS_URL=${REDIS_URL}
-ARG REDIS_HOST="localhost"
-ENV REDIS_HOST=${REDIS_HOST}
-ARG REDIS_PORT="6379"
-ENV REDIS_PORT=${REDIS_PORT}
-ARG REDIS_PASSWORD="your_password"
-ENV REDIS_PASSWORD=${REDIS_PASSWORD}
-ARG REDIS_DB="0"
-ENV REDIS_DB=${REDIS_DB}
-ARG REDIS_TEST_URL="redis://localhost:6379/15"
-ENV REDIS_TEST_URL=${REDIS_TEST_URL}
-ARG REDIS_DEV_URL="redis://localhost:6379/1"
-ENV REDIS_DEV_URL=${REDIS_DEV_URL}
-ARG MATTERMOST_TOKEN_NAME="Automator"
-ENV MATTERMOST_TOKEN_NAME=${MATTERMOST_TOKEN_NAME}
-ARG MATTERMOST_ID="o9wy47cw8b87jxss4tx6g4p89y"
-ENV MATTERMOST_ID=${MATTERMOST_ID}
-ARG MATTERMOST_TOKEN_ACCESS="mz4bg84m43rr8m5ucukiwmbdoa"
-ENV MATTERMOST_TOKEN_ACCESS=${MATTERMOST_TOKEN_ACCESS}
-ARG MATTERMOST_WEBHOOK_URL="https://collaboration.cribnosh.com/hooks/7go1mgeq57rq7jouau6p36nwph"
-ENV MATTERMOST_WEBHOOK_URL=${MATTERMOST_WEBHOOK_URL}
-ARG MATTERMOST_BOT_TOKEN="o9i13eae87rtbjnbj5n8um5yfe"
-ENV MATTERMOST_BOT_TOKEN=${MATTERMOST_BOT_TOKEN}
-ARG MATTERMOST_SERVER_URL="https://collaboration.cribnosh.com"
-ENV MATTERMOST_SERVER_URL=${MATTERMOST_SERVER_URL}
-ARG MATTERMOST_CHANNEL_ID="5yoegwhfxfrwfb3pxja6t8k8zo"
-ENV MATTERMOST_CHANNEL_ID=${MATTERMOST_CHANNEL_ID}
-ARG MATTERMOST_TEAM_ID="your-team-id"
-ENV MATTERMOST_TEAM_ID=${MATTERMOST_TEAM_ID}
-ARG STAFF_PORTAL_ENABLED="true"
-ENV STAFF_PORTAL_ENABLED=${STAFF_PORTAL_ENABLED}
-ARG STAFF_JWT_SECRET="cribnoshdevsupersecretkey1234567890!"
-ENV STAFF_JWT_SECRET=${STAFF_JWT_SECRET}
-ARG JWT_SECRET="cribnosh-dev-secret"
-ENV JWT_SECRET=${JWT_SECRET}
-ARG NEXT_PUBLIC_HULY_URL="https://app.huly.io"
-ENV NEXT_PUBLIC_HULY_URL=${NEXT_PUBLIC_HULY_URL}
-ARG MINIO_ENDPOINT="storage.cribnosh.com"
-ENV MINIO_ENDPOINT=${MINIO_ENDPOINT}
-ARG MINIO_PORT="443"
-ENV MINIO_PORT=${MINIO_PORT}
-ARG MINIO_USE_SSL="true"
-ENV MINIO_USE_SSL=${MINIO_USE_SSL}
-ARG MINIO_ACCESS_KEY="ERI3IOzELagPdGzB"
-ENV MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
-ARG MINIO_SECRET_KEY="I1x1wQw8sVePs3URofF909pnrlMa4I7p"
-ENV MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
-ARG MINIO_BUCKET="documents"
-ENV MINIO_BUCKET=${MINIO_BUCKET}
-ARG MINIO_PUBLIC_URL="https://storage.cribnosh.com"
-ENV MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL}
-ARG SLACK_CHANGELOG_WEBHOOK="https://collaboration.cribnosh.com/hooks/h84jgq3ps3ye8p4bn8yubpbxsy"
-ENV SLACK_CHANGELOG_WEBHOOK=${SLACK_CHANGELOG_WEBHOOK}
-ARG HUGGINGFACE_API_KEY="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"
-ENV HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}
-ARG JWT_SECRET="cribnosh-dev-secret"
-ENV JWT_SECRET=${JWT_SECRET}
-ARG STRIPE_SECRET_KEY=""
-ENV STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-ARG STRIPE_PUBLISHABLE_KEY=""
-ENV STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
-ARG STRIPE_WEBHOOK_SECRET=""
-ENV STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-ARG AGORA_APP_ID=""
-ENV AGORA_APP_ID=${AGORA_APP_ID}
-ARG AGORA_APP_CERTIFICATE=""
-ENV AGORA_APP_CERTIFICATE=${AGORA_APP_CERTIFICATE}
-ARG EMOTIONS_ENGINE_URL="http://localhost:3000/api/emotions-engine"
-ENV EMOTIONS_ENGINE_URL=${EMOTIONS_ENGINE_URL}
-ARG RESEND_FROM_EMAIL="onboarding@cribnosh.com"
-ENV RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}
-ARG RESEND_AUDIENCE_ID="93c15e49-f327-478e-8fc7-b7846fd19a23"
-ENV RESEND_AUDIENCE_ID=${RESEND_AUDIENCE_ID}
-ARG ANTHROPIC_API_KEY=""
-ENV ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-ARG OPENAI_API_KEY=""
-ENV OPENAI_API_KEY=${OPENAI_API_KEY}
-ARG HF_TOKEN=""
-ENV HF_TOKEN=${HF_TOKEN}
-ARG GEMINI_API_KEY=""
-ENV GEMINI_API_KEY=${GEMINI_API_KEY}
-ARG ADMIN_WEBHOOK_URL=""
-ENV ADMIN_WEBHOOK_URL=${ADMIN_WEBHOOK_URL}
-ARG AWS_ACCESS_KEY_ID=""
-ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-ARG AWS_SECRET_ACCESS_KEY=""
-ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-ARG AWS_REGION="eu-west-2"
-ENV AWS_REGION=${AWS_REGION}
-ARG S3_BUCKET_NAME=""
-ENV S3_BUCKET_NAME=${S3_BUCKET_NAME}
-
-# Copy dependencies from deps stage
+# Install bun in the node stage
+COPY --from=deps /usr/local/bin/bun /usr/local/bin/bun
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./package.json
-COPY --from=deps /app/bun.lock ./bun.lock
+COPY --from=deps /app/apps/web/package.json ./apps/web/package.json
+COPY --from=deps /app/packages/convex/package.json ./packages/convex/package.json
 
-# Copy source code (excluding files in .dockerignore)
-# Build context is apps/web, so we copy from there
-# The Convex generated files should be copied into the build context by the workflow
+# Environment variables needed for build
+ARG RESEND_API_KEY
+ENV RESEND_API_KEY=${RESEND_API_KEY}
+ARG NEXT_PUBLIC_CONVEX_URL
+ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
+ARG BASEHUB_TOKEN
+ENV BASEHUB_TOKEN=${BASEHUB_TOKEN}
+ARG CONVEX_DEPLOYMENT
+ENV CONVEX_DEPLOYMENT=${CONVEX_DEPLOYMENT}
+ARG CONVEX_DEPLOY_KEY
+ENV CONVEX_DEPLOY_KEY=${CONVEX_DEPLOY_KEY}
+ARG NEXT_PUBLIC_BASE_URL
+ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+
+# Copy the rest of the source code
 COPY . .
 
-# Create convex directory for path resolution
-# Copy from packages/convex/ to ensure @/convex imports work
-RUN rm -rf convex || true && \
-    if [ -d "packages/convex" ]; then \
-      mkdir -p convex && \
-      cp -r packages/convex/* convex/ 2>/dev/null || true && \
-      echo "Created convex directory from packages/convex"; \
-    else \
-      echo "Warning: packages/convex not found. Creating empty convex directory."; \
-      mkdir -p convex/_generated || true; \
-    fi
+# Ensure Convex generated files exist
+RUN cd packages/convex && npx convex codegen
 
-# Build the application using Node.js (Next.js requires Node.js worker threads)
+# Build the web application
+WORKDIR /app/apps/web
 RUN npm run build
 
 # --- Production Stage ---
@@ -193,29 +54,27 @@ WORKDIR /app
 # Set production environment
 ENV NODE_ENV=production
 
-# Copy package files for production dependencies
-COPY --from=build /app/package.json ./package.json
+# Copy built assets and necessary files
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/apps/web/package.json ./apps/web/package.json
+COPY --from=build /app/apps/web/.next ./apps/web/.next
+COPY --from=build /app/apps/web/public ./apps/web/public
+COPY --from=build /app/apps/web/next.config.* ./apps/web/
+COPY --from=build /app/apps/web/app ./apps/web/app
+COPY --from=build /app/apps/web/components ./apps/web/components
+COPY --from=build /app/apps/web/context ./apps/web/context
+COPY --from=build /app/apps/web/hooks ./apps/web/hooks
+COPY --from=build /app/apps/web/lib ./apps/web/lib
+COPY --from=build /app/apps/web/assets ./apps/web/assets
+COPY --from=build /app/apps/web/emails ./apps/web/emails
+COPY --from=build /app/apps/web/styles ./apps/web/styles
 
-# Install only production dependencies
-# Note: Not using --frozen-lockfile for monorepo compatibility
-RUN bun install --production --no-progress
-
-# Copy built application and necessary runtime files
-COPY --from=build /app/.next ./.next
-COPY --from=build /app/public ./public
-COPY --from=build /app/next.config.* ./
-COPY --from=build /app/app ./app
-COPY --from=build /app/components ./components
-COPY --from=build /app/context ./context
-COPY --from=build /app/convex ./convex
-COPY --from=build /app/hooks ./hooks
-COPY --from=build /app/lib ./lib
-COPY --from=build /app/assets ./assets
-COPY --from=build /app/emails ./emails
-COPY --from=build /app/styles ./styles
+# Include convex package for runtime imports if needed
+COPY --from=build /app/packages/convex ./packages/convex
 
 # Expose port 3000
 EXPOSE 3000
 
 # Start the application
-CMD ["bun", "start"]
+WORKDIR /app/apps/web
+CMD ["bun", "run", "start"]

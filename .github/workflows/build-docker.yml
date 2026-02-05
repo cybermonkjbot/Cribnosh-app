@@ -38,9 +38,11 @@ jobs:
         echo "ECR Repository URL: $REPO_URL"
         
     - name: Build Docker image
-      working-directory: apps/web
       run: |
-        docker build -f Dockerfile.aws -t ${{ steps.ecr-url.outputs.ecr-url }}:${{ github.sha }} -t ${{ steps.ecr-url.outputs.ecr-url }}:latest .
+        docker build \
+          -f apps/web/Dockerfile.aws \
+          -t ${{ steps.ecr-url.outputs.ecr-url }}:${{ github.sha }} \
+          -t ${{ steps.ecr-url.outputs.ecr-url }}:latest .
         
     - name: Push Docker image to ECR
       run: |
