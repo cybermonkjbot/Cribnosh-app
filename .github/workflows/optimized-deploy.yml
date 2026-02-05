@@ -237,12 +237,12 @@ jobs:
           # Build from monorepo root to allow access to all packages
           docker build \
             --platform linux/amd64 \
-            --build-arg NODE_ENV=production \
-            --build-arg NEXT_TELEMETRY_DISABLED=1 \
-            --build-arg CONVEX_DEPLOY_KEY=${{ secrets.CONVEX_DEPLOY_KEY }} \
-            --build-arg CONVEX_DEPLOYMENT=${{ secrets.CONVEX_DEPLOYMENT }} \
-            --build-arg RESEND_API_KEY=${{ secrets.RESEND_API_KEY }} \
-            --build-arg NEXT_PUBLIC_CONVEX_URL=${{ secrets.NEXT_PUBLIC_CONVEX_URL }} \
+            --build-arg NODE_ENV="production" \
+            --build-arg NEXT_TELEMETRY_DISABLED="1" \
+            --build-arg CONVEX_DEPLOY_KEY="${{ secrets.CONVEX_DEPLOY_KEY }}" \
+            --build-arg CONVEX_DEPLOYMENT="${{ secrets.CONVEX_DEPLOYMENT }}" \
+            --build-arg RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}" \
+            --build-arg NEXT_PUBLIC_CONVEX_URL="${{ secrets.NEXT_PUBLIC_CONVEX_URL }}" \
             -t ${{ steps.ecr-url.outputs.ecr-url }}:latest \
             -t ${{ steps.ecr-url.outputs.ecr-url }}:${{ github.sha }} \
             -f apps/web/Dockerfile.prod .
