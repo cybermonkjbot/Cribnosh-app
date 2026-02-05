@@ -7,23 +7,7 @@ import { api } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
 import { action } from "../_generated/server";
 
-// Initialize Stripe client
-// TODO: REMOVE HARDCODED TEST KEY - This is a temporary fallback for testing
-const getStripe = () => {
-  // Get from environment variable
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-
-  if (!stripeSecretKey || stripeSecretKey.trim().length === 0) {
-    if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
-      console.error('Stripe secret key (STRIPE_SECRET_KEY) is missing in environment variables.');
-    }
-    return null;
-  }
-
-  return new Stripe(stripeSecretKey.trim(), {
-    apiVersion: '2025-07-30.basil' as Stripe.LatestApiVersion,
-  });
-};
+import { getStripe } from "../utils/stripe";
 
 // Helper to get or create Stripe customer
 async function getOrCreateStripeCustomer(

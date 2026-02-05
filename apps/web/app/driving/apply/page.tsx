@@ -4,8 +4,10 @@ import { JobValuesJsonLd } from '@/components/JobValuesJsonLd';
 import { MasonryBackground } from '@/components/ui/masonry-background';
 import { MobileBackButton } from '@/components/ui/mobile-back-button';
 import { ParallaxContent } from '@/components/ui/parallax-section';
+import { api } from '@/convex/_generated/api';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { useSessionToken } from '@/hooks/useSessionToken';
-import { useMutation, useAction } from 'convex/react';
+import { useAction, useMutation } from 'convex/react';
 import { Bike, Car, ChevronLeft } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
@@ -42,7 +44,7 @@ export default function DrivingApply() {
   const [error, setError] = useState('');
   const [emailStatus, setEmailStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const sessionToken = useSessionToken();
-  const step, setStep] = useState<'vehicle' | 'details'>('vehicle');
+  const [step, setStep] = useState<'vehicle' | 'details'>('vehicle');
   const createDriver = useMutation(api.mutations.drivers.createDriver);
   const isMobile = useMediaQuery('(max-width: 768px)');
 

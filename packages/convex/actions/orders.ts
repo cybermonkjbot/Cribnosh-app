@@ -5,6 +5,7 @@ import { v } from "convex/values";
 import { api } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
 import { action } from "../_generated/server";
+import { getStripe } from "../utils/stripe";
 
 // ============================================================================
 // Extracted Validator Schemas (to reduce type instantiation depth)
@@ -719,15 +720,58 @@ export const customerCancelOrder = action({
         status: 'cancelled',
       });
 
-      // Note: Refund processing would typically be done server-side with Stripe
-      // For now, we'll just mark the order as cancelled
-      // In production, you'd process refunds here based on refund_preference
+      let refund_status = 'not_applicable';
+      let refund_id = undefined;
+
+      // Process refund with Stripe if applicable
+      if (args.refund_preference !== undefined && order.payment_status === 'paid' && order.payment_id) {
+        const stripe = getStripe();
+        if (stripe) {
+          try {
+            const refund = await stripe.refunds.create({
+              payment_intent: order.payment_id,
+              reason: 'requested_by_customer',
+              metadata: {
+                order_id: args.order_id,
+                customer_id: user._id.toString(),
+                reason: args.reason || 'customer_request',
+              }
+            });
+
+            refund_status = refund.status === 'succeeded' ? 'succeeded' : 'pending';
+            refund_id = refund.id;
+
+            // Note: In a real system, you'd also update the order with the refund ID
+            // and maybe trigger an email notification
+            await ctx.runMutation(api.mutations.orders.processRefund, {
+              orderId: order._id,
+              refundId: refund.id,
+              amount: order.total_amount,
+              reason: 'requested_by_customer',
+              processedBy: user._id.toString(),
+              description: `Refund for cancelled order: ${args.reason || 'customer_request'}`,
+              metadata: {
+                stripeRefundId: refund.id,
+                cancelledBy: user._id.toString(),
+                cancellationReason: args.reason || 'customer_request',
+              }
+            });
+          } catch (error) {
+            console.error('Failed to process refund:', error);
+            refund_status = 'failed';
+          }
+        } else {
+          console.warn('Stripe not configured, skipping refund');
+          refund_status = 'failed';
+        }
+      }
 
       return {
         success: true as const,
         order_id: args.order_id,
-        status: 'cancellation_pending',
-        refund_status: 'pending',
+        status: 'cancelled',
+        refund_status,
+        refund_id,
         cancelled_at: new Date().toISOString(),
       };
     } catch (error: any) {
