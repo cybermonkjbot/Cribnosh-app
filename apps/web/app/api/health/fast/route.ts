@@ -1,61 +1,33 @@
-import { ResponseFactory } from '@/lib/api';
-import { securityMiddleware } from '@/lib/api/security';
 import { NextRequest, NextResponse } from 'next/server';
-// Note: We avoid importing session management or Convex here to ensure 
-// the health check is as lightweight as possible and doesn't fail 
-// during initial startup or if path resolution for those modules is tricky.
 
 /**
  * Fast health check endpoint for App Runner
  * This endpoint is optimized for speed and should respond within 1 second
- * Used by App Runner for basic health monitoring
+ * Decoupled from all app-specific logic to ensure reliability during startup
  */
 export async function GET(request: NextRequest) {
-  // Handle CORS preflight requests
-  if (request.method === 'OPTIONS') {
-    const response = new NextResponse(null, { status: 200 });
-    return securityMiddleware.applyCORSHeaders(response, request);
-  }
-
   try {
-    // Minimal health check response - just verify the app is running
-    const fastHealthCheck = {
-      timestamp: new Date().toISOString(),
-      status: 'healthy',
-      version: process.env.npm_package_version || '1.0.0',
-      environment: process.env.NODE_ENV || 'development',
-      uptime: process.uptime(),
-      memory: {
-        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024), // MB
-        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024), // MB
-      },
-      // Skip external service checks for fast response
-      services: {
-        app: { status: 'healthy', details: 'Application running' }
-      }
-    };
-
-    const response = ResponseFactory.success(fastHealthCheck, 'Fast health check completed', 200, {
-      cache: {
-        cached: false,
-        ttl: 0
-      }
-    });
-
-    // Apply CORS headers
-    return securityMiddleware.applyCORSHeaders(response, request);
-  } catch (error) {
-    // Even if there's an error, return a basic response to keep App Runner healthy
-    const errorResponse = ResponseFactory.serviceUnavailable(
-      'Fast health check failed',
+    return new NextResponse(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        status: 'healthy',
+        uptime: process.uptime(),
+      }),
       {
-        cache: {
-          cached: false,
-          ttl: 0
-        }
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, max-age=0'
+        },
       }
     );
-
-    return securityMiddleware.applyCORSHeaders(errorResponse, request);
+  } catch (error) {
+    return new NextResponse(
+      JSON.stringify({ status: 'error', message: 'Internal Server Error' }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   }
 }

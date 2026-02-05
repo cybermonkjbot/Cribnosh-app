@@ -27,15 +27,13 @@ export class MonitoringService {
       transports: transportsList,
     });
 
-    // Add console transport in development and test
-    if (process.env.NODE_ENV !== 'production') {
-      this.logger.add(new transports.Console({
-        format: format.combine(
-          format.colorize(),
-          format.simple()
-        ),
-      }));
-    }
+    // Always add console transport for CloudWatch logging
+    this.logger.add(new transports.Console({
+      format: format.combine(
+        format.colorize(),
+        format.simple()
+      ),
+    }));
 
     this.metrics = new Map();
     this.initializeMetrics();
