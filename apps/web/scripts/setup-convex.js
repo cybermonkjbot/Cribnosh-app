@@ -45,23 +45,47 @@ if (!sourcePath) {
   process.exit(0);
 }
 
+// Helper to check if something exists (even a broken symlink)
+function pathExists(p) {
+  try {
+    fs.lstatSync(p);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 // Check if convex already exists and is valid (points to the right source)
-if (fs.existsSync(convexSymlink)) {
+if (pathExists(convexSymlink)) {
   try {
     const stats = fs.lstatSync(convexSymlink);
     if (stats.isSymbolicLink()) {
-      const linkTarget = fs.readlinkSync(convexSymlink);
-      const resolvedTarget = path.resolve(webRoot, linkTarget);
-      const resolvedSource = path.resolve(sourcePath);
+      let isTargetValid = false;
+      try {
+        const linkTarget = fs.readlinkSync(convexSymlink);
+        const resolvedTarget = path.resolve(webRoot, linkTarget);
+        const resolvedSource = path.resolve(sourcePath);
+        if (resolvedTarget === resolvedSource) {
+          isTargetValid = true;
+        }
+      } catch (e) {
+        // Target might be unreadable or link broken
+      }
 
-      // If symlink already points to the correct source, skip
-      if (resolvedTarget === resolvedSource) {
+      if (isTargetValid) {
         console.log('Convex symlink already exists and points to correct source, skipping');
         process.exit(0);
       }
+
       fs.unlinkSync(convexSymlink);
-      console.log('Removed existing symlink:', convexSymlink);
+      console.log('Removed existing symlink (valid or broken):', convexSymlink);
     } else if (stats.isDirectory()) {
+      // Check if it's the SAME path as source (to avoid accidental deletion)
+      if (path.resolve(convexSymlink) === path.resolve(sourcePath)) {
+        console.log('Source and target are the same directory, skipping');
+        process.exit(0);
+      }
+
       // Check if directory has _generated folder (valid)
       const generatedPath = path.join(convexSymlink, '_generated');
       const sourceGenerated = path.join(sourcePath, '_generated');
@@ -78,14 +102,12 @@ if (fs.existsSync(convexSymlink)) {
         }
       }
 
-      // If we are in Docker and sourcePath is same as where we might have copied from, avoid loop
-      if (path.resolve(convexSymlink) === path.resolve(sourcePath)) {
-        console.log('Collision between symlink target and source path, skipping');
-        process.exit(0);
-      }
-
       fs.rmSync(convexSymlink, { recursive: true, force: true });
       console.log('Removed existing directory:', convexSymlink);
+    } else {
+      // It's a file or something else
+      fs.unlinkSync(convexSymlink);
+      console.log('Removed existing file/other:', convexSymlink);
     }
   } catch (error) {
     console.warn('Error checking/removing existing convex:', error.message);
@@ -93,31 +115,31 @@ if (fs.existsSync(convexSymlink)) {
 }
 
 // Prefer copying in Docker environment or if symlink fails
-const isDocker = fs.existsSync(convexDocker);
+const isDocker = fs.existsSync(path.join('/app', 'package.json')) || process.env.DOCKER_BUILD;
+
+function copyRecursive(src, dest) {
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true });
+  }
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      copyRecursive(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
 
 if (isDocker) {
-  console.log('Docker environment detected, copying directory...');
+  console.log('Docker-like environment detected, copying directory...');
   try {
-    if (fs.existsSync(convexSymlink)) {
+    if (pathExists(convexSymlink)) {
       fs.rmSync(convexSymlink, { recursive: true, force: true });
     }
-    fs.mkdirSync(convexSymlink, { recursive: true });
-
-    function copyRecursive(src, dest) {
-      const entries = fs.readdirSync(src, { withFileTypes: true });
-      for (const entry of entries) {
-        const srcPath = path.join(src, entry.name);
-        const destPath = path.join(dest, entry.name);
-
-        if (entry.isDirectory()) {
-          fs.mkdirSync(destPath, { recursive: true });
-          copyRecursive(srcPath, destPath);
-        } else {
-          fs.copyFileSync(srcPath, destPath);
-        }
-      }
-    }
-
     copyRecursive(sourcePath, convexSymlink);
     console.log('Copied Convex directory to:', convexSymlink);
     process.exit(0);
@@ -129,32 +151,19 @@ if (isDocker) {
 
 // Try to create symlink first (works on Unix systems)
 try {
+  // Ensure destination is clear
+  if (pathExists(convexSymlink)) {
+    fs.rmSync(convexSymlink, { recursive: true, force: true });
+  }
   fs.symlinkSync(sourcePath, convexSymlink, 'dir');
   console.log('Created symlink:', convexSymlink, '->', sourcePath);
 } catch (error) {
   // If symlink fails (e.g., on Windows or in CI), copy the directory
   console.log('Symlink failed, copying directory instead:', error.message);
   try {
-    if (!fs.existsSync(convexSymlink)) {
-      fs.mkdirSync(convexSymlink, { recursive: true });
+    if (pathExists(convexSymlink)) {
+      fs.rmSync(convexSymlink, { recursive: true, force: true });
     }
-
-    // Copy all files recursively
-    function copyRecursive(src, dest) {
-      const entries = fs.readdirSync(src, { withFileTypes: true });
-      for (const entry of entries) {
-        const srcPath = path.join(src, entry.name);
-        const destPath = path.join(dest, entry.name);
-
-        if (entry.isDirectory()) {
-          fs.mkdirSync(destPath, { recursive: true });
-          copyRecursive(srcPath, destPath);
-        } else {
-          fs.copyFileSync(srcPath, destPath);
-        }
-      }
-    }
-
     copyRecursive(sourcePath, convexSymlink);
     console.log('Copied Convex directory to:', convexSymlink);
   } catch (copyError) {
