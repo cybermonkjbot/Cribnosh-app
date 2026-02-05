@@ -144,13 +144,26 @@ const nextConfig = {
       try {
         if (fs.existsSync(convexPath)) {
           const files = fs.readdirSync(convexPath);
-          process.stdout.write(`[DEBUG] Contents of ${convexPath}: ${files.slice(0, 10).join(', ')}${files.length > 10 ? '...' : ''}\n`);
-          const genPath = path.join(convexPath, '_generated');
+          process.stdout.write(`[DEBUG] Contents of ${convexPath}: ${files.join(', ')}\n`);
+
+          let genPath = path.join(convexPath, '_generated');
+          if (!fs.existsSync(genPath)) {
+            process.stdout.write(`[DEBUG] ${genPath} not found, checking subfolders...\n`);
+            // Check if it's nested (common in some monorepo setups)
+            const nestedPath = path.join(convexPath, 'convex', '_generated');
+            if (fs.existsSync(nestedPath)) {
+              process.stdout.write(`[DEBUG] Found nested _generated at: ${nestedPath}\n`);
+              genPath = nestedPath;
+              // Update convexPath to be the parent of the real _generated
+              convexPath = path.dirname(genPath);
+            }
+          }
+
           if (fs.existsSync(genPath)) {
             const genFiles = fs.readdirSync(genPath);
             process.stdout.write(`[DEBUG] Contents of ${genPath}: ${genFiles.join(', ')}\n`);
           } else {
-            process.stdout.write(`[DEBUG] WARNING: ${genPath} does NOT exist!\n`);
+            process.stdout.write(`[DEBUG] WARNING: Could not find _generated in ${convexPath} or subfolders!\n`);
           }
         } else {
           process.stdout.write(`[DEBUG] WARNING: ${convexPath} does NOT exist!\n`);
@@ -159,8 +172,7 @@ const nextConfig = {
         process.stdout.write(`[DEBUG] ERROR checking paths: ${e.message}\n`);
       }
 
-      // Force the alias in Docker/Production and ensure it's at the beginning
-      // We use a more aggressive approach to ensure it overrides everything
+      // Force the alias with the (possibly updated) convexPath
       config.resolve.alias = Object.assign({}, {
         '@/convex': convexPath,
         '@/convex/_generated': path.join(convexPath, '_generated'),
