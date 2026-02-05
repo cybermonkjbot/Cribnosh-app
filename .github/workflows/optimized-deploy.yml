@@ -10,9 +10,9 @@ name: Optimized AWS App Runner Deployment
 
 on:
   push:
-    branches: [Dark-mode-killed, main, production]
+    branches: [main, production]
   pull_request:
-    branches: [Dark-mode-killed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
@@ -26,10 +26,9 @@ on:
       branch:
         description: 'Branch to deploy from'
         required: true
-        default: 'Dark-mode-killed'
+        default: 'main'
         type: choice
         options:
-          - Dark-mode-killed
           - main
           - production
 
@@ -40,7 +39,7 @@ env:
   ECR_REPOSITORY: cribnosh-production
   # App Runner service name from Terraform: cribnosh-production
   SERVICE_NAME: cribnosh-production
-  MAIN_BRANCH: Dark-mode-killed
+  MAIN_BRANCH: main
   # Terraform outputs directory
   TERRAFORM_DIR: apps/web/infrastructure/terraform
 
