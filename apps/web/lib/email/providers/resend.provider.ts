@@ -1,11 +1,16 @@
 import { Resend } from 'resend';
-import { EmailProvider, EmailPayload, EmailResult } from '../types';
+import { EmailPayload, EmailProvider, EmailResult } from '../types';
 
 export class ResendProvider implements EmailProvider {
-  private client: Resend;
+  private _client: Resend | null = null;
 
-  constructor(private apiKey: string) {
-    this.client = new Resend(apiKey);
+  constructor(private apiKey: string) { }
+
+  private get client(): Resend {
+    if (!this._client) {
+      this._client = new Resend(this.apiKey);
+    }
+    return this._client;
   }
 
   async isAvailable(): Promise<boolean> {

@@ -1,6 +1,6 @@
 'use client';
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { LocationData, getLocationFromIp } from '@/lib/location/service';
+import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
 
 interface LocationContextValue {
   location: LocationData | null;
@@ -21,12 +21,8 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
         // Try to get the IP from the custom header set by middleware (on server), fallback to client IP
         let ip = '';
         if (typeof window !== 'undefined') {
-          // On client, fetch from API route that returns IP
-          const res = await fetch('/api/get-ip', {
-            headers: {
-              'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
-            },
-          });
+          // On client, fetch from public IP API
+          const res = await fetch('https://api.ipify.org?format=json');
           const data = await res.json();
           ip = data.ip;
         }

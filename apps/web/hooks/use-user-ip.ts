@@ -8,7 +8,7 @@ export function useUserIp() {
     if (cachedIp) {
       setIp(cachedIp);
     } else {
-      fetch('/api/get-ip')
+      fetch('https://api.ipify.org?format=json')
         .then(res => res.json())
         .then(data => {
           if (data?.ip) {

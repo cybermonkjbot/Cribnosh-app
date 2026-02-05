@@ -4,10 +4,8 @@ import { JobValuesJsonLd } from '@/components/JobValuesJsonLd';
 import { MasonryBackground } from '@/components/ui/masonry-background';
 import { MobileBackButton } from '@/components/ui/mobile-back-button';
 import { ParallaxContent } from '@/components/ui/parallax-section';
-import { api } from '@/convex/_generated/api';
-import { useMediaQuery } from '@/hooks/use-media-query';
 import { useSessionToken } from '@/hooks/useSessionToken';
-import { useMutation } from 'convex/react';
+import { useMutation, useAction } from 'convex/react';
 import { Bike, Car, ChevronLeft } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
@@ -44,9 +42,13 @@ export default function DrivingApply() {
   const [error, setError] = useState('');
   const [emailStatus, setEmailStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const sessionToken = useSessionToken();
-  const [step, setStep] = useState<'vehicle' | 'details'>('vehicle');
+  const step, setStep] = useState<'vehicle' | 'details'>('vehicle');
   const createDriver = useMutation(api.mutations.drivers.createDriver);
   const isMobile = useMediaQuery('(max-width: 768px)');
+
+  // Convex actions for emails and contacts
+  const sendEmail = useAction(api.actions.resend.sendEmail);
+  const addContact = useAction(api.actions.resend.addContactToAudience);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -76,15 +78,33 @@ export default function DrivingApply() {
     setError('');
     setEmailStatus('submitting');
     try {
-      // Queue emails for admin and driver
-      const res = await fetch('/api/driving/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+      // 1. Queue email for admin via Convex action
+      const adminDetails = `A new driver applied.\nName: ${form.name}\nEmail: ${form.email}\nVehicle: ${form.vehicle}\nExperience: ${form.experience}`;
+
+      await sendEmail({
+        to: 'support@cribnosh.com',
+        from: 'earlyaccess@emails.cribnosh.com',
+        subject: '[Driver Application] New Driver Signup',
+        html: `<h1>New Driver Application</h1><p>${adminDetails.replace(/\n/g, '<br>')}</p>`,
       });
-      if (res.ok) setEmailStatus('success');
-      else setEmailStatus('error');
-    } catch {
+
+      // 2. Add to broadcast list
+      await addContact({
+        email: form.email,
+        firstName: form.name,
+      });
+
+      // 3. Send confirmation email to driver
+      await sendEmail({
+        to: form.email,
+        from: 'earlyaccess@emails.cribnosh.com',
+        subject: 'Thank you for applying as a CribNosh driver!',
+        html: `<h1>Thank you for applying!</h1><p>Thank you for your interest in driving with CribNosh. We have received your application and will be in touch soon.</p>`,
+      });
+
+      setEmailStatus('success');
+    } catch (err) {
+      console.error('Error in driving application actions:', err);
       setEmailStatus('error');
     }
     try {

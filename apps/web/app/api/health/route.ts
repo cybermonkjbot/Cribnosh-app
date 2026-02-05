@@ -1,26 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ResponseFactory } from '@/lib/api';
-import { MonitoringService } from '../../../lib/monitoring/monitoring.service';
-import { EmailService } from '../../../lib/email/email.service';
-import { apiMonitoring, APIMetrics } from '../../../lib/api/monitoring';
-import { getConvexClientFromRequest } from '@/lib/conxed-client';
 import { api } from '@/convex/_generated/api';
+import { ResponseFactory } from '@/lib/api';
 import { securityMiddleware } from '@/lib/api/security';
-import { getAuthenticatedUser } from '@/lib/api/session-auth';
-import { AuthenticationError, AuthorizationError } from '@/lib/errors/standard-errors';
-import { getErrorMessage } from '@/types/errors';
-import { logger } from '@/lib/utils/logger';
+import { getConvexClientFromRequest } from '@/lib/conxed-client';
+import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { APIMetrics, apiMonitoring } from '../../../lib/api/monitoring';
+import { EmailService } from '../../../lib/email/email.service';
+import { MonitoringService } from '../../../lib/monitoring/monitoring.service';
 // import { checkAPIHealth } from '@/lib/api/client'; // Unused for now
 
 const monitoring = MonitoringService.getInstance();
 
-// Initialize services with configuration
-const emailService = new EmailService({
-  resend: {
-    apiKey: process.env.RESEND_API_KEY!,
-  },
-});
+const getEmailService = () => {
+  const apiKey = process.env.RESEND_API_KEY || 're_EQsb5GpW_HkaiK9VCCYjwAYH2Jd8xP5VN';
+  return new EmailService({
+    resend: {
+      apiKey,
+    },
+  });
+};
 
 // Optimized timeout wrapper for service health checks with shorter timeouts
 const checkServiceWithTimeout = async (
@@ -31,7 +29,7 @@ const checkServiceWithTimeout = async (
   try {
     await Promise.race([
       checkFn(),
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Timeout')), timeoutMs)
       )
     ]);
@@ -39,8 +37,8 @@ const checkServiceWithTimeout = async (
     return { status: 'healthy', details: 'OK', responseTime };
   } catch (error) {
     const responseTime = Date.now() - startTime;
-    return { 
-      status: 'degraded', 
+    return {
+      status: 'degraded',
       details: error instanceof Error ? error.message : 'Unknown error',
       responseTime
     };
@@ -52,7 +50,7 @@ const testNetworkConnectivity = async (): Promise<{ status: string; details: str
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);  // Reduced from 10000ms to 3000ms
-    
+
     const response = await fetch('https://httpbin.org/get', {
       method: 'GET',
       signal: controller.signal,
@@ -60,18 +58,18 @@ const testNetworkConnectivity = async (): Promise<{ status: string; details: str
         'User-Agent': 'CribNosh-HealthCheck/1.0'
       }
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     if (response.ok) {
       return { status: 'healthy', details: 'External connectivity OK' };
     } else {
       return { status: 'degraded', details: `HTTP ${response.status}` };
     }
   } catch (error) {
-    return { 
-      status: 'unhealthy', 
-      details: error instanceof Error ? error.message : 'Network test failed' 
+    return {
+      status: 'unhealthy',
+      details: error instanceof Error ? error.message : 'Network test failed'
     };
   }
 };
@@ -214,7 +212,7 @@ export async function GET(request: NextRequest) {
     // Check email service health
     try {
       // Simple health check - just verify the service is initialized
-      emailService.getTemplateRenderer();
+      getEmailService().getTemplateRenderer();
       healthChecks.services.email = {
         status: 'healthy',
         details: 'Email service initialized successfully',
@@ -324,12 +322,12 @@ export async function GET(request: NextRequest) {
         ttl: 0
       }
     });
-    
+
     // Apply CORS headers
     return securityMiddleware.applyCORSHeaders(response, request);
   } catch (error) {
     monitoring.logError(error as Error, { context: 'health_check' });
-    
+
     const errorResponse = ResponseFactory.serviceUnavailable(
       'Health check failed',
       {
@@ -339,7 +337,7 @@ export async function GET(request: NextRequest) {
         }
       }
     );
-    
+
     // Apply CORS headers
     return securityMiddleware.applyCORSHeaders(errorResponse, request);
   }

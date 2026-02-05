@@ -15,7 +15,7 @@ import { ParallaxContent } from '@/components/ui/parallax-section';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { useMutation } from 'convex/react';
+import { useAction, useMutation } from 'convex/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
@@ -116,6 +116,10 @@ export default function ApplicationPage() {
 
   const createChef = useMutation(api.mutations.chefs.createChef);
   const createKitchen = useMutation(api.mutations.kitchens.createKitchen);
+
+  // Convex actions for emails and contacts
+  const sendEmail = useAction(api.actions.resend.sendEmail);
+  const addContact = useAction(api.actions.resend.addContactToAudience);
 
   // Load saved progress on component mount
   useEffect(() => {
@@ -241,66 +245,25 @@ export default function ApplicationPage() {
         });
       }
 
-      // 2. Submit to API for email execution
-      // Queue emails for admin and chef
-      await fetch('/api/cooking/apply', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
-        body: JSON.stringify(formData),
+      // 2. Queue emails for admin via Convex action
+      const adminDetails = `A new chef applied.\nName: ${formData.personalInfo.firstName} ${formData.personalInfo.lastName}\nEmail: ${formData.personalInfo.email}\nExperience: ${formData.culinaryBackground.experience}`;
+
+      await sendEmail({
+        to: 'support@cribnosh.com',
+        from: 'earlyaccess@emails.cribnosh.com',
+        subject: '[Chef Application] New Chef Signup',
+        html: `<h1>New Chef Application</h1><p>${adminDetails.replace(/\n/g, '<br>')}</p>`,
       });
-      const apiData = {
-        formType: 'Food Creator Application',
-        fullName: formData.personalInfo.firstName && formData.personalInfo.lastName
-          ? `${formData.personalInfo.firstName} ${formData.personalInfo.lastName}`
-          : 'Food Creator Applicant',
+
+      // 3. Add to broadcast list
+      await addContact({
         email: formData.personalInfo.email,
-        phone: formData.personalInfo.phone || 'Not provided',
-        yearsExperience: formData.culinaryBackground.experience
-          ? parseInt(formData.culinaryBackground.experience)
-          : 0,
-        cuisines: formData.culinaryBackground.cuisineTypes.length > 0
-          ? formData.culinaryBackground.cuisineTypes
-          : ['General'],
-        kitchenType: formData.kitchenDetails.kitchenType || 'Not specified',
-        availability: formData.availability.length > 0
-          ? formData.availability
-          : ['Flexible'],
-        certifications: formData.culinaryBackground.certifications.length > 0
-          ? formData.culinaryBackground.certifications
-          : ['None specified'],
-        businessRegistration: formData.businessRegistration || 'Not provided',
-        hasInsurance: formData.hasInsurance,
-        dietarySpecialties: formData.culinaryBackground.specialties.length > 0
-          ? formData.culinaryBackground.specialties
-          : ['General'],
-        preferredZones: formData.kitchenDetails.city
-          ? [formData.kitchenDetails.city]
-          : ['TBD'],
-        languages: ['English'],
-      };
-      const response = await fetch('/api/submit-form', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
-        body: JSON.stringify(apiData),
+        firstName: formData.personalInfo.firstName,
+        lastName: formData.personalInfo.lastName,
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Failed to submit application');
-      setFormData(prev => ({
-        ...prev,
-        submissionStatus: {
-          status: 'success',
-          message: 'Application submitted successfully! We will review your application and get back to you soon.',
-          operationId: result.operationId,
-        },
-      }));
-      // Send confirmation email
-      const emailPayload = {
+
+      // 4. Send confirmation email to chef
+      await sendEmail({
         to: formData.personalInfo.email,
         from: 'applications@cribnosh.com',
         subject: 'Your CribNosh Food Creator Application',
@@ -318,15 +281,15 @@ export default function ApplicationPage() {
                   <p>If you have any questions in the meantime, feel free to reply to this email.</p>
                   <p>Best regards,<br>The CribNosh Team</p>
                 `,
-      };
-      await fetch('/api/email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
-        body: JSON.stringify(emailPayload),
       });
+
+      setFormData(prev => ({
+        ...prev,
+        submissionStatus: {
+          status: 'success',
+          message: 'Application submitted successfully! We will review your application and get back to you soon.',
+        },
+      }));
 
       setTimeout(() => {
         router.push('/cooking/apply/success');

@@ -1,11 +1,12 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-import { motion } from "motion/react";
-import { useState } from 'react';
-import { Mail, Building2, Newspaper, ChevronRight } from 'lucide-react';
+import { api } from "@/convex/_generated/api";
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { useAction } from "convex/react";
+import { Building2, ChevronRight, Mail, Newspaper } from 'lucide-react';
+import { motion } from "motion/react";
+import Link from "next/link";
+import { useState } from 'react';
 
 const contactMethods = [
 	{
@@ -43,6 +44,10 @@ export default function Contact() {
 	const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 	const isMobile = useMediaQuery('(max-width: 768px)');
 
+	// Convex actions for emails and contacts
+	const sendEmail = useAction(api.actions.resend.sendEmail);
+	const addContact = useAction(api.actions.resend.addContactToAudience);
+
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
 		setForm({ ...form, [e.target.name]: e.target.value });
 	};
@@ -51,17 +56,25 @@ export default function Contact() {
 		e.preventDefault();
 		setStatus('submitting');
 		try {
-			const res = await fetch('/api/contact', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
-				},
-				body: JSON.stringify(form),
+			// 1. Send email to support via Convex action
+			const subjectLine = `[Contact] ${form.subject} from ${form.firstName} ${form.lastName}`;
+			await sendEmail({
+				to: 'support@cribnosh.com',
+				from: 'earlyaccess@emails.cribnosh.com',
+				subject: subjectLine,
+				html: `<p><strong>Subject:</strong> ${form.subject}</p><p><strong>From:</strong> ${form.firstName} ${form.lastName} (${form.email})</p><p><strong>Message:</strong></p><p>${form.message.replace(/\n/g, '<br>')}</p>`,
 			});
-			if (res.ok) setStatus('success');
-			else setStatus('error');
-		} catch {
+
+			// 2. Add to broadcast list
+			await addContact({
+				email: form.email,
+				firstName: form.firstName,
+				lastName: form.lastName,
+			});
+
+			setStatus('success');
+		} catch (err) {
+			console.error('Error submitting contact form:', err);
 			setStatus('error');
 		}
 	};

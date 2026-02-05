@@ -191,14 +191,11 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
       if (!userId) return { recommendations: [] };
 
       try {
-        const response = await fetch('/api/customer/meals/recommended?limit=6', {
-          credentials: 'include',
+        const recommendations = await convex.query((api as any).queries.mealRecommendations.getRecommended, {
+          userId,
+          limit: 6,
         });
-        if (!response.ok) {
-          return { recommendations: [] };
-        }
-        const data = await response.json();
-        return data.success ? data.data : { recommendations: [] };
+        return { recommendations: recommendations || [] };
       } catch (error) {
         console.error('Error fetching recommendations:', error);
         return { recommendations: [] };
