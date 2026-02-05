@@ -121,14 +121,12 @@ const nextConfig = {
 
       for (const tryPath of pathsToTry) {
         try {
-          // Check if the directory exists and has the required files
           if (fs.existsSync(tryPath.path)) {
-            const hasGenerated = fs.existsSync(path.join(tryPath.path, '_generated'));
-            // Also check for emailTemplates specifically as it's the one failing
-            const hasEmailTemplates = fs.existsSync(path.join(tryPath.path, 'emailTemplates.ts')) ||
-              fs.existsSync(path.join(tryPath.path, 'emailTemplates.js'));
+            // Check if directory has generated files (direct or nested)
+            const hasGenerated = fs.existsSync(path.join(tryPath.path, '_generated')) ||
+              fs.existsSync(path.join(tryPath.path, 'convex', '_generated'));
 
-            if (hasGenerated || hasEmailTemplates) {
+            if (hasGenerated) {
               convexPath = tryPath.path;
               console.log(`Using ${tryPath.name} path for Convex:`, convexPath);
               break;
@@ -139,69 +137,86 @@ const nextConfig = {
         }
       }
 
-      // Log to stdout directly with verbose info
-      process.stdout.write(`[DEBUG] Final Convex path determined: ${convexPath}\n`);
-      try {
-        if (fs.existsSync(convexPath)) {
-          const files = fs.readdirSync(convexPath);
-          process.stdout.write(`[DEBUG] Contents of ${convexPath}: ${files.join(', ')}\n`);
+      // Log to stdout directly with exhaustive debug info
+      process.stdout.write(`[DEBUG] Initial Convex path: ${convexPath}\n`);
 
-          let genPath = path.join(convexPath, '_generated');
-          if (!fs.existsSync(genPath)) {
-            process.stdout.write(`[DEBUG] ${genPath} not found, checking subfolders...\n`);
-            // Check if it's nested (common in some monorepo setups)
-            const nestedPath = path.join(convexPath, 'convex', '_generated');
-            if (fs.existsSync(nestedPath)) {
-              process.stdout.write(`[DEBUG] Found nested _generated at: ${nestedPath}\n`);
-              genPath = nestedPath;
-              // Update convexPath to be the parent of the real _generated
-              convexPath = path.dirname(genPath);
+      function findDirectories(dir, name, depth = 0) {
+        if (depth > 3 || !fs.existsSync(dir)) return [];
+        let results = [];
+        try {
+          const entries = fs.readdirSync(dir, { withFileTypes: true });
+          for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+              if (entry.name === name) results.push(fullPath);
+              results = results.concat(findDirectories(fullPath, name, depth + 1));
             }
           }
+        } catch (e) { }
+        return results;
+      }
 
-          if (fs.existsSync(genPath)) {
-            const genFiles = fs.readdirSync(genPath);
-            process.stdout.write(`[DEBUG] Contents of ${genPath}: ${genFiles.join(', ')}\n`);
-          } else {
-            process.stdout.write(`[DEBUG] WARNING: Could not find _generated in ${convexPath} or subfolders!\n`);
+      function findFile(dir, name, depth = 0) {
+        if (depth > 3 || !fs.existsSync(dir)) return null;
+        try {
+          const entries = fs.readdirSync(dir, { withFileTypes: true });
+          for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+            if (entry.isFile() && (entry.name === name || entry.name === name + '.ts' || entry.name === name + '.js')) {
+              return fullPath;
+            }
+            if (entry.isDirectory()) {
+              const result = findFile(fullPath, name, depth + 1);
+              if (result) return result;
+            }
           }
-        } else {
-          process.stdout.write(`[DEBUG] WARNING: ${convexPath} does NOT exist!\n`);
+        } catch (e) { }
+        return null;
+      }
+
+      // Try to find the real core directories
+      const allGenFolders = findDirectories(convexPath, '_generated');
+      if (allGenFolders.length > 0) {
+        process.stdout.write(`[DEBUG] Found _generated at: ${allGenFolders.join(', ')}\n`);
+        // Use the first one found
+        const safeGenPath = allGenFolders[0];
+        const realParent = path.dirname(safeGenPath);
+
+        process.stdout.write(`[DEBUG] Setting @/convex root to: ${realParent}\n`);
+
+        const robustAliases = {
+          '@/convex': realParent,
+          '@/convex/_generated': safeGenPath,
+          '@/convex/_generated/api': path.join(safeGenPath, 'api'),
+          '@/convex/_generated/dataModel': path.join(safeGenPath, 'dataModel'),
+          '@/convex/_generated/server': path.join(safeGenPath, 'server'),
+        };
+
+        // Try to find emailTemplates specifically if it's missing from realParent
+        if (!fs.existsSync(path.join(realParent, 'emailTemplates.ts')) && !fs.existsSync(path.join(realParent, 'emailTemplates.js'))) {
+          const emailTemplatePath = findFile(convexPath, 'emailTemplates');
+          if (emailTemplatePath) {
+            process.stdout.write(`[DEBUG] Found emailTemplates at: ${emailTemplatePath}\n`);
+            robustAliases['@/convex/emailTemplates'] = emailTemplatePath.replace(/\.(ts|js)$/, '');
+          }
         }
-      } catch (e) {
-        process.stdout.write(`[DEBUG] ERROR checking paths: ${e.message}\n`);
+
+        // Apply aliases with precedence
+        config.resolve.alias = Object.assign({}, config.resolve.alias, robustAliases);
+      } else {
+        process.stdout.write(`[DEBUG] CRITICAL: Could not find any _generated folder in ${convexPath}\n`);
       }
 
-      // Force the alias with the (possibly updated) convexPath
-      config.resolve.alias = Object.assign({}, {
-        '@/convex': convexPath,
-        '@/convex/_generated': path.join(convexPath, '_generated'),
-        '@/convex/_generated/api': path.join(convexPath, '_generated/api.js'),
-        '@/convex/_generated/dataModel': path.join(convexPath, '_generated/dataModel.d.ts'),
-        '@/convex/_generated/server': path.join(convexPath, '_generated/server.js'),
-      }, config.resolve.alias);
-
-      // Also add module resolution fallback to help webpack find the files
-      if (!config.resolve.modules) {
-        config.resolve.modules = ['node_modules'];
-      }
-      // Add all possible paths to module resolution as fallback
+      // Fallback module resolution
+      if (!config.resolve.modules) config.resolve.modules = ['node_modules'];
       if (Array.isArray(config.resolve.modules)) {
-        if (!config.resolve.modules.includes(convexPathSymlink)) {
-          config.resolve.modules.push(convexPathSymlink);
-        }
-        if (!config.resolve.modules.includes(convexPathMonorepo)) {
-          config.resolve.modules.push(convexPathMonorepo);
-        }
-        if (!config.resolve.modules.includes(convexPathDocker)) {
-          config.resolve.modules.push(convexPathDocker);
-        }
+        [convexPathSymlink, convexPathMonorepo, convexPathDocker].forEach(p => {
+          if (!config.resolve.modules.includes(p)) config.resolve.modules.push(p);
+        });
       }
     }
 
-    // Only add essential webpack modifications
     if (!isServer) {
-      // Ensure proper module resolution
       config.resolve = {
         ...config.resolve,
         fallback: {
@@ -215,48 +230,6 @@ const nextConfig = {
 
     return config;
   },
-}
-
-// Wrap Next.js config with Sentry
-// export default withSentryConfig(
-//   nextConfig,
-//   {
-//     // For all available options, see:
-//     // https://github.com/getsentry/sentry-webpack-plugin#options
-
-//     // Suppresses source map uploading logs during build
-//     silent: true,
-//     org: process.env.SENTRY_ORG,
-//     project: process.env.SENTRY_PROJECT,
-//   },
-//   {
-//     // For all available options, see:
-//     // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
-
-//     // Upload a larger set of source maps for prettier stack traces (increases build time)
-//     widenClientFileUpload: true,
-
-//     // Transpiles SDK to be compatible with IE11 (increases bundle size)
-//     transpileClientSDK: true,
-
-//     // Routes browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
-//     // This can increase your server load as well as your hosting bill.
-//     // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
-//     // side errors will fail.
-//     tunnelRoute: '/monitoring',
-
-//     // Hides source maps from generated client bundles
-//     hideSourceMaps: true,
-
-//     // Automatically tree-shake Sentry logger statements to reduce bundle size
-//     disableLogger: true,
-
-//     // Enables automatic instrumentation of Vercel Cron Monitors.
-//     // See the following for more information:
-//     // https://docs.sentry.io/product/crons/
-//     // https://vercel.com/docs/cron-jobs
-//     automaticVercelMonitors: true,
-//   }
-// );
+};
 
 export default nextConfig;
