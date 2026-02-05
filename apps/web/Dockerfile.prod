@@ -5,8 +5,12 @@ WORKDIR /app
 # Copy root package files
 COPY package.json bun.lock ./
 
-# Copy workspace package files for better layer caching
+# Copy workspace package files to satisfy monorepo structure
+# This is required for 'bun install' to work even if we're only building the web app
 COPY apps/web/package.json ./apps/web/
+COPY apps/mobile/package.json ./apps/mobile/
+COPY apps/driver-app/package.json ./apps/driver-app/
+COPY apps/chef-app/package.json ./apps/chef-app/
 COPY packages/convex/package.json ./packages/convex/
 
 # Install dependencies for the whole monorepo
