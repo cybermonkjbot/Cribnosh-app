@@ -139,19 +139,35 @@ const nextConfig = {
         }
       }
 
-      // Log to stdout directly to bypass Next.js console suppression
+      // Log to stdout directly with verbose info
       process.stdout.write(`[DEBUG] Final Convex path determined: ${convexPath}\n`);
+      try {
+        if (fs.existsSync(convexPath)) {
+          const files = fs.readdirSync(convexPath);
+          process.stdout.write(`[DEBUG] Contents of ${convexPath}: ${files.slice(0, 10).join(', ')}${files.length > 10 ? '...' : ''}\n`);
+          const genPath = path.join(convexPath, '_generated');
+          if (fs.existsSync(genPath)) {
+            const genFiles = fs.readdirSync(genPath);
+            process.stdout.write(`[DEBUG] Contents of ${genPath}: ${genFiles.join(', ')}\n`);
+          } else {
+            process.stdout.write(`[DEBUG] WARNING: ${genPath} does NOT exist!\n`);
+          }
+        } else {
+          process.stdout.write(`[DEBUG] WARNING: ${convexPath} does NOT exist!\n`);
+        }
+      } catch (e) {
+        process.stdout.write(`[DEBUG] ERROR checking paths: ${e.message}\n`);
+      }
 
-      // Force the alias in Docker/Production and ensure it's at the beginning of the alias object
-      config.resolve.alias = {
+      // Force the alias in Docker/Production and ensure it's at the beginning
+      // We use a more aggressive approach to ensure it overrides everything
+      config.resolve.alias = Object.assign({}, {
         '@/convex': convexPath,
-        ...config.resolve.alias,
-      };
-
-      // Specifically alias the generated files to be sure
-      config.resolve.alias['@/convex/_generated/api'] = path.join(convexPath, '_generated/api');
-      config.resolve.alias['@/convex/_generated/dataModel'] = path.join(convexPath, '_generated/dataModel');
-      config.resolve.alias['@/convex/_generated/server'] = path.join(convexPath, '_generated/server');
+        '@/convex/_generated': path.join(convexPath, '_generated'),
+        '@/convex/_generated/api': path.join(convexPath, '_generated/api.js'),
+        '@/convex/_generated/dataModel': path.join(convexPath, '_generated/dataModel.d.ts'),
+        '@/convex/_generated/server': path.join(convexPath, '_generated/server.js'),
+      }, config.resolve.alias);
 
       // Also add module resolution fallback to help webpack find the files
       if (!config.resolve.modules) {
