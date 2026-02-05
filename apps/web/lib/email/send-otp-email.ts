@@ -1,9 +1,6 @@
 import { api } from '@/convex/_generated/api';
+import { getConvexClient } from '@/lib/conxed-client';
 import { logger } from '@/lib/utils/logger';
-import { ConvexHttpClient } from 'convex/browser';
-
-const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || '';
-const httpClient = new ConvexHttpClient(CONVEX_URL);
 
 export function generateOTPCode(length: number = 6): string {
   const digits = '0123456789';
@@ -26,6 +23,7 @@ export async function sendOTPEmail({
   expiryMinutes?: number;
 }): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
+    const httpClient = getConvexClient();
     // Send via Convex action which uses the template system
     await httpClient.action(api.actions.resend.sendTemplateEmail, {
       emailType: 'otp_verification',

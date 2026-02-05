@@ -1,12 +1,10 @@
 import { api } from '@/convex/_generated/api';
+import { getConvexClient } from '@/lib/conxed-client';
 import { logger } from '@/lib/utils/logger';
-import { ConvexHttpClient } from 'convex/browser';
-
-const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || '';
-const httpClient = new ConvexHttpClient(CONVEX_URL);
 
 export async function sendAccountDeletionEmail(email: string, deletionDate: string) {
   try {
+    const httpClient = getConvexClient();
     await httpClient.action(api.actions.resend.sendTemplateEmail, {
       emailType: 'account_deletion',
       to: email,
@@ -22,6 +20,7 @@ export async function sendAccountDeletionEmail(email: string, deletionDate: stri
 
 export async function sendDataDownloadEmail(email: string, downloadUrl: string, expiresAt: string) {
   try {
+    const httpClient = getConvexClient();
     await httpClient.action(api.actions.resend.sendTemplateEmail, {
       emailType: 'data_download',
       to: email,
@@ -47,6 +46,7 @@ export async function sendFamilyInvitationEmail(
       ? `https://cribnosh.com/family/accept?token=${invitationToken}`
       : `https://cribnosh.com/family/accept?profile=${familyProfileId}`;
 
+    const httpClient = getConvexClient();
     await httpClient.action(api.actions.resend.sendTemplateEmail, {
       emailType: 'family_invitation',
       to: email,
@@ -63,6 +63,7 @@ export async function sendFamilyInvitationEmail(
 
 export async function sendSupportCaseNotification(supportCaseRef: string, customerEmail: string, subject: string) {
   try {
+    const httpClient = getConvexClient();
     // Send to support team
     await httpClient.action(api.actions.resend.sendTemplateEmail, {
       emailType: 'support_case',
@@ -92,6 +93,7 @@ export async function sendSupportCaseNotification(supportCaseRef: string, custom
 export async function sendReviewNotification(chefEmail: string, customerName: string, rating: number, review?: string) {
   try {
     const reviewText = review ? review : 'No written review provided';
+    const httpClient = getConvexClient();
     await httpClient.action(api.actions.resend.sendTemplateEmail, {
       emailType: 'review_received',
       to: chefEmail,

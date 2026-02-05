@@ -243,6 +243,7 @@ jobs:
             --build-arg CONVEX_DEPLOYMENT="${{ secrets.CONVEX_DEPLOYMENT }}" \
             --build-arg RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}" \
             --build-arg NEXT_PUBLIC_CONVEX_URL="${{ secrets.NEXT_PUBLIC_CONVEX_URL }}" \
+            --build-arg CONVEX_URL="${{ secrets.NEXT_PUBLIC_CONVEX_URL }}" \
             -t ${{ steps.ecr-url.outputs.ecr-url }}:latest \
             -t ${{ steps.ecr-url.outputs.ecr-url }}:${{ github.sha }} \
             -f apps/web/Dockerfile.prod .
