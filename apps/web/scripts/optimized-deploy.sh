@@ -16,15 +16,15 @@ echo "🚀 Starting optimized deployment for $SERVICE_NAME..."
 
 # Function to check if App Runner service is healthy
 check_service_health() {
-    local service_name=$1
-    local max_attempts=30
+    local service_arn=$1
+    local max_attempts=90  # Increased to 15 minutes (90 * 10s)
     local attempt=1
     
-    echo "🔍 Checking service health..."
+    echo "🔍 Monitoring health for service: $service_arn"
     
     while [ $attempt -le $max_attempts ]; do
         local status=$(aws apprunner describe-service \
-            --service-arn "arn:aws:apprunner:$REGION:$(aws sts get-caller-identity --query Account --output text):service/$service_name" \
+            --service-arn "$service_arn" \
             --query 'Service.Status' \
             --output text 2>/dev/null || echo "UNKNOWN")
         
@@ -32,8 +32,12 @@ check_service_health() {
             echo "✅ Service is healthy and running"
             return 0
         elif [ "$status" = "RUNNING_FAILED" ]; then
-            echo "❌ Service failed to start"
+            echo "❌ Service failed to start (RUNNING_FAILED)"
             return 1
+        elif [ "$status" = "OPERATION_IN_PROGRESS" ]; then
+            echo "⏳ Service status: $status (attempt $attempt/$max_attempts) - Deployment still in progress..."
+            sleep 10
+            ((attempt++))
         else
             echo "⏳ Service status: $status (attempt $attempt/$max_attempts)"
             sleep 10
@@ -41,7 +45,7 @@ check_service_health() {
         fi
     done
     
-    echo "❌ Service health check timed out"
+    echo "❌ Service health check timed out after $((max_attempts * 10 / 60)) minutes"
     return 1
 }
 
@@ -98,8 +102,13 @@ main() {
     # Perform rolling deployment
     rolling_deployment
     
+    # Get the service ARN for health check
+    local service_arn=$(aws apprunner list-services \
+        --query "ServiceSummaryList[?ServiceName=='$SERVICE_NAME'].ServiceArn" \
+        --output text)
+    
     # Check service health
-    if ! check_service_health "$SERVICE_NAME"; then
+    if ! check_service_health "$service_arn"; then
         echo "❌ Service health check failed"
         exit 1
     fi
