@@ -18,6 +18,17 @@ export default function GlobalError({
     error: Error & { digest?: string };
     reset: () => void;
 }) {
+    // Automatically reload if we detect a version mismatch or Server Action failure
+    if (
+        error.message?.includes('Failed to find Server Action') ||
+        error.digest?.includes('NEXT_NOT_FOUND')
+    ) {
+        if (typeof window !== 'undefined') {
+            window.location.reload();
+            return null;
+        }
+    }
+
     return (
         <html lang="en">
             <body style={{
