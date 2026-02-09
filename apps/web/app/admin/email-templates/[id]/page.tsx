@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { processCanvaHtml } from "@/lib/email/utils/canva-import";
 import { useMutation, useQuery } from "convex/react";
 import JSZip from "jszip";
 import { Code as CodeIcon, Image as ImageIcon, Loader2, Play, Save, Upload } from "lucide-react";
@@ -94,7 +95,7 @@ export default function EditEmailTemplatePage() {
                 !f.dir && (f.name.endsWith(".png") || f.name.endsWith(".jpg") || f.name.endsWith(".jpeg") || f.name.endsWith(".gif"))
             );
 
-            const uploadedAssets = [];
+            const imageMap: Record<string, string> = {};
 
             for (const img of images) {
                 // Get upload URL
@@ -115,18 +116,14 @@ export default function EditEmailTemplatePage() {
                 const { storageId } = await result.json();
                 const publicUrl = getStorageUrl(storageId);
 
-                // Replace in HTML
-                // Pattern: src="images/filename.png" or src="./images/filename.png"
-                // We use a flexible regex to catch the filename
-                const filename = img.name.split('/').pop(); // handle folders inside zip
+                const filename = img.name.split('/').pop();
                 if (filename) {
-                    // Escape special chars in filename for regex
-                    const escapedName = filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    // Regex to match src="...filename"
-                    const regex = new RegExp(`src=["'][^"']*${escapedName}["']`, 'g');
-                    html = html.replace(regex, `src="${publicUrl}"`);
+                    imageMap[filename] = publicUrl;
                 }
             }
+
+            // Use robust processor
+            html = processCanvaHtml(html, imageMap);
 
             setHtmlContent(html);
             setIsDirty(true);

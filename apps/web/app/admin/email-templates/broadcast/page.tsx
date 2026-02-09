@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
+import { processCanvaHtml } from "@/lib/email/utils/canva-import";
 import { useAction, useMutation, useQuery } from "convex/react";
 import JSZip from "jszip";
 import {
@@ -86,7 +87,7 @@ export default function BroadcastEmailPage() {
                 !f.dir && (f.name.endsWith(".png") || f.name.endsWith(".jpg") || f.name.endsWith(".jpeg") || f.name.endsWith(".gif"))
             );
 
-            let uploadedCount = 0;
+            const imageMap: Record<string, string> = {};
             for (const img of images) {
                 const postUrl = await generateUploadUrl();
                 const blob = await img.async("blob");
@@ -101,13 +102,14 @@ export default function BroadcastEmailPage() {
                     const publicUrl = getStorageUrl(storageId);
                     const filename = img.name.split('/').pop();
                     if (filename) {
-                        const escapedName = filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        const regex = new RegExp(`src=["'][^"']*${escapedName}["']`, 'g');
-                        html = html.replace(regex, `src="${publicUrl}"`);
-                        uploadedCount++;
+                        imageMap[filename] = publicUrl;
                     }
                 }
             }
+
+            // Use robust processor
+            html = processCanvaHtml(html, imageMap);
+            const uploadedCount = Object.keys(imageMap).length;
 
             setHtmlContent(html);
             setImagesExtracted(uploadedCount);

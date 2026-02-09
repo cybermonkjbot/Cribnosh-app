@@ -43,14 +43,19 @@ async function validateAndSanitizeHtml(html: string): Promise<string> {
         response.ok && response.headers.get('content-type')?.startsWith('image/');
 
       if (!isValid) {
-        console.warn(`Removing broken image: ${imageUrl}`);
-        // Remove the entire <img> tag
-        html = html.replace(match[0], '<!-- Image removed: broken URL -->');
+        if (response.status === 404) {
+          console.warn(`Removing broken image (404): ${imageUrl}`);
+          // Remove the entire <img> tag only if definitely 404
+          html = html.replace(match[0], '<!-- Image removed: 404 Not Found -->');
+        } else {
+          // Keep the image but log a warning for other failures (CORS, timeouts, 403, 500)
+          console.warn(`Keeping image despite validation failure (${response.status}): ${imageUrl}`);
+        }
       }
     } catch (error) {
       console.error(`Error validating image ${imageUrl}:`, error);
-      // Remove the image on error
-      html = html.replace(match[0], '<!-- Image removed: validation error -->');
+      // Keep images on transient errors like network timeouts
+      console.warn(`Keeping image despite validation error: ${imageUrl}`);
     }
   }
 
@@ -175,9 +180,13 @@ export const sendTemplateEmail = action({
 
     Object.keys(allVariables).forEach(key => {
       const regex = new RegExp(`{{${key}}}`, 'g');
-      const value = String(allVariables[key]);
-      html = html.replace(regex, value);
-      subject = subject.replace(regex, value);
+      const val = allVariables[key];
+      // Only replace if value is not undefined to avoid "undefined" strings in email
+      if (val !== undefined && val !== null) {
+        const value = String(val);
+        html = html.replace(regex, value);
+        subject = subject.replace(regex, value);
+      }
     });
 
     // 5. Send via Resend (using helper function to avoid recursion)
