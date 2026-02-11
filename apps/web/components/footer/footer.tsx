@@ -55,6 +55,7 @@ export function Footer({
   const legalLinks: FooterLinkItem[] = [
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
+    { label: "Modern Slavery Statement", href: "/modern-slavery-statement" },
   ];
 
   const renderLinks = (links: FooterLinkItem[]) => (
