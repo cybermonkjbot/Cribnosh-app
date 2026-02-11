@@ -1,8 +1,8 @@
 import { Link } from '@/components/link';
 import { GlassCard } from '@/components/ui/glass-card';
 import { useUserIp } from '@/hooks/use-user-ip';
-import { motion } from 'motion/react';
 import { AlertCircle, CheckCircle, Eye, EyeOff, Lock, User } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
@@ -96,7 +96,7 @@ export default function UnifiedInternalLogin({ role, apiEndpoint, redirectPath }
 
       const response = await fetch(apiEndpoint, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'x-csrf-token': freshCsrfToken,
           'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
@@ -288,7 +288,16 @@ export default function UnifiedInternalLogin({ role, apiEndpoint, redirectPath }
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+              <div className="flex justify-end mt-1">
+                <Link
+                  href={`/${role}/forgot-password`}
+                  className="text-xs text-[#ff3b30] hover:text-[#ff5e54] transition-colors font-satoshi"
+                >
+                  Forgot password?
+                </Link>
+              </div>
             </div>
+
             <button
               type="submit"
               className="w-full px-4 py-2 bg-white text-[#ff3b30] hover:bg-white/90 active:scale-95 transition-all duration-150 rounded-xl font-asgard text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#ff3b30]"
@@ -300,7 +309,7 @@ export default function UnifiedInternalLogin({ role, apiEndpoint, redirectPath }
 
           {/* Security Notice for Admin */}
           {role === 'admin' && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}

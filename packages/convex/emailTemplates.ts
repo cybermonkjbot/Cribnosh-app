@@ -54,6 +54,12 @@ export const EMAIL_TYPES = [
         label: "New Review Received",
         variables: ["{{customerName}}", "{{rating}}", "{{reviewText}}", "{{userName}}"],
         subject: "New {{rating}}-Star Review from {{customerName}}"
+    },
+    {
+        id: "password_reset",
+        label: "Password Reset",
+        variables: ["{{userName}}", "{{resetUrl}}", "{{expiryHours}}"],
+        subject: "Reset your CribNosh password"
     }
 ];
 

@@ -615,6 +615,17 @@ export default defineSchema({
     .index('by_username', ['username'])
     .index('by_phone', ['phone_number'])
     .index('by_oauth_provider', ['primaryOAuthProvider']),
+
+  // Password reset tokens table
+  passwordResetTokens: defineTable({
+    email: v.string(),
+    token: v.string(), // Hashed token
+    expiresAt: v.number(),
+    used: v.boolean(),
+  })
+    .index("by_token", ["token"])
+    .index("by_email", ["email"]),
+
   // Waitlist table
   waitlist: defineTable({
     email: v.string(),

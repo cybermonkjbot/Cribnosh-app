@@ -349,6 +349,30 @@ export const _updateUserRolesInternal = internalMutation({
   },
 });
 
+/**
+ * Internal mutation to update user password by email
+ * Used during password reset flow
+ */
+export const _updateUserPasswordByEmailInternal = internalMutation({
+  args: {
+    email: v.string(),
+    password: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+    if (!user) throw new Error("User not found");
+
+    await ctx.db.patch(user._id, {
+      password: args.password,
+      lastModified: Date.now(),
+    });
+  },
+});
+
+
 export const updateLastLogin = mutation({
   args: {
     userId: v.id("users"),
