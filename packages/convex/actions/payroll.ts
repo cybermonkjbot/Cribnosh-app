@@ -1,9 +1,9 @@
 "use node";
 
 import { v } from "convex/values";
-import { api } from "./_generated/api";
-import { action } from "./_generated/server";
-import { requireAdmin } from "./utils/auth";
+import { api } from "../_generated/api";
+import { action } from "../_generated/server";
+import { isAdmin } from "../utils/auth";
 
 export const exportReport = action({
     args: {
@@ -15,7 +15,10 @@ export const exportReport = action({
     },
     handler: async (ctx, args) => {
         // Authenticate admin user
-        await requireAdmin(ctx, args.sessionToken);
+        const user = await ctx.runQuery(api.queries.users.getMe, { sessionToken: args.sessionToken });
+        if (!user || !isAdmin(user)) {
+            throw new Error("Admin access required");
+        }
 
         // Fetch data using the existing query
         const data = await ctx.runQuery(api.payroll.reports.getPayrollDetails, {

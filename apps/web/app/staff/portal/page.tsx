@@ -291,7 +291,7 @@ export default function StaffPortal() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {staffNotices.map((notice) => (
+                  {staffNotices.map((notice: any) => (
                     <div key={notice._id} className="flex items-start space-x-3">
                       <AlertCircle className="w-5 h-5 text-[#F23E2E] mt-0.5" />
                       <div>

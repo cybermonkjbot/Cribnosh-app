@@ -1,3 +1,5 @@
+"use client";
+
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { WaitlistEntryCard } from '@/components/staff/WaitlistEntryCard';
@@ -6,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { GlassButton } from '@/components/ui/glass-button';
 import { GlassCard } from '@/components/ui/glass-card';
 import { GlassInput } from '@/components/ui/glass-input';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WaitlistEntrySkeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -383,8 +386,8 @@ export default function StaffWaitlistPage() {
                                   onClick={() => setCurrentPage(pageNum)}
                                   disabled={isLoadingEntries}
                                   className={`px-3 py-1.5 rounded-lg text-sm font-satoshi transition-colors ${currentPage === pageNum
-                                      ? 'bg-[#F23E2E] text-white'
-                                      : 'bg-white/70 hover:bg-white/90 text-gray-700'
+                                    ? 'bg-[#F23E2E] text-white'
+                                    : 'bg-white/70 hover:bg-white/90 text-gray-700'
                                     } ${isLoadingEntries ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                                 >
                                   {pageNum}

@@ -2,6 +2,7 @@ import { Link } from '@/components/link';
 import { GlassCard } from '@/components/ui/glass-card';
 import { api } from '@/convex/_generated/api';
 import { useUserIp } from '@/hooks/use-user-ip';
+import { setAuthToken } from "@/lib/auth-client";
 import { useAction } from 'convex/react';
 import { AlertCircle, CheckCircle, Eye, EyeOff, Lock, User } from 'lucide-react';
 import { motion } from 'motion/react';

@@ -15,6 +15,9 @@ export interface StaffUser {
     cuisine?: string[];
     dietary?: string[];
   };
+  position?: string;
+  department?: string;
+  onboarding?: any;
 }
 
 interface StaffAuthState {
@@ -56,6 +59,9 @@ export function useStaffAuth(): StaffAuthState {
           status: userData.status,
           avatar: userData.avatar,
           preferences: userData.preferences,
+          position: userData.position,
+          department: userData.department,
+          onboarding: userData.onboarding,
         };
         setStaff(staffUser);
       } else {

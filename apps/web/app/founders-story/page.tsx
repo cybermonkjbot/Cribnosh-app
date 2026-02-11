@@ -30,14 +30,14 @@ export default function FoundersStoryPage() {
                     <div className="grid grid-cols-2 gap-4">
                         <Image
                             src="/kitchenillus.png"
-                            alt="Early kitchen sketches"
+                            alt="Early kitchen sketches by Doyle Omachonu for Cribnosh"
                             width={500}
                             height={500}
                             className="rounded-lg object-cover h-20 md:h-44 lg:h-60 w-full shadow-[0_0_24px_rgba(34,42,53,0.06),0_1px_1px_rgba(0,0,0,0.05),0_0_0_1px_rgba(34,42,53,0.04),0_0_4px_rgba(34,42,53,0.08),0_16px_68px_rgba(47,48,55,0.05),0_1px_0_rgba(255,255,255,0.1)_inset]"
                         />
                         <Image
                             src="/card-images/IMG_2262.png"
-                            alt="Observation of culture"
+                            alt="Observation of culture and food diversity by Founder Doyle Omachonu"
                             width={500}
                             height={500}
                             className="rounded-lg object-cover h-20 md:h-44 lg:h-60 w-full shadow-[0_0_24px_rgba(34,42,53,0.06),0_1px_1px_rgba(0,0,0,0.05),0_0_0_1px_rgba(34,42,53,0.04),0_0_4px_rgba(34,42,53,0.08),0_16px_68px_rgba(47,48,55,0.05),0_1px_0_rgba(255,255,255,0.1)_inset]"
@@ -94,7 +94,7 @@ export default function FoundersStoryPage() {
                     <div className="rounded-lg overflow-hidden shadow-xl">
                         <Image
                             src="/card-images/c846b65e-1de1-4595-9079-b2cfe134f414.jpeg"
-                            alt="Community building"
+                            alt="Cribnosh community building initiatives led by Doyle Omachonu"
                             width={500}
                             height={500}
                             className="w-full h-auto object-cover"
@@ -148,7 +148,7 @@ export default function FoundersStoryPage() {
                     </p>
                     <Image
                         src="/mobilemockstatic.png"
-                        alt="CribNosh Vision"
+                        alt="CribNosh App Vision by Founder Doyle Omachonu"
                         width={500}
                         height={500}
                         className="rounded-lg object-cover w-full shadow-[0_0_24px_rgba(34,42,53,0.06),0_1px_1px_rgba(0,0,0,0.05),0_0_0_1px_rgba(34,42,53,0.04),0_0_4px_rgba(34,42,53,0.08),0_16px_68px_rgba(47,48,55,0.05),0_1px_0_rgba(255,255,255,0.1)_inset]"
@@ -212,7 +212,7 @@ export default function FoundersStoryPage() {
                     <div className="text-center mb-20">
                         <h2 className="text-3xl md:text-5xl font-display font-bold text-gray-900 mb-6">The Journey</h2>
                         <p className="text-gray-600 max-w-2xl mx-auto text-lg font-satoshi">
-                            How a simple idea transformed into a movement for home cooks and food lovers everywhere.
+                            How a simple idea transformed into a movement for Food creators and food lovers everywhere.
                         </p>
                     </div>
                     <Timeline data={timelineData} />

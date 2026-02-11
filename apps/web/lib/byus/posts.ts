@@ -487,7 +487,7 @@ export const POSTS: ByUsPost[] = [
 			}
 		]
 	},
-    {
+	{
 		title: "What Is CribNosh? How Our Home–Cooked Delivery Works",
 		slug: "what-is-cribnosh",
 		coverImage: "/backgrounds/masonry-2.jpg",
@@ -602,7 +602,7 @@ export const POSTS: ByUsPost[] = [
 		]
 	},
 	{
-		title: "Pierogi Power: UK-Based Polish Home Cooks Rescuing Grandmas' Recipes",
+		title: "Pierogi Power: UK-Based Polish Food creators Rescuing Grandmas' Recipes",
 		slug: "pierogi-power-uk-polish-home-cooks",
 		coverImage: "/backgrounds/masonry-1.jpg",
 		date: "August 2025",

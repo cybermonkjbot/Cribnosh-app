@@ -5,12 +5,12 @@ import { v } from "convex/values";
 import { api, internal } from "../_generated/api";
 import { action } from "../_generated/server";
 
-export const resetPasswordWithToken = action({
+export const resetPasswordWithToken = (action as any)({
     args: {
         token: v.string(),
         newPassword: v.string(),
     },
-    handler: async (ctx, args) => {
+    handler: async (ctx: any, args: any) => {
         // 1. Verify and use token
         const verification = await ctx.runMutation(api.mutations.password_reset.verifyAndUseToken, {
             token: args.token,

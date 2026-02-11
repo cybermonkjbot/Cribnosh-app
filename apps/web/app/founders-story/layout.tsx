@@ -11,21 +11,41 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                        '@context': 'https://schema.org',
-                        '@type': 'ProfilePage',
-                        mainEntity: {
-                            '@type': 'Person',
-                            name: 'Doyle Omachonu',
-                            jobTitle: 'Founder & CEO',
-                            description: 'Founder of Cribnosh, simplifying home-cooked food delivery.',
-                            image: 'https://cribnosh.com/IMG_3491.jpg',
-                            sameAs: [
-                                "https://x.com/CribNosh",
-                                "https://www.instagram.com/cribnoshuk"
+                    __html: JSON.stringify([
+                        {
+                            '@context': 'https://schema.org',
+                            '@type': 'ProfilePage',
+                            mainEntity: {
+                                '@type': 'Person',
+                                name: 'Doyle Omachonu',
+                                jobTitle: 'Founder & CEO',
+                                description: 'Founder of Cribnosh, simplifying the food creator economy.',
+                                image: 'https://cribnosh.com/IMG_3491.jpg',
+                                sameAs: [
+                                    "https://x.com/CribNosh",
+                                    "https://www.instagram.com/cribnoshuk"
+                                ]
+                            }
+                        },
+                        {
+                            '@context': 'https://schema.org',
+                            '@type': 'BreadcrumbList',
+                            itemListElement: [
+                                {
+                                    '@type': 'ListItem',
+                                    position: 1,
+                                    name: 'Home',
+                                    item: 'https://cribnosh.com'
+                                },
+                                {
+                                    '@type': 'ListItem',
+                                    position: 2,
+                                    name: 'Founders Story',
+                                    item: 'https://cribnosh.com/founders-story'
+                                }
                             ]
                         }
-                    })
+                    ])
                 }}
             />
             {children}
