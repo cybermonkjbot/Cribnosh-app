@@ -1,10 +1,9 @@
 "use client";
 
-import { createContext, useContext, useState } from 'react';
-import { ThemeProvider } from "next-themes";
-import { env } from "@/lib/config/env";
 import { QueryProvider } from "@/app/QueryProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "next-themes";
+import { createContext, useContext, useState } from 'react';
 import { ModalSheetProvider } from "./ModalSheetContext";
 
 type MobileMenuContextType = {
@@ -14,7 +13,7 @@ type MobileMenuContextType = {
 
 export const MobileMenuContext = createContext<MobileMenuContextType>({
   isMobileMenuOpen: false,
-  setIsMobileMenuOpen: () => {},
+  setIsMobileMenuOpen: () => { },
 });
 
 export function useMobileMenu() {
@@ -40,9 +39,10 @@ export function Providers({
   forcedTheme?: string;
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   // If dark mode is disabled, force light theme while still allowing section theming
-  const actualForcedTheme = env.DISABLE_DARK_MODE ? "light" : forcedTheme;
+  const disableDarkMode = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DISABLE_DARK_MODE === 'true' : false;
+  const actualForcedTheme = disableDarkMode ? "light" : forcedTheme;
 
   return (
     <QueryProvider>
@@ -51,7 +51,7 @@ export function Providers({
           enableSystem
           disableTransitionOnChange
           attribute="class"
-          defaultTheme={env.DISABLE_DARK_MODE ? "light" : (defaultTheme || "system")}
+          defaultTheme={disableDarkMode ? "light" : (defaultTheme || "system")}
           forcedTheme={actualForcedTheme}
         >
           <ModalSheetProvider>

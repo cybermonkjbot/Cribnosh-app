@@ -1,7 +1,6 @@
 "use client";
 
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { env } from "@/lib/config/env";
 import { Moon, Sun } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
@@ -25,7 +24,8 @@ export function ThemeSwitcher() {
   }, []);
 
   // If dark mode is disabled, don't render the switcher
-  if (env.DISABLE_DARK_MODE) {
+  const disableDarkMode = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DISABLE_DARK_MODE === 'true' : false;
+  if (disableDarkMode) {
     return null;
   }
 
@@ -39,7 +39,8 @@ export function ThemeSwitcher() {
 
   // Handle context menu
   const handleContextMenu = (e: React.MouseEvent) => {
-    if (env.DISABLE_TRY_IT || isMobile) {
+    const disableTryIt = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DISABLE_TRY_IT === 'true' : false;
+    if (disableTryIt || isMobile) {
       e.preventDefault();
       return false;
     }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useSession } from '@/lib/auth/use-session';
-import { env } from '@/lib/config/env';
 import {
   Car,
   ChefHat,
@@ -763,13 +762,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 <div className="space-y-1">
                   <h3 className="text-sm font-medium text-gray-500  mb-2">Menu</h3>
                   <div className={contextMenu.isMobile ? 'grid grid-cols-1 sm:grid-cols-2 gap-2' : 'space-y-1'}>
-                    {!env.DISABLE_TRY_IT && (
+                    {!(typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DISABLE_TRY_IT === 'true' : false) && (
                       <Link href="/try-it" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100  rounded-md transition-colors">
                         <Search className="w-4 h-4 text-[#ff3b30] shrink-0" />
                         <span className="truncate">Try CribNosh</span>
                       </Link>
                     )}
-                    {env.DISABLE_TRY_IT && (
+                    {(typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DISABLE_TRY_IT === 'true' : false) && (
                       <Link href="/waitlist" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100  rounded-md transition-colors">
                         <Sparkles className="w-4 h-4 text-[#ff3b30] shrink-0" />
                         <span className="truncate">Get Early Access</span>

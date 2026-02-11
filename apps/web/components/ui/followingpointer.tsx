@@ -2,7 +2,6 @@
 // Core component that receives mouse positions and renders pointer and content
 
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { env } from "@/lib/config/env";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion, useMotionValue } from "motion/react";
 import { useTheme } from "next-themes";
@@ -56,7 +55,8 @@ export const FollowerPointerCard = ({
 
   // Disable context menu when DISABLE_TRY_IT is true or on mobile
   const handleContextMenu = (e: React.MouseEvent) => {
-    if (env.DISABLE_TRY_IT || !isDesktop) {
+    const disableTryIt = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DISABLE_TRY_IT === 'true' : false;
+    if (disableTryIt || !isDesktop) {
       e.preventDefault();
       return false;
     }
@@ -69,13 +69,13 @@ export const FollowerPointerCard = ({
       onMouseMove={handleMouseMove}
       onContextMenu={handleContextMenu}
       style={{
-        cursor: isDesktop && !env.DISABLE_TRY_IT && process.env.NEXT_PUBLIC_USE_CUSTOM_POINTER === "true" ? "none" : "auto",
+        cursor: isDesktop && !(typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DISABLE_TRY_IT === 'true' : false) && process.env.NEXT_PUBLIC_USE_CUSTOM_POINTER === "true" ? "none" : "auto",
       }}
       ref={ref}
       className={cn("relative", className)}
     >
       <AnimatePresence>
-        {isDesktop && isInside && !env.DISABLE_TRY_IT && process.env.NEXT_PUBLIC_USE_CUSTOM_POINTER === "true" && <FollowPointer x={x} y={y} title={currentText || title} />}
+        {isDesktop && isInside && !(typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DISABLE_TRY_IT === 'true' : false) && process.env.NEXT_PUBLIC_USE_CUSTOM_POINTER === "true" && <FollowPointer x={x} y={y} title={currentText || title} />}
       </AnimatePresence>
       {children}
     </div>
@@ -158,9 +158,10 @@ export const FollowPointer = ({
   // Memoize these values to prevent unnecessary recalculations
   const currentColors = useMemo(() => colors[currentSectionTheme], [currentSectionTheme]);
   // When dark mode is disabled, always use light theme styling but keep section theming
-  const isDarkTheme = useMemo(() =>
-    (env.DISABLE_DARK_MODE ? false : theme === 'dark') || currentSectionTheme === 'dark',
-    [theme, currentSectionTheme]
+  const isDarkTheme = useMemo(() => {
+    const disableDarkMode = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DISABLE_DARK_MODE === 'true' : false;
+    return (disableDarkMode ? false : theme === 'dark') || currentSectionTheme === 'dark';
+  }, [theme, currentSectionTheme]
   );
   const isBrandTheme = currentSectionTheme === 'brand';
 

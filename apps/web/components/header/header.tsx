@@ -1,7 +1,6 @@
 "use client"
 
 import { useMobileDevice } from "@/hooks/use-mobile-device"
-import { env } from "@/lib/config/env"
 import { motion } from "motion/react"
 import { useTheme } from "next-themes"
 import Image from "next/image"
@@ -26,7 +25,8 @@ export function Header({ className = '' }: HeaderProps) {
   const { theme } = useTheme();
   // When dark mode is disabled, we still want the header to use light theme
   // but keep section theming functionality
-  const isDark = env.DISABLE_DARK_MODE ? false : theme === 'dark';
+  const disableDarkMode = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DISABLE_DARK_MODE === 'true' : false;
+  const isDark = disableDarkMode ? false : theme === 'dark';
 
   const [headerStyle, setHeaderStyle] = useState({
     text: 'text-gray-900',
@@ -163,7 +163,8 @@ export function Header({ className = '' }: HeaderProps) {
  */
 export function HeaderCTA() {
   const { theme } = useTheme();
-  const isDarkTheme = env.DISABLE_DARK_MODE ? false : theme === "dark";
+  const disableDarkMode = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DISABLE_DARK_MODE === 'true' : false;
+  const isDarkTheme = disableDarkMode ? false : theme === "dark";
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {

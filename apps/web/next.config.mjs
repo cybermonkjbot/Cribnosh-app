@@ -78,7 +78,7 @@ const nextConfig = {
   */
 
   // Output configuration
-  output: 'standalone',
+  // output: 'standalone',
 
   // URL Rewrites
   async rewrites() {

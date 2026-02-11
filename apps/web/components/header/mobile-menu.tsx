@@ -3,7 +3,6 @@
 import { MobileMenuInput } from "@/components/try-it/mobile-menu-input"
 import { useMobileMenu } from "@/context"
 import { MobileDeviceInfo, useMobileDevice } from "@/hooks/use-mobile-device"
-import { env } from "@/lib/config/env"
 import { ArrowLeft, Menu, X } from "lucide-react"
 import { AnimatePresence, motion, Variants } from "motion/react"
 import { useTheme } from "next-themes"
@@ -35,7 +34,8 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
   const [isOverHero, setIsOverHero] = useState(false)
   const { theme } = useTheme()
   // When dark mode is disabled, we still want the mobile menu to use light theme styling
-  const isDark = env.DISABLE_DARK_MODE ? false : theme === "dark"
+  const disableDarkMode = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DISABLE_DARK_MODE === 'true' : false;
+  const isDark = disableDarkMode ? false : theme === "dark"
   const { setIsMobileMenuOpen } = useMobileMenu()
   const deviceInfo: MobileDeviceInfo = useMobileDevice()
 
@@ -189,8 +189,8 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
               <button
                 onClick={toggleMenu}
                 className={`p-2 rounded-full transition-colors active:scale-90 mr-3 ${isDark
-                    ? 'text-slate-200 hover:bg-slate-800 active:bg-slate-700'
-                    : 'text-slate-700 hover:bg-slate-100 active:bg-slate-200'
+                  ? 'text-slate-200 hover:bg-slate-800 active:bg-slate-700'
+                  : 'text-slate-700 hover:bg-slate-100 active:bg-slate-200'
                   }`}
                 aria-label="Close menu"
               >
@@ -203,8 +203,8 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
                   width={100}
                   height={32}
                   className={`h-8 w-auto transition-all duration-500 ${isOverHero
-                      ? 'brightness-0 invert' // White logo over red background
-                      : 'brightness-100 invert-0' // Normal red logo
+                    ? 'brightness-0 invert' // White logo over red background
+                    : 'brightness-100 invert-0' // Normal red logo
                     }`}
                   priority
                 />
@@ -227,8 +227,8 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
                         href={item.href}
                         onClick={toggleMenu}
                         className={`block px-4 py-4 text-lg font-asgard rounded-xl relative group overflow-hidden ${isDark
-                            ? 'text-slate-100 hover:text-white hover:bg-slate-800 active:bg-slate-700'
-                            : 'text-slate-800 hover:text-slate-900 hover:bg-slate-100 active:bg-slate-200'
+                          ? 'text-slate-100 hover:text-white hover:bg-slate-800 active:bg-slate-700'
+                          : 'text-slate-800 hover:text-slate-900 hover:bg-slate-100 active:bg-slate-200'
                           }`}
                       >
                         <motion.div
@@ -266,8 +266,8 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
                       href="/work-with-cribnosh"
                       onClick={toggleMenu}
                       className={`block px-4 py-4 text-lg font-asgard rounded-xl text-center border-2 ${isDark
-                          ? 'text-slate-100 border-slate-800 hover:bg-slate-800 active:bg-slate-700'
-                          : 'text-slate-800 border-slate-200 hover:bg-slate-100 active:bg-slate-200'
+                        ? 'text-slate-100 border-slate-800 hover:bg-slate-800 active:bg-slate-700'
+                        : 'text-slate-800 border-slate-200 hover:bg-slate-100 active:bg-slate-200'
                         }`}
                     >
                       Work with Cribnosh
@@ -277,7 +277,7 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
               </div>
 
               {/* AI Input at the bottom */}
-              {!env.DISABLE_TRY_IT && (
+              {!(typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DISABLE_TRY_IT === 'true' : false) && (
                 <div className="mt-auto">
                   <MobileMenuInput onSendMessage={handleSendMessage} />
                 </div>

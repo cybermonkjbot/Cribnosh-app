@@ -76,7 +76,9 @@ const getEnvSchema = () => {
     // Application Configuration
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     DISABLE_DARK_MODE: z.string().optional(),
+    NEXT_PUBLIC_DISABLE_DARK_MODE: z.string().optional(),
     DISABLE_TRY_IT: z.string().optional(),
+    NEXT_PUBLIC_DISABLE_TRY_IT: z.string().optional(),
 
     // Rate Limiting
     RATE_LIMIT_WINDOW_MS: z.string().optional(),
@@ -141,8 +143,8 @@ const envSchema = getEnvSchema();
  * This allows the app to start in any environment, even with missing configuration.
  */
 export function validateEnv(): z.infer<ReturnType<typeof getEnvSchema>> {
-  // Get all environment variables
-  const rawEnv = process.env;
+  // Get all environment variables safely (guard for browser environment)
+  const rawEnv = typeof process !== 'undefined' ? process.env : {} as any;
   const isProduction = rawEnv.NODE_ENV === 'production';
   const envLabel = isProduction ? '[PROD]' : '[DEV]';
 

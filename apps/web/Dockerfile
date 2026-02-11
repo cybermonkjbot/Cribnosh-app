@@ -37,11 +37,14 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Copy standalone output
-COPY --from=builder /app/apps/web/.next/standalone ./
-COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
+# Copy standard build output
+COPY --from=builder /app/apps/web/.next ./apps/web/.next
 COPY --from=builder /app/apps/web/public ./apps/web/public
+COPY --from=builder /app/apps/web/package.json ./apps/web/package.json
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
 
 EXPOSE 3000
-# The entrypoint for standalone mode is apps/web/server.js
-CMD ["node", "apps/web/server.js"]
+# Run using next start
+WORKDIR /app/apps/web
+CMD ["npm", "start"]

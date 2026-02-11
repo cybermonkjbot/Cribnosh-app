@@ -1,6 +1,5 @@
 "use client"
 
-import { env } from '@/lib/config/env'
 import { motion, Variants } from "motion/react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
@@ -92,7 +91,8 @@ const navGlowVariants: Variants = {
 export function MenuBar() {
   const { theme } = useTheme()
 
-  const isDarkTheme = env.DISABLE_DARK_MODE ? false : theme === "dark"
+  const disableDarkMode = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_DISABLE_DARK_MODE === 'true' : false;
+  const isDarkTheme = disableDarkMode ? false : theme === "dark"
 
   return (
     <motion.nav
