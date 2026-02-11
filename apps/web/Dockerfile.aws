@@ -57,5 +57,5 @@ RUN apk add --no-cache curl
 
 EXPOSE 3000
 
-# The entrypoint for standalone mode is server.js
-CMD ["node", "server.js"]
+# The entrypoint for standalone mode is apps/web/server.js
+CMD ["node", "apps/web/server.js"]

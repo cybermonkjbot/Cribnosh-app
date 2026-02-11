@@ -43,5 +43,5 @@ COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder /app/apps/web/public ./apps/web/public
 
 EXPOSE 3000
-# The entrypoint for standalone mode is server.js
-CMD ["node", "server.js"]
+# The entrypoint for standalone mode is apps/web/server.js
+CMD ["node", "apps/web/server.js"]

@@ -79,5 +79,5 @@ RUN apk add --no-cache curl
 EXPOSE 3000
 
 # Start the application using node
-# The standalone entrypoint is server.js
-CMD ["node", "server.js"]
+# The standalone entrypoint is apps/web/server.js
+CMD ["node", "apps/web/server.js"]
