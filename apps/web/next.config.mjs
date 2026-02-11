@@ -91,6 +91,11 @@ const nextConfig = {
         source: '/blog/:slug*',
         destination: '/by-us/:slug*',
       },
+      // Proxy /api/files/:storageId to Convex HTTP Actions
+      {
+        source: '/api/files/:storageId',
+        destination: `${process.env.NEXT_PUBLIC_CONVEX_URL?.replace('.convex.cloud', '.convex.site')}/api/files/:storageId`,
+      },
     ];
   },
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
+import { clearAuthToken, getAuthToken, setAuthToken } from "@/lib/auth-client";
+import { useConvex, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
@@ -29,11 +30,11 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
-    // Load session token from localStorage on mount
+    // Load session token from auth-client on mount
     useEffect(() => {
         const loadToken = () => {
             try {
-                const token = localStorage.getItem("chef_session_token");
+                const token = getAuthToken();
                 setSessionToken(token);
             } catch (error) {
                 console.error("Error loading session token:", error);
@@ -87,7 +88,7 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
             setIsLoading(false);
             const clearToken = () => {
                 try {
-                    localStorage.removeItem("chef_session_token");
+                    clearAuthToken();
                     setSessionToken(null);
                 } catch (error) {
                     console.error("Error clearing session token:", error);
@@ -115,8 +116,8 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
     const login = useCallback(
         async (token: string, userData: any) => {
             try {
-                // Store session token in localStorage
-                localStorage.setItem("chef_session_token", token);
+                // Store session token using auth-client
+                setAuthToken(token);
                 // Update state to trigger re-fetch
                 setSessionToken(token);
             } catch (error) {
@@ -129,16 +130,31 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
 
     const refreshChef = useCallback(async () => {
         // Force refetch by updating session token state
-        const token = localStorage.getItem("chef_session_token");
+        const token = getAuthToken();
         setSessionToken(token);
     }, []);
 
+    const convex = useConvex();
+
     const logout = useCallback(async () => {
-        // Clear session token
-        localStorage.removeItem("chef_session_token");
-        setSessionToken(null);
-        router.push("/chef/sign-in");
-    }, [router]);
+        try {
+            const token = getAuthToken();
+            if (token) {
+                // Call Convex mutation to delete session
+                await convex.mutation(api.mutations.sessions.deleteSessionByToken, {
+                    sessionToken: token,
+                });
+            }
+        } catch (error) {
+            console.error("Logout error in ChefAuth:", error);
+        } finally {
+            // Clear session token using auth-clientRegardless of error
+            clearAuthToken();
+            setSessionToken(null);
+            router.push("/chef/sign-in");
+        }
+    }, [convex, router]);
+
 
     const contextValue: ChefAuthContextType = {
         chef: chef || null,

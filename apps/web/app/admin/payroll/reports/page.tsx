@@ -17,7 +17,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery } from 'convex/react';
+import { useAction, useQuery } from 'convex/react';
 import { format } from 'date-fns';
 import { BarChart as BarChartIcon, CalendarIcon, Clock, Download, FileText, List, PoundSterling, Users } from 'lucide-react';
 import { useAdminUser } from '../../AdminUserProvider';
@@ -242,6 +242,8 @@ export default function PayrollReportsPage() {
     : [];
 
   // Handle export
+  const exportReport = useAction(api.actions.payroll.exportReport);
+
   const handleExport = async (format: 'csv' | 'pdf') => {
     if (!dateRange?.from || !dateRange?.to) {
       toast({
@@ -253,20 +255,29 @@ export default function PayrollReportsPage() {
     }
 
     try {
-      const response = await fetch(`/api/admin/payroll/export?format=${format}&start=${dateRange.from.toISOString()}&end=${dateRange.to.toISOString()}${department !== 'all' ? `&department=${department}` : ''}`, {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Export failed');
+      if (format === 'pdf') {
+        toast({
+          title: "Not Implemented",
+          description: "PDF export is not yet supported. Please use CSV.",
+          variant: "default"
+        });
+        return;
       }
 
-      const blob = await response.blob();
+      const result = await exportReport({
+        format,
+        startDate: dateRange.from.getTime(),
+        endDate: dateRange.to.getTime(),
+        department: department !== 'all' ? department : undefined,
+        sessionToken: sessionToken || undefined,
+      });
+
+      // Create blob from CSV string
+      const blob = new Blob([result.data], { type: result.contentType });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `payroll-report-${new Date().toISOString().split('T')[0]}.${format}`;
+      a.download = result.filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

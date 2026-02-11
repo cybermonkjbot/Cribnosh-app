@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { api } from "@/convex/_generated/api";
+import { useAction } from "convex/react";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
@@ -29,6 +31,9 @@ export function EmailOTPVerification({
   const [testOtp, setTestOtp] = useState<string | null>(initialTestOtp || null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  const verifyAndLogin = useAction(api.actions.users.customerEmailVerifyAndLogin);
+  const sendEmailOTP = useAction(api.actions.users.customerEmailSendOTP);
+
   // Countdown timer
   useEffect(() => {
     if (timeLeft > 0) {
@@ -51,7 +56,7 @@ export function EmailOTPVerification({
   const handleOtpChange = (index: number, value: string) => {
     // Only allow digits
     const digit = value.replace(/\D/g, "").slice(0, 1);
-    
+
     if (digit) {
       const newOtp = [...otp];
       newOtp[index] = digit;
@@ -91,7 +96,7 @@ export function EmailOTPVerification({
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     const otpString = otp.join("");
-    
+
     if (otpString.length !== 6) {
       setError("Please enter the complete 6-digit code");
       return;
@@ -101,42 +106,29 @@ export function EmailOTPVerification({
     setError("");
 
     try {
-      const response = await fetch("/api/auth/email-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          action: "verify",
-          otp: otpString,
-        }),
+      const data = await verifyAndLogin({
+        email,
+        otp: otpString,
+        userAgent: typeof window !== 'undefined' ? navigator.userAgent : undefined,
       });
 
-      const data = await response.json();
-
       if (data.success) {
-        // Handle response structure: data.data.sessionToken or data.data.token (for backwards compatibility)
-        const token = data.data?.sessionToken || data.data?.token || data.sessionToken || data.token;
-        const user = data.data?.user || data.user;
-        
+        // Handle response structure: data.sessionToken and data.user
+        const token = data.sessionToken;
+        const user = data.user;
+
         if (token) {
           onSuccess(token, user);
         } else {
           setError("Authentication failed. Please try again.");
           setIsVerifying(false);
         }
+      } else if (data.requires2FA) {
+        // Handle 2FA if needed (not currently implemented in this modal but action supports it)
+        setError("2FA required - please complete on mobile or contact support.");
+        setIsVerifying(false);
       } else {
-        // Handle specific error cases
-        if (response.status === 429) {
-          setError("Too many attempts. Please wait before trying again.");
-        } else if (response.status === 400) {
-          setError(data.error || "Invalid verification code. Please check and try again.");
-        } else if (response.status === 404) {
-          setError("Verification code not found. Please request a new one.");
-        } else {
-          setError(data.error || "Verification failed. Please try again.");
-        }
+        setError(data.error || "Verification failed. Please check and try again.");
         setIsVerifying(false);
       }
     } catch (err) {
@@ -151,26 +143,15 @@ export function EmailOTPVerification({
     setError("");
 
     try {
-      const response = await fetch("/api/auth/email-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          action: "send",
-        }),
-      });
-
-      const data = await response.json();
+      const data = await sendEmailOTP({ email });
 
       if (data.success) {
         // In development, show the test OTP
-        if (data.data?.testOtp) {
-          setTestOtp(data.data.testOtp);
-          console.log('🔐 Development OTP Code:', data.data.testOtp);
+        if (data.testOtp) {
+          setTestOtp(data.testOtp);
+          console.log('🔐 Development OTP Code:', data.testOtp);
           toast.info('Development Mode', {
-            description: `OTP Code: ${data.data.testOtp}`,
+            description: `OTP Code: ${data.testOtp}`,
             duration: 10000,
           });
         }
@@ -182,7 +163,7 @@ export function EmailOTPVerification({
           description: 'A new verification code has been sent to your email.',
         });
       } else {
-        const errorMessage = data.error || data.message || "Failed to resend code";
+        const errorMessage = data.error || "Failed to resend code";
         setError(errorMessage);
         toast.error('Failed to Resend Code', {
           description: errorMessage,
@@ -226,27 +207,27 @@ export function EmailOTPVerification({
         )}
       </div>
 
-        {/* OTP Input */}
-        <form onSubmit={handleVerifyOTP} className="space-y-6">
-          <div className="flex gap-3 justify-start">
-            {otp.map((digit, index) => (
-              <input
-                key={index}
-                ref={(el) => {
-                  inputRefs.current[index] = el;
-                }}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleOtpChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                onPaste={handlePaste}
-                className="w-14 h-16 text-center text-2xl font-bold text-white bg-transparent border border-white/20 rounded-lg focus:border-[#4ADE80] focus:ring-2 focus:ring-[#4ADE80]/20 font-mono outline-none transition-all"
-                autoComplete="off"
-              />
-            ))}
-          </div>
+      {/* OTP Input */}
+      <form onSubmit={handleVerifyOTP} className="space-y-6">
+        <div className="flex gap-3 justify-start">
+          {otp.map((digit, index) => (
+            <input
+              key={index}
+              ref={(el) => {
+                inputRefs.current[index] = el;
+              }}
+              type="text"
+              inputMode="numeric"
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleOtpChange(index, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(index, e)}
+              onPaste={handlePaste}
+              className="w-14 h-16 text-center text-2xl font-bold text-white bg-transparent border border-white/20 rounded-lg focus:border-[#4ADE80] focus:ring-2 focus:ring-[#4ADE80]/20 font-mono outline-none transition-all"
+              autoComplete="off"
+            />
+          ))}
+        </div>
 
         {/* Error Message */}
         {error && (

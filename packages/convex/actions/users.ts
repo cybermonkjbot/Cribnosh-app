@@ -2,7 +2,6 @@
 // This is necessary due to complex nested validators in Convex actions
 "use node";
 import { v } from 'convex/values';
-import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { api } from '../_generated/api';
 import type { Id } from '../_generated/dataModel';
 import { action } from '../_generated/server';
@@ -34,8 +33,8 @@ export const activateReferralProgram = action({
 });
 
 export const loginAndCreateSession = action({
-  args: { 
-    email: v.string(), 
+  args: {
+    email: v.string(),
     password: v.string(),
     userAgent: v.optional(v.string()), // User agent for session tracking
     ipAddress: v.optional(v.string()), // IP address for session tracking
@@ -46,31 +45,24 @@ export const loginAndCreateSession = action({
     // Find user by email
     const user = await ctx.runQuery(api.queries.users.getUserByEmail, { email: args.email });
     if (!user) return { error: 'Invalid credentials' };
-    
+
     // Only allow staff or admin
     if (!user.roles?.includes('staff') && !user.roles?.includes('admin')) {
       return { error: 'Not a staff user' };
     }
-    
+
     // Check if user has a password set
     if (!user.password) {
       return { error: 'No password set for this account. Please use password reset.' };
     }
-    
-    try {
-      // Check password (assume user.password is a scrypt hash: salt:hash)
-      const [salt, storedHash] = user.password.split(':');
-      if (!salt || !storedHash) {
-        console.error('Invalid password format for user:', args.email);
-        return { error: 'Invalid credentials' };
-      }
-      
-      const hash = scryptSync(args.password, salt, 64).toString('hex');
-      if (!timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(storedHash, 'hex'))) {
-        return { error: 'Invalid credentials' };
-      }
-    } catch (error) {
-      console.error('Error during password verification for user:', args.email, error);
+
+    // Check for password
+    const isPasswordValid = await ctx.runAction(api.actions.password.verifyPasswordAction, {
+      password: args.password,
+      hashedPassword: user.password,
+    });
+
+    if (!isPasswordValid) {
       return { error: 'Invalid credentials' };
     }
     // Generate and set session token atomically using Convex mutation
@@ -97,9 +89,9 @@ export const createUserWithHashedPassword = action({
     status: v.optional(v.union(v.literal('active'), v.literal('inactive'), v.literal('suspended'))),
   },
   handler: async (ctx, args): Promise<Id<'users'>> => {
-    const salt = randomBytes(16).toString('hex');
-    const hash = scryptSync(args.password, salt, 64).toString('hex');
-    const hashedPassword = `${salt}:${hash}`;
+    const hashedPassword = await ctx.runAction(api.actions.password.hashPasswordAction, {
+      password: args.password,
+    });
     // Call the mutation to create the user
     const userId: Id<'users'> = await ctx.runMutation(api.mutations.users.create, {
       name: args.name,
@@ -154,29 +146,22 @@ export const customerEmailLogin = action({
     if (!user) {
       return { success: false as const, error: 'Invalid credentials' };
     }
-    
+
     // Check if user has a password set
     if (!user.password) {
       return { success: false as const, error: 'No password set for this account. Please use password reset.' };
     }
-    
-    try {
-      // Check password (assume user.password is a scrypt hash: salt:hash)
-      const [salt, storedHash] = user.password.split(':');
-      if (!salt || !storedHash) {
-        console.error('Invalid password format for user:', args.email);
-        return { success: false as const, error: 'Invalid credentials' };
-      }
-      
-      const hash = scryptSync(args.password, salt, 64).toString('hex');
-      if (!timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(storedHash, 'hex'))) {
-        return { success: false as const, error: 'Invalid credentials' };
-      }
-    } catch (error) {
-      console.error('Error during password verification for user:', args.email, error);
+
+    // Check password
+    const isPasswordValid = await ctx.runAction(api.actions.password.verifyPasswordAction, {
+      password: args.password,
+      hashedPassword: user.password,
+    });
+
+    if (!isPasswordValid) {
       return { success: false as const, error: 'Invalid credentials' };
     }
-    
+
     // Check if user has 2FA enabled
     if (user.twoFactorEnabled && user.twoFactorSecret) {
       // Create verification session for 2FA
@@ -184,12 +169,12 @@ export const customerEmailLogin = action({
         const verificationToken = await ctx.runMutation(api.mutations.verificationSessions.createVerificationSession, {
           userId: user._id,
         });
-        
+
         if (!verificationToken) {
           console.error('Failed to create 2FA verification session for user:', args.email);
           return { success: false as const, error: 'Failed to create 2FA verification session. Please try again.' };
         }
-        
+
         return {
           success: false as const,
           requires2FA: true as const,
@@ -200,7 +185,7 @@ export const customerEmailLogin = action({
         return { success: false as const, error: 'Failed to create 2FA verification session. Please try again.' };
       }
     }
-    
+
     // Ensure user has 'customer' role
     let userRoles = user.roles || ['user'];
     if (!userRoles.includes('customer')) {
@@ -216,7 +201,7 @@ export const customerEmailLogin = action({
         console.warn('Failed to update user roles for user:', args.email, error);
       }
     }
-    
+
     // Generate and set session token
     const sessionResult = await ctx.runMutation(api.mutations.users.createAndSetSessionToken, {
       userId: user._id,
@@ -226,7 +211,7 @@ export const customerEmailLogin = action({
       deviceId: args.deviceId,
       deviceName: args.deviceName,
     });
-    
+
     return {
       success: true,
       sessionToken: sessionResult.sessionToken,
@@ -267,12 +252,12 @@ export const customerEmailRegister = action({
     if (existing) {
       return { success: false as const, error: 'A user with this email already exists.' };
     }
-    
+
     // Hash password and create user
-    const salt = randomBytes(16).toString('hex');
-    const hash = scryptSync(args.password, salt, 64).toString('hex');
-    const hashedPassword = `${salt}:${hash}`;
-    
+    const hashedPassword = await ctx.runAction(api.actions.password.hashPasswordAction, {
+      password: args.password,
+    });
+
     try {
       const userId = await ctx.runMutation(api.mutations.users.create, {
         name: args.name,
@@ -281,7 +266,7 @@ export const customerEmailRegister = action({
         roles: ['customer', 'user'],
         status: 'active',
       });
-      
+
       return { success: true as const, userId };
     } catch (error: any) {
       const errorMessage = error?.message || 'Failed to create account. Please try again.';
@@ -384,7 +369,7 @@ export const customerGetTakeawayItems = action({
         latitude: args.latitude,
         longitude: args.longitude,
       });
-      
+
       // Apply pagination
       const meals = allMeals.slice(offset, offset + limit);
 
@@ -618,8 +603,8 @@ export const customerGetTooFreshItems = action({
  * If user doesn't exist, creates account and signs them in
  */
 export const customerEmailSignInOrSignUp = action({
-  args: { 
-    email: v.string(), 
+  args: {
+    email: v.string(),
     password: v.string(),
     name: v.optional(v.string()), // Optional name - if not provided, will be generated from email
     userAgent: v.optional(v.string()),
@@ -654,36 +639,29 @@ export const customerEmailSignInOrSignUp = action({
   handler: async (ctx, args) => {
     // Find user by email
     const existingUser = await ctx.runQuery(api.queries.users.getUserByEmail, { email: args.email });
-    
+
     let user;
     let isNewUser = false;
-    
+
     if (existingUser) {
       // User exists - attempt sign-in
       user = existingUser;
-      
+
       // Check if user has a password set
       if (!user.password) {
         return { success: false as const, error: 'No password set for this account. Please use password reset.' };
       }
-      
+
       // Validate password
-      try {
-        const [salt, storedHash] = user.password.split(':');
-        if (!salt || !storedHash) {
-          console.error('Invalid password format for user:', args.email);
-          return { success: false as const, error: 'Invalid credentials' };
-        }
-        
-        const hash = scryptSync(args.password, salt, 64).toString('hex');
-        if (!timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(storedHash, 'hex'))) {
-          return { success: false as const, error: 'Invalid credentials' };
-        }
-      } catch (error) {
-        console.error('Error during password verification for user:', args.email, error);
+      const isPasswordValid = await ctx.runAction(api.actions.password.verifyPasswordAction, {
+        password: args.password,
+        hashedPassword: user.password,
+      });
+
+      if (!isPasswordValid) {
         return { success: false as const, error: 'Invalid credentials' };
       }
-      
+
       // Check if user has 2FA enabled
       if (user.twoFactorEnabled && user.twoFactorSecret) {
         // Create verification session for 2FA
@@ -691,12 +669,12 @@ export const customerEmailSignInOrSignUp = action({
           const verificationToken = await ctx.runMutation(api.mutations.verificationSessions.createVerificationSession, {
             userId: user._id,
           });
-          
+
           if (!verificationToken) {
             console.error('Failed to create 2FA verification session for user:', args.email);
             return { success: false as const, error: 'Failed to create 2FA verification session. Please try again.' };
           }
-          
+
           return {
             success: false as const,
             requires2FA: true as const,
@@ -710,7 +688,7 @@ export const customerEmailSignInOrSignUp = action({
     } else {
       // User doesn't exist - create account and sign them in
       isNewUser = true;
-      
+
       // Generate name from email if not provided
       let userName = args.name;
       if (!userName) {
@@ -720,12 +698,12 @@ export const customerEmailSignInOrSignUp = action({
           .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
           .join(" ") || "User";
       }
-      
+
       // Hash password and create user
-      const salt = randomBytes(16).toString('hex');
-      const hash = scryptSync(args.password, salt, 64).toString('hex');
-      const hashedPassword = `${salt}:${hash}`;
-      
+      const hashedPassword = await ctx.runAction(api.actions.password.hashPasswordAction, {
+        password: args.password,
+      });
+
       try {
         const userId = await ctx.runMutation(api.mutations.users.create, {
           name: userName,
@@ -734,7 +712,7 @@ export const customerEmailSignInOrSignUp = action({
           roles: ['customer', 'user'],
           status: 'active',
         });
-        
+
         // Fetch the newly created user by email (getUserByEmail doesn't require auth)
         user = await ctx.runQuery(api.queries.users.getUserByEmail, { email: args.email });
         if (!user) {
@@ -749,19 +727,14 @@ export const customerEmailSignInOrSignUp = action({
           if (retryUser) {
             user = retryUser;
             isNewUser = false;
-            
+
             // Validate password for the existing user
-            try {
-              const [salt, storedHash] = user.password!.split(':');
-              if (!salt || !storedHash) {
-                return { success: false as const, error: 'Invalid credentials' };
-              }
-              
-              const hash = scryptSync(args.password, salt, 64).toString('hex');
-              if (!timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(storedHash, 'hex'))) {
-                return { success: false as const, error: 'Invalid credentials' };
-              }
-            } catch (error) {
+            const isPasswordValid = await ctx.runAction(api.actions.password.verifyPasswordAction, {
+              password: args.password,
+              hashedPassword: user.password!,
+            });
+
+            if (!isPasswordValid) {
               return { success: false as const, error: 'Invalid credentials' };
             }
           } else {
@@ -772,7 +745,7 @@ export const customerEmailSignInOrSignUp = action({
         }
       }
     }
-    
+
     // Ensure user has 'customer' role
     let userRoles = user.roles || ['user'];
     if (!userRoles.includes('customer')) {
@@ -788,7 +761,7 @@ export const customerEmailSignInOrSignUp = action({
         console.warn('Failed to update user roles for user:', args.email, error);
       }
     }
-    
+
     // Generate and set session token
     const sessionResult = await ctx.runMutation(api.mutations.users.createAndSetSessionToken, {
       userId: user._id,
@@ -798,7 +771,7 @@ export const customerEmailSignInOrSignUp = action({
       deviceId: args.deviceId,
       deviceName: args.deviceName,
     });
-    
+
     return {
       success: true,
       sessionToken: sessionResult.sessionToken,
@@ -834,7 +807,7 @@ export const customerPhoneSendOTP = action({
   ),
   handler: async (ctx, args) => {
     const TEST_OTP = '123456'; // Test OTP for development
-    
+
     try {
       // Create OTP with test code (in production, this would send SMS)
       await ctx.runMutation(api.mutations.otp.createOTP, {
@@ -901,7 +874,7 @@ export const customerPhoneVerifyAndLogin = action({
 
       // Find user by phone number
       const user = await ctx.runQuery(api.queries.users.getUserByPhone, { phone: args.phone });
-      
+
       let finalUser;
       let isNewUser = false;
 
@@ -926,7 +899,7 @@ export const customerPhoneVerifyAndLogin = action({
         const newUser = await ctx.runQuery(api.queries.users._getUserByIdInternal, {
           userId,
         });
-        
+
         if (!newUser) {
           return { success: false as const, error: 'Failed to create user' };
         }
@@ -953,11 +926,11 @@ export const customerPhoneVerifyAndLogin = action({
           const verificationToken = await ctx.runMutation(api.mutations.verificationSessions.createVerificationSession, {
             userId: finalUser._id,
           });
-          
+
           if (!verificationToken) {
             return { success: false as const, error: 'Failed to create 2FA verification session. Please try again.' };
           }
-          
+
           return {
             success: false as const,
             requires2FA: true as const,
@@ -1023,7 +996,7 @@ export const customerEmailSendOTP = action({
   ),
   handler: async (ctx, args) => {
     const TEST_OTP = '123456'; // Test OTP for development
-    
+
     try {
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1080,9 +1053,9 @@ export const customerEmailSendOTP = action({
           console.warn('   Test OTP code:', otpCode);
         } else {
           // In production, fail if email can't be sent
-          return { 
-            success: false as const, 
-            error: emailError?.message || 'Failed to send verification email. Please check your email address and try again.' 
+          return {
+            success: false as const,
+            error: emailError?.message || 'Failed to send verification email. Please check your email address and try again.'
           };
         }
       }
@@ -1153,7 +1126,7 @@ export const customerEmailVerifyAndLogin = action({
 
       // Find user by email
       const user = await ctx.runQuery(api.queries.users.getUserByEmail, { email: args.email });
-      
+
       let finalUser;
       let isNewUser = false;
 
@@ -1172,7 +1145,7 @@ export const customerEmailVerifyAndLogin = action({
         const newUser = await ctx.runQuery(api.queries.users._getUserByIdInternal, {
           userId,
         });
-        
+
         if (!newUser) {
           return { success: false as const, error: 'Failed to create user' };
         }
@@ -1209,11 +1182,11 @@ export const customerEmailVerifyAndLogin = action({
           const verificationToken = await ctx.runMutation(api.mutations.verificationSessions.createVerificationSession, {
             userId: finalUser._id,
           });
-          
+
           if (!verificationToken) {
             return { success: false as const, error: 'Failed to create 2FA verification session. Please try again.' };
           }
-          
+
           return {
             success: false as const,
             requires2FA: true as const,
@@ -1342,7 +1315,7 @@ export const customerAppleSignIn = action({
       const userDetails = await ctx.runQuery(api.queries.users._getUserByIdInternal, {
         userId: result.userId,
       });
-      
+
       if (!userDetails) {
         return { success: false as const, error: 'Failed to retrieve user information' };
       }
@@ -1373,11 +1346,11 @@ export const customerAppleSignIn = action({
           const verificationToken = await ctx.runMutation(api.mutations.verificationSessions.createVerificationSession, {
             userId: userDetails._id,
           });
-          
+
           if (!verificationToken) {
             return { success: false as const, error: 'Failed to create 2FA verification session. Please try again.' };
           }
-          
+
           return {
             success: false as const,
             requires2FA: true as const,
@@ -1493,7 +1466,7 @@ export const customerGoogleSignIn = action({
       const userDetails = await ctx.runQuery(api.queries.users._getUserByIdInternal, {
         userId: result.userId,
       });
-      
+
       if (!userDetails) {
         return { success: false as const, error: 'Failed to retrieve user information' };
       }
@@ -1524,11 +1497,11 @@ export const customerGoogleSignIn = action({
           const verificationToken = await ctx.runMutation(api.mutations.verificationSessions.createVerificationSession, {
             userId: userDetails._id,
           });
-          
+
           if (!verificationToken) {
             return { success: false as const, error: 'Failed to create 2FA verification session. Please try again.' };
           }
-          
+
           return {
             success: false as const,
             requires2FA: true as const,
@@ -1601,90 +1574,85 @@ export const customerVerify2FA = action({
   ),
   handler: async (ctx, args) => {
     const MAX_FAILED_ATTEMPTS = 5;
-    
+
     try {
       // Get verification session
       const session = await ctx.runMutation(api.mutations.verificationSessions.getVerificationSession, {
         sessionToken: args.verificationToken,
       });
-      
+
       if (!session) {
         return { success: false as const, error: 'Invalid or expired verification session' };
       }
-      
+
       if (session.used) {
         return { success: false as const, error: 'Verification session already used' };
       }
-      
+
       // Check if session is locked due to too many failed attempts
       if (session.failedAttempts && session.failedAttempts >= MAX_FAILED_ATTEMPTS) {
         return { success: false as const, error: 'Too many failed attempts. Please try again later.' };
       }
-      
+
       // Get user using internal query (no auth required)
       const user = await ctx.runQuery(api.queries.users._getUserByIdInternal, {
         userId: session.userId,
       });
-      
+
       if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
         return { success: false as const, error: '2FA not enabled for this user' };
       }
-      
+
       // Verify TOTP code using authenticator library
       // Note: We need to import authenticator in the action
       const { authenticator } = await import('otplib');
       let isValid = false;
       let usedBackupCode: string | null = null;
-      
+
       // Try TOTP verification first
       try {
         isValid = authenticator.check(args.code, user.twoFactorSecret);
       } catch (error) {
         console.error('[2FA] TOTP verification error:', error);
       }
-      
+
       // If TOTP verification failed, try backup codes
       if (!isValid && user.twoFactorBackupCodes && user.twoFactorBackupCodes.length > 0) {
         for (const hashedCode of user.twoFactorBackupCodes) {
-          try {
-            const [salt, storedHash] = hashedCode.split(':');
-            if (!salt || !storedHash) continue;
-            
-            const hashToVerify = scryptSync(args.code, salt, 64);
-            const storedHashBuffer = Buffer.from(storedHash, 'hex');
-            
-            if (timingSafeEqual(hashToVerify, storedHashBuffer)) {
-              isValid = true;
-              usedBackupCode = hashedCode;
-              break;
-            }
-          } catch (error) {
-            console.error('[2FA] Backup code verification error:', error);
-            continue;
+          // Use verifyPasswordAction for backup code
+          const isBackupCodeValid = await ctx.runAction(api.actions.password.verifyPasswordAction, {
+            password: args.code,
+            hashedPassword: hashedCode,
+          });
+
+          if (isBackupCodeValid) {
+            isValid = true;
+            usedBackupCode = hashedCode;
+            break;
           }
         }
       }
-      
+
       if (!isValid) {
         // Increment failed attempts
         const newFailedAttempts = await ctx.runMutation(api.mutations.verificationSessions.incrementFailedAttempts, {
           sessionToken: args.verificationToken,
         });
-        
+
         // Check if we've exceeded max attempts
         if (newFailedAttempts >= MAX_FAILED_ATTEMPTS) {
           return { success: false as const, error: 'Too many failed attempts. Please try again later.' };
         }
-        
+
         const remainingAttempts = MAX_FAILED_ATTEMPTS - newFailedAttempts;
         return { success: false as const, error: `Invalid code. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.` };
       }
-      
+
       // Code is valid - mark session as used
       await ctx.runMutation(api.mutations.verificationSessions.markSessionAsUsed, {
         sessionToken: args.verificationToken,
       });
-      
+
       // If backup code was used, remove it
       if (usedBackupCode) {
         await ctx.runMutation(api.mutations.users.removeBackupCode, {
@@ -1692,7 +1660,7 @@ export const customerVerify2FA = action({
           hashedCode: usedBackupCode,
         });
       }
-      
+
       // Ensure user has 'customer' role
       let userRoles = user.roles || ['user'];
       if (!userRoles.includes('customer')) {
@@ -1702,12 +1670,12 @@ export const customerVerify2FA = action({
           roles: userRoles,
         });
       }
-      
+
       // Update last login
       await ctx.runMutation(api.mutations.users.updateLastLogin, {
         userId: user._id,
       });
-      
+
       // Create session token
       const sessionResult = await ctx.runMutation(api.mutations.users.createAndSetSessionToken, {
         userId: user._id,
@@ -1717,7 +1685,7 @@ export const customerVerify2FA = action({
         deviceId: args.deviceId,
         deviceName: args.deviceName,
       });
-      
+
       return {
         success: true as const,
         sessionToken: sessionResult.sessionToken,
@@ -1757,7 +1725,7 @@ export const customerLogout = action({
           sessionToken: args.sessionToken,
         });
       }
-      
+
       // Always return success - mobile app handles SecureStore cleanup locally
       return {
         success: true,
@@ -1951,7 +1919,7 @@ export const customerUpdateProfile = action({
       if (args.email !== undefined) updates.email = args.email;
       if (args.phone !== undefined) updates.phone_number = args.phone;
       if (args.picture !== undefined) updates.avatar = args.picture;
-      
+
       // Transform preferences from frontend format to backend format
       if (args.preferences !== undefined) {
         updates.preferences = {
@@ -1959,7 +1927,7 @@ export const customerUpdateProfile = action({
           dietary: args.preferences.dietary_restrictions || args.preferences.dietary || [],
         };
       }
-      
+
       // Transform address from frontend format (postal_code) to backend format (zipCode)
       if (args.address !== undefined) {
         updates.address = {
@@ -2433,25 +2401,20 @@ export const customerChangePassword = action({
         return { success: false as const, error: 'No password set for this account. Please use password reset.' };
       }
 
-      try {
-        const [salt, storedHash] = user.password.split(':');
-        if (!salt || !storedHash) {
-          return { success: false as const, error: 'Invalid password format.' };
-        }
+      // Verify current password
+      const isPasswordValid = await ctx.runAction(api.actions.password.verifyPasswordAction, {
+        password: args.currentPassword,
+        hashedPassword: user.password,
+      });
 
-        const hash = scryptSync(args.currentPassword, salt, 64).toString('hex');
-        if (!timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(storedHash, 'hex'))) {
-          return { success: false as const, error: 'Current password is incorrect.' };
-        }
-      } catch (error) {
-        console.error('Error during password verification:', error);
-        return { success: false as const, error: 'Failed to verify current password.' };
+      if (!isPasswordValid) {
+        return { success: false as const, error: 'Current password is incorrect.' };
       }
 
       // Hash new password
-      const newSalt = randomBytes(16).toString('hex');
-      const newHash = scryptSync(args.newPassword, newSalt, 64).toString('hex');
-      const hashedPassword = `${newSalt}:${newHash}`;
+      const hashedPassword = await ctx.runAction(api.actions.password.hashPasswordAction, {
+        password: args.newPassword,
+      });
 
       // Update password
       await ctx.runMutation(api.mutations.users.updateUser, {
@@ -2698,9 +2661,10 @@ export const customerSetup2FA = action({
       for (let i = 0; i < 8; i++) {
         const code = randomBytes(4).toString('hex').toUpperCase();
         unhashedBackupCodes.push(code);
-        // Hash backup code using scrypt
-        const salt = randomBytes(16).toString('hex');
-        const hashedCode = `${salt}:${scryptSync(code, salt, 64).toString('hex')}`;
+        // Hash backup code using centralized action
+        const hashedCode = await ctx.runAction(api.actions.password.hashPasswordAction, {
+          password: code,
+        });
         backupCodes.push(hashedCode);
       }
 
@@ -2779,19 +2743,14 @@ export const customerDisable2FA = action({
           return { success: false as const, error: 'No password set for this account.' };
         }
 
-        try {
-          const [salt, storedHash] = user.password.split(':');
-          if (!salt || !storedHash) {
-            return { success: false as const, error: 'Invalid password format.' };
-          }
+        // Verify password
+        const isPasswordValid = await ctx.runAction(api.actions.password.verifyPasswordAction, {
+          password: args.password,
+          hashedPassword: user.password,
+        });
 
-          const hash = scryptSync(args.password, salt, 64).toString('hex');
-          if (!timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(storedHash, 'hex'))) {
-            return { success: false as const, error: 'Invalid password.' };
-          }
-        } catch (error) {
-          console.error('Error during password verification:', error);
-          return { success: false as const, error: 'Failed to verify password.' };
+        if (!isPasswordValid) {
+          return { success: false as const, error: 'Invalid password.' };
         }
       }
 
@@ -2836,7 +2795,7 @@ export const customerGetCart = action({
   args: {
     sessionToken: v.string(),
   },
-      returns: v.union(
+  returns: v.union(
     v.object({
       success: v.literal(true),
       cart: v.array(v.object({
@@ -3183,11 +3142,11 @@ export const customerAddOrderToCart = action({
 
       // If no items were added, return error
       if (addedItems.length === 0) {
-        return { 
-          success: false as const, 
-          error: errors.length > 0 
-            ? errors.join('; ') 
-            : 'Failed to add any items from order to cart' 
+        return {
+          success: false as const,
+          error: errors.length > 0
+            ? errors.join('; ')
+            : 'Failed to add any items from order to cart'
         };
       }
 
@@ -3816,8 +3775,8 @@ export const customerGetRewardsPoints = action({
         userId,
       });
 
-      return { 
-        success: true as const, 
+      return {
+        success: true as const,
         points: pointsData.available_points || 0,
         total_earned: pointsData.total_points_earned || 0,
         total_spent: pointsData.total_points_spent || 0,
@@ -3857,7 +3816,7 @@ export const customerGetMonthlyOverview = action({
       const now = new Date();
       const targetMonth = args.month !== undefined ? args.month : now.getMonth() + 1;
       const targetYear = args.year !== undefined ? args.year : now.getFullYear();
-      
+
       // Format month as YYYY-MM for the query
       const monthString = `${targetYear}-${String(targetMonth).padStart(2, '0')}`;
 
@@ -3875,7 +3834,7 @@ export const customerGetMonthlyOverview = action({
       return { success: false as const, error: error?.message || 'Failed to get monthly overview' };
     }
   },
-      });
+});
 
 /**
  * Customer Get ForkPrint Score - for mobile app direct Convex communication
@@ -3928,8 +3887,8 @@ export const customerGetForkPrintScore = action({
 
       if (!scoreData) {
         // Return default values if no score exists yet
-      return {
-        success: true as const,
+        return {
+          success: true as const,
           data: {
             score: 0,
             status: 'Starter',
@@ -4024,12 +3983,12 @@ export const customerGetUserBehavior = action({
       for (const order of allOrders) {
         const orderDate = new Date(order.order_date || order.createdAt || order._creationTime);
         const hour = orderDate.getHours();
-        
+
         if (hour >= 17 && hour < 22 && order.items) {
           order.items.forEach((item: any) => {
             const dishId = item.meal_id || item.dish_id || 'unknown';
             const existing = dinnerItemsMap.get(dishId);
-            
+
             if (existing) {
               existing.order_count += 1;
               existing.last_ordered_at = Math.max(existing.last_ordered_at, orderDate.getTime());
@@ -4056,7 +4015,7 @@ export const customerGetUserBehavior = action({
         user_id: userId,
       });
       // Count colleagues (both manual and inferred)
-      const colleagueConnections = userConnections.filter((conn: any) => 
+      const colleagueConnections = userConnections.filter((conn: any) =>
         conn.connection_type === 'colleague_manual' || conn.connection_type === 'colleague_inferred'
       ).length;
 
@@ -4126,7 +4085,7 @@ export const customerGetWeeklySummary = action({
         endDate = args.end_date;
       } else {
         // Default to current week (Monday to Sunday)
-      const now = new Date();
+        const now = new Date();
         const dayOfWeek = now.getDay();
         const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
         const monday = new Date(now);
@@ -4143,10 +4102,10 @@ export const customerGetWeeklySummary = action({
 
       // Use the existing query that returns the correct structure
       const summary = await ctx.runQuery(api.queries.stats.getWeeklySummary, {
-            userId,
+        userId,
         startDate,
         endDate,
-          });
+      });
 
       return {
         success: true as const,
@@ -5009,9 +4968,9 @@ export const customerGetDishDetails = action({
       // Validate that dish_id is a valid Convex ID format
       // Convex IDs are typically 32 character alphanumeric strings
       if (!/^[a-z0-9]{32}$/.test(args.dish_id)) {
-        return { 
-          success: false as const, 
-          error: 'Invalid dish ID format. Expected a valid Convex ID.' 
+        return {
+          success: false as const,
+          error: 'Invalid dish ID format. Expected a valid Convex ID.'
         };
       }
 
@@ -5031,7 +4990,7 @@ export const customerGetDishDetails = action({
 
       // Get reviews for this meal
       const allReviews = await ctx.runQuery(api.queries.reviews.getAll, {});
-      const mealReviews = allReviews.filter((r: any) => 
+      const mealReviews = allReviews.filter((r: any) =>
         (r.mealId || r.meal_id) === args.dish_id
       );
 
@@ -5053,7 +5012,7 @@ export const customerGetDishDetails = action({
       // Build dish details with all expected fields for frontend
       const mealAny = meal as any;
       const chefAny = chef as any;
-      
+
       const dishDetails = {
         ...meal,
         // Image URL mapping
@@ -5137,9 +5096,9 @@ export const customerGetDishFavoriteStatus = action({
       // Validate that dish_id is a valid Convex ID format
       // Convex IDs are typically 32 character alphanumeric strings
       if (!/^[a-z0-9]{32}$/.test(args.dish_id)) {
-        return { 
-          success: false as const, 
-          error: 'Invalid dish ID format. Expected a valid Convex ID.' 
+        return {
+          success: false as const,
+          error: 'Invalid dish ID format. Expected a valid Convex ID.'
         };
       }
 
@@ -5352,9 +5311,9 @@ export const customerGetSimilarMeals = action({
       // Validate that meal_id is a valid Convex ID format
       // Convex IDs are typically 32 character alphanumeric strings
       if (!/^[a-z0-9]{32}$/.test(args.meal_id)) {
-        return { 
-          success: false as const, 
-          error: 'Invalid meal ID format. Expected a valid Convex ID.' 
+        return {
+          success: false as const,
+          error: 'Invalid meal ID format. Expected a valid Convex ID.'
         };
       }
 
@@ -7102,7 +7061,7 @@ export const customerCreateConnection = action({
         user_id: user._id,
       });
 
-      const connection = connections.find((c: any) => 
+      const connection = connections.find((c: any) =>
         c.connected_user_id === args.connected_user_id
       );
 
@@ -9022,7 +8981,7 @@ export const customerSendAIChatMessage = action({
       // Generate embedding for the user message to enable vector search
       let queryEmbedding: number[] | undefined;
       let mealRecommendations: any[] = [];
-      
+
       try {
         // Generate embedding for semantic meal search
         const embeddingResult = await ctx.runAction(api.actions.generateEmbeddings.generateQueryEmbedding, {
@@ -9083,7 +9042,7 @@ export const customerSendAIChatMessage = action({
 
       while (!aiMessage && (Date.now() - startTime) < maxWaitTime) {
         await new Promise(resolve => setTimeout(resolve, pollInterval));
-        
+
         const messages = await ctx.runQuery(api.queries.aiChat.getMessagesByChannel, {
           channelId,
           limit: 10,
@@ -9124,7 +9083,7 @@ export const customerSendAIChatMessage = action({
           error: 'CribNosh AI is temporarily unavailable. Please try again later.',
         };
       }
-      
+
       // For other errors, return generic message
       console.error('AI chat error:', error);
       return {

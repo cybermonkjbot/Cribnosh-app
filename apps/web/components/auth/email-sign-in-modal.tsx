@@ -2,6 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { api } from "@/convex/_generated/api";
+import { handleAuthSuccess } from "@/lib/auth-client";
+import { useAction } from "convex/react";
+
 import { Mail, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
@@ -27,11 +31,13 @@ export function EmailSignInModal({
   const [error, setError] = useState("");
   const [testOtp, setTestOtp] = useState<string | null>(null);
 
+  const sendEmailOTP = useAction(api.actions.users.customerEmailSendOTP);
+
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (isSendingOTP) return;
-    
+
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -44,34 +50,23 @@ export function EmailSignInModal({
 
     try {
       onEmailSubmit?.(email);
-      
-      // Send OTP
-      const response = await fetch('/api/auth/email-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          action: 'send',
-        }),
-      });
 
-      const data = await response.json();
+      // Send OTP via direct Convex action
+      const data = await sendEmailOTP({ email });
 
       if (data.success) {
         // In development, show the test OTP
-        if (data.data?.testOtp) {
-          setTestOtp(data.data.testOtp);
-          console.log('🔐 Development OTP Code:', data.data.testOtp);
+        if (data.testOtp) {
+          setTestOtp(data.testOtp);
+          console.log('🔐 Development OTP Code:', data.testOtp);
           toast.info('Development Mode', {
-            description: `OTP Code: ${data.data.testOtp}`,
+            description: `OTP Code: ${data.testOtp}`,
             duration: 10000,
           });
         }
         setShowOTPVerification(true);
       } else {
-        const errorMessage = data.error || data.message || 'Failed to send verification code. Please try again.';
+        const errorMessage = data.error || 'Failed to send verification code. Please try again.';
         setError(errorMessage);
         toast.error('Failed to Send Code', {
           description: errorMessage,
@@ -93,66 +88,17 @@ export function EmailSignInModal({
       });
       return;
     }
-    
-    // Store token in cookie (same format as sign-in-screen.tsx)
-    document.cookie = `convex-auth-token=${token}; path=/; max-age=7200; SameSite=Lax`;
-    
-    // Verify cookie was set using the same pattern as ConvexClientProvider
-    const getCookie = (name: string) => {
-      try {
-        const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-        return match ? match[2] : null;
-      } catch (error) {
-        console.error('Error reading cookie:', error);
-        return null;
-      }
-    };
-    
-    // Wait a moment to ensure cookie is set
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    const cookieToken = getCookie('convex-auth-token');
-    if (!cookieToken) {
-      console.error('Failed to set cookie - cookie not found after setting', {
-        allCookies: document.cookie,
-        tokenLength: token.length,
-      });
-      setError('Failed to set authentication cookie. Please try again.');
-      toast.error('Sign-In Failed', {
-        description: 'Failed to set authentication cookie. Please try again.',
-      });
-      return;
-    }
-    
-    if (cookieToken !== token) {
-      console.error('Cookie value mismatch', {
-        expectedLength: token.length,
-        actualLength: cookieToken.length,
-        expectedStart: token.substring(0, 20),
-        actualStart: cookieToken.substring(0, 20),
-      });
-      // Still proceed - sometimes cookies can have slight differences but still work
-      console.warn('Cookie value differs but proceeding anyway');
-    }
-    
-    console.log('[EmailSignIn] Cookie set successfully, token length:', token.length);
-    
-    // Show success toast
-    toast.success('Sign-In Successful', {
-      description: 'Welcome to CribNosh!',
-    });
-    
-    // Close modal and notify parent
+
+    // Use auth-client to handle session token and redirect
+    await handleAuthSuccess(token);
+
+    // Notify parent
     onClose();
     setEmail("");
     setShowOTPVerification(false);
     onSignInSuccess?.();
-    
-    // Small delay before reload to ensure cookie is persisted
-    setTimeout(() => {
-      window.location.reload();
-    }, 200);
   };
+
 
   const handleOTPError = (error: string) => {
     setError(error);

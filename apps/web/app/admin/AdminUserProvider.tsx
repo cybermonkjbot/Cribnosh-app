@@ -1,6 +1,9 @@
 "use client";
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
+import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { getAuthToken } from "@/lib/auth-client";
+import { useQuery } from "convex/react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 export interface AdminUser {
   _id: Id<"users">;
@@ -15,7 +18,7 @@ export interface AdminUser {
   };
 }
 
-const AdminUserContext = createContext<{ user: AdminUser | null, loading: boolean, sessionToken: string | null, refreshUser: () => Promise<void> }>({ user: null, loading: true, sessionToken: null, refreshUser: async () => {} });
+const AdminUserContext = createContext<{ user: AdminUser | null, loading: boolean, sessionToken: string | null, refreshUser: () => Promise<void> }>({ user: null, loading: true, sessionToken: null, refreshUser: async () => { } });
 
 export function useAdminUser() {
   return useContext(AdminUserContext);
@@ -31,22 +34,13 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
   // in production so we can read it from JavaScript for Convex queries.
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const getCookie = (name: string) => {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop()?.split(';').shift();
-        return null;
-      };
-      
-      // Try to get the session token cookie (works in both dev and production now)
-      const token = getCookie('convex-auth-token') || 
-                    (process.env.NODE_ENV !== 'production' ? getCookie('convex-auth-token-debug') : null);
-      
-      setSessionToken(token || null);
+      const token = getAuthToken();
+      setSessionToken(token);
       console.log('[AdminUserProvider] Session token found:', !!token);
       setHasCheckedStorage(true);
     }
   }, []);
+
 
   // Listen for cookie changes (refresh when cookie is set)
   // Works in both dev and production since cookie is now readable
@@ -59,10 +53,10 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
           if (parts.length === 2) return parts.pop()?.split(';').shift();
           return null;
         };
-        
+
         // Check for session token cookie (works in both dev and production)
-        const token = getCookie('convex-auth-token') || 
-                      (process.env.NODE_ENV !== 'production' ? getCookie('convex-auth-token-debug') : null);
+        const token = getCookie('convex-auth-token') ||
+          (process.env.NODE_ENV !== 'production' ? getCookie('convex-auth-token-debug') : null);
         setSessionToken(token || null);
         if (token && !user) {
           console.log('[AdminUserProvider] Cookie detected, refreshing user data');
@@ -94,65 +88,34 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Fetch user data when we've checked for session token
+  // Fetch user data via direct Convex query
+  const userDataResult = useQuery(
+    api.queries.users.getUserBySessionToken,
+    sessionToken && hasCheckedStorage ? { sessionToken } : 'skip'
+  );
+
   useEffect(() => {
-    console.log('[AdminUserProvider] hasCheckedStorage:', hasCheckedStorage);
-    
-    // Don't do anything until we've checked for session token
-    if (!hasCheckedStorage) {
-      return;
-    }
+    if (!hasCheckedStorage) return;
 
-    // Fetch user data from API (server validates session token and returns user data)
-    async function fetchUser() {
-      try {
-        console.log('[AdminUserProvider] Fetching user data from /api/admin/me');
-        const response = await fetch('/api/admin/me', {
-          method: 'GET',
-          credentials: 'include', // Include cookies (session token)
-        });
-
-        console.log('[AdminUserProvider] Response status:', response.status);
-        
-        if (!response.ok) {
-          console.log('[AdminUserProvider] Response not ok, setting user to null');
-          setUser(null);
-          setLoading(false);
-          return;
-        }
-
-        const data = await response.json();
-        console.log('[AdminUserProvider] Response data:', data);
-
-        if (data.data && data.data.user) {
-          // Transform API user to AdminUser format
-          const adminUser: AdminUser = {
-            _id: data.data.user._id,
-            name: data.data.user.name,
-            email: data.data.user.email,
-            role: data.data.user.role || 'admin',
-            status: data.data.user.status,
-            avatar: data.data.user.avatar,
-            preferences: data.data.user.preferences,
-          };
-
-          console.log('[AdminUserProvider] Setting admin user:', adminUser);
-          setUser(adminUser);
-        } else {
-          console.log('[AdminUserProvider] No user in response, setting user to null');
-          console.log('[AdminUserProvider] Full response data:', data);
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('[AdminUserProvider] Error fetching user:', error);
+    if (userDataResult !== undefined) {
+      if (userDataResult) {
+        // Transform user to AdminUser format
+        const adminUser: AdminUser = {
+          _id: userDataResult._id,
+          name: userDataResult.name,
+          email: userDataResult.email,
+          role: userDataResult.roles?.includes('admin') ? 'admin' : userDataResult.roles?.[0] || 'admin',
+          status: userDataResult.status,
+          avatar: userDataResult.avatar,
+          preferences: userDataResult.preferences,
+        };
+        setUser(adminUser);
+      } else {
         setUser(null);
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     }
-
-    fetchUser();
-  }, [hasCheckedStorage]);
+  }, [userDataResult, hasCheckedStorage]);
 
   // Add a manual refresh function that can be called externally
   const refreshUser = useCallback(async () => {
@@ -174,4 +137,4 @@ export function AdminUserProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AdminUserContext.Provider>
   );
-} 
+}

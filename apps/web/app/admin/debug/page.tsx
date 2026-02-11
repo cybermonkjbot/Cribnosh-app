@@ -1,14 +1,18 @@
 'use client';
 
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { api } from '@/convex/_generated/api';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from 'convex/react';
 import { useEffect, useState } from 'react';
 
 export default function AdminDebugPage() {
-  const { user, loading } = useAdminUser();
+  const { user, loading, sessionToken } = useAdminUser();
   const { toast } = useToast();
   const [cookies, setCookies] = useState<string>('');
   const [localStorage, setLocalStorage] = useState<string>('');
+
+  const me = useQuery(api.queries.users.getMe, { sessionToken: sessionToken || undefined });
 
   useEffect(() => {
     setCookies(document.cookie);
@@ -21,7 +25,7 @@ export default function AdminDebugPage() {
   return (
     <div className="container mx-auto py-6 space-y-[18px]">
       <h1 className="text-2xl font-bold">Admin Debug Page</h1>
-      
+
       <div className="space-y-4">
         <div>
           <h2 className="text-lg font-semibold">AdminUserProvider State:</h2>
@@ -41,29 +45,15 @@ export default function AdminDebugPage() {
         </div>
 
         <div>
-          <h2 className="text-lg font-semibold">Test API Call:</h2>
-          <button 
-            onClick={async () => {
-              try {
-                const response = await fetch('/api/admin/me', { credentials: 'include' });
-                const data = await response.json();
-                toast({
-                  title: "API Response",
-                  description: `Response: ${JSON.stringify(data, null, 2)}`,
-                  variant: "default"
-                });
-              } catch (error) {
-                toast({
-                  title: "API Error",
-                  description: `Error: ${error}`,
-                  variant: "destructive"
-                });
-              }
-            }}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            Test /api/admin/me
-          </button>
+          <h2 className="text-lg font-semibold">Test API Call (Legacy /api/admin/me):</h2>
+          <p className="text-sm text-muted-foreground mb-2">Deprecated. Use Convex query below.</p>
+        </div>
+
+        <div>
+          <h2 className="text-lg font-semibold">Convex api.queries.users.getMe:</h2>
+          <pre className="bg-gray-100 p-4 rounded">
+            {JSON.stringify(me, null, 2)}
+          </pre>
         </div>
       </div>
     </div>

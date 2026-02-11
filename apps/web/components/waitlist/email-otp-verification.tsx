@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from '@/convex/_generated/api';
+import { useAction } from 'convex/react';
 import { AlertCircle, ArrowLeft, Clock, Mail } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
@@ -24,10 +26,13 @@ export function EmailOTPVerification({
   const [attempts, setAttempts] = useState(0);
   const [error, setError] = useState('');
   const [isCodeAlreadyUsed, setIsCodeAlreadyUsed] = useState(false);
+
+  const resendOTP = useAction(api.actions.auth.sendWaitlistOTP);
+  const verifyOTPAction = useAction(api.actions.auth.verifyWaitlistOTP);
+
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Use refs to track in-flight requests and prevent race conditions
-  const abortControllerRef = useRef<AbortController | null>(null);
   const isVerifyingRef = useRef(false);
 
   // Countdown timer
@@ -105,42 +110,20 @@ export function EmailOTPVerification({
       return;
     }
 
-    // Cancel any previous in-flight request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Create new abort controller for this request
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-
     setIsVerifying(true);
     isVerifyingRef.current = true;
     setError('');
 
     try {
-      const response = await fetch('/api/auth/email-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          action: 'verify',
-          otp: otpString,
-        }),
-        signal: abortController.signal,
+      const result = await verifyOTPAction({
+        email,
+        otp: otpString,
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        // Handle response structure: data.data.sessionToken or data.data.token (for backwards compatibility)
-        const token = data.data?.sessionToken || data.data?.token || data.sessionToken || data.token;
-        const user = data.data?.user || data.user;
-        await onSuccess(token, user);
+      if (result.success) {
+        await onSuccess(result.sessionToken!, result.user);
       } else {
-        const errorMessage = data.error || data.message || 'Verification failed. Please try again.';
+        const errorMessage = result.error || 'Verification failed. Please try again.';
 
         // Check if the error is about the code being already used
         if (errorMessage.includes('already been used') || errorMessage.includes('already used')) {
@@ -148,27 +131,13 @@ export function EmailOTPVerification({
           setError('This verification code has already been used. Please request a new code.');
         } else {
           setIsCodeAlreadyUsed(false);
-          // Handle specific error cases
-          if (response.status === 429) {
-            setError('Too many attempts. Please wait before trying again.');
-          } else if (response.status === 400) {
-            setError(errorMessage);
-          } else if (response.status === 404) {
-            setError('Verification code not found. Please request a new one.');
-          } else {
-            setError(errorMessage);
-          }
+          setError(errorMessage);
         }
         setAttempts(prev => prev + 1);
       }
-    } catch (err) {
-      // Don't handle errors if request was aborted (user clicked again or component unmounted)
-      if (err instanceof Error && err.name === 'AbortError') {
-        return;
-      }
-
+    } catch (err: any) {
       console.error('OTP verification error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Network error. Please check your connection and try again.';
+      const errorMessage = err.message || 'Network error. Please check your connection and try again.';
 
       // Check if the error is about the code being already used
       if (errorMessage.includes('already been used') || errorMessage.includes('already used')) {
@@ -182,7 +151,6 @@ export function EmailOTPVerification({
     } finally {
       setIsVerifying(false);
       isVerifyingRef.current = false;
-      abortControllerRef.current = null;
     }
   };
 
@@ -191,20 +159,11 @@ export function EmailOTPVerification({
     setError('');
 
     try {
-      const response = await fetch('/api/auth/email-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          action: 'send',
-        }),
+      const result = await resendOTP({
+        email,
       });
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (result.success) {
         setTimeLeft(300); // Reset timer
         setAttempts(0);
         setOtp(['', '', '', '', '', '']);
@@ -212,10 +171,10 @@ export function EmailOTPVerification({
         setError('');
         setIsCodeAlreadyUsed(false);
       } else {
-        setError(data.error || 'Failed to resend code');
+        setError(result.error || 'Failed to resend code');
       }
-    } catch (err) {
-      setError('Network error. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend code');
     } finally {
       setIsResending(false);
     }

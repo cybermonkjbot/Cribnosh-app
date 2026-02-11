@@ -1,6 +1,6 @@
 "use client";
-
 import { StaffUser, useStaffAuth } from '@/hooks/useStaffAuth';
+import { getAuthToken } from '@/lib/auth-client';
 import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
 
 interface StaffAuthContextValue {
@@ -15,22 +15,14 @@ export function StaffAuthProvider({ children }: { children: ReactNode }) {
   const { staff, loading } = useStaffAuth();
   const [sessionToken, setSessionToken] = useState<string | null>(null);
 
-  // Fetch session token securely from API (handles httpOnly cookies)
+  // Fetch session token from cookies using auth-client
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Try to read from cookie first (if not httpOnly)
-      const match = document.cookie.match(/(^| )convex-auth-token=([^;]+)/);
-      if (match && match[2]) {
-        setSessionToken(match[2]);
-      } else {
-        // Fallback to API endpoint for httpOnly cookies
-        fetch('/api/auth/token', { credentials: 'include' })
-          .then(r => r.json())
-          .then(d => setSessionToken(d.data?.sessionToken ?? d.sessionToken ?? null))
-          .catch(() => setSessionToken(null));
-      }
+      const token = getAuthToken();
+      setSessionToken(token);
     }
   }, []);
+
 
   return (
     <StaffAuthContext.Provider value={{ staff, loading, sessionToken }}>

@@ -3,7 +3,9 @@
 import { GlassNavbar } from "@/components/admin/glass-navbar";
 import { GlassSidebar } from "@/components/admin/glass-sidebar";
 import { UnauthenticatedState } from '@/components/ui/UnauthenticatedState';
+import { api } from "@/convex/_generated/api";
 import { useMobileDevice } from '@/hooks/use-mobile-device';
+import { useConvex } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
@@ -18,21 +20,36 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState(3);
   const { user: adminUser, loading: adminLoading } = useAdminUser();
 
+  const convex = useConvex();
+
   const handleLogout = async () => {
     try {
-      await fetch('/api/admin/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      // Clear the session cookie by setting it to expire
-      document.cookie = 'convex-auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      // Clear admin email from localStorage
-      if (typeof window !== 'undefined') {
+      if (typeof document !== 'undefined') {
+        const getCookie = (name: string) => {
+          const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+          return match ? match[2] : null;
+        };
+        const token = getCookie('convex-auth-token');
+
+        if (token) {
+          // Call Convex mutation to delete session
+          await convex.mutation(api.mutations.sessions.deleteSessionByToken, {
+            sessionToken: token,
+          });
+        }
+
+        // Clear the session cookie
+        document.cookie = 'convex-auth-token=; path=/; max-age=0; SameSite=Lax';
+
+        // Clear admin email from localStorage
         localStorage.removeItem('adminEmail');
       }
       router.push('/admin/login');
-    } catch {
-      // Handle logout error silently
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Still attempt to clear cookie and redirect
+      document.cookie = 'convex-auth-token=; path=/; max-age=0; SameSite=Lax';
+      router.push('/admin/login');
     }
   };
 

@@ -1,5 +1,4 @@
-"use client";
-
+import { getAuthToken } from "@/lib/auth-client";
 import { useEffect, useState } from "react";
 
 /**
@@ -14,15 +13,9 @@ export function useSessionToken(): string | null {
   useEffect(() => {
     // Function to get token from cookie
     const getTokenFromCookie = (): string | null => {
-      if (typeof window === "undefined") return null;
-      try {
-        const match = document.cookie.match(/(^| )convex-auth-token=([^;]+)/);
-        return match ? match[2] : null;
-      } catch (error) {
-        console.error("Error reading cookie:", error);
-        return null;
-      }
+      return getAuthToken();
     };
+
 
     // Set initial token
     const token = getTokenFromCookie();

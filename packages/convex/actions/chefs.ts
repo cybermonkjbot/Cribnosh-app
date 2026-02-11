@@ -1,9 +1,7 @@
 // @ts-nocheck
 // This is necessary due to complex nested validators in Convex actions
 "use node";
-import { Buffer } from "buffer";
 import { v } from "convex/values";
-import { scryptSync, timingSafeEqual } from "crypto";
 import { api } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
 import { action } from "../_generated/server";
@@ -890,20 +888,13 @@ export const chefLogin = action({
       return { success: false, error: 'No password set. Please use social login or reset password.' };
     }
 
-    try {
-      // Check password (assume user.password is a scrypt hash: salt:hash)
-      const [salt, storedHash] = user.password.split(':');
-      if (!salt || !storedHash) {
-        console.error('Invalid password format for user:', args.email);
-        return { success: false, error: 'Invalid credentials' };
-      }
+    // Check password
+    const isPasswordValid = await ctx.runAction(api.actions.password.verifyPasswordAction, {
+      password: args.password,
+      hashedPassword: user.password,
+    });
 
-      const hash = scryptSync(args.password, salt, 64).toString('hex');
-      if (!timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(storedHash, 'hex'))) {
-        return { success: false, error: 'Invalid credentials' };
-      }
-    } catch (error) {
-      console.error('Error during password verification for user:', args.email, error);
+    if (!isPasswordValid) {
       return { success: false, error: 'Invalid credentials' };
     }
 

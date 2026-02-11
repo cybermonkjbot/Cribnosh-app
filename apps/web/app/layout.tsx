@@ -52,7 +52,11 @@ export const metadata: Metadata = {
     "dining experiences",
     "Birmingham food delivery",
     "Leicester meal service",
-    "Nottingham home cooking"
+    "Nottingham home cooking",
+    "Doyle Omachonu",
+    "Doyle Omachonu Cribnosh",
+    "Cribnosh CEO",
+    "Cribnosh Founder"
   ],
   icons: {
     icon: [
@@ -154,6 +158,13 @@ export default async function RootLayout({
               '@type': 'PostalAddress',
               addressCountry: 'GB',
               addressRegion: 'United Kingdom'
+            },
+            founder: {
+              '@type': 'Person',
+              name: 'Doyle Omachonu',
+              jobTitle: 'Founder & CEO',
+              image: `${getBaseUrl().toString()}IMG_3491.jpg`,
+              url: `${getBaseUrl().toString()}founders-story`
             },
             sameAs: [
               'https://www.facebook.com/share/16yzxEUqpx/',

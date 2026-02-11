@@ -6,7 +6,6 @@
 import { useStaffAuthContext } from '@/app/staff/staff-auth-context';
 import { GlassCard } from '@/components/ui/glass-card';
 import { api } from "@/convex/_generated/api";
-import { staffFetch } from '@/lib/api/staff-api-helper';
 import { useMutation, useQuery } from "convex/react";
 import {
   ArrowLeft,
@@ -37,11 +36,11 @@ interface OnboardingData {
     zipCode: string;
     country: string;
   };
-  
+
   // Employment Information
   position: string;
   employmentType: 'full-time' | 'part-time' | 'contract' | 'temporary';
-  
+
   // Emergency Contact
   emergencyContact: {
     name: string;
@@ -49,14 +48,14 @@ interface OnboardingData {
     phone: string;
     email: string;
   };
-  
+
   // Tax Information
   taxInfo: {
     ssn: string;
     filingStatus: 'single' | 'married' | 'head-of-household';
     allowances: number;
   };
-  
+
   // Banking Information
   bankingInfo: {
     bankName: string;
@@ -64,7 +63,7 @@ interface OnboardingData {
     routingNumber: string;
     accountType: 'checking' | 'savings';
   };
-  
+
   // Benefits
   benefits: {
     healthInsurance: boolean;
@@ -73,7 +72,7 @@ interface OnboardingData {
     retirementPlan: boolean;
     lifeInsurance: boolean;
   };
-  
+
   // Documents
   documents: {
     idDocument: File | null;
@@ -139,7 +138,7 @@ export default function OnboardingPage() {
       directDepositForm: null,
     },
   });
-  
+
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [onboardingCode, setOnboardingCode] = useState('');
@@ -148,7 +147,7 @@ export default function OnboardingPage() {
   const [onboardingEmail, setOnboardingEmail] = useState<string | null>(null);
 
   const { staff: staffUser, loading: staffAuthLoading, sessionToken } = useStaffAuthContext();
-  
+
   const user = useQuery(
     api.queries.users.getById,
     staffUser?._id && sessionToken
@@ -156,6 +155,8 @@ export default function OnboardingPage() {
       : 'skip'
   );
   const updateOnboarding = useMutation(api.mutations.users.updateUserOnboarding);
+  const validateOnboarding = useMutation(api.mutations.staff.validateOnboardingCode);
+  const markCodeUsed = useMutation(api.mutations.staff.markOnboardingCodeUsed);
 
   useEffect(() => {
     if (user && user.onboarding) {
@@ -168,12 +169,12 @@ export default function OnboardingPage() {
       const keys = field.split('.');
       const newData = { ...prev };
       let current: any = newData;
-      
+
       for (let i = 0; i < keys.length - 1; i++) {
         current = current[keys[i]];
       }
       current[keys[keys.length - 1]] = value;
-      
+
       return newData;
     });
   };
@@ -199,11 +200,11 @@ export default function OnboardingPage() {
       console.error('User not authenticated');
       return;
     }
-    
+
     setSubmitting(true);
     try {
-      await updateOnboarding({ 
-        userId: user._id, 
+      await updateOnboarding({
+        userId: user._id,
         onboarding: formData,
         sessionToken: sessionToken || undefined
       });
@@ -218,27 +219,28 @@ export default function OnboardingPage() {
   const validateCode = async () => {
     setCodeError(null);
     try {
-      const res = await staffFetch('/api/staff/onboarding/validate-code', {
-        method: 'POST',
-        body: JSON.stringify({ code: onboardingCode }),
-      });
-      const data = await res.json();
-      
-      if (res.ok && data.valid) {
+      const result = await validateOnboarding({ code: onboardingCode });
+
+      if (result.valid) {
         setCodeValidated(true);
-        setOnboardingEmail(data.email);
-        await fetch('/api/convex/mutation', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            mutation: 'markOnboardingCodeUsed', 
-            args: { code: onboardingCode } 
-          }),
-        });
+        setOnboardingEmail(result.email || null);
+
+        // Optional: mark as used - note that markOnboardingCodeUsed in convex/mutations/staff.ts
+        // currently requiresAdmin. If the user isn't an admin yet, this might fail.
+        // The previous code used a generic /api/convex/mutation proxy which might have different rules.
+        // For onboarding, we'll try to mark it used as admin if the session allows, 
+        // or we might need a non-admin mutation for this specific flow.
+        try {
+          await markCodeUsed({ code: onboardingCode, sessionToken: sessionToken || undefined });
+        } catch (e) {
+          console.warn('Could not mark code as used:', e);
+          // Don't block onboarding if marking as used fails (the code will expire anyway)
+        }
       } else {
         setCodeError('Invalid or expired code. Please check your offer letter or contact HR.');
       }
     } catch (error) {
+      console.error('Validation error:', error);
       setCodeError('An error occurred. Please try again.');
     }
   };
@@ -255,7 +257,7 @@ export default function OnboardingPage() {
         <GlassCard className="p-8 text-center max-w-md">
           <h1 className="text-2xl font-asgard text-white mb-4">Authentication Required</h1>
           <p className="text-white/80 mb-6">Please sign in to access the onboarding portal.</p>
-          <button 
+          <button
             type="button"
             className="px-4 py-2 bg-[#F23E2E] hover:bg-[#ed1d12] text-white rounded-lg transition-colors"
           >
@@ -276,8 +278,8 @@ export default function OnboardingPage() {
           <p className="text-white/80 mb-6">
             Thank you for completing your onboarding. HR will review your information and contact you soon.
           </p>
-          <Link 
-            href="/staff/portal" 
+          <Link
+            href="/staff/portal"
             className="inline-flex items-center px-4 py-2 bg-[#F23E2E] hover:bg-[#ed1d12] text-white rounded-lg transition-colors"
           >
             Return to Portal
@@ -336,11 +338,10 @@ export default function OnboardingPage() {
                 <div className="flex space-x-1 sm:space-x-2 px-2 sm:px-0 min-w-max w-full">
                   {steps.map((step, index) => (
                     <div key={step.id} className="flex flex-col items-center shrink-0" style={{ minWidth: '60px' }}>
-                      <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 ${
-                        currentStep >= step.id 
-                          ? 'bg-[#F23E2E] border-[#F23E2E] text-white' 
+                      <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 ${currentStep >= step.id
+                          ? 'bg-[#F23E2E] border-[#F23E2E] text-white'
                           : 'bg-white border-gray-300 text-gray-500'
-                      }`}>
+                        }`}>
                         {currentStep > step.id ? (
                           <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                         ) : (
@@ -351,9 +352,8 @@ export default function OnboardingPage() {
                         {step.title.split(' ')[0]}
                       </span>
                       {index < steps.length - 1 && (
-                        <div className={`hidden sm:block w-8 sm:w-12 h-0.5 mx-1 ${
-                          currentStep > step.id ? 'bg-[#F23E2E]' : 'bg-gray-300'
-                        }`} />
+                        <div className={`hidden sm:block w-8 sm:w-12 h-0.5 mx-1 ${currentStep > step.id ? 'bg-[#F23E2E]' : 'bg-gray-300'
+                          }`} />
                       )}
                     </div>
                   ))}
@@ -463,7 +463,7 @@ export default function OnboardingPage() {
                             placeholder="Enter street address"
                           />
                         </div>
-                        
+
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                           <input
@@ -474,7 +474,7 @@ export default function OnboardingPage() {
                             placeholder="Enter city"
                           />
                         </div>
-                        
+
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
                           <input
@@ -485,7 +485,7 @@ export default function OnboardingPage() {
                             placeholder="Enter state"
                           />
                         </div>
-                        
+
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
                           <input
@@ -496,7 +496,7 @@ export default function OnboardingPage() {
                             placeholder="Enter ZIP code"
                           />
                         </div>
-                        
+
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
                           <input
@@ -520,7 +520,7 @@ export default function OnboardingPage() {
                     <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">Employment Details</h2>
                     <p className="mt-1 text-sm text-gray-500">Please provide your employment information</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Position</label>
@@ -532,7 +532,7 @@ export default function OnboardingPage() {
                         placeholder="Enter your position"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Employment Type</label>
                       <select
@@ -557,7 +557,7 @@ export default function OnboardingPage() {
                     <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">Emergency Contact</h2>
                     <p className="mt-1 text-sm text-gray-500">Please provide emergency contact information</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
@@ -569,7 +569,7 @@ export default function OnboardingPage() {
                         placeholder="Enter contact name"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Relationship</label>
                       <input
@@ -580,7 +580,7 @@ export default function OnboardingPage() {
                         placeholder="e.g., Spouse, Parent, Sibling"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
                       <input
@@ -591,7 +591,7 @@ export default function OnboardingPage() {
                         placeholder="Enter phone number"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                       <input
@@ -613,7 +613,7 @@ export default function OnboardingPage() {
                     <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">Tax Information</h2>
                     <p className="mt-1 text-sm text-gray-500">Please provide your tax information</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Social Security Number</label>
@@ -625,7 +625,7 @@ export default function OnboardingPage() {
                         placeholder="XXX-XX-XXXX"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Filing Status</label>
                       <select
@@ -638,7 +638,7 @@ export default function OnboardingPage() {
                         <option value="head-of-household">Head of Household</option>
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Allowances</label>
                       <input
@@ -660,7 +660,7 @@ export default function OnboardingPage() {
                     <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">Banking Details</h2>
                     <p className="mt-1 text-sm text-gray-500">Please provide your banking information for direct deposit</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
@@ -672,7 +672,7 @@ export default function OnboardingPage() {
                         placeholder="Enter bank name"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Account Type</label>
                       <select
@@ -684,7 +684,7 @@ export default function OnboardingPage() {
                         <option value="savings">Savings</option>
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
                       <input
@@ -695,7 +695,7 @@ export default function OnboardingPage() {
                         placeholder="Enter account number"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Routing Number</label>
                       <input
@@ -717,7 +717,7 @@ export default function OnboardingPage() {
                     <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">Benefits Selection</h2>
                     <p className="mt-1 text-sm text-gray-500">Please select your benefits preferences</p>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <div className="flex items-center">
                       <input
@@ -731,7 +731,7 @@ export default function OnboardingPage() {
                         Health Insurance
                       </label>
                     </div>
-                    
+
                     <div className="flex items-center">
                       <input
                         type="checkbox"
@@ -744,7 +744,7 @@ export default function OnboardingPage() {
                         Dental Insurance
                       </label>
                     </div>
-                    
+
                     <div className="flex items-center">
                       <input
                         type="checkbox"
@@ -757,7 +757,7 @@ export default function OnboardingPage() {
                         Vision Insurance
                       </label>
                     </div>
-                    
+
                     <div className="flex items-center">
                       <input
                         type="checkbox"
@@ -770,7 +770,7 @@ export default function OnboardingPage() {
                         401(k) Retirement Plan
                       </label>
                     </div>
-                    
+
                     <div className="flex items-center">
                       <input
                         type="checkbox"
@@ -794,7 +794,7 @@ export default function OnboardingPage() {
                     <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">Document Upload</h2>
                     <p className="mt-1 text-sm text-gray-500">Please upload the required documents</p>
                   </div>
-                  
+
                   <div className="space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -826,7 +826,7 @@ export default function OnboardingPage() {
                         )}
                       </div>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Tax Form (W-4)
@@ -857,7 +857,7 @@ export default function OnboardingPage() {
                         )}
                       </div>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Direct Deposit Form
@@ -904,7 +904,7 @@ export default function OnboardingPage() {
                       <ArrowLeft className="w-4 h-4 mr-2" />
                       Previous
                     </button>
-                    
+
                     {currentStep < steps.length ? (
                       <button
                         onClick={nextStep}

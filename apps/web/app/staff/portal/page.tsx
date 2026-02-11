@@ -5,8 +5,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { ParallaxGroup, ParallaxLayer } from '@/components/ui/parallax';
 import { api } from "@/convex/_generated/api";
 import { useMobileDevice } from '@/hooks/use-mobile-device';
-import { staffFetch } from '@/lib/api/staff-api-helper';
-import { useConvex, useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import {
   AlertCircle,
   Badge,
@@ -20,23 +19,41 @@ import {
   UserPlus
 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 // NOTE: This page is accessible to both staff (role: 'staff') and admin (role: 'admin') users.
 // All admins are staff, but not all staff are admins.
 
 export default function StaffPortal() {
   const { staff: staffUser, loading: staffAuthLoading, sessionToken } = useStaffAuthContext();
-  const [staffMember, setStaffMember] = useState<any>(null);
-  const convex = useConvex();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [staffNotices, setStaffNotices] = useState<any[]>([]);
-  const [noticesLoading, setNoticesLoading] = useState(true);
+
+  // Fetch assignment data (department, position) via Convex
+  const assignment = useQuery(
+    api.queries.staff.getStaffAssignmentByUser,
+    staffUser?._id && sessionToken
+      ? { userId: staffUser._id, sessionToken }
+      : "skip"
+  );
+
+  // Fetch active notices via Convex
+  const staffNoticesData = useQuery(
+    api.queries.staff.getActiveStaffNotices,
+    sessionToken
+      ? {
+        sessionToken,
+        department: assignment?.department,
+        position: assignment?.position
+      }
+      : "skip"
+  );
+  const staffNotices = staffNoticesData || [];
+  const noticesLoading = staffNoticesData === undefined;
 
   const notifications = useQuery(
     api.queries.users.getUserNotifications,
-    staffMember && staffMember._id && sessionToken
-      ? { userId: staffMember._id, roles: staffMember.roles, sessionToken } as any
+    staffUser?._id && sessionToken
+      ? { userId: staffUser._id, roles: staffUser.roles, sessionToken } as any
       : "skip"
   );
   const markNotificationRead = useMutation(api.mutations.users.markNotificationRead);
@@ -51,59 +68,6 @@ export default function StaffPortal() {
   };
   const unreadCount = notifications?.filter((n: any) => !n.read).length || 0;
   const { isMobile } = useMobileDevice();
-
-  // Use staff user data from hook when available
-  useEffect(() => {
-    if (staffUser) {
-      setStaffMember(staffUser);
-    } else if (!staffAuthLoading) {
-      // If staff loading is complete and no staff user, try to fetch from API as fallback
-      async function fetchStaffData() {
-        try {
-          const res = await staffFetch('/api/staff/data');
-          if (res.ok) {
-            const data = await res.json();
-            // Transform API response to match expected format (id -> _id)
-            const staffData = data.data;
-            if (staffData) {
-              setStaffMember({
-                ...staffData,
-                _id: staffData.id || staffData._id, // Ensure _id is set for Convex queries
-              });
-            } else {
-              setStaffMember(null);
-            }
-          } else {
-            setStaffMember(null);
-          }
-        } catch (error) {
-          setStaffMember(null);
-        }
-      }
-      fetchStaffData();
-    }
-  }, [staffUser, staffAuthLoading]);
-
-  // Fetch staff notices on mount
-  useEffect(() => {
-    async function fetchNotices() {
-      setNoticesLoading(true);
-      try {
-        const res = await staffFetch('/api/staff/notices');
-        if (res.ok) {
-          const data = await res.json();
-          setStaffNotices(data.data?.notices || []);
-        } else {
-          setStaffNotices([]);
-        }
-      } catch (error) {
-        setStaffNotices([]);
-      } finally {
-        setNoticesLoading(false);
-      }
-    }
-    fetchNotices();
-  }, []);
 
   // --- Conditional UI states ---
   // Auth is handled at layout level via session-based authentication (session token in cookies)
@@ -120,15 +84,14 @@ export default function StaffPortal() {
     );
   }
 
-  // Use staffUser directly if available, otherwise use staffMember (from API fallback)
-  // This ensures we have data even if staffMember hasn't been set yet from the useEffect
-  const safeStaffMember = staffUser || staffMember;
-
   // If we still don't have staff data after loading completes, show loading
-  // This can happen if the API call is still in progress
-  if (!safeStaffMember) {
+  if (!staffUser) {
     return null; // Wait for staff data to be available
   }
+
+  // Merge assignment data into staff user for UI
+  const displayPosition = assignment?.position || staffUser.position || 'Job title not set';
+  const displayDepartment = assignment?.department || staffUser.department || 'Department not set';
 
   // --- Main portal UI ---
   return (
@@ -157,13 +120,13 @@ export default function StaffPortal() {
                   </div>
                   <div>
                     <h1 className="text-xl font-asgard text-gray-900">Staff Portal</h1>
-                    <p className="text-sm font-satoshi text-gray-800">Welcome back, {safeStaffMember.name}</p>
+                    <p className="text-sm font-satoshi text-gray-800">Welcome back, {staffUser.name}</p>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-satoshi bg-[#F23E2E]/10 text-[#F23E2E]">
-                        {safeStaffMember.position || 'Job title not set'}
+                        {displayPosition}
                       </span>
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-satoshi bg-gray-100 text-gray-800">
-                        {safeStaffMember.department || 'Department not set'}
+                        {displayDepartment}
                       </span>
                     </div>
                   </div>
@@ -188,8 +151,8 @@ export default function StaffPortal() {
               )}
               <GlassCard className="p-6">
                 <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg ${safeStaffMember.onboarding ? 'bg-[#F23E2E]/10' : 'bg-gray-100'}`}>
-                    {safeStaffMember.onboarding ? (
+                  <div className={`p-2 rounded-lg ${staffUser.onboarding ? 'bg-[#F23E2E]/10' : 'bg-gray-100'}`}>
+                    {staffUser.onboarding ? (
                       <CheckCircle className="w-6 h-6 text-[#F23E2E]" />
                     ) : (
                       <Clock className="w-6 h-6 text-gray-900" />
@@ -197,8 +160,8 @@ export default function StaffPortal() {
                   </div>
                   <div>
                     <p className="text-sm font-satoshi text-gray-800">Onboarding Status</p>
-                    <p className={`font-medium font-satoshi ${safeStaffMember.onboarding ? 'text-[#F23E2E]' : 'text-gray-900'}`}>
-                      {safeStaffMember.onboarding ? 'Complete' : 'In Progress'}
+                    <p className={`font-medium font-satoshi ${staffUser.onboarding ? 'text-[#F23E2E]' : 'text-gray-900'}`}>
+                      {staffUser.onboarding ? 'Complete' : 'In Progress'}
                     </p>
                   </div>
                 </div>
@@ -364,12 +327,12 @@ export default function StaffPortal() {
                       <div
                         key={notification._id}
                         className={`flex items-center justify-between p-4 rounded-xl border font-satoshi ${notification.type === 'success'
-                            ? 'bg-[#F23E2E]/10 border-[#F23E2E]/30 text-[#F23E2E]'
-                            : notification.type === 'warning'
+                          ? 'bg-[#F23E2E]/10 border-[#F23E2E]/30 text-[#F23E2E]'
+                          : notification.type === 'warning'
+                            ? 'bg-gray-100 border-gray-300 text-gray-800'
+                            : notification.type === 'error'
                               ? 'bg-gray-100 border-gray-300 text-gray-800'
-                              : notification.type === 'error'
-                                ? 'bg-gray-100 border-gray-300 text-gray-800'
-                                : 'bg-gray-100 border-gray-300 text-gray-800'
+                              : 'bg-gray-100 border-gray-300 text-gray-800'
                           }`}
                       >
                         <div className="flex-1">

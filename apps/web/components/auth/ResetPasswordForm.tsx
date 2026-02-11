@@ -36,8 +36,8 @@ export default function ResetPasswordForm({ role }: ResetPasswordFormProps) {
         e.preventDefault();
         if (!token) return;
 
-        if (password.length < 6) {
-            setError('Password must be at least 6 characters.');
+        if (password.length < 8) {
+            setError('Password must be at least 8 characters.');
             return;
         }
 
@@ -114,7 +114,7 @@ export default function ResetPasswordForm({ role }: ResetPasswordFormProps) {
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             className="w-full px-4 py-2 pl-12 pr-12 bg-white/80 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 font-satoshi focus:outline-none focus:ring-2 focus:ring-[#ff3b30] transition-all"
-                            placeholder="Min. 6 characters"
+                            placeholder="Min. 8 characters"
                             disabled={loading || !token}
                         />
                         <Lock className="w-5 h-5 text-[#ff3b30] absolute left-4 top-1/2 transform -translate-y-1/2" />

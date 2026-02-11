@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import { X } from "lucide-react";
-import { toast } from "sonner";
-import { SignInSocialSelectionCard } from "./sign-in-social-card";
-import { EmailSignInModal } from "./email-sign-in-modal";
+import { api } from "@/convex/_generated/api";
+import { handleAuthSuccess } from "@/lib/auth-client";
 import { useSession } from "@/lib/auth/use-session";
+import { useAction } from "convex/react";
+import { X } from "lucide-react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { EmailSignInModal } from "./email-sign-in-modal";
+import { SignInSocialSelectionCard } from "./sign-in-social-card";
 
 interface SignInScreenProps {
   onGoogleSignIn?: (idToken: string) => void;
@@ -28,6 +31,9 @@ export function SignInScreen({
   const [isAppleSignInLoading, setIsAppleSignInLoading] = useState(false);
   const [isGoogleSignInLoading, setIsGoogleSignInLoading] = useState(false);
   const [isEmailSignInModalVisible, setIsEmailSignInModalVisible] = useState(false);
+
+  const googleAuth = useAction(api.actions.auth.googleAuth);
+  const appleAuth = useAction(api.actions.auth.appleAuth);
 
   // Check Apple Sign-In availability (only on Safari/iOS)
   useEffect(() => {
@@ -59,11 +65,11 @@ export function SignInScreen({
         script.async = true;
         script.defer = true;
         document.head.appendChild(script);
-        
+
         script.onload = () => {
           initializeGoogleSignIn(googleClientId);
         };
-        
+
         script.onerror = () => {
           console.error('Failed to load Google Identity Services');
           toast.error('Sign-In Failed', {
@@ -92,14 +98,14 @@ export function SignInScreen({
     // Wait for Google to be available (max 5 seconds)
     let attempts = 0;
     const maxAttempts = 50; // 5 seconds at 100ms intervals
-    
+
     const checkGoogle = setInterval(() => {
       attempts++;
-      
+
       if ((window as any).google) {
         clearInterval(checkGoogle);
         const { google } = window as any;
-        
+
         try {
           // Use OAuth2 flow for button click
           const client = google.accounts.oauth2.initTokenClient({
@@ -116,26 +122,23 @@ export function SignInScreen({
                   return;
                 }
 
-                // Use access token to get user info
-                const res = await fetch('/api/auth/google-signin', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ accessToken: response.access_token }),
+                // Use direct Convex action for Google authentication
+                const data = await googleAuth({
+                  accessToken: response.access_token,
+                  userAgent: navigator.userAgent,
                 });
-                
-                const data = await res.json();
-                
-                if (data.success && data.data?.token) {
-                  // Store token in cookie
-                  document.cookie = `convex-auth-token=${data.data.token}; path=/; max-age=7200; SameSite=Lax`;
-                  // Show success toast
-                  toast.success('Sign-In Successful', {
-                    description: 'Welcome to CribNosh!',
+
+                if (data.success && data.sessionToken) {
+                  // Use auth-client to handle session token and redirect
+                  await handleAuthSuccess(data.sessionToken);
+                } else if (data.requires2FA) {
+
+                  toast.info('2FA Required', {
+                    description: 'Please complete 2FA on the mobile app.',
                   });
-                  // Reload to update auth state
-                  window.location.reload();
+                  setIsGoogleSignInLoading(false);
                 } else {
-                  const errorMessage = data.error || data.message || 'Google sign-in failed. Please try again.';
+                  const errorMessage = data.error || 'Google sign-in failed. Please try again.';
                   toast.error('Sign-In Failed', {
                     description: errorMessage,
                   });
@@ -176,7 +179,7 @@ export function SignInScreen({
     try {
       const appleClientId = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID;
       const redirectUri = `${window.location.origin}/api/auth/apple/callback`;
-      
+
       if (!appleClientId) {
         console.error('Apple Client ID not configured');
         setIsAppleSignInLoading(false);

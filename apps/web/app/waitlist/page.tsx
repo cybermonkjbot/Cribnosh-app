@@ -55,6 +55,7 @@ export default function WaitlistPage() {
   };
 
   const addToWaitlist = useAction(api.actions.waitlist.addToWaitlistComplete);
+  const sendOTPAction = useAction(api.actions.auth.sendWaitlistOTP);
 
   // Debounced email for query to prevent excessive queries
   const [debouncedEmail, setDebouncedEmail] = useState<string>('');
@@ -245,29 +246,24 @@ export default function WaitlistPage() {
     // For email addresses, use OTP verification flow
     if (contactType === 'email') {
       try {
-        // Send OTP email
-        const response = await fetch('/api/auth/email-otp', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: contact,
-            action: 'send',
-          }),
+        // Send OTP email via direct Convex action
+        const result = await sendOTPAction({
+          email: contact,
+          name: undefined, // Could potentially capture name here if we added a field
+          location: formatLocationAsString(location) || undefined,
+          referrerId: referrerId || undefined,
+          source: hasSocialMediaFollowing ? 'social_waitlist' : 'organic_waitlist',
         });
 
-        const data = await response.json();
-
-        if (data.success) {
+        if (result.success) {
           setCurrentStep('otp-verification');
           setEmailStatus('success');
         } else {
-          setError(data.error || 'Failed to send verification email');
+          setError(result.error || 'Failed to send verification email');
           setEmailStatus('error');
         }
-      } catch (err) {
-        setError('Network error. Please try again.');
+      } catch (err: any) {
+        setError(err.message || 'Network error. Please try again.');
         setEmailStatus('error');
       } finally {
         setIsSubmitting(false);

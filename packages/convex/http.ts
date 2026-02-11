@@ -428,4 +428,36 @@ http.route({
   }),
 });
 
+// ============================================================================
+// FILE SERVING
+// ============================================================================
+
+http.route({
+  path: "/api/files/:storageId",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const storageId = url.pathname.split('/').pop();
+
+    if (!storageId) {
+      return new Response("Missing storage ID", { status: 400 });
+    }
+
+    const fileUrl = await ctx.storage.getUrl(storageId);
+
+    if (!fileUrl) {
+      return new Response("File not found", { status: 404 });
+    }
+
+    // Redirect to the signed URL
+    return new Response(null, {
+      status: 302,
+      headers: {
+        "Location": fileUrl,
+        "Cache-Control": "public, max-age=31536000, immutable"
+      },
+    });
+  }),
+});
+
 export default http;

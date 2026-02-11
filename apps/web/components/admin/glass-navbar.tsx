@@ -133,7 +133,18 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      // Logout handled by middleware, just redirect
+      const token = getCookie('convex-auth-token');
+      if (token) {
+        // Call Convex mutation to delete session
+        await convex.mutation(api.mutations.sessions.deleteSessionByToken, {
+          sessionToken: token,
+        });
+
+        // Clear cookie
+        document.cookie = 'convex-auth-token=; path=/; max-age=0; SameSite=Lax';
+      }
+
+      // Redirect to login
       if (isAdminPage) {
         router.push('/admin/login');
       } else if (isStaffPage) {
@@ -141,6 +152,14 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
       }
     } catch (error) {
       console.error('Logout failed:', error);
+      // Still attempt to clear cookie and redirect
+      document.cookie = 'convex-auth-token=; path=/; max-age=0; SameSite=Lax';
+      if (isAdminPage) {
+        router.push('/admin/login');
+      } else if (isStaffPage) {
+        router.push('/staff/login');
+      }
+    } finally {
       setIsLoggingOut(false);
     }
   };
@@ -243,8 +262,8 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
             <Link
               href="/staff/time-tracking"
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${pathname === '/staff/time-tracking'
-                  ? 'bg-[#F23E2E]/10 text-[#F23E2E]'
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                ? 'bg-[#F23E2E]/10 text-[#F23E2E]'
+                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                 }`}
             >
               Time Tracking

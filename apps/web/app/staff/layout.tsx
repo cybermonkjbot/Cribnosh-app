@@ -3,8 +3,7 @@
 import { GlassNavbar } from "@/components/admin/glass-navbar";
 import { api } from '@/convex/_generated/api';
 import { useMobileDevice } from '@/hooks/use-mobile-device';
-import { staffFetch } from '@/lib/api/staff-api-helper';
-import { useMutation, useQuery } from 'convex/react';
+import { useConvex, useMutation, useQuery } from 'convex/react';
 import { Bell } from "lucide-react";
 import { motion } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
@@ -58,14 +57,32 @@ function StaffLayoutContent({
     }
   }, [isLoginPage, staffUser, router]);
 
+  const convex = useConvex();
+
   const handleLogout = async () => {
     try {
-      await staffFetch('/api/staff/auth/logout', {
-        method: 'POST',
-      });
+      if (typeof document !== 'undefined') {
+        const getCookie = (name: string) => {
+          const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+          return match ? match[2] : null;
+        };
+        const token = getCookie('convex-auth-token');
+
+        if (token) {
+          // Call Convex mutation to delete session
+          await convex.mutation(api.mutations.sessions.deleteSessionByToken, {
+            sessionToken: token,
+          });
+        }
+
+        // Clear the session cookie
+        document.cookie = 'convex-auth-token=; path=/; max-age=0; SameSite=Lax';
+      }
       router.push('/staff/login');
     } catch (error) {
-      // Silently handle logout errors
+      console.error('Logout failed:', error);
+      // Still attempt to clear cookie and redirect
+      document.cookie = 'convex-auth-token=; path=/; max-age=0; SameSite=Lax';
       router.push('/staff/login');
     }
   };

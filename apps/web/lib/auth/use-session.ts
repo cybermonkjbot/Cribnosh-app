@@ -2,8 +2,10 @@
 
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { getAuthToken } from '@/lib/auth-client';
 import { logger } from '@/lib/utils/logger';
 import { useQuery } from 'convex/react';
+
 import { useEffect, useState } from 'react';
 
 type User = {
@@ -49,18 +51,7 @@ export function useSession() {
 
   // Get session token from cookies on client side
   useEffect(() => {
-    const getCookie = (name: string) => {
-      const value = `; ${document.cookie}`;
-      const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) {
-        const cookieValue = parts.pop()?.split(';').shift();
-        // JWT tokens are URL-safe, no decoding needed
-        return cookieValue || null;
-      }
-      return null;
-    };
-
-    const token = getCookie('convex-auth-token');
+    const token = getAuthToken();
     if (token) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSessionToken(token);
@@ -81,6 +72,7 @@ export function useSession() {
     }
     setHasCheckedToken(true);
   }, []);
+
 
   // Fetch user data - prefer sessionToken query (faster), fallback to userId if JWT
   const userDataBySessionToken = useQuery(

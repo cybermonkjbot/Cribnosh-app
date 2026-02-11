@@ -1,10 +1,13 @@
 import { Link } from '@/components/link';
 import { GlassCard } from '@/components/ui/glass-card';
+import { api } from '@/convex/_generated/api';
 import { useUserIp } from '@/hooks/use-user-ip';
+import { useAction } from 'convex/react';
 import { AlertCircle, CheckCircle, Eye, EyeOff, Lock, User } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 interface UnifiedInternalLoginProps {
   role: 'admin' | 'staff';
@@ -12,23 +15,22 @@ interface UnifiedInternalLoginProps {
   redirectPath: string;
 }
 
-// Utility to get a cookie value by name (client-side only)
-function getCookie(name: string): string | undefined {
-  if (typeof document === 'undefined') return undefined;
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-  return match ? decodeURIComponent(match[2]) : undefined;
-}
-
 export default function UnifiedInternalLogin({ role, apiEndpoint, redirectPath }: UnifiedInternalLoginProps) {
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [step, setStep] = useState<'login' | '2fa'>('login');
+  const [verificationToken, setVerificationToken] = useState<string | null>(null);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
   const errorRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const userIp = useUserIp();
+  const emailLoginAction = useAction(api.actions.auth.emailLogin);
+  const verify2FAAction = useAction(api.actions.auth.verify2FA);
 
   // Focus error for accessibility
   useEffect(() => {
@@ -84,56 +86,17 @@ export default function UnifiedInternalLogin({ role, apiEndpoint, redirectPath }
 
     setLoading(true);
     try {
-      // Always fetch a fresh CSRF token before login
-      const csrfRes = await fetch('/api/csrf', { credentials: 'include' });
-      const csrfData = await csrfRes.json();
-      const freshCsrfToken = csrfData.csrfToken;
-
-      // Debug: Log CSRF cookie and header values before login
-      if (role === 'admin') {
-        console.log('[ADMIN LOGIN DEBUG] CSRF', { cookieValue: getCookie('csrf_token'), freshCsrfToken });
-      }
-
-      const response = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-csrf-token': freshCsrfToken,
-          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include', // Ensure cookies are sent
+      const data = await emailLoginAction({
+        email,
+        password,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+        ipAddress: userIp || undefined,
       });
-      let data: any = {};
-      try {
-        data = await response.json();
-        if (role === 'admin') {
-          console.log('[ADMIN LOGIN DEBUG] API response', { status: response.status, data });
-        }
-      } catch (jsonErr) {
-        console.error('[LOGIN] Failed to parse JSON:', jsonErr);
-        if (role === 'admin') {
-          console.log('[ADMIN LOGIN DEBUG] Failed to parse JSON', { jsonErr });
-        }
-        setError('Unexpected server response. Please try again.');
-        setLoading(false);
-        return;
-      }
-      if (response.ok && (role === 'admin' ? data.success : true)) {
-        if (data.token) {
-          if (role === 'admin') {
-            localStorage.setItem('adminToken', data.token);
-          } else if (role === 'staff') {
-            localStorage.setItem('staffToken', data.token);
-          }
-        }
-        if (data.sessionToken) {
-          const isProd = process.env.NODE_ENV === 'production';
-          // Remove all lines like:
-          // localStorage.setItem('convex-auth-token', data.sessionToken);
-          // convexAuthToken: typeof window !== 'undefined' ? localStorage.getItem('convex-auth-token') : null,
-          // Instead, rely on the cookie for session management.
-        }
+
+      if (data.success && data.sessionToken) {
+        // Use auth-client to set session token
+        setAuthToken(data.sessionToken);
+
         if (typeof window !== 'undefined') {
           if (role === 'admin') {
             localStorage.setItem('adminEmail', email);
@@ -141,43 +104,66 @@ export default function UnifiedInternalLogin({ role, apiEndpoint, redirectPath }
             localStorage.setItem('staffEmail', email);
           }
         }
-        if (role === 'admin') {
-          console.log('[ADMIN LOGIN DEBUG] Login success, sessionToken and email set in localStorage', {
-            // Remove all lines like:
-            // convexAuthToken: typeof window !== 'undefined' ? localStorage.getItem('convex-auth-token') : null,
-            staffEmail: typeof window !== 'undefined' ? localStorage.getItem('staffEmail') : null,
-            cookies: typeof document !== 'undefined' ? document.cookie : null
-          });
-        }
+
         setSuccess(true);
         setTimeout(() => {
-          if (role === 'admin') {
-            console.log('[ADMIN LOGIN DEBUG] Redirecting to', redirectPath);
-          }
-          // Use window.location.href instead of router.push to ensure full page reload
-          // This ensures the middleware runs with the fresh cookie
           window.location.href = redirectPath;
-        }, 3000); // Increased delay to ensure cookie is set and provider can detect it
-        console.log('[LOGIN SUCCESS]', { email, role });
+        }, 2000);
+      } else if (data.requires2FA) {
+        setVerificationToken(data.verificationToken);
+        setStep('2fa');
+        toast.info('2FA Required', {
+          description: 'Please enter the code from your authenticator app.',
+        });
       } else {
-        // Mask all errors
-        setError('Login failed. Please check your credentials and try again.');
-        console.warn('[LOGIN FAILURE]', { email, role, serverMessage: data.error || data.message });
-        if (role === 'admin') {
-          console.log('[ADMIN LOGIN DEBUG] Login failed', { data, cookies: typeof document !== 'undefined' ? document.cookie : null });
-        }
+        setError(data.error || 'Login failed. Please check your credentials.');
       }
     } catch (err) {
-      setError('Network error. Please try again.');
-      console.error('[LOGIN ERROR]', { email, role, err });
-      if (role === 'admin') {
-        console.log('[ADMIN LOGIN DEBUG] Network error', { err });
-      }
+      setError('An unexpected error occurred. Please try again.');
+      console.error('[LOGIN ERROR]', err);
     } finally {
       setLoading(false);
-      if (role === 'admin') {
-        console.log('[ADMIN LOGIN DEBUG] Loading set to false');
+    }
+  };
+
+  const handleVerify2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading || !verificationToken) return;
+    setError(null);
+    setLoading(true);
+
+    try {
+      const data = await verify2FAAction({
+        verificationToken,
+        code: twoFactorCode,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+        ipAddress: userIp || undefined,
+      });
+
+      if (data.success && data.sessionToken) {
+        // Use auth-client to set session token
+        setAuthToken(data.sessionToken);
+
+        if (typeof window !== 'undefined') {
+          if (role === 'admin') {
+            localStorage.setItem('adminEmail', email);
+          } else if (role === 'staff') {
+            localStorage.setItem('staffEmail', email);
+          }
+        }
+
+        setSuccess(true);
+        setTimeout(() => {
+          window.location.href = redirectPath;
+        }, 2000);
+      } else {
+        setError(data.error || 'Verification failed. Please check your code.');
       }
+    } catch (err) {
+      setError('An unexpected error occurred during verification.');
+      console.error('[2FA ERROR]', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -242,70 +228,114 @@ export default function UnifiedInternalLogin({ role, apiEndpoint, redirectPath }
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4" aria-label={`${role} login form`}>
-            <div>
-              <label className="block text-sm font-medium text-gray-900 font-satoshi mb-2" htmlFor="email">Email Address</label>
-              <div className="relative">
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full px-4 py-2 pl-12 bg-white/80 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 font-satoshi focus:outline-none focus:ring-2 focus:ring-[#ff3b30] focus:bg-white transition-all"
-                  placeholder={role === 'admin' ? 'admin@cribnosh.com' : 'Enter your work email'}
-                  aria-label="Email"
-                  autoComplete="email"
-                  disabled={loading}
-                />
-                <User className="w-5 h-5 text-[#ff3b30] absolute left-4 top-1/2 transform -translate-y-1/2" />
+          {step === 'login' ? (
+            <form onSubmit={handleSubmit} className="space-y-4" aria-label={`${role} login form`}>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 font-satoshi mb-2" htmlFor="email">Email Address</label>
+                <div className="relative">
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 pl-12 bg-white/80 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 font-satoshi focus:outline-none focus:ring-2 focus:ring-[#ff3b30] focus:bg-white transition-all"
+                    placeholder={role === 'admin' ? 'admin@cribnosh.com' : 'Enter your work email'}
+                    aria-label="Email"
+                    autoComplete="email"
+                    disabled={loading}
+                  />
+                  <User className="w-5 h-5 text-[#ff3b30] absolute left-4 top-1/2 transform -translate-y-1/2" />
+                </div>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-900 font-satoshi mb-2" htmlFor="password">Password</label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full px-4 py-2 pl-12 pr-12 bg-white/80 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 font-satoshi focus:outline-none focus:ring-2 focus:ring-[#ff3b30] focus:bg-white transition-all"
-                  placeholder="Enter your password"
-                  aria-label="Password"
-                  autoComplete="current-password"
-                  disabled={loading}
-                />
-                <Lock className="w-5 h-5 text-[#ff3b30] absolute left-4 top-1/2 transform -translate-y-1/2" />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#ff3b30] hover:text-[#ff5e54] transition-colors focus:outline-none focus:ring-2 focus:ring-[#ff3b30]"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  tabIndex={0}
-                  disabled={loading}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 font-satoshi mb-2" htmlFor="password">Password</label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 pl-12 pr-12 bg-white/80 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 font-satoshi focus:outline-none focus:ring-2 focus:ring-[#ff3b30] focus:bg-white transition-all"
+                    placeholder="Enter your password"
+                    aria-label="Password"
+                    autoComplete="current-password"
+                    disabled={loading}
+                  />
+                  <Lock className="w-5 h-5 text-[#ff3b30] absolute left-4 top-1/2 transform -translate-y-1/2" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#ff3b30] hover:text-[#ff5e54] transition-colors focus:outline-none focus:ring-2 focus:ring-[#ff3b30]"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={0}
+                    disabled={loading}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                <div className="flex justify-end mt-1">
+                  <Link
+                    href={`/${role}/forgot-password`}
+                    className="text-xs text-[#ff3b30] hover:text-[#ff5e54] transition-colors font-satoshi"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
               </div>
-              <div className="flex justify-end mt-1">
-                <Link
-                  href={`/${role}/forgot-password`}
-                  className="text-xs text-[#ff3b30] hover:text-[#ff5e54] transition-colors font-satoshi"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-            </div>
 
-            <button
-              type="submit"
-              className="w-full px-4 py-2 bg-white text-[#ff3b30] hover:bg-white/90 active:scale-95 transition-all duration-150 rounded-xl font-asgard text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#ff3b30]"
-              disabled={loading}
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
+              <button
+                type="submit"
+                className="w-full px-4 py-2 bg-white text-[#ff3b30] hover:bg-white/90 active:scale-95 transition-all duration-150 rounded-xl font-asgard text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#ff3b30]"
+                disabled={loading}
+              >
+                {loading ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerify2FA} className="space-y-4" aria-label="2FA verification form">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 font-satoshi mb-2" htmlFor="2fa-code">Verification Code</label>
+                <div className="relative">
+                  <input
+                    id="2fa-code"
+                    type="text"
+                    value={twoFactorCode}
+                    onChange={(e) => setTwoFactorCode(e.target.value)}
+                    required
+                    maxLength={6}
+                    className="w-full px-4 py-2 pl-12 bg-white/80 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 font-satoshi focus:outline-none focus:ring-2 focus:ring-[#ff3b30] focus:bg-white transition-all text-center tracking-widest text-xl"
+                    placeholder="000000"
+                    aria-label="2FA Code"
+                    autoComplete="one-time-code"
+                    disabled={loading}
+                  />
+                  <Lock className="w-5 h-5 text-[#ff3b30] absolute left-4 top-1/2 transform -translate-y-1/2" />
+                </div>
+                <p className="text-xs text-gray-700 mt-2 text-center font-satoshi">
+                  Enter the 6-digit code from your authenticator app.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full px-4 py-2 bg-white text-[#ff3b30] hover:bg-white/90 active:scale-95 transition-all duration-150 rounded-xl font-asgard text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#ff3b30]"
+                disabled={loading}
+              >
+                {loading ? 'Verifying...' : 'Verify & Sign In'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStep('login')}
+                className="w-full text-sm text-gray-700 hover:text-gray-900 font-satoshi text-center mt-2 focus:outline-none"
+                disabled={loading}
+              >
+                Back to Login
+              </button>
+            </form>
+          )}
 
           {/* Security Notice for Admin */}
           {role === 'admin' && (

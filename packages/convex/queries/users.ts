@@ -588,6 +588,14 @@ export const getUserById = query({
   },
 });
 
+// Get current authenticated user
+export const getMe = query({
+  args: { sessionToken: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    return await getAuthenticatedUser(ctx, args.sessionToken);
+  },
+});
+
 // Get current user from session (for client-side use)
 export const getCurrentUser = query({
   args: {},
