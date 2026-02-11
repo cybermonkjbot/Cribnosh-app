@@ -31,9 +31,11 @@ RUN cd packages/convex && npx convex codegen
 WORKDIR /app/apps/web
 RUN npm run build
 
-FROM oven/bun:1.2.17-alpine AS production
+FROM node:20-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
 # Copy standalone output
 COPY --from=builder /app/apps/web/.next/standalone ./
@@ -41,5 +43,5 @@ COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder /app/apps/web/public ./apps/web/public
 
 EXPOSE 3000
-# The entrypoint for standalone mode is apps/web/server.js
-CMD ["bun", "run", "apps/web/server.js"]
+# The entrypoint for standalone mode is server.js
+CMD ["node", "server.js"]

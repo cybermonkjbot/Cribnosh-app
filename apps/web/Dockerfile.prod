@@ -67,17 +67,17 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Copy standalone output from build stage
-# Structure: .next/standalone/apps/web/server.js
+# Structure: .next/standalone/server.js
 COPY --from=build /app/apps/web/.next/standalone ./
 COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /app/apps/web/public ./apps/web/public
 
-# Install curl for health checks (optional but recommended)
+# Install curl for health checks
 RUN apk add --no-cache curl
 
 # Expose port 3000
 EXPOSE 3000
 
 # Start the application using node
-# The standalone entrypoint is server.js in the corresponding workspace
-CMD ["node", "apps/web/server.js"]
+# The standalone entrypoint is server.js
+CMD ["node", "server.js"]

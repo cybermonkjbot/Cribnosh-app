@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(request: NextRequest) {
   try {
+    process.stdout.write(`[HEALTHCHECK] Ping received at ${new Date().toISOString()}\n`);
     return new NextResponse(
       JSON.stringify({
         timestamp: new Date().toISOString(),
