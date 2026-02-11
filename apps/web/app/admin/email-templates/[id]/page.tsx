@@ -17,9 +17,11 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 // Helper to construct Storage URL
+// Helper to construct Storage URL
 const getStorageUrl = (storageId: string) => {
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "";
-    return `${convexUrl.replace(/\/$/, "")}/api/storage/${storageId}`;
+    // Use the HTTP action on the convex.site domain
+    return `${convexUrl.replace('.convex.cloud', '.convex.site').replace(/\/$/, "")}/api/files/${storageId}`;
 };
 
 export default function EditEmailTemplatePage() {

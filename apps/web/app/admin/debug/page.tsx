@@ -44,10 +44,7 @@ export default function AdminDebugPage() {
           <pre className="bg-gray-100 p-4 rounded">{localStorage}</pre>
         </div>
 
-        <div>
-          <h2 className="text-lg font-semibold">Test API Call (Legacy /api/admin/me):</h2>
-          <p className="text-sm text-muted-foreground mb-2">Deprecated. Use Convex query below.</p>
-        </div>
+
 
         <div>
           <h2 className="text-lg font-semibold">Convex api.queries.users.getMe:</h2>
