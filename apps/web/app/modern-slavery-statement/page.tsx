@@ -1,10 +1,12 @@
 "use client";
 
 import { ParallaxGroup, ParallaxLayer } from "@/components/ui/parallax";
-import { AlertCircle, FileText, Globe, Scale, ShieldCheck, Users } from "lucide-react";
+import { AlertCircle, BarChart3, Building, FileText, Globe, ShieldCheck, Users } from "lucide-react";
 import { motion } from "motion/react";
 
 export default function ModernSlaveryStatement() {
+    const currentYear = new Date().getFullYear();
+
     return (
         <main className="min-h-screen relative" data-section-theme="light">
             <ParallaxGroup>
@@ -30,12 +32,14 @@ export default function ModernSlaveryStatement() {
                         <h1 className="text-4xl md:text-5xl font-asgard font-bold text-gray-900 mb-6">
                             Anti-Modern Slavery Statement
                         </h1>
-                        <p className="text-xl text-gray-600">
-                            Fiscal Year {new Date().getFullYear()}
+                        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                            This statement is made pursuant to Section 54 of the Modern Slavery Act 2015 and sets out the steps that CribNosh has taken and is continuing to take to ensure that modern slavery or human trafficking is not taking place within our business or supply chain during the financial year ending {currentYear}.
                         </p>
                     </motion.div>
 
-                    <div className="space-y-16">
+                    <div className="space-y-12">
+
+                        {/* 1. Our Business & Structure */}
                         <motion.section
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -43,18 +47,22 @@ export default function ModernSlaveryStatement() {
                             className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 border border-gray-100 shadow-sm"
                         >
                             <div className="flex items-start gap-4">
-                                <Scale className="w-8 h-8 text-[#ff3b30]" />
+                                <Building className="w-8 h-8 text-[#ff3b30] shrink-0" />
                                 <div>
                                     <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
-                                        Our Commitment
+                                        Our Business and Organizational Structure
                                     </h2>
+                                    <p className="text-gray-600 mb-4">
+                                        CribNosh is a culinary technology platform that connects local, independent cooks with customers seeking authentic, home-cooked meals. Operating primarily in the United Kingdom, our mission is to empower local talent and provide communities with accessible, high-quality food options.
+                                    </p>
                                     <p className="text-gray-600">
-                                        CribNosh is committed to preventing acts of modern slavery and human trafficking from occurring within our business and supply chain. We maintain a zero-tolerance approach to modern slavery and act ethically and with integrity in all our business dealings and relationships. We are committed to implementing and enforcing effective systems and controls to ensure modern slavery is not taking place anywhere in our own business or in any of our supply chains.
+                                        We do not directly employ the vast majority of cooks on our platform; rather, we facilitate their business through our technology. However, we recognize our responsibility to ensure that our platform is not used to exploit individuals and that our own corporate operations remain ethical and transparent.
                                     </p>
                                 </div>
                             </div>
                         </motion.section>
 
+                        {/* 2. Our Supply Chains */}
                         <motion.section
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -62,26 +70,33 @@ export default function ModernSlaveryStatement() {
                             className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 border border-gray-100 shadow-sm"
                         >
                             <div className="flex items-start gap-4">
-                                <Users className="w-8 h-8 text-[#ff3b30]" />
+                                <Globe className="w-8 h-8 text-[#ff3b30] shrink-0" />
                                 <div>
                                     <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
-                                        Structure and Supply Chain
+                                        Our Supply Chains
                                     </h2>
-                                    <p className="text-gray-600">
-                                        CribNosh is a platform connecting local cooks with customers who want home-cooked meals. Our supply chain includes:
+                                    <p className="text-gray-600 mb-4">
+                                        Our supply chain is diverse and can be categorized into three main areas:
                                     </p>
-                                    <ul className="list-disc pl-5 mt-3 space-y-2 text-gray-600">
-                                        <li>Independent cooks and chefs who offer their services through our platform.</li>
-                                        <li>Technology and infrastructure providers.</li>
-                                        <li>Marketing and professional services partners.</li>
+                                    <ul className="list-disc pl-5 space-y-3 text-gray-600">
+                                        <li>
+                                            <strong className="text-gray-900">Platform Cooks & Partners:</strong> Independent chefs and home cooks who utilize the CribNosh platform. While not direct suppliers in the traditional sense, they are critical to our service delivery.
+                                        </li>
+                                        <li>
+                                            <strong className="text-gray-900">Technology & Infrastructure:</strong> Providers of cloud services, software development, data security, and IT hardware.
+                                        </li>
+                                        <li>
+                                            <strong className="text-gray-900">Corporate & Professional Services:</strong> Marketing agencies, legal counsel, recruitment agencies, and facilities management for our offices.
+                                        </li>
                                     </ul>
-                                    <p className="text-gray-600 mt-3">
-                                        We carefully vet our partners and maintain close relationships to ensure they align with our values and ethical standards.
+                                    <p className="text-gray-600 mt-4">
+                                        We consider the food and hospitality sector to be higher risk regarding modern slavery. Therefore, whilst our direct procurement is largely tech-focused, we place significant emphasis on vetting and monitoring how food preparation services are delivered through our platform.
                                     </p>
                                 </div>
                             </div>
                         </motion.section>
 
+                        {/* 3. Policies */}
                         <motion.section
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -89,26 +104,49 @@ export default function ModernSlaveryStatement() {
                             className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 border border-gray-100 shadow-sm"
                         >
                             <div className="flex items-start gap-4">
-                                <FileText className="w-8 h-8 text-[#ff3b30]" />
+                                <FileText className="w-8 h-8 text-[#ff3b30] shrink-0" />
                                 <div>
                                     <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
-                                        Policies on Modern Slavery
+                                        Our Policies on Slavery and Human Trafficking
                                     </h2>
-                                    <p className="text-gray-600">
-                                        We are committed to ensuring that there is no modern slavery or human trafficking in our supply chains or in any part of our business. Our policies reflect our commitment to acting ethically and with integrity in all our business relationships.
+                                    <p className="text-gray-600 mb-4">
+                                        We are committed to ensuring that there is no modern slavery or human trafficking in our supply chains or in any part of our business. Our internal policies reflect our commitment to acting ethically and with integrity in all our business relationships.
                                     </p>
-                                    <p className="text-gray-600 mt-3">
-                                        These include:
-                                    </p>
-                                    <ul className="list-disc pl-5 mt-3 space-y-2 text-gray-600">
-                                        <li><strong>Whistleblowing Policy:</strong> We encourage all employees, customers, and other business partners to report any concerns related to the direct activities, or the supply chains of, our organization.</li>
-                                        <li><strong>Supplier Code of Conduct:</strong> We are committed to ensuring that our suppliers adhere to the highest standards of ethics.</li>
-                                        <li><strong>Recruitment Policy:</strong> We use only specified, reputable employment agencies to source labor and always verify the practices of any new agency we are using.</li>
+                                    <ul className="list-none space-y-4 text-gray-600">
+                                        <li className="flex gap-3">
+                                            <span className="w-2 h-2 rounded-full bg-[#ff3b30] mt-2 shrink-0" />
+                                            <div>
+                                                <strong className="text-gray-900 block mb-1">Anti-Slavery Policy</strong>
+                                                Sets out our stance on modern slavery and explains how employees can identify any instances of this and where they can go for help.
+                                            </div>
+                                        </li>
+                                        <li className="flex gap-3">
+                                            <span className="w-2 h-2 rounded-full bg-[#ff3b30] mt-2 shrink-0" />
+                                            <div>
+                                                <strong className="text-gray-900 block mb-1">Recruitment Policy</strong>
+                                                We operate a robust recruitment policy, including conducting eligibility to work in the UK checks for all employees to safeguard against human trafficking or being forced to work against their will.
+                                            </div>
+                                        </li>
+                                        <li className="flex gap-3">
+                                            <span className="w-2 h-2 rounded-full bg-[#ff3b30] mt-2 shrink-0" />
+                                            <div>
+                                                <strong className="text-gray-900 block mb-1">Whistleblowing Policy</strong>
+                                                We encourage all employees, customers, and other business partners to report any concerns related to the direct activities, or the supply chains of, our organization. This includes any circumstances that may give rise to an enhanced risk of slavery or human trafficking.
+                                            </div>
+                                        </li>
+                                        <li className="flex gap-3">
+                                            <span className="w-2 h-2 rounded-full bg-[#ff3b30] mt-2 shrink-0" />
+                                            <div>
+                                                <strong className="text-gray-900 block mb-1">Supplier Code of Conduct</strong>
+                                                We are committed to ensuring that our suppliers adhere to the highest standards of ethics. Suppliers are required to demonstrate that they provide safe working conditions where necessary, treat workers with dignity and respect, and act ethically and within the law in their use of labor.
+                                            </div>
+                                        </li>
                                     </ul>
                                 </div>
                             </div>
                         </motion.section>
 
+                        {/* 4. Due Diligence */}
                         <motion.section
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -116,24 +154,28 @@ export default function ModernSlaveryStatement() {
                             className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 border border-gray-100 shadow-sm"
                         >
                             <div className="flex items-start gap-4">
-                                <ShieldCheck className="w-8 h-8 text-[#ff3b30]" />
+                                <ShieldCheck className="w-8 h-8 text-[#ff3b30] shrink-0" />
                                 <div>
                                     <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
                                         Due Diligence Processes
                                     </h2>
-                                    <p className="text-gray-600">
-                                        As part of our initiative to identify and mitigate risk, we implement the following:
+                                    <p className="text-gray-600 mb-4">
+                                        As part of our initiative to identify and mitigate risk, we have in place systems to:
                                     </p>
-                                    <ul className="list-disc pl-5 mt-3 space-y-2 text-gray-600">
+                                    <ul className="list-disc pl-5 space-y-2 text-gray-600">
                                         <li>Identify and assess potential risk areas in our supply chains.</li>
                                         <li>Mitigate the risk of slavery and human trafficking occurring in our supply chains.</li>
                                         <li>Monitor potential risk areas in our supply chains.</li>
                                         <li>Protect whistleblowers.</li>
                                     </ul>
+                                    <p className="text-gray-600 mt-4">
+                                        We undertake due diligence when considering taking on new suppliers, and regularly review our existing suppliers. This includes mapping the supply chain broadly to assess particular product or geographical risks and evaluating the modern slavery and human trafficking risks of each new supplier.
+                                    </p>
                                 </div>
                             </div>
                         </motion.section>
 
+                        {/* 5. Risk Assessment */}
                         <motion.section
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -141,18 +183,30 @@ export default function ModernSlaveryStatement() {
                             className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 border border-gray-100 shadow-sm"
                         >
                             <div className="flex items-start gap-4">
-                                <Globe className="w-8 h-8 text-[#ff3b30]" />
+                                <AlertCircle className="w-8 h-8 text-[#ff3b30] shrink-0" />
                                 <div>
                                     <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
-                                        Risk Assessment & Management
+                                        Risk Assessment
                                     </h2>
-                                    <p className="text-gray-600">
-                                        The board of directors helps to ensure that risk is managed effectively. We consider that the greatest risk of slavery and human trafficking resides in our supply chain, and we have procedures in place to manage this risk. We carry out due diligence on all suppliers and will not work with any organization that does not meet our standards.
+                                    <p className="text-gray-600 mb-4">
+                                        We recognize that the risk of modern slavery varies across different sectors and geographies. We have identified the following areas as carrying a potential risk:
                                     </p>
+                                    <ul className="list-disc pl-5 space-y-2 text-gray-600">
+                                        <li>
+                                            <strong>Temporary Labor:</strong> The use of agency workers can sometimes present risks of exploitation. We mitigate this by using only specified, reputable employment agencies.
+                                        </li>
+                                        <li>
+                                            <strong>Food Supply Chain:</strong> While we do not source food ingredients directly for cooks, we provide guidance to our cooks on ethical sourcing and monitor for any signs of malpractice in the businesses operating on our platform.
+                                        </li>
+                                        <li>
+                                            <strong>Cleaning & Facilities Services:</strong> We ensure that any third-party providers for our corporate offices pay the Living Wage and adhere to strict labor standards.
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
                         </motion.section>
 
+                        {/* 6. Key Performance Indicators (KPIs) */}
                         <motion.section
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -160,22 +214,66 @@ export default function ModernSlaveryStatement() {
                             className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 border border-gray-100 shadow-sm"
                         >
                             <div className="flex items-start gap-4">
-                                <AlertCircle className="w-8 h-8 text-[#ff3b30]" />
+                                <BarChart3 className="w-8 h-8 text-[#ff3b30] shrink-0" />
                                 <div>
                                     <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
-                                        Training
+                                        Measuring Effectiveness
+                                    </h2>
+                                    <p className="text-gray-600 mb-4">
+                                        We use the following key performance indicators (KPIs) to measure how effective we have been to ensure that slavery and human trafficking is not taking place in any part of our business or supply chains:
+                                    </p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                                            <strong className="block text-gray-900 mb-1">Audit Results</strong>
+                                            <span className="text-gray-600 text-sm">Percentage of suppliers and partners audited with zero non-compliance issues found.</span>
+                                        </div>
+                                        <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                                            <strong className="block text-gray-900 mb-1">Training Completion</strong>
+                                            <span className="text-gray-600 text-sm">100% of staff required to complete Modern Slavery training annually.</span>
+                                        </div>
+                                        <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                                            <strong className="block text-gray-900 mb-1">Whistleblowing Reports</strong>
+                                            <span className="text-gray-600 text-sm">Number of reports received and time taken to investigate and resolve them.</span>
+                                        </div>
+                                        <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                                            <strong className="block text-gray-900 mb-1">Supplier Vetting</strong>
+                                            <span className="text-gray-600 text-sm">Percentage of new suppliers successfully vetted against our Code of Conduct before engagement.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.section>
+
+                        {/* 7. Training */}
+                        <motion.section
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.7 }}
+                            className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 border border-gray-100 shadow-sm"
+                        >
+                            <div className="flex items-start gap-4">
+                                <Users className="w-8 h-8 text-[#ff3b30] shrink-0" />
+                                <div>
+                                    <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
+                                        Training and Awareness
                                     </h2>
                                     <p className="text-gray-600">
-                                        To ensure a high level of understanding of the risks of modern slavery and human trafficking in our supply chains and our business, we provide training to our staff. We also expect our business partners to provide training to their staff.
+                                        To ensure a high level of understanding of the risks of modern slavery and human trafficking in our supply chains and our business, we provide training to our staff. All directors and employees have been briefed on the subject. We also expect our business partners to provide training to their staff and suppliers and providers.
                                     </p>
                                 </div>
                             </div>
                         </motion.section>
 
-                        <div className="text-center pt-8 border-t border-gray-200">
-                            <p className="text-gray-500 italic">
-                                This statement has been approved by the organization's board of directors and will be reviewed and updated annually.
+                        <div className="text-center pt-8 border-t border-gray-200 mt-12">
+                            <p className="text-gray-900 font-medium mb-2">
+                                This statement has been approved by the organization's Board of Directors.
                             </p>
+                            <div className="flex flex-col items-center justify-center gap-1 mt-6">
+                                <span className="font-asgard font-bold text-lg text-gray-900">Signed on behalf of CribNosh</span>
+                                <div className="w-32 h-1 bg-gray-300 my-4" />
+                                <span className="text-gray-600">Director</span>
+                                <span className="text-gray-500 text-sm">Date: {new Date().toLocaleDateString()}</span>
+                            </div>
                         </div>
 
                     </div>
