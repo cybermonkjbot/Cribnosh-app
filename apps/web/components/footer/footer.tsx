@@ -161,13 +161,10 @@ export function Footer({
       {/* UK Corporate Compliance Information */}
       <div className="container mx-auto px-4 mt-8 pt-8 border-t border-white/10 text-[10px] text-gray-500 text-center">
         <p>
-          CribNosh Ltd is a company registered in England and Wales (Company No. 12345678).
+          CRIBNOSH LTD is a company registered in Scotland (Company No. SC834534).
           <br className="md:hidden" />
           <span className="hidden md:inline"> | </span>
-          Registered Office: 123 Foodie Lane, London, United Kingdom.
-          <br className="md:hidden" />
-          <span className="hidden md:inline"> | </span>
-          VAT Registration No. GB 123 456 789.
+          Registered Office: 50 Southhouse Broadway, Edinburgh, EH17 8AR.
         </p>
       </div>
     </footer>
