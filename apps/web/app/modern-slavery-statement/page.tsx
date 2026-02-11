@@ -1,7 +1,7 @@
 "use client";
 
 import { ParallaxGroup, ParallaxLayer } from "@/components/ui/parallax";
-import { AlertCircle, BarChart3, Building, FileText, Globe, ShieldCheck, Users } from "lucide-react";
+import { BarChart3, Building, Globe } from "lucide-react";
 import { motion } from "motion/react";
 
 export default function ModernSlaveryStatement() {
@@ -76,11 +76,14 @@ export default function ModernSlaveryStatement() {
                                         Our Supply Chains
                                     </h2>
                                     <p className="text-gray-600 mb-4">
-                                        Our supply chain is diverse and can be categorized into three main areas:
+                                        Our community is built on trust, and our supply chain reflects the diverse ecosystem of partners who make CribNosh possible:
                                     </p>
                                     <ul className="list-disc pl-5 space-y-3 text-gray-600">
                                         <li>
-                                            <strong className="text-gray-900">Platform Cooks & Partners:</strong> Independent chefs and home cooks who utilize the CribNosh platform. While not direct suppliers in the traditional sense, they are critical to our service delivery.
+                                            <strong className="text-gray-900">Food Creators (Chefs & Cooks):</strong> Independent individuals and small businesses who prepare meals. They are the heart of our platform, and we maintain strict oversight of their operations.
+                                        </li>
+                                        <li>
+                                            <strong className="text-gray-900">Delivery Partners:</strong> A network of drivers and riders who ensure meals are delivered safely and efficiently.
                                         </li>
                                         <li>
                                             <strong className="text-gray-900">Technology & Infrastructure:</strong> Providers of cloud services, software development, data security, and IT hardware.
@@ -89,9 +92,6 @@ export default function ModernSlaveryStatement() {
                                             <strong className="text-gray-900">Corporate & Professional Services:</strong> Marketing agencies, legal counsel, recruitment agencies, and facilities management for our offices.
                                         </li>
                                     </ul>
-                                    <p className="text-gray-600 mt-4">
-                                        We consider the food and hospitality sector to be higher risk regarding modern slavery. Therefore, whilst our direct procurement is largely tech-focused, we place significant emphasis on vetting and monitoring how food preparation services are delivered through our platform.
-                                    </p>
                                 </div>
                             </div>
                         </motion.section>
@@ -103,74 +103,91 @@ export default function ModernSlaveryStatement() {
                             transition={{ delay: 0.3 }}
                             className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 border border-gray-100 shadow-sm"
                         >
-                            <div className="flex items-start gap-4">
-                                <FileText className="w-8 h-8 text-[#ff3b30] shrink-0" />
-                                <div>
-                                    <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
-                                        Our Policies on Slavery and Human Trafficking
-                                    </h2>
-                                    <p className="text-gray-600 mb-4">
-                                        We are committed to ensuring that there is no modern slavery or human trafficking in our supply chains or in any part of our business. Our internal policies reflect our commitment to acting ethically and with integrity in all our business relationships.
-                                    </p>
-                                    <ul className="list-none space-y-4 text-gray-600">
-                                        <li className="flex gap-3">
-                                            <span className="w-2 h-2 rounded-full bg-[#ff3b30] mt-2 shrink-0" />
-                                            <div>
-                                                <strong className="text-gray-900 block mb-1">Anti-Slavery Policy</strong>
-                                                Sets out our stance on modern slavery and explains how employees can identify any instances of this and where they can go for help.
-                                            </div>
-                                        </li>
-                                        <li className="flex gap-3">
-                                            <span className="w-2 h-2 rounded-full bg-[#ff3b30] mt-2 shrink-0" />
-                                            <div>
-                                                <strong className="text-gray-900 block mb-1">Recruitment Policy</strong>
-                                                We operate a robust recruitment policy, including conducting eligibility to work in the UK checks for all employees to safeguard against human trafficking or being forced to work against their will.
-                                            </div>
-                                        </li>
-                                        <li className="flex gap-3">
-                                            <span className="w-2 h-2 rounded-full bg-[#ff3b30] mt-2 shrink-0" />
-                                            <div>
-                                                <strong className="text-gray-900 block mb-1">Whistleblowing Policy</strong>
-                                                We encourage all employees, customers, and other business partners to report any concerns related to the direct activities, or the supply chains of, our organization. This includes any circumstances that may give rise to an enhanced risk of slavery or human trafficking.
-                                            </div>
-                                        </li>
-                                        <li className="flex gap-3">
-                                            <span className="w-2 h-2 rounded-full bg-[#ff3b30] mt-2 shrink-0" />
-                                            <div>
-                                                <strong className="text-gray-900 block mb-1">Supplier Code of Conduct</strong>
-                                                We are committed to ensuring that our suppliers adhere to the highest standards of ethics. Suppliers are required to demonstrate that they provide safe working conditions where necessary, treat workers with dignity and respect, and act ethically and within the law in their use of labor.
-                                            </div>
-                                        </li>
-                                    </ul>
-                                </div>
+                            <div>
+                                <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
+                                    Our Policies on Slavery and Human Trafficking
+                                </h2>
+                                <p className="text-gray-600 mb-4">
+                                    We are committed to ensuring that there is no modern slavery or human trafficking in our supply chains or in any part of our business. Our internal policies reflect our commitment to acting ethically and with integrity in all our business relationships.
+                                </p>
+                                <ul className="list-none space-y-4 text-gray-600">
+                                    <li className="flex gap-3">
+                                        <span className="w-2 h-2 rounded-full bg-[#ff3b30] mt-2 shrink-0" />
+                                        <div>
+                                            <strong className="text-gray-900 block mb-1">Anti-Slavery Policy</strong>
+                                            Sets out our stance on modern slavery and explains how employees can identify any instances of this and where they can go for help.
+                                        </div>
+                                    </li>
+                                    <li className="flex gap-3">
+                                        <span className="w-2 h-2 rounded-full bg-[#ff3b30] mt-2 shrink-0" />
+                                        <div>
+                                            <strong className="text-gray-900 block mb-1">Recruitment Policy</strong>
+                                            We operate a robust recruitment policy, including conducting eligibility to work in the UK checks for all employees to safeguard against human trafficking or being forced to work against their will.
+                                        </div>
+                                    </li>
+                                    <li className="flex gap-3">
+                                        <span className="w-2 h-2 rounded-full bg-[#ff3b30] mt-2 shrink-0" />
+                                        <div>
+                                            <strong className="text-gray-900 block mb-1">Whistleblowing Policy</strong>
+                                            We encourage all employees, customers, and other business partners to report any concerns related to the direct activities, or the supply chains of, our organization. This includes any circumstances that may give rise to an enhanced risk of slavery or human trafficking.
+                                        </div>
+                                    </li>
+                                    <li className="flex gap-3">
+                                        <span className="w-2 h-2 rounded-full bg-[#ff3b30] mt-2 shrink-0" />
+                                        <div>
+                                            <strong className="text-gray-900 block mb-1">Supplier Code of Conduct</strong>
+                                            We are committed to ensuring that our suppliers adhere to the highest standards of ethics. Suppliers are required to demonstrate that they provide safe working conditions where necessary, treat workers with dignity and respect, and act ethically and within the law in their use of labor.
+                                        </div>
+                                    </li>
+                                </ul>
                             </div>
                         </motion.section>
 
-                        {/* 4. Due Diligence */}
+                        {/* 4. Due Diligence & Vetting */}
                         <motion.section
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.4 }}
                             className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 border border-gray-100 shadow-sm"
                         >
-                            <div className="flex items-start gap-4">
-                                <ShieldCheck className="w-8 h-8 text-[#ff3b30] shrink-0" />
-                                <div>
-                                    <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
-                                        Due Diligence Processes
-                                    </h2>
-                                    <p className="text-gray-600 mb-4">
-                                        As part of our initiative to identify and mitigate risk, we have in place systems to:
-                                    </p>
-                                    <ul className="list-disc pl-5 space-y-2 text-gray-600">
-                                        <li>Identify and assess potential risk areas in our supply chains.</li>
-                                        <li>Mitigate the risk of slavery and human trafficking occurring in our supply chains.</li>
-                                        <li>Monitor potential risk areas in our supply chains.</li>
-                                        <li>Protect whistleblowers.</li>
-                                    </ul>
-                                    <p className="text-gray-600 mt-4">
-                                        We undertake due diligence when considering taking on new suppliers, and regularly review our existing suppliers. This includes mapping the supply chain broadly to assess particular product or geographical risks and evaluating the modern slavery and human trafficking risks of each new supplier.
-                                    </p>
+                            <div>
+                                <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
+                                    Due Diligence & Vetting Processes
+                                </h2>
+                                <p className="text-gray-600 mb-4">
+                                    We employ rigorous validation and onboarding processes embedded directly into our technology platform to ensure compliance and safety across our network:
+                                </p>
+                                <div className="space-y-6">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-900 mb-2">Food Creators</h3>
+                                        <p className="text-gray-600 mb-2">Before activation, all cooks must undergo a comprehensive verification process including:</p>
+                                        <ul className="list-disc pl-5 text-gray-600 space-y-1">
+                                            <li>Validation of identity and background checks.</li>
+                                            <li>Verification of Health Permits and Public Liability Insurance.</li>
+                                            <li>Confirmation of FSA Food Hygiene Rating (0-5 stars).</li>
+                                            <li>Review of certifications and food safety training.</li>
+                                        </ul>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-900 mb-2">Drivers & Delivery Partners</h3>
+                                        <p className="text-gray-600 mb-2">We ensure all delivery partners meet strict legal requirements:</p>
+                                        <ul className="list-disc pl-5 text-gray-600 space-y-1">
+                                            <li>Verification of valid Driver's License and Vehicle Registration.</li>
+                                            <li>Confirmation of appropriate Vehicle Insurance.</li>
+                                            <li>Right to work checks where applicable.</li>
+                                        </ul>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-900 mb-2">Internal Staff</h3>
+                                        <p className="text-gray-600 mb-2">Our internal recruitment process is designed to prevent exploitation:</p>
+                                        <ul className="list-disc pl-5 text-gray-600 space-y-1">
+                                            <li>Complete "Right to Work in the UK" checks for all employees.</li>
+                                            <li>Verification of identity documents (Passport/ID).</li>
+                                            <li>Direct employment contracts with transparent terms.</li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </motion.section>
@@ -182,27 +199,24 @@ export default function ModernSlaveryStatement() {
                             transition={{ delay: 0.5 }}
                             className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 border border-gray-100 shadow-sm"
                         >
-                            <div className="flex items-start gap-4">
-                                <AlertCircle className="w-8 h-8 text-[#ff3b30] shrink-0" />
-                                <div>
-                                    <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
-                                        Risk Assessment
-                                    </h2>
-                                    <p className="text-gray-600 mb-4">
-                                        We recognize that the risk of modern slavery varies across different sectors and geographies. We have identified the following areas as carrying a potential risk:
-                                    </p>
-                                    <ul className="list-disc pl-5 space-y-2 text-gray-600">
-                                        <li>
-                                            <strong>Temporary Labor:</strong> The use of agency workers can sometimes present risks of exploitation. We mitigate this by using only specified, reputable employment agencies.
-                                        </li>
-                                        <li>
-                                            <strong>Food Supply Chain:</strong> While we do not source food ingredients directly for cooks, we provide guidance to our cooks on ethical sourcing and monitor for any signs of malpractice in the businesses operating on our platform.
-                                        </li>
-                                        <li>
-                                            <strong>Cleaning & Facilities Services:</strong> We ensure that any third-party providers for our corporate offices pay the Living Wage and adhere to strict labor standards.
-                                        </li>
-                                    </ul>
-                                </div>
+                            <div>
+                                <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
+                                    Risk Assessment
+                                </h2>
+                                <p className="text-gray-600 mb-4">
+                                    We recognize that the risk of modern slavery varies across different sectors and geographies. We have identified the following areas as carrying a potential risk:
+                                </p>
+                                <ul className="list-disc pl-5 space-y-2 text-gray-600">
+                                    <li>
+                                        <strong>Temporary Labor:</strong> The use of agency workers can sometimes present risks of exploitation. We mitigate this by using only specified, reputable employment agencies.
+                                    </li>
+                                    <li>
+                                        <strong>Food Supply Chain:</strong> While we do not source food ingredients directly for cooks, we provide guidance to our cooks on ethical sourcing and monitor for any signs of malpractice in the businesses operating on our platform.
+                                    </li>
+                                    <li>
+                                        <strong>Cleaning & Facilities Services:</strong> We ensure that any third-party providers for our corporate offices pay the Living Wage and adhere to strict labor standards.
+                                    </li>
+                                </ul>
                             </div>
                         </motion.section>
 
@@ -251,16 +265,13 @@ export default function ModernSlaveryStatement() {
                             transition={{ delay: 0.7 }}
                             className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 border border-gray-100 shadow-sm"
                         >
-                            <div className="flex items-start gap-4">
-                                <Users className="w-8 h-8 text-[#ff3b30] shrink-0" />
-                                <div>
-                                    <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
-                                        Training and Awareness
-                                    </h2>
-                                    <p className="text-gray-600">
-                                        To ensure a high level of understanding of the risks of modern slavery and human trafficking in our supply chains and our business, we provide training to our staff. All directors and employees have been briefed on the subject. We also expect our business partners to provide training to their staff and suppliers and providers.
-                                    </p>
-                                </div>
+                            <div>
+                                <h2 className="text-2xl font-asgard font-bold text-gray-900 mb-4">
+                                    Training and Awareness
+                                </h2>
+                                <p className="text-gray-600">
+                                    To ensure a high level of understanding of the risks of modern slavery and human trafficking in our supply chains and our business, we provide training to our staff. All directors and employees have been briefed on the subject. We also expect our business partners to provide training to their staff and suppliers and providers.
+                                </p>
                             </div>
                         </motion.section>
 

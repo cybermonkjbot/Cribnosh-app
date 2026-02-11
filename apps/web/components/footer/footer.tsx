@@ -55,6 +55,7 @@ export function Footer({
   const legalLinks: FooterLinkItem[] = [
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
+    { label: "Cookie Policy", href: "/cookie-policy" },
     { label: "Modern Slavery Statement", href: "/modern-slavery-statement" },
   ];
 
@@ -155,6 +156,19 @@ export function Footer({
             <FooterSocialLinks />
           </div>
         </div>
+      </div>
+
+      {/* UK Corporate Compliance Information */}
+      <div className="container mx-auto px-4 mt-8 pt-8 border-t border-white/10 text-[10px] text-gray-500 text-center">
+        <p>
+          CribNosh Ltd is a company registered in England and Wales (Company No. 12345678).
+          <br className="md:hidden" />
+          <span className="hidden md:inline"> | </span>
+          Registered Office: 123 Foodie Lane, London, United Kingdom.
+          <br className="md:hidden" />
+          <span className="hidden md:inline"> | </span>
+          VAT Registration No. GB 123 456 789.
+        </p>
       </div>
     </footer>
   );
