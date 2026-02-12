@@ -13,7 +13,7 @@ export const exportReport = action({
         department: v.optional(v.string()),
         sessionToken: v.optional(v.string()),
     },
-    handler: async (ctx, args) => {
+    handler: async (ctx, args): Promise<{ data: string; filename: string; contentType: string }> => {
         // Authenticate admin user
         const user = await ctx.runQuery(api.queries.users.getMe, { sessionToken: args.sessionToken });
         if (!user || !isAdmin(user)) {
