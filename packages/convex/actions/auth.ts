@@ -524,7 +524,7 @@ export const sendWaitlistOTP = action({
             </div>
         `;
 
-        const fromEmail = process.env.RESEND_FROM_EMAIL || 'CribNosh <onboarding@emails.cribnosh.co.uk>';
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'CribNosh <onboarding@emails.cribnosh.com>';
 
         try {
             await ctx.runAction(api.actions.resend.sendEmail, {
