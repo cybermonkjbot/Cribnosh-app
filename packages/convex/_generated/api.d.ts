@@ -9,6 +9,7 @@
  */
 
 import type * as actions_agora from "../actions/agora.js";
+import type * as actions_auth from "../actions/auth.js";
 import type * as actions_broadcast from "../actions/broadcast.js";
 import type * as actions_chefs from "../actions/chefs.js";
 import type * as actions_coupons from "../actions/coupons.js";
@@ -28,6 +29,7 @@ import type * as actions_password_reset_action from "../actions/password_reset_a
 import type * as actions_password_reset_execution from "../actions/password_reset_execution.js";
 import type * as actions_payer from "../actions/payer.js";
 import type * as actions_payments from "../actions/payments.js";
+import type * as actions_payroll from "../actions/payroll.js";
 import type * as actions_populateEmptyTables from "../actions/populateEmptyTables.js";
 import type * as actions_prelaunchEmails from "../actions/prelaunchEmails.js";
 import type * as actions_resend from "../actions/resend.js";
@@ -292,6 +294,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "actions/agora": typeof actions_agora;
+  "actions/auth": typeof actions_auth;
   "actions/broadcast": typeof actions_broadcast;
   "actions/chefs": typeof actions_chefs;
   "actions/coupons": typeof actions_coupons;
@@ -311,6 +314,7 @@ declare const fullApi: ApiFromModules<{
   "actions/password_reset_execution": typeof actions_password_reset_execution;
   "actions/payer": typeof actions_payer;
   "actions/payments": typeof actions_payments;
+  "actions/payroll": typeof actions_payroll;
   "actions/populateEmptyTables": typeof actions_populateEmptyTables;
   "actions/prelaunchEmails": typeof actions_prelaunchEmails;
   "actions/resend": typeof actions_resend;
