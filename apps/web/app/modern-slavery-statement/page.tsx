@@ -284,6 +284,7 @@ export default function ModernSlaveryStatement() {
                                 <div className="w-32 h-1 bg-gray-300 my-4" />
                                 <span className="text-gray-600">Director</span>
                                 <span className="text-gray-500 text-sm">Date: {new Date().toLocaleDateString()}</span>
+                                <span className="text-gray-500 text-sm mt-1">Next Review: February {new Date().getFullYear() + 1}</span>
                             </div>
                         </div>
 

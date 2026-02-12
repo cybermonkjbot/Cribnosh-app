@@ -49,34 +49,50 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       content: `
 # Terms of Service
 
-Last Updated: ${new Date().toLocaleDateString()}
+**Effective Date:** 12 February 2026
+**Last Updated:** ${new Date().toLocaleDateString()}
 
-## Agreement to Terms
-By accessing or using Cribnosh, you agree to be bound by these Terms of Service.
+## 1. Agreement to Terms
+These Terms of Service ("Terms") constitute a legally binding agreement between you ("User", "you", or "your") and CribNosh Limited ("CribNosh", "we", "us", or "our"), a company registered in Scotland (Company No. SC834534). By accessing or using our Platform, you agree to be bound by these Terms.
 
-## Use of Service
-- You must be at least 18 years old to use our service
-- You agree to provide accurate information
-- You are responsible for maintaining account security
-- You agree not to misuse the platform
+## 2. Account Registration & Eligibility
+- **Eligibility:** You must be at least 18 years old.
+- **Security:** You are responsible for safeguarding your account credentials.
+- **Accuracy:** You must provide accurate and complete information.
 
-## User Responsibilities
-- Follow all applicable laws and regulations
-- Respect other users and service providers
-- Provide accurate information
-- Report any issues or concerns
+## 3. Platform Services & User Conduct
+CribNosh is a marketplace connecting food creators with customers. We are a technology provider, not a food preparation entity. You agree not to use the Platform for illegal purposes, harassment, or disruption of services.
 
-## Service Availability
-We strive to provide reliable service but do not guarantee uninterrupted access. We reserve the right to modify or discontinue services at any time.
+## 4. Terms for Food Creators
+- **Compliance:** Must comply with all food safety laws and hold a valid Food Hygiene Rating.
+- **Insurance:** Must maintain public liability insurance.
+- **Status:** Independent business/contractor, responsible for own taxes.
 
-## Limitation of Liability
-Cribnosh is not liable for any indirect, incidental, or consequential damages arising from use of the platform.
+## 5. Terms for Delivery Partners
+- **Requirements:** Valid driver's license, vehicle insurance (hire and reward), right to work in UK.
+- **Conduct:** Safe and professional delivery.
+- **Status:** Independent contractor.
 
-## Changes to Terms
-We may update these terms from time to time. Continued use of the service constitutes acceptance of updated terms.
+## 6. Payment & Refunds
+- **Pricing:** Inclusive of VAT where applicable.
+- **Processing:** Secure processing via Stripe.
+- **Refunds:** Subject to our Refund Policy.
 
-## Contact Us
-For questions about these terms, please contact legal@cribnosh.com.
+## 7. Intellectual Property
+The Platform and its content are owned by CribNosh. You grant us a license to use content you post (e.g., photos, menus).
+
+## 8. Limitation of Liability
+To the fullest extent permitted by law, CribNosh shall not be liable for indirect, incidental, or consequential damages. Our liability is limited to the greater of fees paid in the last 12 months or £100.
+
+## 9. Termination
+We may terminate or suspend your account for breach of these Terms without prior notice.
+
+## 10. Governing Law & Jurisdiction
+These Terms are governed by the laws of England and Wales. Disputes are subject to the exclusive jurisdiction of the courts of England and Wales.
+
+## 11. Contact Us
+**Email:** legal@cribnosh.co.uk
+**Address:** 50 Southhouse Broadway, Edinburgh, EH17 8AR, United Kingdom
       `.trim(),
       lastUpdated: Date.now(),
     };

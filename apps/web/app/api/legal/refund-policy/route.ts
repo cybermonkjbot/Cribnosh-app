@@ -49,31 +49,32 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       content: `
 # Refund Policy
 
-Last Updated: ${new Date().toLocaleDateString()}
+**Last Updated:** ${new Date().toLocaleDateString()}
 
-## Overview
-Cribnosh strives to provide excellent service. If you're not satisfied with your order, we're here to help.
+## 1. Our Commitment
+CribNosh is committed to ensuring you have a great dining experience. If you are unsatisfied with your order, please contact us immediately.
 
-## Refund Eligibility
-Refunds may be available for:
-- Orders that were not delivered
-- Orders with quality issues
-- Orders cancelled before preparation
-- Orders with incorrect items
+## 2. Eligibility for Refunds
+- **Missing Items:** Refund for the cost of the specific item.
+- **Incorrect Items:** Refund for the cost of the specific item.
+- **Quality Issues:** Full or partial refund for food not meeting reasonable standards (evidence may be required).
+- **Delivery Issues:** Potential refund for orders never delivered or significantly delayed without notice.
 
-## Refund Process
-1. Contact our support team within 24 hours of delivery
-2. Provide order details and reason for refund
-3. Our team will review your request
-4. Refunds will be processed within 5-7 business days
+## 3. How to Request a Refund
+1. **Contact Support:** Via the app or email support@cribnosh.co.uk.
+2. **Timeframe:** Within 24 hours of delivery.
+3. **Details:** Provide Order ID, description of issue, and photos (if applicable).
 
-## Non-Refundable Items
-- Orders cancelled after preparation has started
-- Custom orders that have been prepared
-- Orders with no valid reason for refund
+## 4. Refund Processing
+- **Method:** Original payment method.
+- **Timing:** 5-10 business days depending on your bank.
 
-## Contact Us
-For refund requests, please contact support@cribnosh.com or use the in-app support feature.
+## 5. Order Cancellations
+- **Before Acceptance/Prep:** Full refund available.
+- **After Prep Started:** Full refund not guaranteed; case-by-case review.
+
+## 6. Statutory Rights
+Nothing in this policy affects your statutory rights under the Consumer Rights Act 2015. You have the right to expect food that is of satisfactory quality, fit for purpose, and as described.
       `.trim(),
       lastUpdated: Date.now(),
     };

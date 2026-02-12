@@ -68,7 +68,7 @@ export default function PrivacyPolicy() {
                     Data Controller
                   </h2>
                   <p className="text-gray-600 mb-4">
-                    CribNosh Limited (Company Registration No. SC832773), registered in Scotland, is the data controller responsible for your personal information.
+                    CribNosh Limited (Company Registration No. SC834534), registered in Scotland, is the data controller responsible for your personal information.
                   </p>
                   <div className="text-gray-600 space-y-1">
                     <p><strong>Registered Office:</strong> 50 Southhouse Broadway, Edinburgh, EH17 8AR, United Kingdom</p>
