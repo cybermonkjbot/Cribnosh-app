@@ -600,7 +600,7 @@ export default function ContentLibraryScreen() {
                 } else if (contentType === 'stories') {
                   setIsStoryModalVisible(true);
                 } else if (contentType === 'videos') {
-                  router.push('/(tabs)/chef/content/videos/upload');
+                  router.push('/(tabs)/food-creator/content/videos/upload');
                 }
               }
             } : undefined}
@@ -623,13 +623,13 @@ export default function ContentLibraryScreen() {
                     handleToggleSelection(itemKey);
                   } else {
                     if (item.type === 'recipe') {
-                      router.push(`/(tabs)/chef/content/recipes/${item._id}`);
+                      router.push(`/(tabs)/food-creator/content/recipes/${item._id}`);
                     } else if (item.type === 'story') {
                       // Navigate to story edit/view - you may need to create this route
-                      // router.push(`/(tabs)/chef/content/stories/${item._id}`);
+                      // router.push(`/(tabs)/food-creator/content/stories/${item._id}`);
                     } else if (item.type === 'video') {
                       // Navigate to video edit/view - you may need to create this route
-                      // router.push(`/(tabs)/chef/content/videos/${item._id}`);
+                      // router.push(`/(tabs)/food-creator/content/videos/${item._id}`);
                     }
                   }
                 }}
@@ -679,7 +679,7 @@ export default function ContentLibraryScreen() {
                     onPress={(e) => {
                       e.stopPropagation();
                       if (item.type === 'recipe') {
-                        router.push(`/(tabs)/chef/content/recipes/${item._id}`);
+                        router.push(`/(tabs)/food-creator/content/recipes/${item._id}`);
                       } else if (item.type === 'story') {
                         // Navigate to story edit
                       } else if (item.type === 'video') {

@@ -158,7 +158,7 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
 
   // Get basic onboarding status
   const isBasicOnboardingComplete = useQuery(
-    api.queries.chefs.isBasicOnboardingComplete,
+    api.queries.foodCreators.isBasicOnboardingComplete,
     queryArgs.hasChef && queryArgs.hasToken ? { chefId: queryArgs.chefId!, sessionToken: queryArgs.sessionToken! } : 'skip'
   );
 
@@ -228,7 +228,7 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
       title: 'Complete Compliance Course',
       description: 'Finish the 13-module food safety course',
       completed: isOnboardingComplete === true,
-      route: '/(tabs)/chef/onboarding',
+      route: '/(tabs)/food-creator/onboarding',
     });
 
     // 5. Required Documents Verification

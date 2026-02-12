@@ -11,22 +11,22 @@ export default function ChefOnboardingSetupPage() {
   const router = useRouter();
   const { isAuthenticated, chef, user, sessionToken, isBasicOnboardingComplete, refreshChef } = useChefAuth();
   const { showSuccess, showError } = useToast();
-  const createChef = useMutation(api.mutations.chefs.createChef);
-  const updateChef = useMutation(api.mutations.chefs.update);
+  const createChef = useMutation(api.mutations.foodCreators.createChef);
+  const updateChef = useMutation(api.mutations.foodCreators.update);
   const createKitchen = useMutation(api.mutations.kitchens.createKitchen);
-  const clearDraft = useMutation(api.mutations.chefs.clearOnboardingDraft);
+  const clearDraft = useMutation(api.mutations.foodCreators.clearOnboardingDraft);
   const [isUploading, setIsUploading] = useState(false);
 
   // Load existing chef data including draft
   const chefData = useQuery(
-    api.queries.chefs.getChefById,
+    api.queries.foodCreators.getChefById,
     chef?._id ? { chefId: chef._id } : 'skip'
   );
 
   // Redirect if already completed basic onboarding
   useEffect(() => {
     if (isAuthenticated && chef && isBasicOnboardingComplete) {
-      router.replace('/(tabs)/chef/onboarding');
+      router.replace('/(tabs)/food-creator/onboarding');
     }
   }, [isAuthenticated, chef, isBasicOnboardingComplete, router]);
 
@@ -174,7 +174,7 @@ export default function ChefOnboardingSetupPage() {
       // Use requestAnimationFrame to ensure navigation happens after render
       requestAnimationFrame(() => {
         // Navigate to compliance training
-        router.replace('/(tabs)/chef/onboarding');
+        router.replace('/(tabs)/food-creator/onboarding');
       });
     } catch (error: any) {
       console.error('Error saving onboarding data:', error);
@@ -187,7 +187,7 @@ export default function ChefOnboardingSetupPage() {
   const handleOnboardingSkip = () => {
     console.log('Chef onboarding skipped');
     // Navigate to compliance training (they can complete profile later)
-    router.replace('/(tabs)/chef/onboarding');
+    router.replace('/(tabs)/food-creator/onboarding');
   };
 
   if (!isAuthenticated) {

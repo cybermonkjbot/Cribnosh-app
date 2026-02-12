@@ -2,7 +2,7 @@
 
 import { api } from "@/convex/_generated/api";
 import { clearAuthToken, getAuthToken, setAuthToken } from "@/lib/auth-client";
-import { useConvex, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
@@ -133,8 +133,6 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
         const token = getAuthToken();
         setSessionToken(token);
     }, []);
-
-    const convex = useConvex();
 
     const logout = useCallback(async () => {
         try {

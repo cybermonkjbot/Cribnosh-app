@@ -310,14 +310,14 @@ export default function ModuleDetailScreen() {
 
       // If module has quiz and hasn't been passed, navigate to quiz
       if (moduleContent?.quiz && (!currentModule.quizScore || currentModule.quizScore < (moduleContent.quiz.passingScore || 80))) {
-        router.push(`/(tabs)/chef/onboarding/course/${courseId}/module/${moduleId}/quiz`);
+        router.push(`/(tabs)/food-creator/onboarding/course/${courseId}/module/${moduleId}/quiz`);
       } else {
         // No quiz or already passed - navigate to next module or completion
         if (nextModule && !nextModule.completed) {
-          router.replace(`/(tabs)/chef/onboarding/course/${courseId}/module/${nextModule.moduleId}`);
+          router.replace(`/(tabs)/food-creator/onboarding/course/${courseId}/module/${nextModule.moduleId}`);
         } else {
           // All modules completed
-          router.replace('/(tabs)/chef/onboarding');
+          router.replace('/(tabs)/food-creator/onboarding');
         }
       }
     } catch (error: any) {
@@ -492,14 +492,14 @@ export default function ModuleDetailScreen() {
     if (!isLoading && moduleContent !== undefined && moduleVideos.length === 0 && currentModule && !currentModule.completed) {
       // If module has quiz and hasn't been passed, navigate to quiz
       if (moduleContent?.quiz && (!currentModule.quizScore || currentModule.quizScore < (moduleContent.quiz.passingScore || 80))) {
-        router.replace(`/(tabs)/chef/onboarding/course/${courseId}/module/${moduleId}/quiz`);
+        router.replace(`/(tabs)/food-creator/onboarding/course/${courseId}/module/${moduleId}/quiz`);
       } else {
         // No quiz or already passed - navigate to next module or completion
         if (nextModule && !nextModule.completed) {
-          router.replace(`/(tabs)/chef/onboarding/course/${courseId}/module/${nextModule.moduleId}`);
+          router.replace(`/(tabs)/food-creator/onboarding/course/${courseId}/module/${nextModule.moduleId}`);
         } else {
           // All modules completed
-          router.replace('/(tabs)/chef/onboarding');
+          router.replace('/(tabs)/food-creator/onboarding');
         }
       }
     }
@@ -603,7 +603,7 @@ export default function ModuleDetailScreen() {
           {/* Quiz Button (if quiz exists) */}
           {moduleContent?.quiz && (
             <TouchableOpacity
-              onPress={() => router.push(`/(tabs)/chef/onboarding/course/${courseId}/module/${moduleId}/quiz`)}
+              onPress={() => router.push(`/(tabs)/food-creator/onboarding/course/${courseId}/module/${moduleId}/quiz`)}
               activeOpacity={0.8}
               style={{
                 backgroundColor: BRAND_COLORS.primary,

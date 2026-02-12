@@ -35,14 +35,44 @@ export async function generateMetadata(
             `Nigerian food ${city}`,
             `Indian food ${city}`,
             `food creators ${city}`,
-            `chef jobs ${city}`,
+            `cook jobs ${city}`,
             "Cribnosh"
         ]
     };
 }
 
-export default function Page({ params }: Props) {
-    const city = formatCityName(params.city);
+import { api } from "@/convex/_generated/api";
+import { getConvexClient } from "@/lib/conxed-client";
+
+export default async function Page({ params }: Props) {
+    const { city: cityParam } = await params;
+    const city = formatCityName(cityParam);
+    const convex = getConvexClient();
+
+    let foodCreators: any[] = [];
+    try {
+        // @ts-ignore
+        foodCreators = await convex.query(api.queries.chefs.getFoodCreatorsByCity, { city, limit: 6 });
+    } catch (error) {
+        console.error("Error fetching food creators for city:", city, error);
+    }
+
+    // Create ItemList Schema for food creators
+    const creatorItemListSchema = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "itemListElement": foodCreators.map((creator, index) => ({
+            "@type": "ListItem",
+            "position": index + 1,
+            "item": {
+                "@type": "Person",
+                "name": creator.name,
+                "url": `https://cribnosh.com/food-creator/${creator.username || creator.userId}`, // Use username if available
+                "image": creator.profileImage,
+                "jobTitle": "Food Creator"
+            }
+        }))
+    };
 
     return (
         <>
@@ -62,11 +92,19 @@ export default function Page({ params }: Props) {
                             "@type": "Organization",
                             "name": "Cribnosh"
                         },
-                        "description": `Connecting ${city} food lovers with local home chefs.`
+                        "description": `Connecting ${city} food lovers with local food creators.`
                     })
                 }}
             />
-            <LocationClientPage city={city} />
+            {foodCreators.length > 0 && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify(creatorItemListSchema)
+                    }}
+                />
+            )}
+            <LocationClientPage city={city} foodCreators={foodCreators} />
         </>
     );
 }

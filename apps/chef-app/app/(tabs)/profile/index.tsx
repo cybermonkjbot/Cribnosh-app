@@ -31,7 +31,7 @@ export default function ChefProfileScreen() {
 
   // Get all chef content
   const contentData = useQuery(
-    api.queries.chefs.getAllChefContent,
+    api.queries.foodCreators.getAllChefContent,
     chef?._id && sessionToken
       ? {
         chefId: chef._id,
@@ -188,7 +188,7 @@ export default function ChefProfileScreen() {
     // Navigate to appropriate detail screen based on content type
     switch (item.type) {
       case 'recipe':
-        router.push(`/(tabs)/chef/content/recipes/${item.id}`);
+        router.push(`/(tabs)/food-creator/content/recipes/${item.id}`);
         break;
       case 'live':
         // Live sessions are managed through the camera, no detail screen needed
@@ -196,10 +196,10 @@ export default function ChefProfileScreen() {
         setIsCameraVisible(true);
         break;
       case 'video':
-        router.push(`/(tabs)/chef/content/videos/${item.id}` as any);
+        router.push(`/(tabs)/food-creator/content/videos/${item.id}` as any);
         break;
       case 'meal':
-        router.push(`/(tabs)/chef/meals/${item.id}` as any);
+        router.push(`/(tabs)/food-creator/meals/${item.id}` as any);
         break;
     }
   };
@@ -207,7 +207,7 @@ export default function ChefProfileScreen() {
   const handleContinueStream = () => {
     if (lastLiveSession) {
       // Navigate to the live stream screen with the session ID
-      router.push(`/(tabs)/chef/live/${lastLiveSession.id}`);
+      router.push(`/(tabs)/food-creator/live/${lastLiveSession.id}`);
     }
   };
 

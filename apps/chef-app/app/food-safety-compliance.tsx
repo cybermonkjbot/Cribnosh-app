@@ -137,13 +137,13 @@ export default function FoodSafetyComplianceScreen() {
     if (documentId) {
       // Navigate to existing document upload screen
       router.push({
-        pathname: `/(tabs)/chef/onboarding/documents/${documentId}` as any,
+        pathname: `/(tabs)/food-creator/onboarding/documents/${documentId}` as any,
         params: { returnPath: '/food-safety-compliance' },
       } as any);
     } else {
       // Navigate to new document upload by type
       router.push({
-        pathname: '/(tabs)/chef/onboarding/documents/upload',
+        pathname: '/(tabs)/food-creator/onboarding/documents/upload',
         params: { type: documentType, returnPath: '/food-safety-compliance' },
       } as any);
     }

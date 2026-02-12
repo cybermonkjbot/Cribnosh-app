@@ -132,9 +132,9 @@ export default function PersonalInfoScreen() {
   ) as any;
 
   // Mutations
-  const updateChef = useMutation(api.mutations.chefs.update);
-  const updateAvailability = useMutation(api.mutations.chefs.updateAvailability);
-  const saveOnboardingDraft = useMutation(api.mutations.chefs.saveOnboardingDraft);
+  const updateChef = useMutation(api.mutations.foodCreators.update);
+  const updateAvailability = useMutation(api.mutations.foodCreators.updateAvailability);
+  const saveOnboardingDraft = useMutation(api.mutations.foodCreators.saveOnboardingDraft);
   const createKitchen = useMutation(api.mutations.kitchens.createKitchen);
   const updateKitchen = useMutation(api.mutations.kitchens.updateKitchen);
   const {

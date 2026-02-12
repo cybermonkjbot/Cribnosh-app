@@ -112,7 +112,7 @@ export default function CourseModuleViewer() {
     if (!chef?._id || !courseId || !sessionToken) return;
 
     // Navigate to module detail screen
-    router.push(`/(tabs)/chef/onboarding/course/${courseId}/module/${moduleId}`);
+    router.push(`/(tabs)/food-creator/onboarding/course/${courseId}/module/${moduleId}`);
   };
 
   // Show message if basic onboarding is not complete

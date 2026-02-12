@@ -30,7 +30,7 @@ export default function ChefLayout() {
     // PRIORITY 1: If user has chef role but no chef profile, redirect to onboarding-setup
     if (!chef) {
       if (!isOnOnboardingSetupRoute && !isOnProfileRoute) {
-        router.replace('/(tabs)/chef/onboarding-setup');
+        router.replace('/(tabs)/food-creator/onboarding-setup');
       }
       return;
     }
@@ -40,12 +40,12 @@ export default function ChefLayout() {
     if (needsBasicOnboarding) {
       // If user tries to access compliance training routes, force them back to basic onboarding
       if (isOnComplianceTrainingRoute) {
-        router.replace('/(tabs)/chef/onboarding-setup');
+        router.replace('/(tabs)/food-creator/onboarding-setup');
         return;
       }
       // If not on allowed routes (onboarding-setup or profile), redirect to onboarding-setup
       if (!isOnProfileRoute && !isOnOnboardingSetupRoute) {
-        router.replace('/(tabs)/chef/onboarding-setup');
+        router.replace('/(tabs)/food-creator/onboarding-setup');
       }
       return;
     }
@@ -54,7 +54,7 @@ export default function ChefLayout() {
     // Compliance training can only be accessed if basic onboarding is complete
     if (needsComplianceTraining) {
       if (!isOnComplianceTrainingRoute && !isOnProfileRoute) {
-        router.replace('/(tabs)/chef/onboarding');
+        router.replace('/(tabs)/food-creator/onboarding');
       }
       return;
     }

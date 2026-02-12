@@ -50,6 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
   let dynamicCityRoutes: MetadataRoute.Sitemap = [];
   let dynamicBlogRoutes: MetadataRoute.Sitemap = [];
+  let dynamicFoodCreatorRoutes: MetadataRoute.Sitemap = [];
 
   if (convexUrl) {
     const convex = new ConvexHttpClient(convexUrl);
@@ -73,6 +74,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: new Date(post.publishedAt || post.createdAt),
         changeFrequency: 'weekly',
         priority: 0.7,
+      }));
+      // Fetch dynamic food creator profiles
+      // @ts-ignore
+      const foodCreators = await convex.query(api.queries.chefs.getFoodCreatorSitemapData, {});
+      dynamicFoodCreatorRoutes = foodCreators.map((creator: any) => ({
+        url: `${baseUrl}/food-creator/${creator.username}`,
+        lastModified: new Date(creator.updatedAt || creator._creationTime),
+        changeFrequency: 'weekly',
+        priority: 0.8,
       }));
     } catch (error) {
       console.error('Error fetching dynamic sitemap data:', error);
@@ -107,5 +117,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: route === '/cities' ? 0.7 : 0.6,
   }));
 
-  return [...mainSitemap, ...staticCitiesSitemap, ...dynamicCityRoutes, ...dynamicBlogRoutes];
+  return [...mainSitemap, ...staticCitiesSitemap, ...dynamicCityRoutes, ...dynamicBlogRoutes, ...dynamicFoodCreatorRoutes];
 } 

@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 
 export function LocationTracker() {
     const { chef, isAuthenticated, sessionToken } = useChefAuth();
-    const updateChefLocation = useMutation(api.mutations.chefs.updateChefLocation);
+    const updateChefLocation = useMutation(api.mutations.foodCreators.updateChefLocation);
 
     useEffect(() => {
         // Only track if authenticated and have chef profile

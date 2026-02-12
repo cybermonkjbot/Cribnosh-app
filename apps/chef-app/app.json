@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Cribnosh Chef",
-    "slug": "cribnosh-chef-app",
+    "name": "Cribnosh Food Creator",
+    "slug": "cribnosh-food-creator-app",
     "version": "1.0.0",
     "main": "expo-router/entry",
     "sdkVersion": "54.0.0",

@@ -37,7 +37,7 @@ export const ChefOnboardingFlow: React.FC<ChefOnboardingFlowProps> = ({
   sessionToken,
   initialDraft,
 }) => {
-  const saveDraft = useMutation(api.mutations.chefs.saveOnboardingDraft);
+  const saveDraft = useMutation(api.mutations.foodCreators.saveOnboardingDraft);
   const [currentStep, setCurrentStep] = useState<'gdpr' | 'profile' | 'image' | 'location' | 'kitchen'>(
     (initialDraft?.currentStep as any) || 'gdpr'
   );

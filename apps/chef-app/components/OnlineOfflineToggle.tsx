@@ -43,7 +43,7 @@ export function OnlineOfflineToggle({ chefId, isOnline, sessionToken, onShowSetu
   const { isAuthenticated } = useChefAuth();
   const router = useRouter();
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
-  const toggleAvailability = useMutation(api.mutations.chefs.toggleAvailability);
+  const toggleAvailability = useMutation(api.mutations.foodCreators.toggleAvailability);
   const [isUpdating, setIsUpdating] = React.useState(false);
 
   // Check if chef can go online

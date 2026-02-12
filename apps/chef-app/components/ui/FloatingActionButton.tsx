@@ -182,7 +182,7 @@ export function FloatingActionButton({
     if (onLiveStreamPress) {
       onLiveStreamPress();
     } else {
-      router.push('/(tabs)/chef/live' as any);
+      router.push('/(tabs)/food-creator/live' as any);
     }
     setIsActionMenuOpen(false);
   };

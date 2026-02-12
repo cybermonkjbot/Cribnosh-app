@@ -56,7 +56,7 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
   // Only query if user exists, has chef role, and we have a valid session token
   // This prevents calling the query with invalid tokens which would cause errors
   const chefQueryResult = useQuery(
-    api.queries.chefs.getByUserId,
+    api.queries.foodCreators.getByUserId,
     // Only call if we have a valid user with chef role and session token
     // This prevents errors from requireAuth when session token is invalid
     user && 
@@ -72,7 +72,7 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
 
   // Check if basic onboarding is complete (profile setup)
   const isBasicOnboardingComplete = useQuery(
-    api.queries.chefs.isBasicOnboardingComplete,
+    api.queries.foodCreators.isBasicOnboardingComplete,
     chef?._id && sessionToken
       ? { chefId: chef._id, sessionToken }
       : 'skip'

@@ -102,10 +102,10 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 
 // Reactive query
-const chef = useQuery(api.queries.chefs.getByUserId, { userId });
+const chef = useQuery(api.queries.foodCreators.getByUserId, { userId });
 
 // Mutation
-const updateProfile = useMutation(api.mutations.chefs.updateProfile);
+const updateProfile = useMutation(api.mutations.foodCreators.updateProfile);
 ```
 
 ## Development

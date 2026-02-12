@@ -36,7 +36,7 @@ export default function ChefSignInPage() {
             if (result.success && result.sessionToken) {
                 // Store session and redirect
                 await login(result.sessionToken, result.user);
-                router.push("/chef/dashboard");
+                router.push("/food-creator/dashboard");
             } else {
                 setError(result.error || "Login failed");
             }
@@ -50,7 +50,7 @@ export default function ChefSignInPage() {
 
     useEffect(() => {
         if (!isLoading && isAuthenticated) {
-            router.push("/chef/dashboard");
+            router.push("/food-creator/dashboard");
         }
     }, [isAuthenticated, isLoading, router]);
 

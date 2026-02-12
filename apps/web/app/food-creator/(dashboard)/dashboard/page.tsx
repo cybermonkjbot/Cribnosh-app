@@ -70,7 +70,7 @@ export default function ChefDashboard() {
                             : "Complete the compliance course to activate your account"}
                     </p>
                     <Link
-                        href="/chef/onboarding"
+                        href="/food-creator/onboarding"
                         className="inline-flex items-center gap-2 rounded-lg bg-white text-brand-primary px-4 py-2 font-semibold hover:bg-gray-50 transition-all"
                     >
                         Continue Setup
@@ -146,7 +146,7 @@ export default function ChefDashboard() {
                         </p>
                     </div>
                     <Link
-                        href="/chef/earnings"
+                        href="/food-creator/earnings"
                         className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-primary to-brand-secondary text-white px-6 py-3 font-semibold hover:opacity-90 transition-all shadow-lg hover:shadow-xl"
                     >
                         View Earnings
@@ -160,7 +160,7 @@ export default function ChefDashboard() {
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold text-gray-900">Recent Orders</h2>
                     {recentOrders && recentOrders.length > 0 && (
-                        <Link href="/chef/orders" className="text-sm font-semibold text-orange-600 hover:text-orange-700">
+                        <Link href="/food-creator/orders" className="text-sm font-semibold text-orange-600 hover:text-orange-700">
                             View All
                         </Link>
                     )}
@@ -171,7 +171,7 @@ export default function ChefDashboard() {
                         {recentOrders.map((order: any) => (
                             <Link
                                 key={order._id}
-                                href={`/chef/orders/${order._id}`}
+                                href={`/food-creator/orders/${order._id}`}
                                 className="block rounded-lg border border-gray-200 p-4 hover:border-orange-300 hover:shadow-md transition-all"
                             >
                                 <div className="flex items-center justify-between">

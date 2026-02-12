@@ -397,7 +397,7 @@ export default function ChefDashboard() {
             setIsRecipeModalVisible(true);
           }}
           onLiveStreamPress={() => {
-            router.push('/(tabs)/chef/live' as any);
+            router.push('/(tabs)/food-creator/live' as any);
           }}
           onStoryPress={() => {
             setIsStoryModalVisible(true);
@@ -425,7 +425,7 @@ export default function ChefDashboard() {
               setIsCameraVisible(false);
               setAutoShowLiveStreamSetup(false);
               if (liveSessionId) {
-                router.push(`/(tabs)/chef/live/${liveSessionId}` as any);
+                router.push(`/(tabs)/food-creator/live/${liveSessionId}` as any);
                 showSuccess('Live Session Started', 'Your live session is now live!');
               } else {
                 showSuccess('Live Session Started', 'Your live session has been created successfully!');

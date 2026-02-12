@@ -251,7 +251,7 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
     if (item.status === 'rejected' && item.documentId) {
       onClose();
       setTimeout(() => {
-        router.push(`/(tabs)/chef/onboarding/documents/${item.documentId}` as any);
+        router.push(`/(tabs)/food-creator/onboarding/documents/${item.documentId}` as any);
       }, 300);
       return;
     }

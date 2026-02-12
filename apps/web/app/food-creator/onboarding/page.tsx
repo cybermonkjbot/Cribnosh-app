@@ -28,7 +28,7 @@ export default function OnboardingPage() {
             description: "Set up your personal details and kitchen profile",
             icon: FileText,
             isCompleted: isBasicOnboardingComplete,
-            href: "/chef/profile",
+            href: "/food-creator/profile",
             cta: "Edit Profile"
         },
         {
@@ -37,7 +37,7 @@ export default function OnboardingPage() {
             description: "Submit your ID, health permit, and other required documents",
             icon: FileText,
             isCompleted: docSummary?.allRequiredVerified || false,
-            href: "/chef/onboarding/documents",
+            href: "/food-creator/onboarding/documents",
             cta: docSummary?.total === 0 ? "Upload Documents" : "Check Status"
         },
         {
@@ -46,7 +46,7 @@ export default function OnboardingPage() {
             description: "Complete the 13-module food safety and hygiene course",
             icon: GraduationCap,
             isCompleted: isOnboardingComplete,
-            href: "/chef/onboarding/course",
+            href: "/food-creator/onboarding/course",
             cta: "Continue Course"
         },
         {
@@ -55,7 +55,7 @@ export default function OnboardingPage() {
             description: "Connect your bank account to receive payouts",
             icon: Banknote,
             isCompleted: (bankAccounts?.length || 0) > 0,
-            href: "/chef/earnings/bank-accounts",
+            href: "/food-creator/earnings/bank-accounts",
             cta: "Add Bank Details"
         }
     ];

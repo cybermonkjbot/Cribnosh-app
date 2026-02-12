@@ -1156,7 +1156,7 @@ export function CameraModalScreen({
               style={styles.goLiveButton}
               onPress={() => {
                 onClose();
-                router.push('/(tabs)/chef/live' as any);
+                router.push('/(tabs)/food-creator/live' as any);
               }}
             >
               <Radio size={20} color="#FFFFFF" />

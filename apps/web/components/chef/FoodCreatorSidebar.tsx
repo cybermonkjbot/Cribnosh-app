@@ -19,20 +19,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navigation = [
-    { name: "Dashboard", href: "/chef/dashboard", icon: Home },
-    { name: "Orders", href: "/chef/orders", icon: ShoppingBag },
-    { name: "Meals", href: "/chef/meals", icon: Package },
-    { name: "Content", href: "/chef/content", icon: FileText },
-    { name: "Live Streaming", href: "/chef/live", icon: Video },
-    { name: "Earnings", href: "/chef/earnings", icon: DollarSign },
-    { name: "Profile", href: "/chef/profile", icon: User },
-    { name: "Settings", href: "/chef/settings/account-details", icon: Settings },
-    { name: "Support", href: "/chef/support", icon: HelpCircle },
+    { name: "Dashboard", href: "/food-creator/dashboard", icon: Home },
+    { name: "Orders", href: "/food-creator/orders", icon: ShoppingBag },
+    { name: "Meals", href: "/food-creator/meals", icon: Package },
+    { name: "Content", href: "/food-creator/content", icon: FileText },
+    { name: "Live Streaming", href: "/food-creator/live", icon: Video },
+    { name: "Earnings", href: "/food-creator/earnings", icon: DollarSign },
+    { name: "Profile", href: "/food-creator/profile", icon: User },
+    { name: "Settings", href: "/food-creator/settings/account-details", icon: Settings },
+    { name: "Support", href: "/food-creator/support", icon: HelpCircle },
 ];
 
-export function ChefSidebar() {
+export function FoodCreatorSidebar() {
     const pathname = usePathname();
-    const { chef, logout } = useChefAuth();
+    const { chef, user, logout } = useChefAuth();
 
     return (
         <div className="flex h-full w-64 flex-col bg-[#02120A] border-r border-white/10">

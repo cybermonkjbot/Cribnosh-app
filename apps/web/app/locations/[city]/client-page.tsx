@@ -4,10 +4,17 @@ import { LocationsGrid } from "@/components/locations-grid";
 import { CitiesSection, CityHero } from "@/components/sections";
 import { GlassCard } from "@/components/ui/glass-card";
 import { UK_CITIES } from "@/data/uk-cities";
+import { ChefHat, ChevronRight, Star } from "lucide-react";
 import { motion } from "motion/react";
+import Image from "next/image";
 import Link from "next/link";
 
-export default function LocationClientPage({ city }: { city: string }) {
+interface LocationClientPageProps {
+    city: string;
+    foodCreators?: any[];
+}
+
+export default function LocationClientPage({ city, foodCreators = [] }: LocationClientPageProps) {
 
     // Dynamic features based on city (deterministic mock to make pages feel slightly distinct)
     const features = [
@@ -93,6 +100,77 @@ export default function LocationClientPage({ city }: { city: string }) {
                     </div>
                 </div>
             </section>
+
+            {/* Top Food Creators Section */}
+            {foodCreators && foodCreators.length > 0 && (
+                <section className="py-24 bg-white text-slate-900">
+                    <div className="container mx-auto px-4">
+                        <div className="text-center mb-16">
+                            <h2 className="text-3xl md:text-5xl font-display font-bold mb-6">
+                                Top Food Creators in {city}
+                            </h2>
+                            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                                Discover the talented neighbors bringing authentic family recipes to your doorstep.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {foodCreators.map((creator, index) => (
+                                <motion.div
+                                    key={creator._id}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                                    viewport={{ once: true }}
+                                    whileHover={{ y: -5 }}
+                                    className="group"
+                                >
+                                    <Link href={creator.username ? `/food-creator/${creator.username}` : '#'} className="block h-full">
+                                        <div className="bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 shadow-xs hover:shadow-md transition-all h-full flex flex-col">
+                                            <div className="relative h-48 w-full">
+                                                <Image
+                                                    src={creator.profileImage || "/card-images/IMG_2262.png"}
+                                                    alt={creator.name}
+                                                    fill
+                                                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                                />
+                                                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full flex items-center shadow-sm">
+                                                    <Star size={14} className="text-yellow-400 fill-yellow-400 mr-1" />
+                                                    <span className="text-xs font-bold">{creator.rating.toFixed(1)}</span>
+                                                </div>
+                                            </div>
+                                            <div className="p-6 flex-1 flex flex-col">
+                                                <div className="flex items-center gap-2 mb-2 text-slate-500 text-sm font-medium">
+                                                    <ChefHat size={16} />
+                                                    <span className="uppercase tracking-wider text-xs">Food Creator</span>
+                                                </div>
+                                                <h3 className="text-xl font-display font-bold mb-2 group-hover:text-[#ff3b30] transition-colors">
+                                                    {creator.name}
+                                                </h3>
+                                                <p className="text-slate-600 text-sm mb-4 line-clamp-2 flex-1">
+                                                    {creator.bio}
+                                                </p>
+                                                {creator.specialties && (
+                                                    <div className="flex flex-wrap gap-2 mb-4">
+                                                        {creator.specialties.slice(0, 3).map((s: string) => (
+                                                            <span key={s} className="px-2 py-1 bg-white border border-slate-200 rounded-md text-xs text-slate-600">
+                                                                {s}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                <div className="mt-auto flex items-center text-[#ff3b30] text-sm font-medium group-hover:gap-2 transition-all">
+                                                    View Profile <ChevronRight size={16} className="ml-1" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {/* Enhanced City-specific CTA */}
             <section className="py-16 bg-gradient-to-r from-[#ff3b30] to-[#ff5e54] text-white relative overflow-hidden">

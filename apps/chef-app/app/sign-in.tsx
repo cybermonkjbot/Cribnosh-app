@@ -56,9 +56,9 @@ export default function SignInModal() {
       }
     } else if (needsOnboarding) {
       // Navigate to onboarding for new users
-      router.replace('/(tabs)/chef/onboarding');
+      router.replace('/(tabs)/food-creator/onboarding');
     } else {
-      router.replace('/(tabs)/chef' as any);
+      router.replace('/(tabs)/food-creator' as any);
     }
   }, [user, router, params.returnPath, params.returnParams]);
 
@@ -79,7 +79,7 @@ export default function SignInModal() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/(tabs)/chef' as any);
+      router.replace('/(tabs)/food-creator' as any);
     }
   };
 

@@ -110,7 +110,7 @@ export default function OrdersPage() {
                         return (
                             <Link
                                 key={order._id}
-                                href={`/chef/orders/${order._id}`}
+                                href={`/food-creator/orders/${order._id}`}
                                 className="block rounded-xl bg-white/80 backdrop-blur-sm p-6 shadow-md border border-white/20 hover:shadow-lg hover:border-orange-300 transition-all"
                             >
                                 <div className="flex items-start justify-between">

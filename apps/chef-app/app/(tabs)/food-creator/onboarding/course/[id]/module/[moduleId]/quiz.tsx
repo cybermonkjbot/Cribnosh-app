@@ -323,10 +323,10 @@ export default function ModuleQuizScreen() {
       setTimeout(() => {
         if (nextModule) {
           // Navigate to next module videos
-          router.replace(`/(tabs)/chef/onboarding/course/${courseId}/module/${nextModule.moduleId}`);
+          router.replace(`/(tabs)/food-creator/onboarding/course/${courseId}/module/${nextModule.moduleId}`);
         } else {
           // All modules completed - go back to onboarding screen which will show completion
-          router.replace('/(tabs)/chef/onboarding');
+          router.replace('/(tabs)/food-creator/onboarding');
         }
       }, 1500);
     } catch (error: any) {
@@ -547,9 +547,9 @@ export default function ModuleQuizScreen() {
           <Button
             onPress={() => {
               if (nextModule) {
-                router.replace(`/(tabs)/chef/onboarding/course/${courseId}/module/${nextModule.moduleId}`);
+                router.replace(`/(tabs)/food-creator/onboarding/course/${courseId}/module/${nextModule.moduleId}`);
               } else {
-                router.replace('/(tabs)/chef/onboarding');
+                router.replace('/(tabs)/food-creator/onboarding');
               }
             }}
             style={styles.continueButton}
