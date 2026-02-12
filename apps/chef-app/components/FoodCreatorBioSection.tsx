@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Edit2 } from 'lucide-react-native';
 
-interface ChefBioSectionProps {
+interface FoodCreatorBioSectionProps {
   bio?: string;
   specialties?: string[];
   onEdit?: () => void;
@@ -11,12 +11,12 @@ interface ChefBioSectionProps {
 
 const MAX_BIO_LENGTH = 150;
 
-export function ChefBioSection({
+export function FoodCreatorBioSection({
   bio,
   specialties,
   onEdit,
   showEditButton = false,
-}: ChefBioSectionProps) {
+}: FoodCreatorBioSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const shouldTruncate = bio && bio.length > MAX_BIO_LENGTH;

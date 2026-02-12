@@ -1,10 +1,10 @@
-import { EmailProvider, EmailPayload } from './types';
-import { ResendProvider } from './providers/resend.provider';
-import { MonitoringService } from '../monitoring/monitoring.service';
-import { EmailTemplateRenderer } from './template-renderer';
-import { sanitizeEmailHtml } from './utils/image-validator';
-import { migrateEmailImagesToConvex } from './utils/convex-image-manager';
 import { logger } from '@/lib/utils/logger';
+import { MonitoringService } from '../monitoring/monitoring.service';
+import { ResendProvider } from './providers/resend.provider';
+import { EmailTemplateRenderer } from './template-renderer';
+import { EmailPayload, EmailProvider } from './types';
+import { migrateEmailImagesToConvex } from './utils/convex-image-manager';
+import { sanitizeEmailHtml } from './utils/image-validator';
 
 export class EmailServiceError extends Error {
   constructor(
@@ -30,7 +30,7 @@ export class EmailService {
     this.provider = new ResendProvider(config.resend.apiKey);
     this.templateRenderer = new EmailTemplateRenderer({
       companyAddress: 'CribNosh – Personalized Dining, Every Time.',
-      defaultUnsubscribeUrl: 'https://cribnosh.com/unsubscribe',
+      defaultUnsubscribeUrl: 'https://cribnosh.co.uk/unsubscribe',
     });
   }
 
@@ -59,7 +59,7 @@ export class EmailService {
           useFallback: false,
           timeout: 3000,
         });
-        
+
         if (sanitized.brokenImages.length > 0) {
           logger.warn(`Removed ${sanitized.brokenImages.length} broken image(s) from email`);
           // Track broken images removed
@@ -67,7 +67,7 @@ export class EmailService {
             this.monitoring.incrementMetric('email_broken_images_removed');
           }
         }
-        
+
         payload.html = sanitized.html;
       } catch (error) {
         logger.error('Error processing images in email:', error);

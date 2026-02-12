@@ -1,5 +1,5 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -28,7 +28,7 @@ export function generateMetadata({
   path: string;
   imageUrl?: string;
 }) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://cribnosh.com';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://cribnosh.co.uk';
   const url = `${baseUrl}${path}`;
   const ogImage = imageUrl || `${baseUrl}/opengraph-image`;
 

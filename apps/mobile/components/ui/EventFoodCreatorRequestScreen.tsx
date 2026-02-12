@@ -22,7 +22,7 @@ const closeIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none
   <path d="M18 6L6 18M6 6L18 18" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-interface EventChefRequestScreenProps {
+interface EventFoodCreatorRequestScreenProps {
   onClose: () => void;
 }
 
@@ -45,13 +45,13 @@ const STEPS = [
   { id: 'details', question: 'Any special requirements?' },
 ];
 
-export function EventChefRequestScreen({ onClose }: EventChefRequestScreenProps) {
+export function EventFoodCreatorRequestScreen({ onClose }: EventFoodCreatorRequestScreenProps) {
   const { showToast } = useToast();
   const { isAuthenticated } = useAuthContext();
   const [isCreating, setIsCreating] = useState(false);
 
   // Create event chef request function
-  const createEventChefRequest = async (data: {
+  const createEventFoodCreatorRequest = async (data: {
     event_date: string;
     number_of_guests: number;
     event_type: string;
@@ -68,7 +68,7 @@ export function EventChefRequestScreen({ onClose }: EventChefRequestScreenProps)
       throw new Error('Not authenticated');
     }
 
-    const result = await convex.action(api.actions.users.customerCreateEventChefRequest, {
+    const result = await convex.action(api.actions.users.customerCreateEventFoodCreatorRequest, {
       sessionToken,
       event_date: data.event_date,
       number_of_guests: data.number_of_guests,
@@ -203,7 +203,7 @@ export function EventChefRequestScreen({ onClose }: EventChefRequestScreenProps)
 
     try {
       setIsCreating(true);
-      await createEventChefRequest({
+      await createEventFoodCreatorRequest({
         event_date: formatDateForSubmission(eventDate),
         number_of_guests: guestsNumber,
         event_type: eventType,

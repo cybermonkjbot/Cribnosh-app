@@ -1,13 +1,13 @@
 import { api } from '@/convex/_generated/api';
 import { useMutation } from 'convex/react';
 import React, { useCallback, useState } from 'react';
-import { ChefOnboardingGDPRScreen } from './ChefOnboardingGDPRScreen';
-import { ChefOnboardingImageScreen } from './ChefOnboardingImageScreen';
-import { ChefOnboardingKitchenScreen } from './ChefOnboardingKitchenScreen';
-import { ChefOnboardingLocationScreen } from './ChefOnboardingLocationScreen';
-import { ChefOnboardingProfileScreen } from './ChefOnboardingProfileScreen';
+import { FoodCreatorOnboardingGDPRScreen } from './FoodCreatorOnboardingGDPRScreen';
+import { FoodCreatorOnboardingImageScreen } from './FoodCreatorOnboardingImageScreen';
+import { FoodCreatorOnboardingKitchenScreen } from './FoodCreatorOnboardingKitchenScreen';
+import { FoodCreatorOnboardingLocationScreen } from './FoodCreatorOnboardingLocationScreen';
+import { FoodCreatorOnboardingProfileScreen } from './FoodCreatorOnboardingProfileScreen';
 
-interface ChefOnboardingData {
+interface FoodCreatorOnboardingData {
   name: string;
   bio: string;
   specialties: string[];
@@ -20,16 +20,16 @@ interface ChefOnboardingData {
   kitchenImages: string[];
 }
 
-interface ChefOnboardingFlowProps {
-  onComplete?: (data: ChefOnboardingData) => void;
+interface FoodCreatorOnboardingFlowProps {
+  onComplete?: (data: FoodCreatorOnboardingData) => void;
   onSkip?: () => void;
   backgroundImage?: any;
   chefId?: string;
   sessionToken?: string;
-  initialDraft?: ChefOnboardingData & { currentStep?: string };
+  initialDraft?: FoodCreatorOnboardingData & { currentStep?: string };
 }
 
-export const ChefOnboardingFlow: React.FC<ChefOnboardingFlowProps> = ({
+export const FoodCreatorOnboardingFlow: React.FC<FoodCreatorOnboardingFlowProps> = ({
   onComplete,
   onSkip,
   backgroundImage,
@@ -41,7 +41,7 @@ export const ChefOnboardingFlow: React.FC<ChefOnboardingFlowProps> = ({
   const [currentStep, setCurrentStep] = useState<'gdpr' | 'profile' | 'image' | 'location' | 'kitchen'>(
     (initialDraft?.currentStep as any) || 'gdpr'
   );
-  const [onboardingData, setOnboardingData] = useState<ChefOnboardingData>({
+  const [onboardingData, setOnboardingData] = useState<FoodCreatorOnboardingData>({
     name: initialDraft?.name || '',
     bio: initialDraft?.bio || '',
     specialties: initialDraft?.specialties || [],
@@ -55,7 +55,7 @@ export const ChefOnboardingFlow: React.FC<ChefOnboardingFlowProps> = ({
   });
 
   // Save draft to backend after each step
-  const saveProgress = useCallback(async (step: string, data: ChefOnboardingData) => {
+  const saveProgress = useCallback(async (step: string, data: FoodCreatorOnboardingData) => {
     if (!chefId || !sessionToken) return;
 
     try {
@@ -139,7 +139,7 @@ export const ChefOnboardingFlow: React.FC<ChefOnboardingFlowProps> = ({
 
   if (currentStep === 'gdpr') {
     return (
-      <ChefOnboardingGDPRScreen
+      <FoodCreatorOnboardingGDPRScreen
         onNext={() => setCurrentStep('profile')}
         backgroundImage={backgroundImage}
       />
@@ -148,7 +148,7 @@ export const ChefOnboardingFlow: React.FC<ChefOnboardingFlowProps> = ({
 
   if (currentStep === 'profile') {
     return (
-      <ChefOnboardingProfileScreen
+      <FoodCreatorOnboardingProfileScreen
         onNext={handleProfileNext}
         backgroundImage={backgroundImage}
         initialData={{
@@ -162,7 +162,7 @@ export const ChefOnboardingFlow: React.FC<ChefOnboardingFlowProps> = ({
 
   if (currentStep === 'image') {
     return (
-      <ChefOnboardingImageScreen
+      <FoodCreatorOnboardingImageScreen
         onNext={handleImageNext}
         onSkip={handleImageSkip}
         onBack={handleImageBack}
@@ -176,7 +176,7 @@ export const ChefOnboardingFlow: React.FC<ChefOnboardingFlowProps> = ({
 
   if (currentStep === 'location') {
     return (
-      <ChefOnboardingLocationScreen
+      <FoodCreatorOnboardingLocationScreen
         onNext={handleLocationNext}
         onBack={handleLocationBack}
         backgroundImage={backgroundImage}
@@ -189,7 +189,7 @@ export const ChefOnboardingFlow: React.FC<ChefOnboardingFlowProps> = ({
   }
 
   return (
-    <ChefOnboardingKitchenScreen
+    <FoodCreatorOnboardingKitchenScreen
       onNext={handleKitchenNext}
       onSkip={handleKitchenSkip}
       onBack={handleKitchenBack}
@@ -204,5 +204,5 @@ export const ChefOnboardingFlow: React.FC<ChefOnboardingFlowProps> = ({
   );
 };
 
-export default ChefOnboardingFlow;
+export default FoodCreatorOnboardingFlow;
 

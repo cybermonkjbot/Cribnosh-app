@@ -4,8 +4,8 @@
  * In Expo development, automatically uses localhost
  */
 
-import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 // Determine the API base URL
 function getApiBaseUrl(): string {
@@ -25,7 +25,7 @@ function getApiBaseUrl(): string {
   }
 
   // Production fallback
-  return 'https://cribnosh.com/api';
+  return 'https://cribnosh.co.uk/api';
 }
 
 const API_BASE_URL = getApiBaseUrl();
@@ -51,18 +51,18 @@ const isValidPublishableKey = (key: string): boolean => {
 };
 
 // Use env key if it's non-empty, otherwise try constants, otherwise use fallback
-const publishableKey = (envKey && envKey.length > 0) 
-  ? envKey 
+const publishableKey = (envKey && envKey.length > 0)
+  ? envKey
   : (constantsKey && constantsKey.length > 0)
-  ? constantsKey
-  : FALLBACK_TEST_KEY;
+    ? constantsKey
+    : FALLBACK_TEST_KEY;
 
 // Debug: Log configuration (only in development)
 if (__DEV__) {
   const usingEnv = !!(envKey && envKey.length > 0);
   const usingConstants = !!(constantsKey && constantsKey.length > 0);
   const usingFallback = !usingEnv && !usingConstants;
-  
+
   console.log('🔑 Stripe Key Check:', {
     fromEnv: usingEnv,
     fromConstants: usingConstants,
@@ -71,7 +71,7 @@ if (__DEV__) {
     keyPrefix: publishableKey ? publishableKey.substring(0, 20) + '...' : 'MISSING',
     isValid: isValidPublishableKey(publishableKey),
   });
-  
+
   if (!publishableKey || publishableKey.length === 0) {
     console.warn('⚠️ Stripe publishable key is missing! Stripe features will not work.');
     console.warn('   Make sure:');

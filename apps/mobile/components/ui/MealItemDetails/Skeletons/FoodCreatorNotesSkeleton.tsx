@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { SkeletonBox } from './ShimmerBox';
 
-export function ChefNotesSkeleton() {
+export function FoodCreatorNotesSkeleton() {
   return (
     <View style={styles.container}>
       {/* Header */}

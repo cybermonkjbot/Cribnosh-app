@@ -21,8 +21,8 @@ import {
   Text,
   View
 } from "react-native";
-import { MultipleChefsWarningModal } from "./MultipleChefsWarningModal";
-import { OfflineChefsWarningModal } from "./OfflineChefsWarningModal";
+import { MultipleFoodCreatorsWarningModal } from "./MultipleFoodCreatorsWarningModal";
+import { OfflineFoodCreatorsWarningModal } from "./OfflineFoodCreatorsWarningModal";
 import { RegionAvailabilityModal } from "./RegionAvailabilityModal";
 
 // Try to import expo-device to check if we're on a simulator
@@ -60,11 +60,11 @@ export default function PaymentScreen({
   >("pending_confirmation");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showRegionModal, setShowRegionModal] = useState(false);
-  const [showMultipleChefsModal, setShowMultipleChefsModal] = useState(false);
-  const [hasCheckedMultipleChefs, setHasCheckedMultipleChefs] = useState(false);
-  const [showOfflineChefsModal, setShowOfflineChefsModal] = useState(false);
-  const [hasCheckedOfflineChefs, setHasCheckedOfflineChefs] = useState(false);
-  const [offlineChefs, setOfflineChefs] = useState<Array<{ chefId: string; chefName: string; itemNames: string[] }>>([]);
+  const [showMultipleFoodCreatorsModal, setShowMultipleFoodCreatorsModal] = useState(false);
+  const [hasCheckedMultipleFoodCreators, setHasCheckedMultipleFoodCreators] = useState(false);
+  const [showOfflineFoodCreatorsModal, setShowOfflineFoodCreatorsModal] = useState(false);
+  const [hasCheckedOfflineFoodCreators, setHasCheckedOfflineFoodCreators] = useState(false);
+  const [offlineChefs, setOfflineFoodCreators] = useState<Array<{ chefId: string; chefName: string; itemNames: string[] }>>([]);
   const [cartOrderNote, setCartOrderNote] = useState<string | undefined>(undefined);
 
   // Using Convex directly for all API calls
@@ -132,7 +132,7 @@ export default function PaymentScreen({
   const displayTotal = calculatedTotal / 100;
 
   // Check if cart has items from multiple chefs
-  const hasMultipleChefs = useMemo(() => {
+  const hasMultipleFoodCreators = useMemo(() => {
     if (!cartData?.data?.items || cartData.data.items.length === 0) {
       return false;
     }
@@ -510,7 +510,7 @@ export default function PaymentScreen({
 
   // Check for offline chefs
   useEffect(() => {
-    if (hasCheckedOfflineChefs) {
+    if (hasCheckedOfflineFoodCreators) {
       return;
     }
 
@@ -519,20 +519,20 @@ export default function PaymentScreen({
       return;
     }
 
-    const checkOfflineChefs = async () => {
+    const checkOfflineFoodCreators = async () => {
       try {
         const convex = getConvexClient();
         const sessionToken = await getSessionToken();
 
         if (!sessionToken) {
-          setHasCheckedOfflineChefs(true);
+          setHasCheckedOfflineFoodCreators(true);
           return;
         }
 
         // Get user ID from cart data or query
         const user = await convex.query(api.queries.users.getUserBySessionToken, { sessionToken });
         if (!user?._id) {
-          setHasCheckedOfflineChefs(true);
+          setHasCheckedOfflineFoodCreators(true);
           return;
         }
 
@@ -541,25 +541,25 @@ export default function PaymentScreen({
           sessionToken,
         });
 
-        setHasCheckedOfflineChefs(true);
+        setHasCheckedOfflineFoodCreators(true);
 
         if (!availability.allChefsOnline && availability.offlineChefs.length > 0) {
-          setOfflineChefs(availability.offlineChefs);
-          setShowOfflineChefsModal(true);
+          setOfflineFoodCreators(availability.offlineChefs);
+          setShowOfflineFoodCreatorsModal(true);
         }
       } catch (error) {
         console.error('Error checking chef availability:', error);
         // Continue with payment if check fails
-        setHasCheckedOfflineChefs(true);
+        setHasCheckedOfflineFoodCreators(true);
       }
     };
 
-    checkOfflineChefs();
-  }, [cartData, hasCheckedOfflineChefs]);
+    checkOfflineFoodCreators();
+  }, [cartData, hasCheckedOfflineFoodCreators]);
 
   // Check for multiple chefs immediately on mount - after offline chefs check
   useEffect(() => {
-    if (hasCheckedMultipleChefs || !hasCheckedOfflineChefs || showOfflineChefsModal) {
+    if (hasCheckedMultipleFoodCreators || !hasCheckedOfflineFoodCreators || showOfflineFoodCreatorsModal) {
       return;
     }
 
@@ -568,32 +568,32 @@ export default function PaymentScreen({
       return;
     }
 
-    setHasCheckedMultipleChefs(true);
+    setHasCheckedMultipleFoodCreators(true);
 
-    if (hasMultipleChefs) {
+    if (hasMultipleFoodCreators) {
       // Show modal before rendering payment screen
-      setShowMultipleChefsModal(true);
+      setShowMultipleFoodCreatorsModal(true);
     } else {
       // No multiple chefs, proceed directly to payment
       setPaymentStatus("processing");
       processPaymentInternal();
     }
-  }, [hasMultipleChefs, cartData, hasCheckedMultipleChefs, hasCheckedOfflineChefs, showOfflineChefsModal, processPaymentInternal]);
+  }, [hasMultipleFoodCreators, cartData, hasCheckedMultipleFoodCreators, hasCheckedOfflineFoodCreators, showOfflineFoodCreatorsModal, processPaymentInternal]);
 
-  const handleConfirmMultipleChefs = () => {
-    setShowMultipleChefsModal(false);
+  const handleConfirmMultipleFoodCreators = () => {
+    setShowMultipleFoodCreatorsModal(false);
     setPaymentStatus("processing");
     processPaymentInternal();
   };
 
-  const handleCancelMultipleChefs = () => {
-    setShowMultipleChefsModal(false);
+  const handleCancelMultipleFoodCreators = () => {
+    setShowMultipleFoodCreatorsModal(false);
     setPaymentStatus("error");
     setErrorMessage("Order cancelled. Please review your cart.");
   };
 
-  const handleCancelOfflineChefs = () => {
-    setShowOfflineChefsModal(false);
+  const handleCancelOfflineFoodCreators = () => {
+    setShowOfflineFoodCreatorsModal(false);
     setPaymentStatus("error");
     setErrorMessage("Please remove items from offline food creators or wait until they come online.");
   };
@@ -603,7 +603,7 @@ export default function PaymentScreen({
   };
 
   // Don't render payment screen content if modal should be shown
-  const shouldShowPaymentScreen = !showMultipleChefsModal && !showOfflineChefsModal && hasCheckedMultipleChefs && hasCheckedOfflineChefs;
+  const shouldShowPaymentScreen = !showMultipleFoodCreatorsModal && !showOfflineFoodCreatorsModal && hasCheckedMultipleFoodCreators && hasCheckedOfflineFoodCreators;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -663,20 +663,20 @@ export default function PaymentScreen({
       />
 
       {/* Multiple Chefs Warning Modal - shown before payment screen */}
-      <MultipleChefsWarningModal
-        isVisible={showMultipleChefsModal}
-        onConfirm={handleConfirmMultipleChefs}
-        onCancel={handleCancelMultipleChefs}
+      <MultipleFoodCreatorsWarningModal
+        isVisible={showMultipleFoodCreatorsModal}
+        onConfirm={handleConfirmMultipleFoodCreators}
+        onCancel={handleCancelMultipleFoodCreators}
       />
       {/* Offline Chefs Warning Modal - shown before payment screen */}
-      <OfflineChefsWarningModal
-        isVisible={showOfflineChefsModal}
+      <OfflineFoodCreatorsWarningModal
+        isVisible={showOfflineFoodCreatorsModal}
         offlineChefs={offlineChefs}
         onConfirm={() => {
           // This shouldn't be called since modal only has cancel button
-          setShowOfflineChefsModal(false);
+          setShowOfflineFoodCreatorsModal(false);
         }}
-        onCancel={handleCancelOfflineChefs}
+        onCancel={handleCancelOfflineFoodCreators}
       />
     </SafeAreaView>
   );

@@ -1,4 +1,4 @@
-import { ChefOnboardingFlow } from '@/components/ChefOnboardingFlow';
+import { FoodCreatorOnboardingFlow } from '@/components/FoodCreatorOnboardingFlow';
 import { useChefAuth } from '@/contexts/ChefAuthContext';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/convexClient';
@@ -7,7 +7,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 
-export default function ChefOnboardingSetupPage() {
+export default function FoodCreatorOnboardingSetupPage() {
   const router = useRouter();
   const { isAuthenticated, chef, user, sessionToken, isBasicOnboardingComplete, refreshChef } = useChefAuth();
   const { showSuccess, showError } = useToast();
@@ -215,7 +215,7 @@ export default function ChefOnboardingSetupPage() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <ChefOnboardingFlow
+      <FoodCreatorOnboardingFlow
         onComplete={handleOnboardingComplete}
         onSkip={handleOnboardingSkip}
         backgroundImage={require('../../../assets/images/signin-background.jpg')}

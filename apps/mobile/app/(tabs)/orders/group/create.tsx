@@ -73,7 +73,7 @@ export default function CreateGroupOrderScreen() {
 
           if (searchQuery && searchQuery.length >= 2) {
             // Search kitchens/chefs by query
-            const searchResult = await convex.query(api.queries.chefs.searchChefsByQuery, {
+            const searchResult = await convex.query(api.queries.foodCreators.searchChefsByQuery, {
               query: searchQuery,
               latitude: userLocation.latitude,
               longitude: userLocation.longitude,
@@ -83,7 +83,7 @@ export default function CreateGroupOrderScreen() {
             chefs = searchResult.chefs || [];
           } else {
             // Get nearby kitchens/chefs
-            const nearbyResult = await convex.query(api.queries.chefs.findNearbyChefs, {
+            const nearbyResult = await convex.query(api.queries.foodCreators.findNearbyChefs, {
               latitude: userLocation.latitude,
               longitude: userLocation.longitude,
               maxDistanceKm: 5,

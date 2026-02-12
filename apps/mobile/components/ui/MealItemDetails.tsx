@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { showError, showSuccess, showWarning } from "../../lib/GlobalToastManager";
 import { navigateToSignIn } from "../../utils/signInNavigationGuard";
 import { CartButton } from "./CartButton";
-import { ChefNotes } from "./MealItemDetails/ChefNotes";
+import { FoodCreatorNotes } from "./MealItemDetails/FoodCreatorNotes";
 import { DietCompatibilityBar } from "./MealItemDetails/DietCompatibilityBar";
 import { KitchenInfo } from "./MealItemDetails/KitchenInfo";
 import { MealBadges } from "./MealItemDetails/MealBadges";
@@ -20,7 +20,7 @@ import { MealTitle } from "./MealItemDetails/MealTitle";
 import { NutritionalInfo } from "./MealItemDetails/NutritionalInfo";
 import { SimilarMeals } from "./MealItemDetails/SimilarMeals";
 import {
-  ChefNotesSkeleton,
+  FoodCreatorNotesSkeleton,
   DietCompatibilityBarSkeleton,
   KitchenInfoSkeleton,
   MealBadgesSkeleton,
@@ -439,7 +439,7 @@ export function MealItemDetails({
   const hasDietCompatibility = hasBasicInfo && finalMealData.dietCompatibility !== undefined;
   const hasNutritionalInfo = hasBasicInfo && finalMealData.calories !== undefined;
   const hasIngredients = hasBasicInfo && finalMealData.ingredients && finalMealData.ingredients.length > 0;
-  const hasChefNotes = hasBasicInfo && (finalMealData.chefStory || (finalMealData.chefTips && finalMealData.chefTips.length > 0));
+  const hasFoodCreatorNotes = hasBasicInfo && (finalMealData.chefStory || (finalMealData.chefTips && finalMealData.chefTips.length > 0));
   const hasSimilarMeals = !isLoadingSimilarMeals && similarMeals && similarMeals.length > 0;
 
   return (
@@ -549,15 +549,15 @@ export function MealItemDetails({
           )}
 
           {/* Chef Notes Component */}
-          {hasChefNotes ? (
-            <ChefNotes
+          {hasFoodCreatorNotes ? (
+            <FoodCreatorNotes
               story={finalMealData.chefStory}
               tips={finalMealData.chefTips}
               chefName={finalMealData.chefName}
               chefAvatar={finalMealData.kitchenAvatar}
             />
           ) : (
-            <ChefNotesSkeleton />
+            <FoodCreatorNotesSkeleton />
           )}
 
           {/* Similar Meals Component */}

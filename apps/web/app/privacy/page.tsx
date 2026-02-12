@@ -1,8 +1,8 @@
 "use client";
 
-import { motion } from "motion/react";
 import { ParallaxGroup, ParallaxLayer } from "@/components/ui/parallax";
-import { Lock, Database, Cog, UserCheck, Scale, Bell, Mail } from "lucide-react";
+import { Bell, Cog, Database, Lock, Mail, Scale, UserCheck } from "lucide-react";
+import { motion } from "motion/react";
 
 export default function PrivacyPolicy() {
   return (
@@ -12,7 +12,7 @@ export default function PrivacyPolicy() {
         <ParallaxLayer asBackground speed={0.2} className="z-0">
           <div className="fixed inset-0 bg-gradient-to-br from-gray-50 to-white opacity-90" />
         </ParallaxLayer>
-        
+
         <ParallaxLayer asBackground speed={0.4} className="z-0 pointer-events-none">
           <div className="fixed inset-0">
             <div className="absolute w-[500px] h-[500px] rounded-full bg-[#ff3b30] blur-[120px] -top-20 -right-20 opacity-5" />
@@ -227,7 +227,7 @@ export default function PrivacyPolicy() {
                   </p>
                   <p className="text-gray-600">
                     Email: privacy@cribnosh.com<br />
-                    Address: [Your Business Address]
+                    Address: 50 Southhouse Broadway, Edinburgh, EH17 8AR.
                   </p>
                 </div>
               </div>

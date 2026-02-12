@@ -1,7 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
-import { EventChefRequestScreen } from '@/components/ui/EventChefRequestScreen';
+import { EventFoodCreatorRequestScreen } from '@/components/ui/EventFoodCreatorRequestScreen';
 
-export default function EventChefRequestModal() {
+export default function EventFoodCreatorRequestModal() {
   const router = useRouter();
 
   const handleClose = () => {
@@ -21,7 +21,7 @@ export default function EventChefRequestModal() {
           animation: 'slide_from_bottom',
         }} 
       />
-      <EventChefRequestScreen onClose={handleClose} />
+      <EventFoodCreatorRequestScreen onClose={handleClose} />
     </>
   );
 }

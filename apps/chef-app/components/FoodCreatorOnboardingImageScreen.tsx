@@ -5,7 +5,7 @@ import { Alert, Image, ImageBackground, ScrollView, StyleSheet, Text, TouchableO
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CribNoshLogo } from './ui/CribNoshLogo';
 
-interface ChefOnboardingImageScreenProps {
+interface FoodCreatorOnboardingImageScreenProps {
   onNext?: (imageUri: string) => void;
   onSkip?: () => void;
   onBack?: () => void;
@@ -15,7 +15,7 @@ interface ChefOnboardingImageScreenProps {
   };
 }
 
-export const ChefOnboardingImageScreen: React.FC<ChefOnboardingImageScreenProps> = ({
+export const FoodCreatorOnboardingImageScreen: React.FC<FoodCreatorOnboardingImageScreenProps> = ({
   onNext,
   onSkip,
   onBack,
@@ -366,5 +366,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ChefOnboardingImageScreen;
+export default FoodCreatorOnboardingImageScreen;
 

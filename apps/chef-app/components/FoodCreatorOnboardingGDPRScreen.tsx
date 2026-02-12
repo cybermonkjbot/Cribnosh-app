@@ -3,13 +3,13 @@ import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View }
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CribNoshLogo } from './ui/CribNoshLogo';
 
-interface ChefOnboardingGDPRScreenProps {
+interface FoodCreatorOnboardingGDPRScreenProps {
     onNext?: () => void;
     onSkip?: () => void;
     backgroundImage?: any;
 }
 
-export const ChefOnboardingGDPRScreen: React.FC<ChefOnboardingGDPRScreenProps> = ({
+export const FoodCreatorOnboardingGDPRScreen: React.FC<FoodCreatorOnboardingGDPRScreenProps> = ({
     onNext,
     onSkip,
     backgroundImage,
@@ -97,13 +97,13 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        height: '75%', // Matches ChefOnboardingProfileScreen
+        height: '75%', // Matches FoodCreatorOnboardingProfileScreen
         zIndex: 2,
     },
     contentCard: {
         flex: 1,
         width: '100%',
-        backgroundColor: '#FAFFFA', // Matches ChefOnboardingProfileScreen
+        backgroundColor: '#FAFFFA', // Matches FoodCreatorOnboardingProfileScreen
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
         paddingTop: 40,
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: '#FAFFFA', // Matches ChefOnboardingProfileScreen
+        backgroundColor: '#FAFFFA', // Matches FoodCreatorOnboardingProfileScreen
         paddingHorizontal: 24,
         paddingTop: 16,
         borderTopWidth: 1,
@@ -206,4 +206,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ChefOnboardingGDPRScreen;
+export default FoodCreatorOnboardingGDPRScreen;

@@ -2,8 +2,8 @@
  * Enhanced API client with robust error handling and monitoring
  */
 
-import { fetchWithRetry, CircuitBreaker } from './retry';
 import { logger } from '@/lib/utils/logger';
+import { CircuitBreaker, fetchWithRetry } from './retry';
 
 export interface APIClientOptions {
   baseURL?: string;
@@ -109,7 +109,7 @@ export class EnhancedAPIClient {
 
         let data: T;
         const contentType = response.headers.get('content-type');
-        
+
         if (contentType?.includes('application/json')) {
           data = await response.json();
         } else {
@@ -147,7 +147,7 @@ export class EnhancedAPIClient {
 export const apiClients = {
   // Internal API client
   internal: new EnhancedAPIClient({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://cribnosh.com/api',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://cribnosh.co.uk/api',
     timeout: 15000,
     retries: 3
   }),
@@ -177,7 +177,7 @@ export async function checkAPIHealth(endpoint: string): Promise<boolean> {
       timeout: 10000,
       retry: { maxAttempts: 2 }
     });
-    
+
     return response.ok;
   } catch (error) {
     logger.error(`Health check failed for ${endpoint}:`, error);
@@ -193,23 +193,23 @@ export async function batchRequest<T>(
   concurrency: number = 5
 ): Promise<APIResponse<T>[]> {
   const results: APIResponse<T>[] = [];
-  
+
   for (let i = 0; i < requests.length; i += concurrency) {
     const batch = requests.slice(i, i + concurrency);
     const batchResults = await Promise.allSettled(
       batch.map(request => request())
     );
-    
-    results.push(...batchResults.map(result => 
-      result.status === 'fulfilled' 
-        ? result.value 
+
+    results.push(...batchResults.map(result =>
+      result.status === 'fulfilled'
+        ? result.value
         : {
-            success: false,
-            error: result.reason?.message || 'Request failed',
-            timestamp: Date.now()
-          }
+          success: false,
+          error: result.reason?.message || 'Request failed',
+          timestamp: Date.now()
+        }
     ));
   }
-  
+
   return results;
 }

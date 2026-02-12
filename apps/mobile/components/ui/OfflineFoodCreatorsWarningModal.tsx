@@ -10,7 +10,7 @@ import { Mascot } from '@/components/Mascot';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 
-export interface OfflineChefsWarningModalProps {
+export interface OfflineFoodCreatorsWarningModalProps {
   isVisible: boolean;
   offlineChefs: {
     chefId: string;
@@ -21,12 +21,12 @@ export interface OfflineChefsWarningModalProps {
   onCancel: () => void;
 }
 
-export function OfflineChefsWarningModal({
+export function OfflineFoodCreatorsWarningModal({
   isVisible,
   offlineChefs,
   onConfirm,
   onCancel,
-}: OfflineChefsWarningModalProps) {
+}: OfflineFoodCreatorsWarningModalProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme as keyof typeof Colors] || Colors.light;
   const router = useRouter();

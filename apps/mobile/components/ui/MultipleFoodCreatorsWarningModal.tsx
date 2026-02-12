@@ -10,17 +10,17 @@ import { Mascot } from '@/components/Mascot';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 
-export interface MultipleChefsWarningModalProps {
+export interface MultipleFoodCreatorsWarningModalProps {
   isVisible: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-export function MultipleChefsWarningModal({
+export function MultipleFoodCreatorsWarningModal({
   isVisible,
   onConfirm,
   onCancel,
-}: MultipleChefsWarningModalProps) {
+}: MultipleFoodCreatorsWarningModalProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme as keyof typeof Colors] || Colors.light;
   const router = useRouter();

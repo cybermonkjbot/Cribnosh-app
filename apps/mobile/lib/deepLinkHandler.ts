@@ -11,7 +11,7 @@ export const handleDeepLink = (event: { url: string }) => {
     }
 
     // Check if it's a valid deep link
-    if (!url.includes('cribnoshapp://') && !url.includes('cribnosh.com')) {
+    if (!url.includes('cribnoshapp://') && !url.includes('cribnosh.com') && !url.includes('cribnosh.co.uk')) {
       return;
     }
 

@@ -2023,7 +2023,7 @@ export function BottomSearchDrawer({
             id: recipe._id || recipe.id || `recipe-${Math.random()}`,
             text: recipe.title || "Untitled Recipe",
             category: recipe.cuisine || recipe.difficulty || "Recipe",
-            kitchen: recipe.author || "Chef",
+            kitchen: recipe.author || "Food Creator",
             time: recipe.prepTime && recipe.cookTime ? `${recipe.prepTime + recipe.cookTime} min` : "Recipe",
             distance: "Recipes",
             type: "recipes",
@@ -2066,7 +2066,7 @@ export function BottomSearchDrawer({
             id: stream.id || stream._id || `livestream-${Math.random()}`,
             text: stream.title || stream.kitchen_name || "Live Stream",
             category: "Live",
-            kitchen: stream.chefName || stream.kitchen_name || "Chef",
+            kitchen: stream.chefName || stream.kitchen_name || "Food Creator",
             time: stream.isLive ? "LIVE NOW" : "Ended",
             distance: "Live Streaming",
             type: "livestreams",
@@ -4729,7 +4729,7 @@ export function BottomSearchDrawer({
                                     : itemData.image
                                       ? { uri: itemData.image }
                                       : require("../../assets/images/cribnoshpackaging.png");
-                                  creatorName = itemData.author || "Chef";
+                                  creatorName = itemData.author || "Food Creator";
                                 } else if (activeFilter === "stories") {
                                   itemName = itemData.title || "Untitled Story";
                                   itemPrice = ""; // Stories don't have prices

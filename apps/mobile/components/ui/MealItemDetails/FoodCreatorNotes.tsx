@@ -1,14 +1,14 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-interface ChefNotesProps {
+interface FoodCreatorNotesProps {
   story?: string;
   tips?: string[];
   chefName?: string;
   chefAvatar?: string;
 }
 
-export function ChefNotes({ story, tips, chefName, chefAvatar }: ChefNotesProps) {
+export function FoodCreatorNotes({ story, tips, chefName, chefAvatar }: FoodCreatorNotesProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Chef&apos;s Notes</Text>
