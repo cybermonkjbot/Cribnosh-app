@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 export async function proxy(request: NextRequest) {
   // Extract real client IP from Cloudflare header
   const cfConnectingIp = request.headers.get('cf-connecting-ip');
-  
+
   // Clone the request and set custom headers for downstream usage
   const requestHeaders = new Headers(request.headers);
   if (cfConnectingIp) {
@@ -15,7 +15,7 @@ export async function proxy(request: NextRequest) {
 
   // Get the user agent
   const userAgent = request.headers.get('user-agent') || '';
-  
+
   const pathname = request.nextUrl.pathname;
   requestHeaders.set('x-pathname', pathname);
   const hostname = request.headers.get('host') || '';
@@ -37,7 +37,7 @@ export async function proxy(request: NextRequest) {
       },
     });
   }
-  
+
   if (!isDevelopment) {
     // Domain routing for geo: ensure UK users land on .co.uk; others on .com
     // Only redirect if we have a valid country detection and the domains are properly configured
@@ -51,10 +51,10 @@ export async function proxy(request: NextRequest) {
     // 2. User is UK but on .com domain (redirect to .co.uk)
     // 3. User is NOT UK but on .co.uk domain (redirect to .com)
     // 4. NOT an API route (API calls should work across all countries without redirects)
-    if (country && 
-        ((isUK && isCom) || (!isUK && isCoUk)) && 
-        !pathname.startsWith('/api/')) {
-      
+    if (country &&
+      ((isUK && isCom) || (!isUK && isCoUk)) &&
+      !pathname.startsWith('/api/')) {
+
       try {
         // Construct URL explicitly to avoid localhost:3000 issues
         const targetHost = isUK ? 'cribnosh.co.uk' : 'cribnosh.com';
@@ -109,7 +109,7 @@ export async function proxy(request: NextRequest) {
     'Permissions-Policy',
     'camera=(), microphone=(), geolocation=(), interest-cohort=()'
   );
-  
+
   // HSTS header in production only
   if (process.env.NODE_ENV === 'production') {
     response.headers.set(
@@ -117,12 +117,12 @@ export async function proxy(request: NextRequest) {
       'max-age=31536000; includeSubDomains; preload'
     );
   }
-  
+
   // Content Security Policy (adjust as needed for your app)
   const connectSrc = isDevelopment
     ? "'self' https: http://localhost:5600 wss://*.convex.cloud wss://moonlit-stork-467.convex.cloud"
     : "'self' https: wss://*.convex.cloud wss://moonlit-stork-467.convex.cloud";
-  
+
   const csp = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Adjust based on your needs
@@ -132,7 +132,7 @@ export async function proxy(request: NextRequest) {
     `connect-src ${connectSrc}`,
     "frame-ancestors 'none'",
   ].join('; ');
-  
+
   response.headers.set('Content-Security-Policy', csp);
 
   // Paths that should never be cached
@@ -188,35 +188,43 @@ export async function proxy(request: NextRequest) {
   }
 
   // Convex Auth protection for /admin and /staff routes
-  const isLoginPage = pathname === '/admin/login' || pathname === '/staff/login';
-  
-  if ((pathname.startsWith('/admin') || pathname.startsWith('/staff')) && !isLoginPage) {
+  const publicPaths = [
+    '/admin/login',
+    '/admin/forgot-password',
+    '/admin/reset-password',
+    '/staff/login',
+    '/staff/forgot-password',
+    '/staff/reset-password'
+  ];
+  const isPublicPage = publicPaths.includes(pathname);
+
+  if ((pathname.startsWith('/admin') || pathname.startsWith('/staff')) && !isPublicPage) {
     const user = await getUserFromRequest(request);
-    
+
     if (!user) {
       // Redirect to appropriate login page based on route
       const loginPath = pathname.startsWith('/admin') ? '/admin/login' : '/staff/login';
       return NextResponse.redirect(new URL(loginPath, request.url));
     }
-    
+
     // Check session expiry explicitly
     if (user.sessionExpiry && user.sessionExpiry < Date.now()) {
       const loginPath = pathname.startsWith('/admin') ? '/admin/login' : '/staff/login';
       return NextResponse.redirect(new URL(loginPath, request.url));
     }
-    
+
     // Enforce admin role on /admin
     if (pathname.startsWith('/admin') && (!user.roles || !Array.isArray(user.roles) || !user.roles.includes('admin'))) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
-    
+
     // Enforce staff role on /staff (must have staff or admin role)
     if (pathname.startsWith('/staff')) {
       const hasStaffRole = user.roles && Array.isArray(user.roles) && (user.roles.includes('staff') || user.roles.includes('admin'));
       if (!hasStaffRole) {
         return NextResponse.redirect(new URL('/staff/login', request.url));
       }
-      
+
       // Check if account is active
       if (user.status && user.status !== 'active') {
         return NextResponse.redirect(new URL('/staff/login', request.url));
