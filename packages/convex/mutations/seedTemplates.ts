@@ -2,12 +2,12 @@
 import { mutation } from "../_generated/server";
 
 const DEFAULT_TEMPLATES = [
-    {
-        templateId: "welcome",
-        name: "Welcome Email",
-        emailType: "welcome_message",
-        subject: "Welcome to CribNosh!",
-        htmlContent: `<!DOCTYPE html>
+  {
+    templateId: "welcome",
+    name: "Welcome Email",
+    emailType: "welcome_message",
+    subject: "Welcome to CribNosh!",
+    htmlContent: `<!DOCTYPE html>
 <html dir="ltr" lang="en">
 <head>
   <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
@@ -35,13 +35,13 @@ const DEFAULT_TEMPLATES = [
   </table>
 </body>
 </html>`
-    },
-    {
-        templateId: "otp-verification",
-        name: "OTP Verification",
-        emailType: "otp_verification",
-        subject: "Verify your email - {{otpCode}}",
-        htmlContent: `<!DOCTYPE html>
+  },
+  {
+    templateId: "otp-verification",
+    name: "OTP Verification",
+    emailType: "otp_verification",
+    subject: "Verify your email - {{otpCode}}",
+    htmlContent: `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -62,13 +62,13 @@ const DEFAULT_TEMPLATES = [
   </div>
 </body>
 </html>`
-    },
-    {
-        templateId: "account-deletion",
-        name: "Account Deletion",
-        emailType: "account_deletion",
-        subject: "Account Deletion Request Confirmed",
-        htmlContent: `<!DOCTYPE html>
+  },
+  {
+    templateId: "account-deletion",
+    name: "Account Deletion",
+    emailType: "account_deletion",
+    subject: "Account Deletion Request Confirmed",
+    htmlContent: `<!DOCTYPE html>
 <html>
 <body style="font-family: sans-serif; padding: 20px;">
   <div style="max-width: 600px; margin: 0 auto;">
@@ -80,13 +80,13 @@ const DEFAULT_TEMPLATES = [
   </div>
 </body>
 </html>`
-    },
-    {
-        templateId: "data-download",
-        name: "Data Download",
-        emailType: "data_download",
-        subject: "Your Data Download is Ready",
-        htmlContent: `<!DOCTYPE html>
+  },
+  {
+    templateId: "data-download",
+    name: "Data Download",
+    emailType: "data_download",
+    subject: "Your Data Download is Ready",
+    htmlContent: `<!DOCTYPE html>
 <html>
 <body style="font-family: sans-serif; padding: 20px;">
   <div style="max-width: 600px; margin: 0 auto;">
@@ -98,13 +98,13 @@ const DEFAULT_TEMPLATES = [
   </div>
 </body>
 </html>`
-    },
-    {
-        templateId: "family-invitation",
-        name: "Family Invitation",
-        emailType: "family_invitation",
-        subject: "You've been invited to join a family profile",
-        htmlContent: `<!DOCTYPE html>
+  },
+  {
+    templateId: "family-invitation",
+    name: "Family Invitation",
+    emailType: "family_invitation",
+    subject: "You've been invited to join a family profile",
+    htmlContent: `<!DOCTYPE html>
 <html>
 <body style="font-family: sans-serif; padding: 20px;">
   <div style="max-width: 600px; margin: 0 auto;">
@@ -115,13 +115,13 @@ const DEFAULT_TEMPLATES = [
   </div>
 </body>
 </html>`
-    },
-    {
-        templateId: "support-case",
-        name: "Support Case Notification",
-        emailType: "support_case",
-        subject: "Support Case Created: {{supportCaseRef}}",
-        htmlContent: `<!DOCTYPE html>
+  },
+  {
+    templateId: "support-case",
+    name: "Support Case Notification",
+    emailType: "support_case",
+    subject: "Support Case Created: {{supportCaseRef}}",
+    htmlContent: `<!DOCTYPE html>
 <html>
 <body style="font-family: sans-serif; padding: 20px;">
   <div style="max-width: 600px; margin: 0 auto;">
@@ -132,13 +132,13 @@ const DEFAULT_TEMPLATES = [
   </div>
 </body>
 </html>`
-    },
-    {
-        templateId: "review-received",
-        name: "New Review Received",
-        emailType: "review_received",
-        subject: "New {{rating}}-Star Review from {{customerName}}",
-        htmlContent: `<!DOCTYPE html>
+  },
+  {
+    templateId: "review-received",
+    name: "New Review Received",
+    emailType: "review_received",
+    subject: "New {{rating}}-Star Review from {{customerName}}",
+    htmlContent: `<!DOCTYPE html>
 <html>
 <body style="font-family: sans-serif; padding: 20px;">
   <div style="max-width: 600px; margin: 0 auto;">
@@ -149,37 +149,57 @@ const DEFAULT_TEMPLATES = [
   </div>
 </body>
 </html>`
-    }
+  },
+  {
+    templateId: "password-reset",
+    name: "Password Reset",
+    emailType: "password_reset",
+    subject: "Reset your CribNosh password",
+    htmlContent: `<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    <h1>Reset Your Password</h1>
+    <p>Hi {{userName}},</p>
+    <p>We received a request to reset your password for your CribNosh account.</p>
+    <p>Click the button below to reset your password. This link will expire in {{expiryHours}} hour(s).</p>
+    <p><a href="{{resetUrl}}" style="padding: 10px 20px; background: #ff3b30; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
+    <p>If you didn't request a password reset, you can safely ignore this email.</p>
+    <p>Best regards,<br>The CribNosh Team</p>
+  </div>
+</body>
+</html>`
+  }
 ];
 
 export const seedTemplates = mutation({
-    args: {},
-    handler: async (ctx) => {
-        let createdCount = 0;
-        let updatedCount = 0;
+  args: {},
+  handler: async (ctx) => {
+    let createdCount = 0;
+    let updatedCount = 0;
 
-        for (const templateData of DEFAULT_TEMPLATES) {
-            const existing = await ctx.db
-                .query("emailTemplates")
-                .withIndex("by_type", (q) => q.eq("emailType", templateData.emailType))
-                .first();
+    for (const templateData of DEFAULT_TEMPLATES) {
+      const existing = await ctx.db
+        .query("emailTemplates")
+        .withIndex("by_type", (q) => q.eq("emailType", templateData.emailType))
+        .first();
 
-            if (existing) {
-                await ctx.db.patch(existing._id, {
-                    ...templateData,
-                    updatedAt: Date.now(),
-                });
-                updatedCount++;
-            } else {
-                await ctx.db.insert("emailTemplates", {
-                    ...templateData,
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                });
-                createdCount++;
-            }
-        }
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          ...templateData,
+          updatedAt: Date.now(),
+        });
+        updatedCount++;
+      } else {
+        await ctx.db.insert("emailTemplates", {
+          ...templateData,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+        createdCount++;
+      }
+    }
 
-        return { createdCount, updatedCount };
-    },
+    return { createdCount, updatedCount };
+  },
 });
