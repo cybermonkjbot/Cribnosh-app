@@ -1,5 +1,6 @@
 "use client";
 
+import { FoodCreatorSidebar } from "@/components/chef/FoodCreatorSidebar";
 import { useChefAuth } from "@/lib/chef-auth";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect } from "react";
