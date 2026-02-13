@@ -15,7 +15,8 @@ import { AdminUserProvider, useAdminUser } from "./AdminUserProvider";
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const isLoginPage = pathname === "/admin/login";
+  const publicPaths = ['/admin/login', '/admin/forgot-password', '/admin/reset-password'];
+  const isPublicPage = publicPaths.includes(pathname);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState(3);
   const { user: adminUser, loading: adminLoading } = useAdminUser();
@@ -67,7 +68,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   const { isMobile } = useMobileDevice();
 
-  if (isLoginPage) {
+  if (isPublicPage) {
     return <>{children}</>;
   }
 

@@ -17,7 +17,8 @@ function StaffLayoutContent({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const isLoginPage = pathname === "/staff/login";
+  const publicPaths = ['/staff/login', '/staff/forgot-password', '/staff/reset-password'];
+  const isPublicPage = publicPaths.includes(pathname);
   const [showNotifications, setShowNotifications] = useState(false);
   const { staff: staffUser, loading: staffAuthLoading, sessionToken } = useStaffAuthContext();
   const userId = staffUser?._id;
@@ -45,17 +46,17 @@ function StaffLayoutContent({
   // If user data is not available after loading, redirect to login
   // This handles edge cases where middleware might have missed something
   useEffect(() => {
-    if (!isLoginPage && !staffAuthLoading && !staffUser) {
+    if (!isPublicPage && !staffAuthLoading && !staffUser) {
       router.replace('/staff/login');
     }
-  }, [isLoginPage, staffAuthLoading, staffUser, router]);
+  }, [isPublicPage, staffAuthLoading, staffUser, router]);
 
   // If account is inactive, redirect to login
   useEffect(() => {
-    if (!isLoginPage && staffUser && staffUser.status && staffUser.status !== 'active') {
+    if (!isPublicPage && staffUser && staffUser.status && staffUser.status !== 'active') {
       router.replace('/staff/login');
     }
-  }, [isLoginPage, staffUser, router]);
+  }, [isPublicPage, staffUser, router]);
 
   const convex = useConvex();
 
@@ -88,7 +89,7 @@ function StaffLayoutContent({
   };
 
   // Early return for login page (after all hooks are called)
-  if (isLoginPage) {
+  if (isPublicPage) {
     return <>{children}</>;
   }
 
