@@ -10,7 +10,7 @@ COPY package.json bun.lock ./
 COPY apps/web/package.json ./apps/web/
 COPY apps/mobile/package.json ./apps/mobile/
 COPY apps/driver-app/package.json ./apps/driver-app/
-COPY apps/chef-app/package.json ./apps/chef-app/
+COPY apps/food-creator-app/package.json ./apps/food-creator-app/
 COPY packages/convex/package.json ./packages/convex/
 
 # Install dependencies for the whole monorepo

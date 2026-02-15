@@ -69,7 +69,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
               data: { 
                 popular: result.data.meals.map((meal: any) => ({
                   meal,
-                  chef: meal.chef || null,
+                  foodCreator: meal.chef || null,
                 }))
               } 
             });

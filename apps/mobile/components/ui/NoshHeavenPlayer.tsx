@@ -80,7 +80,7 @@ export function NoshHeavenPlayer({
         title: kitchenIntroVideo.title,
         description: kitchenIntroVideo.description || '',
         kitchenName: kitchenIntroVideo.kitchenName,
-        chef: kitchenIntroVideo.chef,
+        foodCreator: kitchenIntroVideo.chef,
         price: 'Free', // Kitchen intro videos are instructional content
         likes: 0,
         comments: 0,

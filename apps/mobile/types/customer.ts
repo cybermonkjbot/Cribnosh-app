@@ -53,7 +53,7 @@ export interface Cuisine {
 // CHEF/KITCHEN TYPES
 // ============================================================================
 
-export interface Chef {
+export interface FoodCreator {
   id: string;
   name: string;
   kitchen_name: string;
@@ -483,9 +483,9 @@ export interface GetCuisinesResponse {
 }
 
 // GET /customer/chefs/popular
-export interface GetPopularChefsResponse {
+export interface GetPopularFoodCreatorsResponse {
   success: boolean;
-  data: Chef[];
+  data: FoodCreator[];
   pagination?: {
     page: number;
     limit: number;
@@ -1343,7 +1343,7 @@ export interface SortParams {
 // ========================================================================
 
 // GET /customer/search/chefs
-export interface ChefSearchParams {
+export interface FoodCreatorSearchParams {
   q: string; // Required search query
   location?: string;
   cuisine?: string;
@@ -1371,7 +1371,7 @@ export interface SearchChef {
   created_at: string;
 }
 
-export interface ChefSearchResponse {
+export interface FoodCreatorSearchResponse {
   success: boolean;
   data: {
     chefs: SearchChef[];
@@ -2218,33 +2218,33 @@ export interface GetWeeklySummaryResponse {
 // ============================================================================
 
 // GET /customer/chefs/{chef_id}
-export interface ChefDetailsLocation {
+export interface FoodCreatorDetailsLocation {
   latitude: number;
   longitude: number;
   address?: string;
 }
 
-export interface ChefDetails extends Chef {
+export interface FoodCreatorDetails extends FoodCreator {
   bio?: string;
   specialties?: string[];
   delivery_radius?: number;
-  location?: ChefDetailsLocation;
+  location?: FoodCreatorDetailsLocation;
 }
 
-export interface GetChefDetailsResponse {
+export interface GetFoodCreatorDetailsResponse {
   success: boolean;
-  data: ChefDetails;
+  data: FoodCreatorDetails;
   message?: string;
 }
 
-export interface GetChefDetailsParams {
+export interface GetFoodCreatorDetailsParams {
   chefId: string;
   latitude?: number;
   longitude?: number;
 }
 
 // POST /customer/chefs/search-by-location
-export interface SearchChefsByLocationRequest {
+export interface SearchFoodCreatorsByLocationRequest {
   latitude: number;
   longitude: number;
   radius?: number;
@@ -2252,10 +2252,10 @@ export interface SearchChefsByLocationRequest {
   page?: number;
 }
 
-export interface SearchChefsByLocationResponse {
+export interface SearchFoodCreatorsByLocationResponse {
   success: boolean;
   data: {
-    chefs: Chef[];
+    chefs: FoodCreator[];
     total: number;
     page: number;
     limit: number;
@@ -2264,7 +2264,7 @@ export interface SearchChefsByLocationResponse {
 }
 
 // POST /customer/chefs/search
-export interface SearchChefsRequest {
+export interface SearchFoodCreatorsRequest {
   query: string;
   location: {
     latitude: number;
@@ -2275,17 +2275,17 @@ export interface SearchChefsRequest {
   limit?: number;
 }
 
-export interface SearchChefsResponse {
+export interface SearchFoodCreatorsResponse {
   success: boolean;
   data: {
-    chefs: Chef[];
+    chefs: FoodCreator[];
     total: number;
   };
   message?: string;
 }
 
 // GET /customer/chefs/popular/{chef_id}
-export interface PopularChefDetails extends Chef {
+export interface PopularFoodCreatorDetails extends FoodCreator {
   reviews?: Review[];
   averageRating?: number;
   reviewCount?: number;
@@ -2299,9 +2299,9 @@ export interface Review {
   created_at: string;
 }
 
-export interface GetPopularChefDetailsResponse {
+export interface GetPopularFoodCreatorDetailsResponse {
   success: boolean;
-  data: PopularChefDetails;
+  data: PopularFoodCreatorDetails;
   message?: string;
 }
 
@@ -2333,7 +2333,7 @@ export interface MenuItem {
   createdAt: string;
 }
 
-export interface GetChefMenusResponse {
+export interface GetFoodCreatorMenusResponse {
   success: boolean;
   data: MenuItem[];
   message?: string;

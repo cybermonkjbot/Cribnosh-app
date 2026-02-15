@@ -9,7 +9,7 @@ import { Circle, Rect, Svg } from 'react-native-svg';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCart } from '@/hooks/useCart';
-import { useChefs } from '@/hooks/useChefs';
+import { useFoodCreators } from '@/hooks/useFoodCreators';
 import { useMeals } from '@/hooks/useMeals';
 import { showWarning } from '@/lib/GlobalToastManager';
 import { navigateToSignIn } from '@/utils/signInNavigationGuard';
@@ -48,7 +48,7 @@ const KitchenBottomSheetContent = forwardRef<ScrollView, KitchenBottomSheetConte
   const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
 
   const { getKitchenMeals, getPopularKitchenMeals, searchKitchenMeals } = useMeals();
-  const { getKitchenCategories, getKitchenTags } = useChefs();
+  const { getKitchenCategories, getKitchenTags } = useFoodCreators();
   const [filteredMealsData, setFilteredMealsData] = useState<any>(null);
   const [isLoadingFilteredMeals, setIsLoadingFilteredMeals] = useState(false);
   const [isErrorFilteredMeals, setIsErrorFilteredMeals] = useState(false);

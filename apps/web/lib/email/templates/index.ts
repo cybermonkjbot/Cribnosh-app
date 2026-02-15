@@ -2,19 +2,21 @@
 // Export all email templates for easy importing
 
 // Core Templates
-export { WelcomeEmail } from './welcome';
+export { GenericNotificationEmail } from './generic-notification';
 export { OrderConfirmationEmail } from './order-confirmation';
 export { OTPVerificationEmail } from './otp-verification';
-export { GenericNotificationEmail } from './generic-notification';
-export { ChefApplicationEmail } from './chef-application';
-export { FormConfirmationEmail } from './form-confirmation';
+export { WelcomeEmail } from './welcome';
+// Food Creator
 export { AdminNotificationEmail } from './admin-notification';
+export { FoodCreatorApplicationEmail } from './food-creator-application';
+export { FoodCreatorRecommendationsEmail } from './food-creator-recommendations';
+export { FormConfirmationEmail } from './form-confirmation';
 
 // Advanced Templates
-export { PromotionalEmail } from './promotional';
-export { OrderUpdateEmail } from './order-update';
 export { FeedbackRequestEmail } from './feedback-request';
 export { LoyaltyRewardsEmail } from './loyalty-rewards';
+export { OrderUpdateEmail } from './order-update';
+export { PromotionalEmail } from './promotional';
 export { SeasonalCampaignEmail } from './seasonal-campaign';
 export { SystemAlertEmail } from './system-alert';
 
@@ -282,7 +284,7 @@ export class EmailTemplateFactory {
       seasonalCampaign: () => import('./seasonal-campaign').then(m => m.SeasonalCampaignEmail),
       systemAlert: () => import('./system-alert').then(m => m.SystemAlertEmail),
       genericNotification: () => import('./generic-notification').then(m => m.GenericNotificationEmail),
-      chefApplication: () => import('./chef-application').then(m => m.ChefApplicationEmail),
+      chefApplication: () => import('./food-creator-application').then(m => m.FoodCreatorApplicationEmail),
       formConfirmation: () => import('./form-confirmation').then(m => m.FormConfirmationEmail),
       adminNotification: () => import('./admin-notification').then(m => m.AdminNotificationEmail),
     };

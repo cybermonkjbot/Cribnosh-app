@@ -12,7 +12,7 @@ import Feather from "@expo/vector-icons/Feather";
 import { useQuery } from "convex/react";
 import { Link, router, usePathname } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { CarFront, MessageSquare, Utensils, ChefHat } from "lucide-react-native";
+import { CarFront, MessageSquare, Utensils, FoodCreator as FoodCreatorHat } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";

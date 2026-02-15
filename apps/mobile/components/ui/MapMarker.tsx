@@ -5,7 +5,7 @@ import { MapMarkerProps } from '@/types/maps';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 
-export function MapMarker({ chef, onPress, isSelected = false }: MapMarkerProps) {
+export function MapMarker({ foodCreator, onPress, isSelected = false }: MapMarkerProps) {
   const colorScheme = useColorScheme();
 
   // Get sentiment-based colors
@@ -35,8 +35,8 @@ export function MapMarker({ chef, onPress, isSelected = false }: MapMarkerProps)
     }
   };
 
-  const sentimentColor = getSentimentColor(chef.sentiment);
-  const isLive = chef.is_live && chef.live_viewers && chef.live_viewers > 0;
+  const sentimentColor = getSentimentColor(foodCreator.sentiment);
+  const isLive = foodCreator.is_live && foodCreator.live_viewers && foodCreator.live_viewers > 0;
 
   return (
     <TouchableOpacity
@@ -45,21 +45,21 @@ export function MapMarker({ chef, onPress, isSelected = false }: MapMarkerProps)
         isSelected && styles.selected,
         { borderColor: sentimentColor }
       ]}
-      onPress={() => onPress?.(chef)}
+      onPress={() => onPress?.(foodCreator)}
       activeOpacity={0.8}
     >
       {/* Chef Avatar */}
       <View style={[styles.avatarContainer, { backgroundColor: sentimentColor }]}>
-        {chef.image_url ? (
+        {foodCreator.image_url ? (
           <Image
-            source={{ uri: chef.image_url }}
+            source={{ uri: foodCreator.image_url }}
             style={styles.avatar}
             contentFit="cover"
           />
         ) : (
           <View style={styles.avatarPlaceholder}>
             <Text style={styles.avatarText}>
-              {chef.name?.charAt(0)?.toUpperCase() || chef.kitchen_name?.charAt(0)?.toUpperCase() || 'K'}
+              {foodCreator.name?.charAt(0)?.toUpperCase() || foodCreator.kitchen_name?.charAt(0)?.toUpperCase() || 'K'}
             </Text>
           </View>
         )}
@@ -82,19 +82,19 @@ export function MapMarker({ chef, onPress, isSelected = false }: MapMarkerProps)
           ]}
           numberOfLines={1}
         >
-          {chef.kitchen_name}
+          {foodCreator.kitchen_name}
         </Text>
         
         {/* Rating */}
         <View style={styles.ratingContainer}>
-          <Text style={styles.ratingText}>★ {chef.rating}</Text>
-          <Text style={styles.distanceText}>{chef.distance}</Text>
+          <Text style={styles.ratingText}>★ {foodCreator.rating}</Text>
+          <Text style={styles.distanceText}>{foodCreator.distance}</Text>
         </View>
       </View>
 
       {/* Sentiment Badge */}
       <View style={[styles.sentimentBadge, { backgroundColor: sentimentColor }]}>
-        <Text style={styles.sentimentText}>{chef.sentiment}</Text>
+        <Text style={styles.sentimentText}>{foodCreator.sentiment}</Text>
       </View>
     </TouchableOpacity>
   );

@@ -4,7 +4,7 @@ import { WelcomeEmail } from './templates/welcome';
 import { OrderConfirmationEmail } from './templates/order-confirmation';
 import { OTPVerificationEmail } from './templates/otp-verification';
 import { PromotionalEmail } from './templates/promotional';
-import { ChefApplicationEmail } from './templates/chef-application';
+import { FoodCreatorApplicationEmail } from './templates/food-creator-application';
 import { GenericNotificationEmail } from './templates/generic-notification';
 import { FormConfirmationEmail } from './templates/form-confirmation';
 import { AdminNotificationEmail } from './templates/admin-notification';
@@ -29,7 +29,7 @@ export const EmailPreview = async () => {
         { name: 'Naan Bread', quantity: 4, price: 3.99 },
         { name: 'Mango Lassi', quantity: 2, price: 4.99 },
       ],
-      chef: {
+      foodCreator: {
         name: 'Priya Sharma',
         kitchen: 'Priya\'s Kitchen',
         image: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
@@ -90,7 +90,7 @@ export const EmailPreview = async () => {
       companyAddress: 'CribNosh – Personalized Dining, Every Time.',
     },
     chefApplication: {
-      chefName: 'John Doe',
+      foodCreatorName: 'John Doe',
       nextSteps: [
         'We\'ll review your application within 24 hours',
         'Complete our food safety certification course',
@@ -120,7 +120,7 @@ export const EmailPreview = async () => {
       customerName: 'John Doe',
       summary: 'I\'m interested in becoming a food creator on CribNosh. I have 10 years of experience cooking authentic Indian cuisine and would love to share my recipes with the community.',
       nextSteps: 'Our team will review your message and get back to you within 24 hours.',
-      actionUrl: 'https://cribnosh.com/chef-application',
+      actionUrl: 'https://cribnosh.com/food-creator-application',
       actionText: 'Apply to be a Food Creator',
       unsubscribeUrl: 'https://cribnosh.com/unsubscribe',
       companyAddress: 'CribNosh – Personalized Dining, Every Time.',
@@ -168,7 +168,7 @@ export const EmailPreview = async () => {
       <div style={{ marginBottom: '40px' }}>
         <h2>Chef Application Email</h2>
         <div dangerouslySetInnerHTML={{ 
-          __html: await render(ChefApplicationEmail(sampleData.chefApplication)) 
+          __html: await render(FoodCreatorApplicationEmail(sampleData.chefApplication)) 
         }} />
       </div>
 
@@ -203,7 +203,7 @@ export const renderEmailTemplate = async (templateName: string, data: any) => {
     orderConfirmation: OrderConfirmationEmail,
     otpVerification: OTPVerificationEmail,
     promotional: PromotionalEmail,
-    chefApplication: ChefApplicationEmail,
+    chefApplication: FoodCreatorApplicationEmail,
     genericNotification: GenericNotificationEmail,
     formConfirmation: FormConfirmationEmail,
     adminNotification: AdminNotificationEmail,

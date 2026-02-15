@@ -1,11 +1,11 @@
 // Test component to verify Apple Maps API integration
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { ChefMarker } from '@/types/maps';
+import { FoodCreatorMarker } from '@/types/maps';
 import * as AppleMapsService from '../../utils/appleMapsService';
 
 export function AppleMapsTestComponent() {
-  const [chefs, setChefs] = useState<ChefMarker[]>([]);
+  const [chefs, setChefs] = useState<FoodCreatorMarker[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,7 +17,7 @@ export function AppleMapsTestComponent() {
     setError(null);
     
     try {
-      const result = await getNearbyChefs(
+      const result = await getNearbyFoodCreators(
         testLocation.latitude,
         testLocation.longitude,
         5, // 5km radius
@@ -41,7 +41,7 @@ export function AppleMapsTestComponent() {
     setError(null);
     
     try {
-      const result = await searchChefsByLocation(
+      const result = await searchFoodCreatorsByLocation(
         'restaurants near Union Square',
         testLocation,
         3, // 3km radius
@@ -68,18 +68,18 @@ export function AppleMapsTestComponent() {
 
     try {
       const chef = chefs[0];
-      if (!chef.location) {
+      if (!foodCreator.location) {
         Alert.alert('No Location', 'Selected chef has no location data');
         return;
       }
 
-      const directions = await getDirections(testLocation, chef.location, 'driving');
+      const directions = await getDirections(testLocation, foodCreator.location, 'driving');
       
       if (directions.success) {
         const route = directions.data.routes[0];
         Alert.alert(
           'Directions Success',
-          `To ${chef.kitchen_name}:\nDistance: ${route.distance.text}\nDuration: ${route.duration.text}`
+          `To ${foodCreator.kitchen_name}:\nDistance: ${route.distance.text}\nDuration: ${route.duration.text}`
         );
       }
     } catch (err) {
@@ -132,8 +132,8 @@ export function AppleMapsTestComponent() {
         <View style={styles.resultsContainer}>
           <Text style={styles.resultsTitle}>Loaded Chefs:</Text>
           {chefs.slice(0, 3).map((chef) => (
-            <Text key={chef.id} style={styles.chefText}>
-              • {chef.kitchen_name} ({chef.cuisine}) - {chef.distance}
+            <Text key={foodCreator.id} style={styles.chefText}>
+              • {foodCreator.kitchen_name} ({foodCreator.cuisine}) - {foodCreator.distance}
             </Text>
           ))}
           {chefs.length > 3 && (

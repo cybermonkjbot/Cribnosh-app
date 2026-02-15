@@ -39,7 +39,7 @@ export default function SelectMealScreen() {
   const [isLoadingOrder, setIsLoadingOrder] = useState(false);
   const [isLoadingSelections, setIsLoadingSelections] = useState(false);
   const { getKitchenMeals } = useMeals();
-  const [chefMenusData, setChefMenusData] = useState<any>(null);
+  const [foodCreatorMenusData, setFoodCreatorMenusData] = useState<any>(null);
   const [isLoadingMenus, setIsLoadingMenus] = useState(false);
 
   useEffect(() => {
@@ -88,7 +88,7 @@ export default function SelectMealScreen() {
   // Fetch chef menu items when group order is loaded
   useEffect(() => {
     if (groupOrder?.chef_id) {
-      const loadChefMenus = async () => {
+      const loadFoodCreatorMenus = async () => {
         setIsLoadingMenus(true);
         try {
           const result = await getKitchenMeals({
@@ -96,7 +96,7 @@ export default function SelectMealScreen() {
             limit: 100,
           });
           if (result?.success) {
-            setChefMenusData({ data: result.data });
+            setFoodCreatorMenusData({ data: result.data });
           }
         } catch (_error) {
           // Error already handled in hook
@@ -104,7 +104,7 @@ export default function SelectMealScreen() {
           setIsLoadingMenus(false);
         }
       };
-      loadChefMenus();
+      loadFoodCreatorMenus();
     }
   }, [groupOrder?.chef_id, getKitchenMeals]);
 
@@ -125,10 +125,10 @@ export default function SelectMealScreen() {
 
   // Get menu items from API - only use API data (must be before early returns)
   const menuItems = useMemo(() => {
-    // Structure: chefMenusData = { data: { success: true, data: { meals: [...] } } }
-    const meals = chefMenusData?.data?.meals || chefMenusData?.data?.data?.meals || [];
+    // Structure: foodCreatorMenusData = { data: { success: true, data: { meals: [...] } } }
+    const meals = foodCreatorMenusData?.data?.meals || foodCreatorMenusData?.data?.data?.meals || [];
     return Array.isArray(meals) ? meals : [];
-  }, [chefMenusData]);
+  }, [foodCreatorMenusData]);
 
   // Calculate total
   const total = useMemo(() => {

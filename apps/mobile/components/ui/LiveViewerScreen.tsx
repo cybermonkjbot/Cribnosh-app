@@ -24,7 +24,7 @@ interface LiveViewerScreenProps {
     isLive: boolean;
     image: string;
     description: string;
-    chef: string;
+    foodCreator: string;
   } | null;
   onClose: () => void;
 }
@@ -80,7 +80,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
           data: {
             session: result.session,
             meal: result.session.meal,
-            chef: result.session.chef,
+            foodCreator: result.session.chef,
           },
         });
       } catch (error: any) {
@@ -313,7 +313,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
         data: {
           session: result.session,
           meal: result.session.meal,
-          chef: result.session.chef,
+          foodCreator: result.session.chef,
         },
       });
     } catch (error: any) {
@@ -663,7 +663,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     // Use mock data if available
     if (isMockId && mockKitchenData) {
       return {
-        name: mockKitchenData.chef || mockKitchenData.name || 'Chef',
+        name: mockKitchenData.chef || mockKitchenData.name || 'Food Creator',
         avatar: mockKitchenData.image || 'https://fhfhfhhf',
         viewers: viewerCount,
       };
@@ -680,8 +680,8 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
 
     const { chef } = sessionData.data;
     return {
-      name: chef.name || 'Chef',
-      avatar: chef.profile_image || 'https://fhfhfhhf',
+      name: foodCreator.name || 'Food Creator',
+      avatar: foodCreator.profile_image || 'https://fhfhfhhf',
       viewers: viewerCount,
     };
   }, [sessionData, isMockId, mockKitchenData, viewerCount]);
@@ -763,7 +763,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
               sessionData?.data?.session?.thumbnail_url
                 ? { uri: sessionData.data.session.thumbnail_url }
                 : sessionData?.data?.chef?.profile_image
-                ? { uri: sessionData.data.chef.profile_image }
+                ? { uri: sessionData.data.foodCreator.profile_image }
                 : require('../../assets/images/KitchenLive-01.png')
             }
             style={styles.backgroundImage}
@@ -781,7 +781,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
                 </Text>
                 {sessionData?.data?.chef && (
                   <Text style={styles.endedChefName}>
-                    {sessionData.data.chef.name}
+                    {sessionData.data.foodCreator.name}
                   </Text>
                 )}
                 <TouchableOpacity 
@@ -820,7 +820,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
                 : (sessionData?.data?.session?.thumbnail_url)
                 ? { uri: sessionData.data.session.thumbnail_url }
                 : (sessionData?.data?.chef?.profile_image)
-                ? { uri: sessionData.data.chef.profile_image }
+                ? { uri: sessionData.data.foodCreator.profile_image }
                 : require('../../assets/images/KitchenLive-01.png')
             }
             style={styles.backgroundImage}

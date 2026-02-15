@@ -64,7 +64,7 @@ export default function PaymentScreen({
   const [hasCheckedMultipleFoodCreators, setHasCheckedMultipleFoodCreators] = useState(false);
   const [showOfflineFoodCreatorsModal, setShowOfflineFoodCreatorsModal] = useState(false);
   const [hasCheckedOfflineFoodCreators, setHasCheckedOfflineFoodCreators] = useState(false);
-  const [offlineChefs, setOfflineFoodCreators] = useState<Array<{ chefId: string; chefName: string; itemNames: string[] }>>([]);
+  const [offlineChefs, setOfflineFoodCreators] = useState<Array<{ foodCreatorId: string; chefName: string; itemNames: string[] }>>([]);
   const [cartOrderNote, setCartOrderNote] = useState<string | undefined>(undefined);
 
   // Using Convex directly for all API calls
@@ -137,14 +137,14 @@ export default function PaymentScreen({
       return false;
     }
 
-    const chefIds = new Set<string>();
+    const foodCreatorIds = new Set<string>();
     for (const item of cartData.data.items) {
       if (item.chef_id) {
-        chefIds.add(item.chef_id);
+        foodCreatorIds.add(item.chef_id);
       }
     }
 
-    return chefIds.size > 1;
+    return foodCreatorIds.size > 1;
   }, [cartData]);
 
   const processPaymentInternal = useCallback(async () => {

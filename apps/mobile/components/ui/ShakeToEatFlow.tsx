@@ -155,7 +155,7 @@ export function ShakeToEatFlow({ onAIChatLaunch, isVisible, onClose, onStart }: 
           const mealData = meal.meal || meal;
           const chefData = meal.chef;
           
-          return transformMealToShakeFormat({ meal: mealData, chef: chefData });
+          return transformMealToShakeFormat({ meal: mealData, foodCreator: chefData });
         })
         .filter((meal): meal is ShakeMeal => meal !== null);
       

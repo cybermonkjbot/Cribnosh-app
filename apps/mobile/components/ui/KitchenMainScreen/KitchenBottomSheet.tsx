@@ -1,4 +1,4 @@
-import { useChefs } from '@/hooks/useChefs';
+import { useFoodCreators } from '@/hooks/useFoodCreators';
 import { BlurEffect } from '@/utils/blurEffects';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -80,7 +80,7 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   const searchInputRef = useRef<TextInput>(null);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { getKitchenDetails } = useChefs();
+  const { getKitchenDetails } = useFoodCreators();
   const [kitchenDetails, setKitchenDetails] = useState<any>(null);
 
   // AI response state

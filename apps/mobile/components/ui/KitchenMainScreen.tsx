@@ -1,4 +1,4 @@
-import { useChefs } from '@/hooks/useChefs';
+import { useFoodCreators } from '@/hooks/useFoodCreators';
 import { useTopPosition } from '@/utils/positioning';
 import { BlurView } from 'expo-blur';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -52,7 +52,7 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
 }) => {
   const topPosition = useTopPosition(20);
   const playIconScale = useSharedValue(1);
-  const { getKitchenDetails, getKitchenFeaturedVideo } = useChefs();
+  const { getKitchenDetails, getKitchenFeaturedVideo } = useFoodCreators();
   const [kitchenDetails, setKitchenDetails] = useState<any>(null);
   const [featuredVideoData, setFeaturedVideoData] = useState<any>(null);
   const [isLoadingKitchenDetails, setIsLoadingKitchenDetails] = useState(false);
@@ -155,7 +155,7 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
       title: videoData.title || kitchenName || 'Kitchen Story',
       description: videoData.description || undefined,
       kitchenName: kitchenName || 'Kitchen',
-      chef: videoData.creator?.name || videoData.chef || undefined,
+      foodCreator: videoData.creator?.name || videoData.chef || undefined,
     };
   }, [featuredVideoData, kitchenName]);
 

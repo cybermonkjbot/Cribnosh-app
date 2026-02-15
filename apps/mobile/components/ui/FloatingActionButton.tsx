@@ -1,7 +1,7 @@
 import { useCartCount } from '@/hooks/useCartCount';
 import { BlurEffect } from '@/utils/blurEffects';
 import { useRouter } from 'expo-router';
-import { Camera, ChefHat, Plus, ShoppingCart } from 'lucide-react-native';
+import { Camera, FoodCreator as FoodCreatorHat, Plus, ShoppingCart } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {

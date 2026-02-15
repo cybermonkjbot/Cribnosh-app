@@ -1,0 +1,27 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "info": {
+      "en-US": {
+        "title": "Cribnosh Food Creator",
+        "subtitle": "Professional chef platform for meal delivery",
+        "description": "Cribnosh Food Creator is the professional platform for chefs to manage their kitchen, create meals, and deliver to customers. Connect with food lovers in your area and grow your culinary business.",
+        "keywords": ["chef", "cooking", "food delivery", "meals", "kitchen", "culinary", "restaurant"],
+        "marketingUrl": "https://cribnosh.com",
+        "supportUrl": "https://cribnosh.com/support",
+        "privacyPolicyUrl": "https://cribnosh.com/privacy"
+      }
+    }
+  },
+  "android": {
+    "info": {
+      "en-US": {
+        "title": "Cribnosh Food Creator",
+        "shortDescription": "Professional chef platform for meal delivery",
+        "fullDescription": "Cribnosh Food Creator is the professional platform for chefs to manage their kitchen, create meals, and deliver to customers. Connect with food lovers in your area and grow your culinary business.",
+        "keywords": ["chef", "cooking", "food delivery", "meals", "kitchen", "culinary", "restaurant"]
+      }
+    }
+  }
+}
+

@@ -1,6 +1,6 @@
 // Apple Maps API service layer for backend integration
 import {
-    ChefMarker,
+    FoodCreatorMarker,
     DirectionsRequest,
     DirectionsResponse,
     GeocodeRequest,
@@ -64,7 +64,7 @@ export async function getNearbyChefs(
   radius: number = 5,
   limit: number = 20,
   page: number = 1
-): Promise<{ chefs: ChefMarker[]; pagination: any }> {
+): Promise<{ chefs: FoodCreatorMarker[]; pagination: any }> {
   const params = new URLSearchParams({
     latitude: latitude.toString(),
     longitude: longitude.toString(),
@@ -90,7 +90,7 @@ export async function searchChefsByLocation(
   radius: number = 3,
   cuisine?: string,
   limit: number = 10
-): Promise<{ chefs: ChefMarker[]; searchMetadata: any }> {
+): Promise<{ chefs: FoodCreatorMarker[]; searchMetadata: any }> {
   const request = {
     query,
     location,
@@ -110,7 +110,7 @@ export async function searchChefsByLocation(
 /**
  * Get chef details with location
  */
-export async function getChefDetails(chefId: string): Promise<ChefMarker> {
+export async function getChefDetails(chefId: string): Promise<FoodCreatorMarker> {
   const response = await apiRequest<any>(`/customer/chefs/${chefId}`, 'GET');
   return response.data;
 }

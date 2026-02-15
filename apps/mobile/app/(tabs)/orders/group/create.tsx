@@ -6,7 +6,7 @@ import { useAuthState } from '@/hooks/useAuthState';
 import { useGroupOrders } from '@/hooks/useGroupOrders';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { getConvexReactClient } from '@/lib/convexClient';
-import { Chef, CustomerAddress } from '@/types/customer';
+import { FoodCreator, CustomerAddress } from '@/types/customer';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Search as SearchIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
@@ -41,13 +41,13 @@ export default function CreateGroupOrderScreen() {
   const { location: userLocation } = useUserLocation();
 
   // Chef selection state
-  const [selectedChef, setSelectedChef] = useState<{ chef_id: string; restaurant_name: string } | null>(
+  const [selectedFoodCreator, setSelectedFoodCreator] = useState<{ chef_id: string; restaurant_name: string } | null>(
     params.chef_id && params.restaurant_name
       ? { chef_id: params.chef_id, restaurant_name: params.restaurant_name }
       : null
   );
   const [searchQuery, setSearchQuery] = useState('');
-  const [showChefSelection, setShowChefSelection] = useState(!params.chef_id || !params.restaurant_name);
+  const [showFoodCreatorSelection, setShowChefSelection] = useState(!params.chef_id || !params.restaurant_name);
 
   const [initialBudget, setInitialBudget] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
@@ -63,7 +63,7 @@ export default function CreateGroupOrderScreen() {
 
   // Fetch nearby kitchens or search kitchens using Convex queries directly
   useEffect(() => {
-    if (showChefSelection && userLocation) {
+    if (showFoodCreatorSelection && userLocation) {
       const loadKitchens = async () => {
         try {
           setIsLoadingKitchens(true);
@@ -73,7 +73,7 @@ export default function CreateGroupOrderScreen() {
 
           if (searchQuery && searchQuery.length >= 2) {
             // Search kitchens/chefs by query
-            const searchResult = await convex.query(api.queries.foodCreators.searchChefsByQuery, {
+            const searchResult = await convex.query(api.queries.foodCreators.searchFoodCreatorsByQuery, {
               query: searchQuery,
               latitude: userLocation.latitude,
               longitude: userLocation.longitude,
@@ -94,18 +94,18 @@ export default function CreateGroupOrderScreen() {
           console.log('Loaded chefs:', chefs.length);
 
           // Transform to expected format
-          const transformedChefs = chefs.map((chef: any) => ({
-            id: chef._id,
-            name: chef.kitchenName || chef.name || 'Unknown Kitchen',
-            kitchen_name: chef.kitchenName || chef.name,
-            cuisine: chef.specialties?.[0] || 'Other',
-            image_url: chef.imageUrl || chef.image_url || chef.profileImage || null,
-            delivery_time: chef.deliveryTime || null,
-            distance: chef.distance || 0,
-            rating: chef.rating || null,
+          const transformedFoodCreators = chefs.map((foodCreator: any) => ({
+            id: foodCreator._id,
+            name: foodCreator.kitchenName || foodCreator.name || 'Unknown Kitchen',
+            kitchen_name: foodCreator.kitchenName || foodCreator.name,
+            cuisine: foodCreator.specialties?.[0] || 'Other',
+            image_url: foodCreator.imageUrl || foodCreator.image_url || foodCreator.profileImage || null,
+            delivery_time: foodCreator.deliveryTime || null,
+            distance: foodCreator.distance || 0,
+            rating: foodCreator.rating || null,
           }));
 
-          setKitchensData({ success: true, data: { chefs: transformedChefs } });
+          setKitchensData({ success: true, data: { chefs: transformedFoodCreators } });
         } catch (error) {
           console.error('Failed to load kitchens:', error);
           setKitchensData({ success: false, data: { chefs: [] } });
@@ -117,10 +117,10 @@ export default function CreateGroupOrderScreen() {
     } else {
       setKitchensData(null);
     }
-  }, [showChefSelection, userLocation, searchQuery]);
+  }, [showFoodCreatorSelection, userLocation, searchQuery]);
 
-  const chefId = selectedChef?.chef_id || '';
-  const restaurantName = selectedChef?.restaurant_name || '';
+  const foodCreatorId = selectedFoodCreator?.chef_id || '';
+  const restaurantName = selectedFoodCreator?.restaurant_name || '';
 
   // Get kitchens list (from search results)
   const chefs = useMemo(() => {
@@ -130,7 +130,7 @@ export default function CreateGroupOrderScreen() {
     return [];
   }, [kitchensData]);
 
-  const isLoadingChefs = isLoadingKitchens;
+  const isLoadingFoodCreators = isLoadingKitchens;
 
   // Default title
   const defaultTitle = useMemo(() => {
@@ -168,12 +168,12 @@ export default function CreateGroupOrderScreen() {
   };
 
   const canCreate = () => {
-    return chefId && restaurantName && isValidBudget() && !isCreating;
+    return foodCreatorId && restaurantName && isValidBudget() && !isCreating;
   };
 
   const handleCreate = async () => {
     if (!canCreate()) {
-      if (!chefId || !restaurantName) {
+      if (!foodCreatorId || !restaurantName) {
         Alert.alert('Error', 'Chef and restaurant information is missing. Please go back and try again.');
         return;
       }
@@ -189,7 +189,7 @@ export default function CreateGroupOrderScreen() {
 
     try {
       const result = await createGroupOrder({
-        chef_id: chefId,
+        chef_id: foodCreatorId,
         restaurant_name: restaurantName,
         initial_budget: budgetNum,
         title: title || defaultTitle,
@@ -251,21 +251,21 @@ export default function CreateGroupOrderScreen() {
     }
   };
 
-  const handleChefSelect = (chef: Chef) => {
-    setSelectedChef({
-      chef_id: chef.id,
-      restaurant_name: chef.kitchen_name || chef.name,
+  const handleFoodCreatorSelect = (foodCreator: FoodCreator) => {
+    setSelectedFoodCreator({
+      chef_id: foodCreator.id,
+      restaurant_name: foodCreator.kitchen_name || foodCreator.name,
     });
     setShowChefSelection(false);
   };
 
-  const handleBackToChefSelection = () => {
+  const handleBackToFoodCreatorSelection = () => {
     setShowChefSelection(true);
-    setSelectedChef(null);
+    setSelectedFoodCreator(null);
   };
 
   // Show chef selection if no chef selected
-  if (showChefSelection || !chefId || !restaurantName) {
+  if (showFoodCreatorSelection || !foodCreatorId || !restaurantName) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
@@ -302,7 +302,7 @@ export default function CreateGroupOrderScreen() {
 
         {/* Chefs List */}
         <View style={styles.chefsListContainer}>
-          {isLoadingChefs ? (
+          {isLoadingFoodCreators ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#E6FFE8" />
               <Text style={styles.loadingText}>Loading food creators...</Text>
@@ -325,23 +325,23 @@ export default function CreateGroupOrderScreen() {
               renderItem={({ item: chef }) => (
                 <TouchableOpacity
                   style={styles.chefCard}
-                  onPress={() => handleChefSelect(chef)}
+                  onPress={() => handleFoodCreatorSelect(chef)}
                   activeOpacity={0.7}
                 >
                   <Image
                     source={{
-                      uri: chef.image_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face'
+                      uri: foodCreator.image_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face'
                     }}
                     style={styles.chefImage}
                   />
                   <View style={styles.chefInfo}>
                     <Text style={styles.chefName}>
-                      {chef.kitchen_name || chef.name}
+                      {foodCreator.kitchen_name || foodCreator.name}
                     </Text>
-                    <Text style={styles.chefCuisine}>{chef.cuisine}</Text>
-                    {chef.delivery_time && (
+                    <Text style={styles.chefCuisine}>{foodCreator.cuisine}</Text>
+                    {foodCreator.delivery_time && (
                       <Text style={styles.chefDeliveryTime}>
-                        Delivers in {chef.delivery_time}
+                        Delivers in {foodCreator.delivery_time}
                       </Text>
                     )}
                   </View>
@@ -379,7 +379,7 @@ export default function CreateGroupOrderScreen() {
           <View style={styles.infoCardHeader}>
             <Text style={styles.infoLabel}>Food Creator</Text>
             <TouchableOpacity
-              onPress={handleBackToChefSelection}
+              onPress={handleBackToFoodCreatorSelection}
               style={styles.changeButton}
             >
               <Text style={styles.changeButtonText}>Change</Text>

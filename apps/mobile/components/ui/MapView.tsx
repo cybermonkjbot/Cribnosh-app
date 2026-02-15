@@ -1,7 +1,7 @@
 // Core MapView component using expo-maps with fallback for Expo Go
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { ChefMarker, MapRegion, MapViewProps } from '@/types/maps';
+import { FoodCreatorMarker, MapRegion, MapViewProps } from '@/types/maps';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { MapMarker } from './MapMarker';
@@ -23,7 +23,7 @@ try {
 }
 
 export function MapView({
-  chefs,
+  foodCreators,
   initialRegion,
   onMarkerPress,
   showUserLocation = true,
@@ -44,7 +44,7 @@ export function MapView({
   const currentRegion = mapRegion || initialRegion || defaultRegion;
 
   // Handle marker press
-  const handleMarkerPress = (chef: ChefMarker) => {
+  const handleMarkerPress = (foodCreator: FoodCreatorMarker) => {
     onMarkerPress?.(chef);
   };
 
@@ -54,37 +54,37 @@ export function MapView({
   };
 
   // Focus on a specific chef
-  const focusOnChef = (chef: ChefMarker) => {
-    if (mapRef.current && chef.location && isMapsAvailable) {
+  const focusOnFoodCreator = (foodCreator: FoodCreatorMarker) => {
+    if (mapRef.current && foodCreator.location && isMapsAvailable) {
       const region: MapRegion = {
-        latitude: chef.location.latitude,
-        longitude: chef.location.longitude,
+        latitude: foodCreator.location.latitude,
+        longitude: foodCreator.location.longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       };
       
       mapRef.current.setCamera({
         center: {
-          latitude: chef.location.latitude,
-          longitude: chef.location.longitude,
+          latitude: foodCreator.location.latitude,
+          longitude: foodCreator.location.longitude,
         },
         zoom: 15,
       });
     }
   };
 
-  // Expose focusOnChef method to parent components
+  // Expose focusOnFoodCreator method to parent components
   useEffect(() => {
     if (mapRef.current) {
-      (mapRef.current as any).focusOnChef = focusOnChef;
+      (mapRef.current as any).focusOnFoodCreator = focusOnFoodCreator;
     }
   }, []);
 
   // Fallback UI when maps are not available (e.g., Expo Go)
   if (!isMapsAvailable) {
     // Check if this is a delivery tracking scenario (has "Your Location" or "On the way" markers)
-    const isDeliveryTracking = chefs.some(
-      chef => chef.kitchen_name === 'Your Location' || chef.cuisine === 'On the way' || chef.cuisine === 'Destination'
+    const isDeliveryTracking = foodCreators.some(
+      foodCreator => foodCreator.kitchen_name === 'Your Location' || foodCreator.cuisine === 'On the way' || foodCreator.cuisine === 'Destination'
     );
 
     if (isDeliveryTracking) {
@@ -105,10 +105,10 @@ export function MapView({
             
             {/* Delivery Status Cards */}
             <View style={styles.deliveryStatusContainer}>
-              {chefs.map((chef) => {
-                if (chef.kitchen_name === 'Your Location' || chef.cuisine === 'Destination') {
+              {foodCreators.map((foodCreator) => {
+                if (foodCreator.kitchen_name === 'Your Location' || foodCreator.cuisine === 'Destination') {
                   return (
-                    <View key={chef.id} style={styles.deliveryStatusCard}>
+                    <View key={foodCreator.id} style={styles.deliveryStatusCard}>
                       <View style={styles.deliveryStatusIcon}>
                         <MapPin size={20} color="#094327" />
                       </View>
@@ -119,16 +119,16 @@ export function MapView({
                     </View>
                   );
                 }
-                if (chef.cuisine === 'On the way') {
+                if (foodCreator.cuisine === 'On the way') {
                   return (
-                    <View key={chef.id} style={styles.deliveryStatusCard}>
+                    <View key={foodCreator.id} style={styles.deliveryStatusCard}>
                       <View style={styles.deliveryStatusIcon}>
                         <MapPin size={20} color="#FF3B30" />
                       </View>
                       <View style={styles.deliveryStatusText}>
-                        <Text style={styles.deliveryStatusTitle}>{chef.kitchen_name}</Text>
+                        <Text style={styles.deliveryStatusTitle}>{foodCreator.kitchen_name}</Text>
                         <Text style={styles.deliveryStatusSubtitle}>
-                          {chef.delivery_time || 'On the way'}
+                          {foodCreator.delivery_time || 'On the way'}
                         </Text>
                       </View>
                     </View>
@@ -165,7 +165,7 @@ export function MapView({
           <FlatList
             data={chefs}
             keyExtractor={(item) => item.id}
-            renderItem={({ item: chef }) => (
+            renderItem={({ item: foodCreator }) => (
               <TouchableOpacity
                 style={[
                   styles.fallbackChefItem,
@@ -174,20 +174,20 @@ export function MapView({
                     borderColor: '#E0E0E0'
                   }
                 ]}
-                onPress={() => handleMarkerPress(chef)}
+                onPress={() => handleMarkerPress(foodCreator)}
               >
                 <MapMarker
-                  chef={chef}
-                  onPress={() => handleMarkerPress(chef)}
+                  foodCreator={foodCreator}
+                  onPress={() => handleMarkerPress(foodCreator)}
                 />
-                {chef.location && (
+                {foodCreator.location && (
                   <View style={styles.locationContainer}>
                     <MapPin size={12} color="#666" />
                     <Text style={[
                       styles.locationText,
                       { color: Colors[colorScheme as keyof typeof Colors].text }
                     ]}>
-                      {chef.location.latitude.toFixed(4)}, {chef.location.longitude.toFixed(4)}
+                      {foodCreator.location.latitude.toFixed(4)}, {foodCreator.location.longitude.toFixed(4)}
                     </Text>
                   </View>
                 )}
@@ -253,23 +253,23 @@ export function MapView({
         // Dark mode support
         userInterfaceStyle={colorScheme === 'dark' ? 'dark' : 'light'}
       >
-        {chefs.map((chef) => {
-          if (!chef.location) return null;
+        {foodCreators.map((foodCreator) => {
+          if (!foodCreator.location) return null;
           
           return (
             <ExpoMarker
-              key={chef.id}
+              key={foodCreator.id}
               coordinate={{
-                latitude: chef.location.latitude,
-                longitude: chef.location.longitude,
+                latitude: foodCreator.location.latitude,
+                longitude: foodCreator.location.longitude,
               }}
-              onPress={() => handleMarkerPress(chef)}
-              title={chef.kitchen_name}
-              subtitle={`${chef.cuisine} • ${chef.delivery_time}`}
+              onPress={() => handleMarkerPress(foodCreator)}
+              title={foodCreator.kitchen_name}
+              subtitle={`${foodCreator.cuisine} • ${foodCreator.delivery_time}`}
             >
               <MapMarker
-                chef={chef}
-                onPress={() => handleMarkerPress(chef)}
+                foodCreator={foodCreator}
+                onPress={() => handleMarkerPress(foodCreator)}
               />
             </ExpoMarker>
           );

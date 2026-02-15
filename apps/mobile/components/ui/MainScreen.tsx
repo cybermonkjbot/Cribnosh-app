@@ -19,7 +19,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useAuthContext } from "../../contexts/AuthContext";
 
-import { ChefMarker } from "@/types/maps";
+import { FoodCreatorMarker } from "@/types/maps";
 import { CONFIG } from "../../constants/config";
 import { useUserLocation } from "../../hooks/useUserLocation";
 import { getDirections } from "../../utils/appleMapsService";
@@ -79,12 +79,12 @@ import { TopKebabs } from "./TopKebabs";
 // Customer API imports
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useCart } from "@/hooks/useCart";
-import { useChefs } from "@/hooks/useChefs";
+import { useFoodCreators } from "@/hooks/useFoodCreators";
 import { useCuisines } from "@/hooks/useCuisines";
 import { useMeals } from "@/hooks/useMeals";
 import { useOffers } from "@/hooks/useOffers";
 import { getConvexClient } from "@/lib/convexClient";
-import { Chef, Cuisine } from "@/types/customer";
+import { FoodCreator, Cuisine } from "@/types/customer";
 
 // Global toast imports
 import {
@@ -159,32 +159,32 @@ export function MainScreen() {
   // Refetch function for compatibility
   const refetchCuisines = loadCuisines;
 
-  // Popular chefs using useChefs hook
-  const { getPopularChefs } = useChefs();
-  const [chefsData, setChefsData] = useState<any>(null);
-  const [chefsLoading, setChefsLoading] = useState(false);
-  const [chefsError, setChefsError] = useState<any>(null);
+  // Popular chefs using useFoodCreators hook
+  const { getPopularFoodCreators } = useFoodCreators();
+  const [foodCreatorsData, setFoodCreatorsData] = useState<any>(null);
+  const [foodCreatorsLoading, setFoodCreatorsLoading] = useState(false);
+  const [foodCreatorsError, setFoodCreatorsError] = useState<any>(null);
 
   // Load popular chefs function
-  const loadPopularChefs = useCallback(async () => {
+  const loadPopularFoodCreators = useCallback(async () => {
     try {
-      setChefsLoading(true);
-      setChefsError(null);
-      const result = await getPopularChefs();
+      setFoodCreatorsLoading(true);
+      setFoodCreatorsError(null);
+      const result = await getPopularFoodCreators();
       if (result.success) {
-        setChefsData({ success: true, data: result.data });
+        setFoodCreatorsData({ success: true, data: result.data });
         // Clear error on successful load
-        setChefsError(null);
+        setFoodCreatorsError(null);
       }
     } catch (error: any) {
-      setChefsError(error);
+      setFoodCreatorsError(error);
     } finally {
-      setChefsLoading(false);
+      setFoodCreatorsLoading(false);
     }
-  }, [getPopularChefs]);
+  }, [getPopularFoodCreators]);
 
   // Refetch function for compatibility
-  const refetchChefs = loadPopularChefs;
+  const refetchFoodCreators = loadPopularFoodCreators;
 
   // Popular meals using useMeals hook
   const { getRandomMeals } = useMeals();
@@ -206,7 +206,7 @@ export function MainScreen() {
           data: {
             popular: result.data.meals.map((meal: any) => ({
               meal,
-              chef: meal.chef || null,
+              foodCreator: meal.chef || null,
             }))
           }
         });
@@ -279,7 +279,7 @@ export function MainScreen() {
       // Load all data in parallel instead of sequentially
       Promise.all([
         loadCuisines(),
-        loadPopularChefs(),
+        loadPopularFoodCreators(),
         loadPopularMeals(),
         loadOffers(),
         loadCart()
@@ -287,7 +287,7 @@ export function MainScreen() {
         console.error('Error loading initial data:', error);
       });
     }
-  }, [isAuthenticated, loadCuisines, loadPopularChefs, loadPopularMeals, loadOffers, loadCart]);
+  }, [isAuthenticated, loadCuisines, loadPopularFoodCreators, loadPopularMeals, loadOffers, loadCart]);
 
   // Location hook for map functionality
   const locationState = useUserLocation();
@@ -349,24 +349,24 @@ export function MainScreen() {
     }));
   }, []);
 
-  const transformChefsData = useCallback((apiChefs: Chef[] | undefined) => {
-    if (!apiChefs || !Array.isArray(apiChefs)) {
+  const transformFoodCreatorsData = useCallback((apiFoodCreators: FoodCreator[] | undefined) => {
+    if (!apiFoodCreators || !Array.isArray(apiFoodCreators)) {
       return [];
     }
-    return apiChefs.map((chef) => ({
-      id: chef.id,
-      name: chef.kitchen_name,
-      cuisine: chef.cuisine,
-      sentiment: chef.sentiment,
-      deliveryTime: chef.delivery_time,
-      distance: chef.distance,
+    return apiFoodCreators.map((chef) => ({
+      id: foodCreator.id,
+      name: foodCreator.kitchen_name,
+      cuisine: foodCreator.cuisine,
+      sentiment: foodCreator.sentiment,
+      deliveryTime: foodCreator.delivery_time,
+      distance: foodCreator.distance,
       image: {
         uri:
-          chef.image_url ||
+          foodCreator.image_url ||
           "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop",
       },
-      isLive: chef.is_live,
-      liveViewers: chef.live_viewers,
+      isLive: foodCreator.is_live,
+      liveViewers: foodCreator.live_viewers,
     }));
   }, []);
 
@@ -416,12 +416,12 @@ export function MainScreen() {
   }, [cuisinesData, transformCuisinesData]);
 
   const kitchens = useMemo(() => {
-    if (chefsData?.success && chefsData.data && Array.isArray(chefsData.data)) {
-      const transformedData = transformChefsData(chefsData.data);
+    if (foodCreatorsData?.success && foodCreatorsData.data && Array.isArray(foodCreatorsData.data)) {
+      const transformedData = transformFoodCreatorsData(foodCreatorsData.data);
       return transformedData;
     }
     return []; // Return empty array instead of mock data
-  }, [chefsData, transformChefsData]);
+  }, [foodCreatorsData, transformFoodCreatorsData]);
 
   // Transform API offer data to component format
   const transformOfferData = useCallback((apiOffer: any) => {
@@ -711,7 +711,7 @@ export function MainScreen() {
 
   // Map state management
   const [isMapVisible, setIsMapVisible] = useState(false);
-  const [mapChefs, setMapChefs] = useState<ChefMarker[]>([]);
+  const [mapFoodCreators, setMapFoodCreators] = useState<FoodCreatorMarker[]>([]);
 
   // EAS Update state management
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -822,14 +822,14 @@ export function MainScreen() {
   // Use a ref to ensure this only happens once and doesn't reset
   // This ref persists across re-renders and navigation
   useEffect(() => {
-    if (isAuthenticated && (cuisinesData || chefsData || popularMealsData)) {
+    if (isAuthenticated && (cuisinesData || foodCreatorsData || popularMealsData)) {
       // Once set, never reset - this prevents skeletons from showing again
       if (!hasInitialLoadCompletedRef.current) {
         hasInitialLoadCompletedRef.current = true;
         setHasInitialLoadCompleted(true);
       }
     }
-  }, [isAuthenticated, cuisinesData, chefsData, popularMealsData]);
+  }, [isAuthenticated, cuisinesData, foodCreatorsData, popularMealsData]);
 
   // Ensure hasInitialLoadCompleted stays true once set, even if component re-renders
   useEffect(() => {
@@ -1185,7 +1185,7 @@ export function MainScreen() {
     try {
       // Refetch API data when authenticated
       if (isAuthenticated) {
-        await Promise.all([refetchCuisines(), refetchChefs(), refetchMeals(), refetchCart()]);
+        await Promise.all([refetchCuisines(), refetchFoodCreators(), refetchMeals(), refetchCart()]);
       }
 
       // Sometimes check for EAS updates (25% chance)
@@ -1236,7 +1236,7 @@ export function MainScreen() {
     contentFadeAnim,
     isAuthenticated,
     refetchCuisines,
-    refetchChefs,
+    refetchFoodCreators,
     refetchMeals,
     refetchCart,
   ]);
@@ -1412,7 +1412,7 @@ export function MainScreen() {
     setActiveDrawer("cuisineCategory");
   }, []);
 
-  const handleFeaturedKitchenPress = useCallback((kitchen: any) => {
+  const handleFeaturedFoodCreatorPress = useCallback((kitchen: any) => {
     setSelectedKitchen(kitchen);
     setIsKitchenMainScreenVisible(true);
   }, []);
@@ -1422,36 +1422,36 @@ export function MainScreen() {
     setIsMapVisible(!isMapVisible);
   }, [isMapVisible]);
 
-  const handleMapChefSelect = useCallback((chef: ChefMarker) => {
-    // Convert ChefMarker to kitchen format for existing handler
+  const handleMapFoodCreatorSelect = useCallback((foodCreator: FoodCreatorMarker) => {
+    // Convert FoodCreatorMarker to kitchen format for existing handler
     const kitchenData = {
-      id: chef.id,
-      name: chef.kitchen_name,
-      cuisine: chef.cuisine,
-      deliveryTime: chef.delivery_time,
-      distance: chef.distance,
-      image: chef.image_url || "https://avatar.iran.liara.run/public/44",
-      sentiment: chef.sentiment,
+      id: foodCreator.id,
+      name: foodCreator.kitchen_name,
+      cuisine: foodCreator.cuisine,
+      deliveryTime: foodCreator.delivery_time,
+      distance: foodCreator.distance,
+      image: foodCreator.image_url || "https://avatar.iran.liara.run/public/44",
+      sentiment: foodCreator.sentiment,
     };
     setSelectedKitchen(kitchenData);
     setIsKitchenMainScreenVisible(true);
     setIsMapVisible(false); // Close map when selecting a chef
   }, []);
 
-  const handleMapDirections = useCallback(async (chef: ChefMarker) => {
-    if (!locationState.location || !chef.location) {
+  const handleMapDirections = useCallback(async (foodCreator: FoodCreatorMarker) => {
+    if (!locationState.location || !foodCreator.location) {
       showError('Location Required', 'Please enable location services to get directions.');
       return;
     }
 
     try {
-      const directions = await getDirections(locationState.location, chef.location, 'driving');
+      const directions = await getDirections(locationState.location, foodCreator.location, 'driving');
 
       if (directions.success) {
         const route = directions.data.routes[0];
         showInfo(
           `Distance: ${route.distance.text}\nDuration: ${route.duration.text}`,
-          `Directions to ${chef.kitchen_name}`
+          `Directions to ${foodCreator.kitchen_name}`
         );
       }
     } catch (error) {
@@ -1461,18 +1461,18 @@ export function MainScreen() {
   }, [locationState.location]);
 
   // Initialize map chefs with real data from API
-  const { getNearbyChefs: getNearbyChefsFromHook } = useChefs();
+  const { getNearbyFoodCreators: getNearbyFoodCreatorsFromHook } = useFoodCreators();
   useEffect(() => {
-    const loadNearbyChefs = async () => {
+    const loadNearbyFoodCreators = async () => {
       // Don't load if no user location available
       if (!locationState.location) {
-        setMapChefs([]);
+        setMapFoodCreators([]);
         isFirstMapLoad.current = false;
         return;
       }
 
       try {
-        const result = await getNearbyChefsFromHook({
+        const result = await getNearbyFoodCreatorsFromHook({
           latitude: locationState.location.latitude,
           longitude: locationState.location.longitude,
           radius: 5,
@@ -1481,7 +1481,7 @@ export function MainScreen() {
         });
 
         if (result.success && result.data) {
-          setMapChefs(result.data.chefs || []);
+          setMapFoodCreators(result.data.chefs || []);
 
           // Map updated silently - no toast needed
         }
@@ -1491,16 +1491,16 @@ export function MainScreen() {
       } catch (error) {
         console.error('Failed to load nearby chefs:', error);
         // Fallback to empty array on error - no toast needed, UI will show empty state
-        setMapChefs([]);
+        setMapFoodCreators([]);
         // Mark initial load as complete even on error
         isFirstMapLoad.current = false;
       }
     };
 
     if (isAuthenticated) {
-      loadNearbyChefs();
+      loadNearbyFoodCreators();
     }
-  }, [isAuthenticated, locationState.location, isMapVisible, getNearbyChefsFromHook]);
+  }, [isAuthenticated, locationState.location, isMapVisible, getNearbyFoodCreatorsFromHook]);
 
   const handleMealPress = useCallback((meal: any) => {
     // Ensure we have a valid meal ID - use _id if id is missing
@@ -1917,7 +1917,7 @@ export function MainScreen() {
               )}
 
               {/* Loading indicators for API data */}
-              {(cuisinesLoading || chefsLoading || mealsLoading) && isAuthenticated && (
+              {(cuisinesLoading || foodCreatorsLoading || mealsLoading) && isAuthenticated && (
                 <View style={{ padding: 20, alignItems: "center" }}>
                   <Text style={{ color: "#666", fontSize: 16 }}>
                     Loading fresh content...
@@ -1926,13 +1926,13 @@ export function MainScreen() {
               )}
 
               {/* Error handling for API data - only show if there's an error AND no data */}
-              {(cuisinesError || chefsError || mealsError) &&
+              {(cuisinesError || foodCreatorsError || mealsError) &&
                 isAuthenticated &&
                 !cuisinesLoading &&
-                !chefsLoading &&
+                !foodCreatorsLoading &&
                 !mealsLoading &&
                 !cuisinesData &&
-                !chefsData &&
+                !foodCreatorsData &&
                 !popularMealsData && (
                   <View style={{ padding: 20, alignItems: "center" }}>
                     <Text style={{ color: "#FF3B30", fontSize: 16 }}>
@@ -1981,7 +1981,7 @@ export function MainScreen() {
                   )}
                   {isFeatureEnabled('mobile_featured_kitchens_section') && (
                     <FeaturedKitchensSection
-                      onKitchenPress={handleFeaturedKitchenPress}
+                      onKitchenPress={handleFeaturedFoodCreatorPress}
                       onSeeAllPress={handleOpenFeaturedKitchensDrawer}
                       useBackend={true}
                       hasInitialLoadCompleted={hasInitialLoadCompleted}
@@ -2024,7 +2024,7 @@ export function MainScreen() {
                   )}
                   {isFeatureEnabled('mobile_kitchens_near_me') && (
                     <KitchensNearMe
-                      onKitchenPress={handleFeaturedKitchenPress}
+                      onKitchenPress={handleFeaturedFoodCreatorPress}
                       onMapPress={handleMapToggle}
                       hasInitialLoadCompleted={hasInitialLoadCompleted}
                       isFirstSection={firstSectionId === 'kitchensNearMe'}
@@ -2130,9 +2130,9 @@ export function MainScreen() {
                       {filteredKitchens.length > 0 && isFeatureEnabled('mobile_featured_kitchens_section') && (
                         <FeaturedKitchensSection
                           kitchens={filteredKitchens}
-                          onKitchenPress={handleFeaturedKitchenPress}
+                          onKitchenPress={handleFeaturedFoodCreatorPress}
                           showTitle={false}
-                          isLoading={chefsLoading}
+                          isLoading={foodCreatorsLoading}
                           hasInitialLoadCompleted={hasInitialLoadCompleted}
                           isFirstSection={firstSectionId === 'filteredFeaturedKitchens'}
                         />
@@ -2265,9 +2265,9 @@ export function MainScreen() {
           <FeaturedKitchensDrawer
             onBack={handleCloseDrawer}
             kitchens={kitchens}
-            onKitchenPress={handleFeaturedKitchenPress}
-            isLoading={chefsLoading}
-            error={chefsError}
+            onKitchenPress={handleFeaturedFoodCreatorPress}
+            isLoading={foodCreatorsLoading}
+            error={foodCreatorsError}
           />
         )}
         {activeDrawer === "popularMeals" && (
@@ -2405,8 +2405,8 @@ export function MainScreen() {
       <MapBottomSheet
         isVisible={isMapVisible}
         onToggleVisibility={handleMapToggle}
-        chefs={mapChefs}
-        onChefSelect={handleMapChefSelect}
+        foodCreators={mapFoodCreators}
+        onFoodCreatorSelect={handleMapFoodCreatorSelect}
         onGetDirections={handleMapDirections}
       />
 

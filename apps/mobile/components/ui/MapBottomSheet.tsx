@@ -1,12 +1,12 @@
 // MapBottomSheet component following existing patterns
-import { ChefMarker, MapBottomSheetProps } from '@/types/maps';
+import { FoodCreatorMarker, MapBottomSheetProps } from '@/types/maps';
 import { Clock, MapPin, Navigation, Search, Star, Users } from 'lucide-react-native';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { useUserLocation } from '../../hooks/useUserLocation';
-import { getDirections, searchChefsByLocation } from '../../utils/appleMapsService';
+import { getDirections, searchFoodCreatorsByLocation } from '../../utils/appleMapsService';
 import { BottomSheetBase } from '../BottomSheetBase';
 import { MapView } from './MapView';
 
@@ -24,19 +24,19 @@ const SNAP_POINTS = {
 };
 
 // Memoized Chef Item Component (moved outside for better performance)
-interface ChefItemProps {
-  chef: ChefMarker;
-  onPress: (chef: ChefMarker) => void;
-  onGetDirections: (chef: ChefMarker) => void;
+interface FoodCreatorItemProps {
+  foodCreator: FoodCreatorMarker;
+  onPress: (foodCreator: FoodCreatorMarker) => void;
+  onGetDirections: (foodCreator: FoodCreatorMarker) => void;
   colorScheme: 'light' | 'dark';
 }
 
-const ChefItem = React.memo(({ 
-  chef, 
+const FoodCreatorItem = React.memo(({ 
+  foodCreator, 
   onPress, 
   onGetDirections,
   colorScheme: itemColorScheme
-}: ChefItemProps) => {
+}: FoodCreatorItemProps) => {
   const itemStyles = {
     chefItem: {
       borderRadius: 12,
@@ -98,7 +98,7 @@ const ChefItem = React.memo(({
         itemStyles.chefItem,
         { backgroundColor: Colors[itemColorScheme as keyof typeof Colors].background }
       ]}
-      onPress={() => onPress(chef)}
+      onPress={() => onPress(foodCreator)}
     >
       <View style={itemStyles.chefItemContent}>
         <View style={itemStyles.chefInfo}>
@@ -106,31 +106,31 @@ const ChefItem = React.memo(({
             itemStyles.chefName,
             { color: Colors[itemColorScheme as keyof typeof Colors].text }
           ]}>
-            {chef.kitchen_name}
+            {foodCreator.kitchen_name}
           </Text>
-          <Text style={itemStyles.chefCuisine}>{chef.cuisine}</Text>
+          <Text style={itemStyles.chefCuisine}>{foodCreator.cuisine}</Text>
           <View style={itemStyles.chefStats}>
             <View style={itemStyles.statItem}>
               <Star size={12} color="#FFD700" />
-              <Text style={itemStyles.statText}>{chef.rating}</Text>
+              <Text style={itemStyles.statText}>{foodCreator.rating}</Text>
             </View>
             <View style={itemStyles.statItem}>
               <Clock size={12} color="#666" />
-              <Text style={itemStyles.statText}>{chef.delivery_time}</Text>
+              <Text style={itemStyles.statText}>{foodCreator.delivery_time}</Text>
             </View>
-            {chef.is_live && (
+            {foodCreator.is_live && (
               <View style={itemStyles.statItem}>
                 <Users size={12} color="#FF0000" />
-                <Text style={itemStyles.statText}>{chef.live_viewers}</Text>
+                <Text style={itemStyles.statText}>{foodCreator.live_viewers}</Text>
               </View>
             )}
           </View>
         </View>
         <View style={itemStyles.chefActions}>
-          <Text style={itemStyles.distanceText}>{chef.distance}</Text>
+          <Text style={itemStyles.distanceText}>{foodCreator.distance}</Text>
           <TouchableOpacity
             style={itemStyles.directionsButton}
-            onPress={() => onGetDirections(chef)}
+            onPress={() => onGetDirections(foodCreator)}
           >
             <Navigation size={16} color="#007AFF" />
           </TouchableOpacity>
@@ -139,22 +139,22 @@ const ChefItem = React.memo(({
     </TouchableOpacity>
   );
 });
-ChefItem.displayName = 'ChefItem';
+FoodCreatorItem.displayName = 'FoodCreatorItem';
 
-export function MapBottomSheet({
+export function MapBottomSheet({ 
   isVisible,
   onToggleVisibility,
-  chefs,
-  onChefSelect,
+  foodCreators,
+  onFoodCreatorSelect,
   onGetDirections,
   userLocation,
 }: MapBottomSheetProps) {
   const colorScheme = useColorScheme();
   const [currentSnapPoint, setCurrentSnapPoint] = useState(0);
-  const [selectedChef, setSelectedChef] = useState<ChefMarker | null>(null);
+  const [selectedFoodCreator, setSelectedFoodCreator] = useState<FoodCreatorMarker | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<ChefMarker[]>([]);
+  const [searchResults, setSearchResults] = useState<FoodCreatorMarker[]>([]);
   const [chefLoadError, setChefLoadError] = useState<string | null>(null);
   
   // Location hook
@@ -179,10 +179,10 @@ export function MapBottomSheet({
   }, [onToggleVisibility]);
 
   // Handle chef selection
-  const handleChefSelect = useCallback((chef: ChefMarker) => {
-    setSelectedChef(chef);
-    onChefSelect?.(chef);
-  }, [onChefSelect]);
+  const handleFoodCreatorSelect = useCallback((foodCreator: FoodCreatorMarker) => {
+    setSelectedFoodCreator(foodCreator);
+    onFoodCreatorSelect?.(foodCreator);
+  }, [onFoodCreatorSelect]);
 
   // Handle search
   const handleSearch = useCallback(async (query: string) => {
@@ -200,8 +200,8 @@ export function MapBottomSheet({
 
     setIsSearching(true);
     try {
-      // Use the new searchChefsByLocation API
-      const searchResult = await searchChefsByLocation(
+      // Use the new searchFoodCreatorsByLocation API
+      const searchResult = await searchFoodCreatorsByLocation(
         query,
         currentUserLocation,
         5, // 5km radius
@@ -209,7 +209,7 @@ export function MapBottomSheet({
         20 // limit to 20 results
       );
       
-      setSearchResults(searchResult.chefs);
+      setSearchResults(searchResult.foodCreators);
     } catch (error) {
       console.error('Search error:', error);
       Alert.alert('Search Error', 'Failed to search for locations. Please try again.');
@@ -219,14 +219,14 @@ export function MapBottomSheet({
   }, [currentUserLocation]);
 
   // Handle get directions
-  const handleGetDirections = useCallback(async (chef: ChefMarker) => {
-    if (!currentUserLocation || !chef.location) {
+  const handleGetDirections = useCallback(async (foodCreator: FoodCreatorMarker) => {
+    if (!currentUserLocation || !foodCreator.location) {
       Alert.alert('Location Required', 'Please enable location services to get directions.');
       return;
     }
 
     try {
-      const directions = await getDirections(currentUserLocation, chef.location, 'driving');
+      const directions = await getDirections(currentUserLocation, foodCreator.location, 'driving');
       
       if (directions.success) {
         const route = directions.data.routes[0];
@@ -235,7 +235,7 @@ export function MapBottomSheet({
           `Distance: ${route.distance.text}\nDuration: ${route.duration.text}`,
           [
             { text: 'OK' },
-            { text: 'Open Maps', onPress: () => onGetDirections?.(chef) }
+            { text: 'Open Maps', onPress: () => onGetDirections?.(foodCreator) }
           ]
         );
       }
@@ -249,21 +249,21 @@ export function MapBottomSheet({
   const safeColorScheme = useMemo(() => (colorScheme || 'light') as 'light' | 'dark', [colorScheme]);
 
   // Render chef item wrapper
-  const renderChefItem = useCallback(({ item: chef }: { item: ChefMarker }) => (
-    <ChefItem
-      chef={chef}
-      onPress={handleChefSelect}
+  const renderFoodCreatorItem = useCallback(({ item: foodCreator }: { item: FoodCreatorMarker }) => (
+    <FoodCreatorItem
+      foodCreator={foodCreator}
+      onPress={handleFoodCreatorSelect}
       onGetDirections={handleGetDirections}
       colorScheme={safeColorScheme}
     />
-  ), [handleChefSelect, handleGetDirections, safeColorScheme]);
+  ), [handleFoodCreatorSelect, handleGetDirections, safeColorScheme]);
 
   // Memoized keyExtractor
-  const keyExtractor = useCallback((item: ChefMarker) => item.id, []);
+  const keyExtractor = useCallback((item: FoodCreatorMarker) => item.id, []);
 
   // Chef list data (memoized)
   const chefListData = useMemo(() => {
-    return searchResults.length > 0 ? searchResults : chefs;
+    return searchResults.length > 0 ? searchResults : foodCreators;
   }, [searchResults, chefs]);
 
   // Render content based on snap point
@@ -273,26 +273,26 @@ export function MapBottomSheet({
       return (
         <View style={styles.expandedContent}>
           <MapView
-            chefs={chefs}
-            onMarkerPress={handleChefSelect}
+            foodCreators={foodCreators}
+            onMarkerPress={handleFoodCreatorSelect}
             showUserLocation={true}
             style={styles.mapContainer}
           />
-          {selectedChef && (
+          {selectedFoodCreator && (
             <View style={[
-              styles.selectedChefCard,
+              styles.selectedFoodCreatorCard,
               { backgroundColor: Colors[colorScheme as keyof typeof Colors].background }
             ]}>
               <Text style={[
-                styles.selectedChefName,
+                styles.selectedFoodCreatorName,
                 { color: Colors[colorScheme as keyof typeof Colors].text }
               ]}>
-                {selectedChef.kitchen_name}
+                {selectedFoodCreator.kitchen_name}
               </Text>
-              <Text style={styles.selectedChefCuisine}>{selectedChef.cuisine}</Text>
+              <Text style={styles.selectedFoodCreatorCuisine}>{selectedFoodCreator.cuisine}</Text>
               <TouchableOpacity
                 style={styles.getDirectionsButton}
-                onPress={() => handleGetDirections(selectedChef)}
+                onPress={() => handleGetDirections(selectedFoodCreator)}
               >
                 <Navigation size={16} color="white" />
                 <Text style={styles.getDirectionsText}>Get Directions</Text>
@@ -352,7 +352,7 @@ export function MapBottomSheet({
           ) : (
             <FlatList
               data={chefListData}
-              renderItem={renderChefItem}
+              renderItem={renderFoodCreatorItem}
               keyExtractor={keyExtractor}
               style={styles.chefList}
               showsVerticalScrollIndicator={false}
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#F0F0F0',
   },
-  selectedChefCard: {
+  selectedFoodCreatorCard: {
     position: 'absolute',
     bottom: 20,
     left: 20,
@@ -493,12 +493,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
-  selectedChefName: {
+  selectedFoodCreatorName: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 4,
   },
-  selectedChefCuisine: {
+  selectedFoodCreatorCuisine: {
     fontSize: 14,
     color: '#666',
     marginBottom: 12,

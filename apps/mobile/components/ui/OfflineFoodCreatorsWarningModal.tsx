@@ -13,7 +13,7 @@ import { useColorScheme } from '../../hooks/useColorScheme';
 export interface OfflineFoodCreatorsWarningModalProps {
   isVisible: boolean;
   offlineChefs: {
-    chefId: string;
+    foodCreatorId: string;
     chefName: string;
     itemNames: string[];
   }[];

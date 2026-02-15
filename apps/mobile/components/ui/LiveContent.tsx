@@ -55,7 +55,7 @@ interface LiveKitchen {
   isLive: boolean;
   image: string;
   description: string;
-  chef: string;
+  foodCreator: string;
 }
 
 
@@ -463,7 +463,7 @@ export default function LiveContent({
         stream.chef_profile_image ||
         "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop",
       description: stream.description || "Live cooking session",
-      chef: stream.chef_name,
+      foodCreator: stream.chef_name,
     }));
   }, []);
 
@@ -574,7 +574,7 @@ export default function LiveContent({
       description: video.description || '',
       kitchenName: video.creator?.name || 'Unknown Chef',
       price,
-      chef: video.creator?.name,
+      foodCreator: video.creator?.name,
       likes: video.likesCount || 0,
       comments: video.commentsCount || 0,
       mealId: video.mealId, // Include mealId if video is linked to a meal
@@ -935,7 +935,7 @@ export default function LiveContent({
           return (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateSubtitle}>
-                Discover amazing recipes from our community chefs
+                Discover amazing recipes from our community food creators
               </Text>
             </View>
           );

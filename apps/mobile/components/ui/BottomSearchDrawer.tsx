@@ -53,7 +53,7 @@ import { RecipeDetailScreen } from "./RecipeDetailScreen";
 
 // Customer API imports
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useChefs } from "@/hooks/useChefs";
+import { useFoodCreators } from "@/hooks/useFoodCreators";
 import { useOffers } from "@/hooks/useOffers";
 import { useSearch } from "@/hooks/useSearch";
 import { getConvexClient, getSessionToken } from "@/lib/convexClient";
@@ -941,9 +941,9 @@ export function BottomSearchDrawer({
   // Emotions search mutation for natural language queries
   const [isSearchingWithEmotions, setIsSearchingWithEmotions] = useState(false);
 
-  // Chef search using useChefs hook (kept for backward compatibility, but unified search will be primary)
+  // Chef search using useFoodCreators hook (kept for backward compatibility, but unified search will be primary)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { searchChefs } = useChefs();
+  const { searchFoodCreators } = useFoodCreators();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [chefSearchData, setChefSearchData] = useState<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1978,16 +1978,16 @@ export function BottomSearchDrawer({
       // Transform chefs
       if (Array.isArray(apiResults.chefs)) {
         console.log('[BottomSearchDrawer] Found', apiResults.chefs.length, 'chefs');
-        apiResults.chefs.forEach((chef: any) => {
+        apiResults.chefs.forEach((foodCreator: any) => {
           results.push({
-            id: chef._id || chef.id || `chef-${Math.random()}`,
-            text: chef.name || "Unknown Kitchen",
-            category: chef.cuisines?.join(", ") || chef.cuisine || "Kitchen",
-            kitchen: chef.name || "Unknown Kitchen",
+            id: foodCreator._id || foodCreator.id || `chef-${Math.random()}`,
+            text: foodCreator.name || "Unknown Kitchen",
+            category: foodCreator.cuisines?.join(", ") || foodCreator.cuisine || "Kitchen",
+            kitchen: foodCreator.name || "Unknown Kitchen",
             time: "25 min",
-            distance: chef.distance || chef.location || "Nearby",
+            distance: foodCreator.distance || foodCreator.location || "Nearby",
             type: "kitchens",
-            rating: chef.rating ? chef.rating.toString() : "4.5",
+            rating: foodCreator.rating ? foodCreator.rating.toString() : "4.5",
             originalResult: chef,
           });
         });
@@ -2116,20 +2116,20 @@ export function BottomSearchDrawer({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const transformChefResults = useCallback((chefs: SearchChef[]) => {
     return chefs.map((chef) => ({
-      id: chef._id,
-      text: chef.name,
-      category: chef.cuisines.join(", "),
-      kitchen: chef.name,
+      id: foodCreator._id,
+      text: foodCreator.name,
+      category: foodCreator.cuisines.join(", "),
+      kitchen: foodCreator.name,
       time: "25 min", // Default delivery time
-      distance: chef.location || "Nearby",
+      distance: foodCreator.location || "Nearby",
       type: "kitchens",
-      rating: chef.rating ? chef.rating.toString() : "4.5",
-      bio: chef.bio,
-      specialties: chef.specialties,
-      is_verified: chef.is_verified,
-      is_available: chef.is_available,
-      experience_years: chef.experience_years,
-      price_range: chef.price_range,
+      rating: foodCreator.rating ? foodCreator.rating.toString() : "4.5",
+      bio: foodCreator.bio,
+      specialties: foodCreator.specialties,
+      is_verified: foodCreator.is_verified,
+      is_available: foodCreator.is_available,
+      experience_years: foodCreator.experience_years,
+      price_range: foodCreator.price_range,
     }));
   }, []);
 
@@ -2188,15 +2188,15 @@ export function BottomSearchDrawer({
     if (Array.isArray(chefs)) {
       chefs.forEach((chef) => {
         results.push({
-          id: chef._id || chef.id || `chef-${Math.random()}`,
-          text: chef.name || chef.kitchen_name || "Unknown Kitchen",
-          category: chef.cuisines?.join(", ") || chef.cuisine || "Various",
-          kitchen: chef.name || chef.kitchen_name || "Unknown Kitchen",
-          time: chef.delivery_time || "25 min",
-          distance: chef.distance || chef.location || "Nearby",
+          id: foodCreator._id || foodCreator.id || `chef-${Math.random()}`,
+          text: foodCreator.name || foodCreator.kitchen_name || "Unknown Kitchen",
+          category: foodCreator.cuisines?.join(", ") || foodCreator.cuisine || "Various",
+          kitchen: foodCreator.name || foodCreator.kitchen_name || "Unknown Kitchen",
+          time: foodCreator.delivery_time || "25 min",
+          distance: foodCreator.distance || foodCreator.location || "Nearby",
           type: "kitchens",
-          rating: chef.rating ? chef.rating.toString() : "4.5",
-          relevance_score: chef.relevance_score || 0.5,
+          rating: foodCreator.rating ? foodCreator.rating.toString() : "4.5",
+          relevance_score: foodCreator.relevance_score || 0.5,
           originalResult: chef,
         });
       });
@@ -2389,7 +2389,7 @@ export function BottomSearchDrawer({
               id: item.id,
               name: item.name,
               cuisine: item.cuisine,
-              chef: item.chef_name ? { name: item.chef_name } : null,
+              foodCreator: item.chef_name ? { name: item.chef_name } : null,
               kitchen: item.chef_name,
               price: item.price || 0,
               image_url: item.image,

@@ -20,7 +20,7 @@ export interface MapRegion {
 // CHEF MARKER TYPES
 // ============================================================================
 
-export interface ChefMarker {
+export interface FoodCreatorMarker {
   id: string;
   name: string;
   kitchen_name: string;
@@ -179,25 +179,25 @@ export interface DirectionsResponse {
 // ============================================================================
 
 export interface MapViewProps {
-  chefs: ChefMarker[];
+  foodCreators: FoodCreatorMarker[];
   initialRegion?: MapRegion;
-  onMarkerPress?: (chef: ChefMarker) => void;
+  onMarkerPress?: (foodCreator: FoodCreatorMarker) => void;
   showUserLocation?: boolean;
   style?: any;
 }
 
 export interface MapMarkerProps {
-  chef: ChefMarker;
-  onPress?: (chef: ChefMarker) => void;
+  foodCreator: FoodCreatorMarker;
+  onPress?: (foodCreator: FoodCreatorMarker) => void;
   isSelected?: boolean;
 }
 
 export interface MapBottomSheetProps {
   isVisible: boolean;
   onToggleVisibility: () => void;
-  chefs: ChefMarker[];
-  onChefSelect?: (chef: ChefMarker) => void;
-  onGetDirections?: (chef: ChefMarker) => void;
+  foodCreators: FoodCreatorMarker[];
+  onFoodCreatorSelect?: (foodCreator: FoodCreatorMarker) => void;
+  onGetDirections?: (foodCreator: FoodCreatorMarker) => void;
   userLocation?: MapLocation;
 }
 

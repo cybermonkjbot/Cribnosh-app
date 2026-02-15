@@ -3,7 +3,7 @@
 // This file is kept for reference only and should not be imported in production code.
 
 // Mock chef location data for development and testing
-import { ChefMarker } from '@/types/maps';
+import { FoodCreatorMarker } from '@/types/maps';
 
 // Base location (San Francisco area for testing)
 const BASE_LOCATION = {
@@ -27,7 +27,7 @@ function generateRandomLocation(baseLat: number, baseLng: number, radiusKm: numb
 }
 
 // Mock chef data with realistic variety
-const mockChefs: ChefMarker[] = [
+const mockChefs: FoodCreatorMarker[] = [
   {
     id: 'chef-001',
     name: 'Chef Maria',
@@ -279,18 +279,18 @@ const mockChefs: ChefMarker[] = [
 ];
 
 // Utility functions for mock data
-export function getMockChefs(): ChefMarker[] {
+export function getMockChefs(): FoodCreatorMarker[] {
   return [...mockChefs];
 }
 
-export function getMockChefsByCuisine(cuisine: string): ChefMarker[] {
+export function getMockChefsByCuisine(cuisine: string): FoodCreatorMarker[] {
   return mockChefs.filter(chef => chef.cuisine.toLowerCase() === cuisine.toLowerCase());
 }
 
 export function getMockChefsNearby(
   userLocation: { latitude: number; longitude: number },
   radiusKm: number = 5
-): ChefMarker[] {
+): FoodCreatorMarker[] {
   return mockChefs.filter(chef => {
     if (!chef.location) return false;
     
@@ -305,15 +305,15 @@ export function getMockChefsNearby(
   });
 }
 
-export function getMockChefsBySentiment(sentiment: string): ChefMarker[] {
+export function getMockChefsBySentiment(sentiment: string): FoodCreatorMarker[] {
   return mockChefs.filter(chef => chef.sentiment === sentiment);
 }
 
-export function getMockLiveChefs(): ChefMarker[] {
+export function getMockLiveChefs(): FoodCreatorMarker[] {
   return mockChefs.filter(chef => chef.is_live);
 }
 
-export function getMockChefById(id: string): ChefMarker | undefined {
+export function getMockChefById(id: string): FoodCreatorMarker | undefined {
   return mockChefs.find(chef => chef.id === id);
 }
 
@@ -336,11 +336,11 @@ function calculateDistance(
 }
 
 // Generate additional mock chefs dynamically
-export function generateAdditionalMockChefs(count: number = 5): ChefMarker[] {
+export function generateAdditionalMockChefs(count: number = 5): FoodCreatorMarker[] {
   const cuisines = ['Chinese', 'Korean', 'French', 'Mediterranean', 'Ethiopian', 'Peruvian', 'Vietnamese', 'Lebanese'];
-  const sentiments: ChefMarker['sentiment'][] = ['fire', 'bussing', 'elite', 'slaps', 'solid', 'decent', 'mid', 'meh'];
+  const sentiments: FoodCreatorMarker['sentiment'][] = ['fire', 'bussing', 'elite', 'slaps', 'solid', 'decent', 'mid', 'meh'];
   
-  const additionalChefs: ChefMarker[] = [];
+  const additionalChefs: FoodCreatorMarker[] = [];
   
   for (let i = 0; i < count; i++) {
     const cuisine = cuisines[Math.floor(Math.random() * cuisines.length)];

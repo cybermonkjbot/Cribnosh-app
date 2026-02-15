@@ -1,4 +1,4 @@
-import { ChefHat, Sparkles, Utensils } from 'lucide-react-native';
+import { FoodCreatorHat, Sparkles, Utensils } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
 import { Animated, Text, View } from 'react-native';
 import AnimatedReanimated, {

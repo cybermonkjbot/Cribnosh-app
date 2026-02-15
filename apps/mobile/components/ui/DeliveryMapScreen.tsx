@@ -164,7 +164,7 @@ export default function DeliveryMapScreen({ onClose, orderId }: DeliveryMapScree
         <>
           <View style={styles.mapWrapper}>
             <MapView
-              chefs={mapMarkers}
+              foodCreators={mapMarkers}
               initialRegion={centerLat && centerLng ? {
                 latitude: centerLat,
                 longitude: centerLng,

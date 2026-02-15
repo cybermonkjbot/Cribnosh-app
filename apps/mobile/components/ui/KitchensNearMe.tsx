@@ -1,4 +1,4 @@
-import { useChefs } from '@/hooks/useChefs';
+import { useFoodCreators } from '@/hooks/useFoodCreators';
 import { Image } from 'expo-image';
 import { MapPin } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -35,7 +35,7 @@ export function KitchensNearMe({
 }: KitchensNearMeProps) {
   const { isAuthenticated } = useAuthContext();
   const locationState = useUserLocation();
-  const { getNearbyChefs } = useChefs();
+  const { getNearbyFoodCreators } = useFoodCreators();
 
   const [nearbyChefsData, setNearbyChefsData] = useState<any>(null);
   const [backendLoading, setBackendLoading] = useState(false);
@@ -48,7 +48,7 @@ export function KitchensNearMe({
         try {
           setBackendLoading(true);
           setBackendError(null);
-          const result = await getNearbyChefs({
+          const result = await getNearbyFoodCreators({
             latitude: locationState.location!.latitude,
             longitude: locationState.location!.longitude,
             radius: 5,
@@ -68,7 +68,7 @@ export function KitchensNearMe({
     } else {
       setNearbyChefsData(null);
     }
-  }, [useBackend, isAuthenticated, locationState.location?.latitude, locationState.location?.longitude, getNearbyChefs]);
+  }, [useBackend, isAuthenticated, locationState.location?.latitude, locationState.location?.longitude, getNearbyFoodCreators]);
 
   // Transform API data to component format
   const transformKitchenData = useCallback((apiChef: any): Kitchen | null => {

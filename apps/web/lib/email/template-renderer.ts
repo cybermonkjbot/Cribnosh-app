@@ -2,9 +2,9 @@ import { render } from '@react-email/render';
 import type React from 'react';
 import { WelcomeEmail } from './templates/welcome';
 import { OrderConfirmationEmail } from './templates/order-confirmation';
-import { ChefRecommendationsEmail } from './templates/chef-recommendations';
+import { FoodCreatorRecommendationsEmail } from './templates/food-creator-recommendations';
 import { FormConfirmationEmail } from './templates/form-confirmation';
-import { ChefApplicationEmail } from './templates/chef-application';
+import { FoodCreatorApplicationEmail } from './templates/food-creator-application';
 import { GenericNotificationEmail } from './templates/generic-notification';
 import { AdminNotificationEmail } from './templates/admin-notification';
 import { OTPVerificationEmail } from './templates/otp-verification';
@@ -50,7 +50,7 @@ export class EmailTemplateRenderer {
       price: number;
       specialInstructions?: string;
     }>;
-    chef: {
+    foodCreator: {
       name: string;
       kitchen: string;
       image: string;
@@ -72,9 +72,9 @@ export class EmailTemplateRenderer {
     return html;
   }
 
-  async renderChefRecommendationsEmail(params: {
+  async renderFoodCreatorRecommendationsEmail(params: {
     customerName: string;
-    chefs: Array<{
+    foodCreators: Array<{
       name: string;
       image: string;
       kitchen: string;
@@ -93,7 +93,7 @@ export class EmailTemplateRenderer {
     unsubscribeUrl?: string;
   }): Promise<string> {
     const html = render(
-      ChefRecommendationsEmail({
+      FoodCreatorRecommendationsEmail({
         ...params,
         unsubscribeUrl: params.unsubscribeUrl || this.defaultUnsubscribeUrl,
         companyAddress: this.companyAddress,
@@ -121,8 +121,8 @@ export class EmailTemplateRenderer {
     );
   }
 
-  async renderChefApplicationEmail(params: {
-    chefName: string;
+  async renderFoodCreatorApplicationEmail(params: {
+    foodCreatorName: string;
     nextSteps: string[];
     timeline: string;
     documentsNeeded?: string[];
@@ -130,7 +130,7 @@ export class EmailTemplateRenderer {
     unsubscribeUrl?: string;
   }): Promise<string> {
     return render(
-      ChefApplicationEmail({
+      FoodCreatorApplicationEmail({
         ...params,
         unsubscribeUrl: params.unsubscribeUrl || this.defaultUnsubscribeUrl,
         companyAddress: this.companyAddress,

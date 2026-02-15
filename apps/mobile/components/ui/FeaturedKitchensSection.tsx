@@ -1,5 +1,5 @@
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useChefs } from '@/hooks/useChefs';
+import { useFoodCreators } from '@/hooks/useFoodCreators';
 import { Image } from 'expo-image';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -43,7 +43,7 @@ const FeaturedKitchensSectionComponent: React.FC<FeaturedKitchensSectionProps> =
   isFirstSection = false,
 }) => {
   const { isAuthenticated } = useAuthContext();
-  const { getFeaturedKitchens } = useChefs();
+  const { getFeaturedKitchens } = useFoodCreators();
 
   const [featuredKitchensData, setFeaturedKitchensData] = useState<any>(null);
   const [backendLoading, setBackendLoading] = useState(false);

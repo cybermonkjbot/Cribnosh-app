@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
 
 // Resurrected Live Stream Component
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useChefs } from '@/hooks/useChefs';
+import { useFoodCreators } from '@/hooks/useFoodCreators';
 import { X } from 'lucide-react-native';
 import { ActivityIndicator, Alert, TextInput } from 'react-native';
 
@@ -313,7 +313,7 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
   const [showMealPicker, setShowMealPicker] = useState(false);
   const isMountedRef = useRef(true);
 
-  const { getChefMeals, startLiveSession } = useChefs();
+  const { getFoodCreatorMeals, startLiveSession } = useFoodCreators();
   const [meals, setMeals] = useState<any[]>([]);
   const [isLoadingMeals, setIsLoadingMeals] = useState(false);
 
@@ -323,7 +323,7 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
         try {
           if (!isMountedRef.current) return;
           setIsLoadingMeals(true);
-          const result = await getChefMeals(100, 0);
+          const result = await getFoodCreatorMeals(100, 0);
           if (isMountedRef.current && result.success) {
             setMeals(result.data?.meals || []);
           }
@@ -335,7 +335,7 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
       };
       loadMeals();
     }
-  }, [isAuthenticated, getChefMeals]);
+  }, [isAuthenticated, getFoodCreatorMeals]);
 
   useEffect(() => {
     return () => { isMountedRef.current = false; };

@@ -32,7 +32,7 @@ interface OrderItem {
   specialInstructions?: string;
 }
 
-interface ChefInfo {
+interface FoodCreatorInfo {
   name: string;
   kitchen: string;
   image: string;
@@ -42,7 +42,7 @@ interface OrderConfirmationEmailProps {
   orderNumber: string;
   customerName: string;
   items: OrderItem[];
-  chef: ChefInfo;
+  foodCreator: FoodCreatorInfo;
   total: number;
   deliveryTime: string;
   deliveryAddress: string;
@@ -215,8 +215,8 @@ export const OrderConfirmationEmail = ({
         <Row>
           <Column style={{ width: '80px' }}>
             <img
-              src={chef.image}
-              alt={chef.name}
+              src={foodCreator.image}
+              alt={foodCreator.name}
               style={{
                 width: '60px',
                 height: '60px',
@@ -227,7 +227,7 @@ export const OrderConfirmationEmail = ({
           </Column>
           <Column>
             <ContentText style={{ ...typography.heading.h4, marginBottom: '4px' }}>
-              Prepared by {chef.name}
+              Prepared by {foodCreator.name}
             </ContentText>
             <ContentText
               style={{
@@ -236,7 +236,7 @@ export const OrderConfirmationEmail = ({
                 marginBottom: '8px',
               }}
             >
-              {chef.kitchen}
+              {foodCreator.kitchen}
             </ContentText>
             <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: '8px' }}>
               <RatingStars rating={chefRating} size="small" />
