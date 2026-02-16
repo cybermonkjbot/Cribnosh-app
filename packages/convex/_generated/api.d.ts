@@ -14,6 +14,7 @@ import type * as actions_broadcast from "../actions/broadcast.js";
 import type * as actions_chefs from "../actions/chefs.js";
 import type * as actions_coupons from "../actions/coupons.js";
 import type * as actions_courseContent from "../actions/courseContent.js";
+import type * as actions_createResendTemplates from "../actions/createResendTemplates.js";
 import type * as actions_data_compilation from "../actions/data_compilation.js";
 import type * as actions_delivery from "../actions/delivery.js";
 import type * as actions_dripScheduler from "../actions/dripScheduler.js";
@@ -302,6 +303,7 @@ declare const fullApi: ApiFromModules<{
   "actions/chefs": typeof actions_chefs;
   "actions/coupons": typeof actions_coupons;
   "actions/courseContent": typeof actions_courseContent;
+  "actions/createResendTemplates": typeof actions_createResendTemplates;
   "actions/data_compilation": typeof actions_data_compilation;
   "actions/delivery": typeof actions_delivery;
   "actions/dripScheduler": typeof actions_dripScheduler;

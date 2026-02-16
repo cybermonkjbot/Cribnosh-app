@@ -225,13 +225,13 @@ function ByUsContent() {
           <div className="relative z-10">
             <section
               data-section-theme="dark"
-              className="min-h-[calc(100vh+var(--header-height))] pt-[calc(var(--header-height)+2rem)] pb-24 full-screen-section full-screen-content"
+              className="min-h-screen pt-[calc(var(--header-height)+2rem)] pb-12 full-screen-section full-screen-content"
             >
               <MasonryBackground className="fixed inset-0 opacity-30" />
               <div className="fixed inset-0 bg-gradient-to-b from-black/60 via-black/40 to-transparent pointer-events-none" />
 
               {/* Hero Content */}
-              <div className="relative z-10 text-center mb-16 md:mb-32 px-4">
+              <div className="relative z-10 text-center mb-8 md:mb-12 px-4">
                 <SparkleEffect>
                   <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-asgard font-bold mb-4 sm:mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/80">
                     By Us, For You
@@ -322,7 +322,7 @@ function ByUsContent() {
 
               {/* Featured Post */}
               <ContainerScrollAnimation>
-                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 sm:mb-16">
+                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4 sm:mb-8">
                   <div className="flex items-center gap-4 mb-6 sm:mb-8">
                     <h2 className="text-2xl sm:text-3xl font-asgard font-bold text-white">
                       Featured Story
@@ -340,7 +340,7 @@ function ByUsContent() {
               </ContainerScrollAnimation>
 
               {/* Latest Posts Grid */}
-              <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 sm:mt-12">
+              <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 sm:mt-6">
                 <div className="flex items-center justify-between mb-6 sm:mb-8">
                   <h2 className="text-2xl sm:text-3xl font-asgard font-bold text-white">
                     Latest Stories
