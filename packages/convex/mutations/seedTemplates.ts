@@ -6,6 +6,7 @@ const DEFAULT_TEMPLATES = [
     templateId: "welcome",
     name: "Welcome Email",
     emailType: "welcome_message",
+    isSystem: true,
     subject: "Welcome to CribNosh!",
     htmlContent: `<!DOCTYPE html>
 <html dir="ltr" lang="en">
@@ -40,6 +41,7 @@ const DEFAULT_TEMPLATES = [
     templateId: "otp-verification",
     name: "OTP Verification",
     emailType: "otp_verification",
+    isSystem: true,
     subject: "Verify your email - {{otpCode}}",
     htmlContent: `<!DOCTYPE html>
 <html lang="en">
@@ -67,6 +69,7 @@ const DEFAULT_TEMPLATES = [
     templateId: "account-deletion",
     name: "Account Deletion",
     emailType: "account_deletion",
+    isSystem: true,
     subject: "Account Deletion Request Confirmed",
     htmlContent: `<!DOCTYPE html>
 <html>
@@ -85,6 +88,7 @@ const DEFAULT_TEMPLATES = [
     templateId: "data-download",
     name: "Data Download",
     emailType: "data_download",
+    isSystem: true,
     subject: "Your Data Download is Ready",
     htmlContent: `<!DOCTYPE html>
 <html>
@@ -103,6 +107,7 @@ const DEFAULT_TEMPLATES = [
     templateId: "family-invitation",
     name: "Family Invitation",
     emailType: "family_invitation",
+    isSystem: true,
     subject: "You've been invited to join a family profile",
     htmlContent: `<!DOCTYPE html>
 <html>
@@ -120,6 +125,7 @@ const DEFAULT_TEMPLATES = [
     templateId: "support-case",
     name: "Support Case Notification",
     emailType: "support_case",
+    isSystem: true,
     subject: "Support Case Created: {{supportCaseRef}}",
     htmlContent: `<!DOCTYPE html>
 <html>
@@ -137,6 +143,7 @@ const DEFAULT_TEMPLATES = [
     templateId: "review-received",
     name: "New Review Received",
     emailType: "review_received",
+    isSystem: true,
     subject: "New {{rating}}-Star Review from {{customerName}}",
     htmlContent: `<!DOCTYPE html>
 <html>
@@ -154,6 +161,7 @@ const DEFAULT_TEMPLATES = [
     templateId: "password-reset",
     name: "Password Reset",
     emailType: "password_reset",
+    isSystem: true,
     subject: "Reset your CribNosh password",
     htmlContent: `<!DOCTYPE html>
 <html>
