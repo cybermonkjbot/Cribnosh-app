@@ -1,4 +1,4 @@
-# Chef Platform - User Stories
+# Food Creator Platform - User Stories
 
 ## Document Information
 - **Version**: 1.0
@@ -7,12 +7,12 @@
 
 ## Overview
 
-This document contains all user stories for the chef platform, organized by feature area. Each user story follows the format: "As a [user type], I want to [action] so that [benefit]."
+This document contains all user stories for the food creator platform, organized by feature area. Each user story follows the format: "As a [user type], I want to [action] so that [benefit]."
 
 ## 2.1 Onboarding & Compliance
 
-### US-001: Chef Registration
-**As a** new chef  
+### US-001: Food Creator Registration
+**As a** new food creator  
 **I want to** register with basic information  
 **So that** I can start the onboarding process
 
@@ -28,7 +28,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-002: Course Enrollment
-**As a** new chef  
+**As a** new food creator  
 **I want to** be automatically enrolled in the 13-module compliance course after registration  
 **So that** I can start learning about platform requirements immediately
 
@@ -43,7 +43,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-003: Course Progress
-**As a** chef  
+**As a** food creator  
 **I want to** track my progress through each module  
 **So that** I know what I've completed and what's remaining
 
@@ -60,7 +60,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-004: Course Completion
-**As a** chef  
+**As a** food creator  
 **I want to** receive a certificate upon completing all 13 modules  
 **So that** I have proof of compliance training completion
 
@@ -69,7 +69,7 @@ This document contains all user stories for the chef platform, organized by feat
 - Certificate is downloadable as PDF
 - Certificate is stored in my profile
 - Certificate includes:
-  - Chef name
+  - Food Creator name
   - Completion date
   - Course name
   - Unique certificate ID
@@ -80,7 +80,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-005: Document Upload
-**As a** chef  
+**As a** food creator  
 **I want to** upload required documents gradually at my own pace  
 **So that** I'm not overwhelmed and can complete onboarding flexibly
 
@@ -99,7 +99,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-006: Document Verification
-**As a** chef  
+**As a** food creator  
 **I want to** know when my documents are verified  
 **So that** I can proceed with the next steps in onboarding
 
@@ -116,7 +116,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-007: Onboarding Checklist
-**As a** chef  
+**As a** food creator  
 **I want to** see what I need to complete before receiving orders  
 **So that** I know exactly what's required and can prioritize tasks
 
@@ -140,7 +140,7 @@ This document contains all user stories for the chef platform, organized by feat
 ## 2.2 Profile & Kitchen Management
 
 ### US-008: Profile Creation
-**As a** chef  
+**As a** food creator  
 **I want to** create my personal profile with bio, specialties, and location  
 **So that** customers can learn about me and my cooking style
 
@@ -161,7 +161,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-009: Kitchen Profile
-**As a** chef  
+**As a** food creator  
 **I want to** create my kitchen profile with details and images  
 **So that** customers can see my kitchen setup and trust my food preparation
 
@@ -181,7 +181,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-010: Availability Settings
-**As a** chef  
+**As a** food creator  
 **I want to** set when I'm available to receive orders  
 **So that** I only receive orders during times I can fulfill them
 
@@ -199,7 +199,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-011: Go Online/Offline
-**As a** chef  
+**As a** food creator  
 **I want to** toggle my availability to receive orders  
 **So that** I can control when I'm actively taking orders
 
@@ -216,7 +216,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-012: Profile Updates
-**As a** chef  
+**As a** food creator  
 **I want to** update my profile and kitchen details anytime  
 **So that** I can keep my information current and accurate
 
@@ -235,7 +235,7 @@ This document contains all user stories for the chef platform, organized by feat
 ## 2.3 Content Creation
 
 ### US-013: Create Recipe
-**As a** chef  
+**As a** food creator  
 **I want to** create recipes with ingredients, instructions, and images  
 **So that** I can share my cooking knowledge and attract customers
 
@@ -261,7 +261,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-014: Edit Recipe
-**As a** chef  
+**As a** food creator  
 **I want to** edit my published recipes  
 **So that** I can update them with improvements or corrections
 
@@ -277,7 +277,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-015: Write Story
-**As a** chef  
+**As a** food creator  
 **I want to** write stories about my cooking journey  
 **So that** I can connect with customers and build my brand
 
@@ -295,7 +295,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-016: Upload Video
-**As a** chef  
+**As a** food creator  
 **I want to** upload cooking videos to showcase my meals  
 **So that** customers can see my cooking process and quality
 
@@ -314,7 +314,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-017: Content Library
-**As a** chef  
+**As a** food creator  
 **I want to** see all my content (recipes, stories, videos) in one place  
 **So that** I can easily manage and organize my content
 
@@ -335,7 +335,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-018: Link Content to Meals
-**As a** chef  
+**As a** food creator  
 **I want to** link recipes/videos to specific meals I sell  
 **So that** customers can see related content when viewing meals
 
@@ -354,7 +354,7 @@ This document contains all user stories for the chef platform, organized by feat
 ## 2.4 Order Management
 
 ### US-019: View Orders
-**As a** chef  
+**As a** food creator  
 **I want to** see all incoming orders in my dashboard  
 **So that** I can manage and fulfill orders efficiently
 
@@ -380,7 +380,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-020: Accept/Reject Orders
-**As a** chef  
+**As a** food creator  
 **I want to** accept or reject incoming orders  
 **So that** I can control which orders I fulfill
 
@@ -398,7 +398,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-021: Update Order Status
-**As a** chef  
+**As a** food creator  
 **I want to** update order status as I prepare it  
 **So that** customers know the progress of their order
 
@@ -419,7 +419,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-022: Live Orders
-**As a** chef  
+**As a** food creator  
 **I want to** see orders placed during my live stream in real-time  
 **So that** I can handle orders while streaming
 
@@ -436,7 +436,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-023: Order History
-**As a** chef  
+**As a** food creator  
 **I want to** view my order history and analytics  
 **So that** I can track my business performance
 
@@ -460,7 +460,7 @@ This document contains all user stories for the chef platform, organized by feat
 ## 2.5 Financial Management
 
 ### US-024: View Earnings
-**As a** chef  
+**As a** food creator  
 **I want to** see my total earnings and pending payouts  
 **So that** I can track my income and plan finances
 
@@ -482,7 +482,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-025: Add Bank Account
-**As a** chef  
+**As a** food creator  
 **I want to** add my UK bank account for payouts  
 **So that** I can receive my earnings
 
@@ -504,7 +504,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-026: Request Payout
-**As a** chef  
+**As a** food creator  
 **I want to** request payouts to my bank account  
 **So that** I can access my earnings
 
@@ -522,7 +522,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-027: View Transactions
-**As a** chef  
+**As a** food creator  
 **I want to** see my transaction history  
 **So that** I can track all financial activity
 
@@ -547,7 +547,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-028: Tax Information
-**As a** chef  
+**As a** food creator  
 **I want to** view my tax year summaries and download tax documents  
 **So that** I can file my taxes accurately
 
@@ -570,7 +570,7 @@ This document contains all user stories for the chef platform, organized by feat
 ## 2.6 Live Streaming
 
 ### US-029: Go Live
-**As a** chef  
+**As a** food creator  
 **I want to** start a live cooking stream  
 **So that** customers can watch me cook and place orders
 
@@ -589,7 +589,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-030: Live Dashboard
-**As a** chef  
+**As a** food creator  
 **I want to** see viewer count and live orders during my stream  
 **So that** I can engage with viewers and manage orders
 
@@ -607,7 +607,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-031: End Stream
-**As a** chef  
+**As a** food creator  
 **I want to** end my live stream and optionally save it  
 **So that** I can finish streaming and preserve the content
 
@@ -626,7 +626,7 @@ This document contains all user stories for the chef platform, organized by feat
 ## 2.7 Customer Support
 
 ### US-032: Contact Support
-**As a** chef  
+**As a** food creator  
 **I want to** contact customer support when I have issues  
 **So that** I can get help and resolve problems
 
@@ -644,7 +644,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-033: Track Support Cases
-**As a** chef  
+**As a** food creator  
 **I want to** track the status of my support requests  
 **So that** I know when issues are being addressed
 
@@ -665,7 +665,7 @@ This document contains all user stories for the chef platform, organized by feat
 ---
 
 ### US-034: Support History
-**As a** chef  
+**As a** food creator  
 **I want to** view my past support interactions  
 **So that** I can reference previous solutions and track support quality
 

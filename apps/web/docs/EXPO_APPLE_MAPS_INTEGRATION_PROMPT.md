@@ -197,7 +197,7 @@ POST /api/apple-maps/directions
 
 ### 2. Expo Map Components
 - Create reusable map components using `react-native-maps` or MapKit
-- Support for displaying restaurants/chefs on maps
+- Support for displaying restaurants/food creators on maps
 - Interactive markers with custom styling
 - User location display
 
@@ -208,10 +208,10 @@ POST /api/apple-maps/directions
 - Add directions functionality
 
 ### 4. Key Features Needed
-- **Restaurant/Chef Map View**: Show nearby chefs with custom markers
+- **Restaurant/Food Creator Map View**: Show nearby food creators with custom markers
 - **Address Search**: Geocode user-entered addresses
 - **Location Services**: Get user's current location
-- **Directions**: Show route from user to selected chef/restaurant
+- **Directions**: Show route from user to selected food creator/restaurant
 - **Distance Display**: Show distances in miles/km
 - **Offline Support**: Cache map data when possible
 
@@ -219,7 +219,7 @@ POST /api/apple-maps/directions
 - Map screen with search overlay
 - Location picker component
 - Directions screen with step-by-step navigation
-- Custom markers for different chef types
+- Custom markers for different food creator types
 - Loading states and error handling
 
 ### 6. Technical Requirements
@@ -231,7 +231,7 @@ POST /api/apple-maps/directions
 - Support both iOS and Android
 
 ### 7. Integration Points
-- Connect with existing chef/restaurant data
+- Connect with existing food creator/restaurant data
 - Integrate with user location context
 - Work with existing search functionality
 - Support dark/light theme switching

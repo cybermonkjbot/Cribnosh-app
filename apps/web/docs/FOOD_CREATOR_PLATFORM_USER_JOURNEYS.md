@@ -1,4 +1,4 @@
-# Chef Platform - User Journeys
+# Food Creator Platform - User Journeys
 
 ## Document Information
 - **Version**: 1.0
@@ -7,18 +7,18 @@
 
 ## Overview
 
-This document maps out complete user journeys for chefs using the platform, from initial onboarding through daily operations, financial management, and support interactions.
+This document maps out complete user journeys for food creators using the platform, from initial onboarding through daily operations, financial management, and support interactions.
 
-## Journey 1: New Chef Onboarding Journey
+## Journey 1: New Food Creator Onboarding Journey
 
-**Goal**: First-time chef registration to first order received  
+**Goal**: First-time food creator registration to first order received  
 **Duration**: 0-30+ days  
-**User Type**: New chef signing up for the first time
+**User Type**: New food creator signing up for the first time
 
 ### Phase 1: Discovery & Registration (Day 0)
 
 **User Actions**:
-1. Chef discovers platform through marketing, referral, or search
+1. Food Creator discovers platform through marketing, referral, or search
 2. Clicks "Cook on Cribnosh" or "Apply to Cook" button
 3. Views information about becoming a chef
 4. Decides to register
@@ -41,13 +41,13 @@ This document maps out complete user journeys for chefs using the platform, from
 - Create user account
 - Assign 'chef' role
 - Send email verification
-- Create chef profile record
+- Create food creator profile record
 - Initialize onboarding state
 
 **Success Criteria**:
 - Account created successfully
 - Email verification sent
-- Chef redirected to onboarding dashboard
+- Food Creator redirected to onboarding dashboard
 
 **Pain Points to Address**:
 - Clear value proposition
@@ -77,7 +77,7 @@ This document maps out complete user journeys for chefs using the platform, from
 5. Understands what needs to be completed
 
 **Success Criteria**:
-- Chef understands next steps
+- Food Creator understands next steps
 - Clear path forward is visible
 - No confusion about requirements
 
@@ -97,7 +97,7 @@ This document maps out complete user journeys for chefs using the platform, from
 4. Starts Module 1
 
 **System Actions**:
-- Auto-enroll chef in compliance course
+- Auto-enroll food creator in compliance course
 - Display course modules
 - Track enrollment date
 - Initialize progress tracking
@@ -119,7 +119,7 @@ This document maps out complete user journeys for chefs using the platform, from
 - Allow pause and resume
 
 **Success Criteria**:
-- Chef completes all 13 modules
+- Food Creator completes all 13 modules
 - Average completion time: 7-14 days
 - Quiz pass rate: 70%+
 
@@ -243,14 +243,14 @@ This document maps out complete user journeys for chefs using the platform, from
 - Check onboarding completion status
 - Enable "Go Online" with limited functionality
 - Show what's still needed for full activation
-- Allow chef to go online but with restrictions
+- Allow food creator to go online but with restrictions
 
 **User Actions**:
 5. Goes online
 6. Can view platform but may have limited order capacity
 
 **Success Criteria**:
-- Chef can go online
+- Food Creator can go online
 - Clear indication of remaining requirements
 - No blocking issues
 
@@ -271,7 +271,7 @@ This document maps out complete user journeys for chefs using the platform, from
 **System Actions**:
 - Verify all documents
 - Verify bank account
-- Update chef status to "fully activated"
+- Update food creator status to "fully activated"
 - Enable full platform functionality
 - Remove restrictions
 
@@ -310,7 +310,7 @@ This document maps out complete user journeys for chefs using the platform, from
 - Process order acceptance
 - Track order status
 - Process payment
-- Add earnings to chef balance
+- Add earnings to food creator balance
 - Send payment notification
 
 **Success Criteria**:
@@ -325,11 +325,11 @@ This document maps out complete user journeys for chefs using the platform, from
 
 ---
 
-## Journey 2: Daily Chef Operations Journey
+## Journey 2: Daily Food Creator Operations Journey
 
-**Goal**: Typical day for an active chef  
+**Goal**: Typical day for an active food creator  
 **Duration**: Single day  
-**User Type**: Active chef with completed onboarding
+**User Type**: Active food creator with completed onboarding
 
 ### Step 1: Morning Check-in (8:00 AM)
 
@@ -363,7 +363,7 @@ This document maps out complete user journeys for chefs using the platform, from
 4. Confirms status change
 
 **System Actions**:
-- Update chef status to "online"
+- Update food creator status to "online"
 - Start accepting orders based on availability
 - Display online status to customers
 - Send confirmation notification
@@ -504,9 +504,9 @@ This document maps out complete user journeys for chefs using the platform, from
 
 ## Journey 3: Financial Management Journey
 
-**Goal**: Chef managing earnings and payouts  
+**Goal**: Food Creator managing earnings and payouts  
 **Duration**: Ongoing  
-**User Type**: Active chef with earnings
+**User Type**: Active food creator with earnings
 
 ### Step 1: View Earnings (Weekly)
 
@@ -643,9 +643,9 @@ This document maps out complete user journeys for chefs using the platform, from
 
 ## Journey 4: Support Interaction Journey
 
-**Goal**: Chef needing help from support  
+**Goal**: Food Creator needing help from support  
 **Duration**: 1-24 hours  
-**User Type**: Chef with an issue
+**User Type**: Food Creator with an issue
 
 ### Step 1: Identify Issue
 
@@ -710,7 +710,7 @@ This document maps out complete user journeys for chefs using the platform, from
 **System Actions**:
 - Create support case
 - Assign to available agent
-- Notify chef of assignment
+- Notify food creator of assignment
 - Send agent context
 
 **User Actions**:
@@ -776,7 +776,7 @@ This document maps out complete user journeys for chefs using the platform, from
 
 **Success Criteria**:
 - Issue fully resolved
-- Chef satisfied
+- Food Creator satisfied
 - Case properly closed
 
 **Pain Points to Address**:
@@ -798,7 +798,7 @@ This document maps out complete user journeys for chefs using the platform, from
 - **Order Acceptance Rate**: 85%+
 - **Average Order Fulfillment Time**: < 60 minutes
 - **Daily Active Chefs**: 60%+ of registered chefs
-- **Content Creation Rate**: 5+ items per chef per month
+- **Content Creation Rate**: 5+ items per food creator per month
 
 ### Financial Management Metrics
 - **Payout Request Frequency**: 2+ per month per chef

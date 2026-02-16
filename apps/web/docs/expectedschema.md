@@ -145,7 +145,7 @@
       ],
       "title": "Body_login_user_v1_auth_login_post"
     },
-    "Body_upload_chef_profile_image_v1_images_chef_profile_post": {
+    "Body_upload_food_creator_profile_image_v1_images_food_creator_profile_post": {
       "properties": {
         "file": {
           "type": "string",
@@ -158,39 +158,9 @@
       "required": [
         "file"
       ],
-      "title": "Body_upload_chef_profile_image_v1_images_chef_profile_post"
+      "title": "Body_upload_food_creator_profile_image_v1_images_food_creator_profile_post"
     },
-    "Body_upload_cuisine_image_v1_images_admin_cuisine__cuisine_id__post": {
-      "properties": {
-        "file": {
-          "type": "string",
-          "format": "binary",
-          "title": "File",
-          "description": "Cuisine image (JPEG, PNG, WebP max 8MB)"
-        }
-      },
-      "type": "object",
-      "required": [
-        "file"
-      ],
-      "title": "Body_upload_cuisine_image_v1_images_admin_cuisine__cuisine_id__post"
-    },
-    "Body_upload_customer_profile_image_v1_images_customer_profile_post": {
-      "properties": {
-        "file": {
-          "type": "string",
-          "format": "binary",
-          "title": "File",
-          "description": "Profile image (JPEG, PNG, WebP max 5MB)"
-        }
-      },
-      "type": "object",
-      "required": [
-        "file"
-      ],
-      "title": "Body_upload_customer_profile_image_v1_images_customer_profile_post"
-    },
-    "Body_upload_dish_images_v1_images_chef_dish__dish_id__post": {
+    "Body_upload_dish_images_v1_images_food_creator_dish__dish_id__post": {
       "properties": {
         "files": {
           "items": {
@@ -206,24 +176,14 @@
       "required": [
         "files"
       ],
-      "title": "Body_upload_dish_images_v1_images_chef_dish__dish_id__post"
+      "title": "Body_upload_dish_images_v1_images_food_creator_dish__dish_id__post"
     },
-    "Body_upload_document_v1_chef_documents_upload_post": {
+    "Body_upload_document_v1_food_creator_documents_upload_post": {
       "properties": {
         "name": {
           "type": "string",
           "title": "Name",
           "description": "Name/title of the document"
-        },
-        "document_type": {
-          "$ref": "#/components/schemas/DocumentType",
-          "description": "Type of document"
-        },
-        "file": {
-          "type": "string",
-          "format": "binary",
-          "title": "File",
-          "description": "Document file (PDF, PNG, JPG max 1MB)"
         }
       },
       "type": "object",
@@ -232,193 +192,7 @@
         "document_type",
         "file"
       ],
-      "title": "Body_upload_document_v1_chef_documents_upload_post"
-    },
-    "CartItem": {
-      "properties": {
-        "dish_id": {
-          "type": "string",
-          "title": "Dish Id"
-        },
-        "quantity": {
-          "type": "integer",
-          "title": "Quantity"
-        },
-        "cart_item_id": {
-          "type": "string",
-          "title": "Cart Item Id"
-        },
-        "cart_id": {
-          "type": "string",
-          "title": "Cart Id"
-        }
-      },
-      "type": "object",
-      "required": [
-        "dish_id",
-        "quantity",
-        "cart_item_id",
-        "cart_id"
-      ],
-      "title": "CartItem"
-    },
-    "CartItemCreate": {
-      "properties": {
-        "dish_id": {
-          "type": "string",
-          "title": "Dish Id"
-        },
-        "quantity": {
-          "type": "integer",
-          "title": "Quantity"
-        }
-      },
-      "type": "object",
-      "required": [
-        "dish_id",
-        "quantity"
-      ],
-      "title": "CartItemCreate"
-    },
-    "CartItemUpdate": {
-      "properties": {
-        "quantity": {
-          "type": "integer",
-          "title": "Quantity"
-        }
-      },
-      "type": "object",
-      "required": [
-        "quantity"
-      ],
-      "title": "CartItemUpdate"
-    },
-    "CartItemWithDish": {
-      "properties": {
-        "dish_id": {
-          "type": "string",
-          "title": "Dish Id"
-        },
-        "quantity": {
-          "type": "integer",
-          "title": "Quantity"
-        },
-        "cart_item_id": {
-          "type": "string",
-          "title": "Cart Item Id"
-        },
-        "cart_id": {
-          "type": "string",
-          "title": "Cart Id"
-        },
-        "dish_name": {
-          "type": "string",
-          "title": "Dish Name"
-        },
-        "dish_description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Dish Description"
-        },
-        "dish_price": {
-          "type": "number",
-          "title": "Dish Price"
-        },
-        "dish_image": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Dish Image"
-        },
-        "dish_is_available": {
-          "type": "boolean",
-          "title": "Dish Is Available",
-          "default": true
-        },
-        "dish_status": {
-          "type": "string",
-          "title": "Dish Status",
-          "default": "pending"
-        },
-        "chef_id": {
-          "type": "string",
-          "title": "Chef Id"
-        },
-        "dish_image_url": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Dish Image Url",
-          "description": "Convert dish_image object name to full presigned URL",
-          "readOnly": true
-        }
-      },
-      "type": "object",
-      "required": [
-        "dish_id",
-        "quantity",
-        "cart_item_id",
-        "cart_id",
-        "dish_name",
-        "dish_price",
-        "chef_id",
-        "dish_image_url"
-      ],
-      "title": "CartItemWithDish"
-    },
-    "CartWithDishes": {
-      "properties": {
-        "customer_id": {
-          "type": "string",
-          "title": "Customer Id"
-        },
-        "cart_id": {
-          "type": "string",
-          "title": "Cart Id"
-        },
-        "created_at": {
-          "type": "string",
-          "format": "date-time",
-          "title": "Created At"
-        },
-        "updated_at": {
-          "type": "string",
-          "format": "date-time",
-          "title": "Updated At"
-        },
-        "items": {
-          "items": {
-            "$ref": "#/components/schemas/CartItemWithDish"
-          },
-          "type": "array",
-          "title": "Items",
-          "default": []
-        }
-      },
-      "type": "object",
-      "required": [
-        "customer_id",
-        "cart_id",
-        "created_at",
-        "updated_at"
-      ],
-      "title": "CartWithDishes"
+      "title": "Body_upload_document_v1_food_creator_documents_upload_post"
     },
     "ChatCreate": {
       "properties": {
@@ -429,8 +203,8 @@
         },
         "chef_id": {
           "type": "string",
-          "title": "Chef Id",
-          "description": "Chef profile ID"
+          "title": "Food Creator Id",
+          "description": "Food Creator profile ID"
         }
       },
       "type": "object",
@@ -440,351 +214,35 @@
       ],
       "title": "ChatCreate"
     },
-    "ChatListItem": {
-      "properties": {
-        "chat_id": {
-          "type": "string",
-          "title": "Chat Id"
-        },
-        "customer": {
-          "$ref": "#/components/schemas/ChatUser"
-        },
-        "chef": {
-          "$ref": "#/components/schemas/ChatUser"
-        },
-        "last_message_at": {
-          "anyOf": [
-            {
-              "type": "string",
-              "format": "date-time"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Last Message At"
-        },
-        "last_message_preview": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Last Message Preview"
-        },
-        "unread_message_count": {
-          "type": "integer",
-          "title": "Unread Message Count",
-          "default": 0
-        }
-      },
-      "type": "object",
-      "required": [
-        "chat_id",
-        "customer",
-        "chef",
-        "last_message_at"
-      ],
-      "title": "ChatListItem"
-    },
-    "ChatListResponse": {
-      "properties": {
-        "chats": {
-          "items": {
-            "$ref": "#/components/schemas/ChatWithParticipantResponse"
-          },
-          "type": "array",
-          "title": "Chats"
-        },
-        "total_count": {
-          "type": "integer",
-          "title": "Total Count"
-        },
-        "limit": {
-          "type": "integer",
-          "title": "Limit"
-        },
-        "offset": {
-          "type": "integer",
-          "title": "Offset"
-        }
-      },
-      "type": "object",
-      "required": [
-        "chats",
-        "total_count",
-        "limit",
-        "offset"
-      ],
-      "title": "ChatListResponse"
-    },
-    "ChatMessagesResponse": {
-      "properties": {
-        "chat": {
-          "$ref": "#/components/schemas/ChatResponse"
-        },
-        "messages": {
-          "items": {
-            "type": "object"
-          },
-          "type": "array",
-          "title": "Messages"
-        },
-        "total_count": {
-          "type": "integer",
-          "title": "Total Count"
-        },
-        "limit": {
-          "type": "integer",
-          "title": "Limit"
-        },
-        "offset": {
-          "type": "integer",
-          "title": "Offset"
-        }
-      },
-      "type": "object",
-      "required": [
-        "chat",
-        "messages",
-        "total_count",
-        "limit",
-        "offset"
-      ],
-      "title": "ChatMessagesResponse"
-    },
-    "ChatResponse": {
-      "properties": {
-        "chat_id": {
-          "type": "string",
-          "title": "Chat Id"
-        },
-        "customer_id": {
-          "type": "string",
-          "title": "Customer Id"
-        },
-        "chef_id": {
-          "type": "string",
-          "title": "Chef Id"
-        },
-        "created_at": {
-          "type": "string",
-          "format": "date-time",
-          "title": "Created At"
-        },
-        "last_message_at": {
-          "anyOf": [
-            {
-              "type": "string",
-              "format": "date-time"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Last Message At"
-        }
-      },
-      "type": "object",
-      "required": [
-        "chat_id",
-        "customer_id",
-        "chef_id",
-        "created_at"
-      ],
-      "title": "ChatResponse"
-    },
-    "ChatResponseSchema": {
-      "properties": {
-        "chat_id": {
-          "type": "string",
-          "title": "Chat Id"
-        },
-        "customer_id": {
-          "type": "string",
-          "title": "Customer Id"
-        },
-        "chef_id": {
-          "type": "string",
-          "title": "Chef Id"
-        },
-        "order_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Order Id"
-        },
-        "last_message_at": {
-          "anyOf": [
-            {
-              "type": "string",
-              "format": "date-time"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Last Message At"
-        },
-        "messages": {
-          "items": {
-            "$ref": "#/components/schemas/MessageResponseSchema"
-          },
-          "type": "array",
-          "title": "Messages",
-          "default": []
-        }
-      },
-      "type": "object",
-      "required": [
-        "chat_id",
-        "customer_id",
-        "chef_id",
-        "order_id",
-        "last_message_at"
-      ],
-      "title": "ChatResponseSchema"
-    },
-    "ChatUser": {
-      "properties": {
-        "user_id": {
-          "type": "string",
-          "title": "User Id"
-        },
-        "profile_id": {
-          "type": "string",
-          "title": "Profile Id"
-        },
-        "first_name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "First Name"
-        },
-        "last_name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Last Name"
-        },
-        "profile_image": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Profile Image"
-        }
-      },
-      "type": "object",
-      "required": [
-        "user_id",
-        "profile_id"
-      ],
-      "title": "ChatUser"
-    },
-    "ChatWithParticipantResponse": {
-      "properties": {
-        "chat_id": {
-          "type": "string",
-          "title": "Chat Id"
-        },
-        "created_at": {
-          "type": "string",
-          "format": "date-time",
-          "title": "Created At"
-        },
-        "last_message_at": {
-          "anyOf": [
-            {
-              "type": "string",
-              "format": "date-time"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Last Message At"
-        },
-        "other_participant": {
-          "type": "object",
-          "title": "Other Participant"
-        },
-        "latest_message": {
-          "anyOf": [
-            {
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Latest Message"
-        },
-        "unread_count": {
-          "type": "integer",
-          "title": "Unread Count"
-        }
-      },
-      "type": "object",
-      "required": [
-        "chat_id",
-        "created_at",
-        "other_participant",
-        "unread_count"
-      ],
-      "title": "ChatWithParticipantResponse"
-    },
-    "ChefAnalyticsResponse": {
+    "FoodCreatorAnalyticsResponse": {
       "properties": {
         "total_chefs": {
           "type": "integer",
-          "title": "Total Chefs",
-          "description": "Total number of chefs"
+          "title": "Total Food Creators",
+          "description": "Total number of food creators"
         },
         "approved_chefs": {
           "type": "integer",
-          "title": "Approved Chefs",
-          "description": "Number of approved chefs"
+          "title": "Approved Food Creators",
+          "description": "Number of approved food creators"
         },
         "pending_chefs": {
           "type": "integer",
-          "title": "Pending Chefs",
-          "description": "Number of pending chefs"
+          "title": "Pending Food Creators",
+          "description": "Number of pending food creators"
         },
         "active_chefs": {
           "type": "integer",
-          "title": "Active Chefs",
-          "description": "Number of active chefs"
+          "title": "Active Food Creators",
+          "description": "Number of active food creators"
         },
         "chef_distribution_by_cuisine": {
           "additionalProperties": {
             "type": "integer"
           },
           "type": "object",
-          "title": "Chef Distribution By Cuisine",
-          "description": "Chef distribution by cuisine"
+          "title": "Food Creator Distribution By Cuisine",
+          "description": "Food creator distribution by cuisine"
         },
         "period": {
           "type": "string",
@@ -820,7 +278,7 @@
       "properties": {
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "cuisine_id": {
           "type": "string",
@@ -873,7 +331,7 @@
       "properties": {
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "cuisine_id": {
           "type": "string",
@@ -918,7 +376,7 @@
         "id"
       ],
       "title": "ChefCuisineWithProfileResponse",
-      "description": "Chef cuisine response with chef profile data included"
+      "description": "Chef cuisine response with food creator profile data included"
     },
     "ChefDishesResponse": {
       "properties": {
@@ -960,7 +418,7 @@
         "total"
       ],
       "title": "ChefDocumentListResponse",
-      "description": "Schema for listing chef documents"
+      "description": "Schema for listing food creator documents"
     },
     "ChefDocumentResponse": {
       "properties": {
@@ -979,7 +437,7 @@
         },
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "status": {
           "$ref": "#/components/schemas/DocumentStatus"
@@ -1092,7 +550,7 @@
         "document_url"
       ],
       "title": "ChefDocumentResponse",
-      "description": "Schema for chef document response"
+      "description": "Schema for food creator document response"
     },
     "ChefOrderUpdateSchema": {
       "properties": {
@@ -1120,7 +578,7 @@
               "type": "null"
             }
           ],
-          "title": "Chef Notes",
+          "title": "Food Creator Notes",
           "description": "Notes from the chef, especially when declining an order."
         }
       },
@@ -1279,7 +737,7 @@
         "profile_image_url"
       ],
       "title": "ChefProfileResponse",
-      "description": "Response schema for chef profiles"
+      "description": "Response schema for food creator profiles"
     },
     "ChefProfileUpdate": {
       "properties": {
@@ -1379,7 +837,7 @@
       "properties": {
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "avg_rating": {
           "type": "number",
@@ -1605,7 +1063,7 @@
       "properties": {
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "first_name": {
           "anyOf": [
@@ -1635,7 +1093,7 @@
         "chef_id"
       ],
       "title": "ChefSummary",
-      "description": "Minimal chef information exposed in admin review endpoints."
+      "description": "Minimal food creator information exposed in admin review endpoints."
     },
     "ContactResponse": {
       "properties": {
@@ -1933,7 +1391,7 @@
               "type": "null"
             }
           ],
-          "title": "Chef Count"
+          "title": "Food Creator Count"
         },
         "dish_count": {
           "anyOf": [
@@ -2805,7 +2263,7 @@
         },
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "cuisine_id": {
           "type": "string",
@@ -2917,7 +2375,7 @@
         },
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "cuisine_id": {
           "type": "string",
@@ -3082,7 +2540,7 @@
         },
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "cuisine_id": {
           "type": "string",
@@ -3119,7 +2577,7 @@
               "type": "null"
             }
           ],
-          "title": "Chef Name"
+          "title": "Food Creator Name"
         },
         "cuisine_name": {
           "anyOf": [
@@ -3260,7 +2718,7 @@
         },
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "cuisine_id": {
           "type": "string",
@@ -3548,7 +3006,7 @@
         },
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "cuisine_id": {
           "type": "string",
@@ -3606,7 +3064,7 @@
         "dish_image_url"
       ],
       "title": "DishWithChefProfileResponse",
-      "description": "Dish response with chef profile data included for admin endpoints"
+      "description": "Dish response with food creator profile data included for admin endpoints"
     },
     "DocumentReviewRequest": {
       "properties": {
@@ -3877,7 +3335,7 @@
         },
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "created_at": {
           "type": "string",
@@ -4173,7 +3631,7 @@
         },
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "order_items": {
           "items": {
@@ -4230,7 +3688,7 @@
         },
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "order_date": {
           "type": "string",
@@ -4414,7 +3872,7 @@
         },
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "order_date": {
           "type": "string",
@@ -4459,7 +3917,7 @@
               "type": "null"
             }
           ],
-          "title": "Chef Notes"
+          "title": "Food Creator Notes"
         },
         "payment_status": {
           "type": "string",
@@ -4611,7 +4069,7 @@
         },
         "chef_id": {
           "type": "string",
-          "title": "Chef Id"
+          "title": "Food Creator Id"
         },
         "order_date": {
           "type": "string",
@@ -5025,7 +4483,7 @@
               "type": "null"
             }
           ],
-          "title": "Chef Id",
+          "title": "Food Creator Id",
           "description": "Chef profile ID being reviewed"
         },
         "dish_id": {
@@ -5470,7 +4928,7 @@
       "properties": {
         "chef_id": {
           "type": "string",
-          "title": "Chef Id",
+          "title": "Food Creator Id",
           "description": "Chef profile ID"
         },
         "name": {
@@ -5727,7 +5185,7 @@
         "chefs": {
           "type": "integer",
           "title": "Chefs",
-          "description": "Number of chef users"
+          "description": "Number of food creator users"
         },
         "admins": {
           "type": "integer",

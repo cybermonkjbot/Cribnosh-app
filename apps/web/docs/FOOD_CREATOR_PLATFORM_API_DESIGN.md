@@ -1,4 +1,4 @@
-# Chef Platform - API Design
+# Food Creator Platform - API Design
 
 ## Document Information
 - **Version**: 1.0
@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document defines all API endpoints for the chef platform, including course management, document upload, content creation, payouts, and status management. All endpoints require chef authentication.
+This document defines all API endpoints for the food creator platform, including course management, document upload, content creation, payouts, and status management. All endpoints require food creator authentication.
 
 ## Authentication
 
@@ -42,7 +42,7 @@ All endpoints return JSON with the following structure:
 
 **GET** `/api/chef/courses`
 
-Get all courses the chef is enrolled in and their progress.
+Get all courses the food creator is enrolled in and their progress.
 
 **Response**:
 ```typescript
@@ -280,7 +280,7 @@ Get the completion certificate for a course.
 
 ## 2. Document Management Endpoints
 
-### 2.1 Get All Chef Documents
+### 2.1 Get All Food Creator Documents
 
 **GET** `/api/chef/documents`
 
@@ -461,7 +461,7 @@ Get the document requirements checklist for onboarding.
 
 ## 3. Recipe Management Endpoints
 
-### 3.1 Get All Chef Recipes
+### 3.1 Get All Food Creator Recipes
 
 **GET** `/api/chef/recipes`
 
@@ -721,7 +721,7 @@ Archive a published recipe.
 
 ## 4. Story Management Endpoints
 
-### 4.1 Get All Chef Stories
+### 4.1 Get All Food Creator Stories
 
 **GET** `/api/chef/stories`
 
@@ -1308,7 +1308,7 @@ Content-Disposition: attachment; filename="tax-record-2023-2024.pdf"
 
 **POST** `/api/chef/status/online`
 
-Set chef status to online (available to receive orders).
+Set food creator status to online (available to receive orders).
 
 **Response**:
 ```typescript
@@ -1327,7 +1327,7 @@ Set chef status to online (available to receive orders).
 
 **POST** `/api/chef/status/offline`
 
-Set chef status to offline (not available for orders).
+Set food creator status to offline (not available for orders).
 
 **Response**:
 ```typescript
@@ -1346,7 +1346,7 @@ Set chef status to offline (not available for orders).
 
 **GET** `/api/chef/status`
 
-Get current chef status.
+Get current food creator status.
 
 **Response**:
 ```typescript
@@ -1523,7 +1523,7 @@ The platform may send webhooks for certain events:
 - Payout completed
 - Document verified
 - Course completed
-- Order received (if chef is offline)
+- Order received (if food creator is offline)
 
 Webhook payload format:
 ```typescript

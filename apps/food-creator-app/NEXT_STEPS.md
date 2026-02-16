@@ -1,4 +1,4 @@
-# Chef App - Next Steps
+# Food Creator App - Next Steps
 
 ## ✅ Completed Setup
 
@@ -24,15 +24,15 @@ Some components may have TypeScript errors due to missing dependencies. These ca
 - Missing type definitions
 - Missing context providers
 
-### 2. Create Chef Authentication Context
+### 2. Create Food Creator Authentication Context
 ```typescript
-// contexts/ChefAuthContext.tsx
-// Similar to AuthContext but for chefs
+// contexts/FoodCreatorAuthContext.tsx
+// Similar to AuthContext but for food creators
 ```
 
-### 3. Build Chef Dashboard
+### 3. Build Food Creator Dashboard
 Start with the main dashboard screen:
-- `app/(tabs)/chef/index.tsx`
+- `app/(tabs)/index.tsx`
 - Show onboarding status
 - Quick stats
 - Earnings summary
@@ -44,14 +44,14 @@ Start with the main dashboard screen:
 
 ### 5. Add Navigation
 - Set up tab navigation
-- Add chef-specific routes
+- Add food creator-specific routes
 - Configure deep linking
 
 ## 🚀 Quick Start Commands
 
 ```bash
 # Start development server
-npm run chef:dev
+npm run food-creator:dev
 # or
 cd apps/food-creator-app && bun run start
 
@@ -76,7 +76,7 @@ All planning documentation is in `apps/web/docs/`:
 Based on the implementation phases:
 
 1. **Phase 1**: Core Onboarding
-   - Chef registration
+   - Food Creator registration
    - Course system
    - Document upload
 

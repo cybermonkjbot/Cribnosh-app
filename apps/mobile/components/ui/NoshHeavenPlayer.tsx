@@ -1,14 +1,13 @@
+import { useTopPosition } from '@/utils/positioning';
 import { X } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, FlatList, Pressable, StatusBar, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withTiming
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTopPosition } from '@/utils/positioning';
 import { CribNoshLogo } from './CribNoshLogo';
 import { MealVideoCard } from './MealVideoCard';
 import { MealVideoCardSkeleton } from './MealVideoCardSkeleton';
@@ -22,6 +21,7 @@ export interface MealData {
   description: string;
   kitchenName: string;
   price: string;
+  foodCreator?: string;
   chef?: string;
   likes: number;
   comments: number;
@@ -114,7 +114,7 @@ export function NoshHeavenPlayer({
   // Preload videos function with better error handling
   const preloadVideo = useCallback((videoUrl: string) => {
     if (!videoUrl || preloadedVideos.has(videoUrl) || !isMountedRef.current) return;
-    
+
     try {
       // For React Native, we'll use a simple approach to track preloaded videos
       // In a real implementation, you might use expo-av's loadAsync or similar
@@ -124,7 +124,7 @@ export function NoshHeavenPlayer({
           setPreloadedVideos(prev => new Set([...prev, videoUrl]));
         }
       }, 100);
-      
+
       return () => clearTimeout(timeoutId);
     } catch (error) {
       console.warn('Preload error:', error);
@@ -197,7 +197,7 @@ export function NoshHeavenPlayer({
     // Preload first 3 videos (or just the one video in kitchen intro mode)
     const initialVideos = displayMeals.slice(0, mode === 'kitchenIntro' ? 1 : 3);
     const cleanupTasks: (() => void)[] = [];
-    
+
     initialVideos.forEach(meal => {
       const cleanup = preloadVideo(meal.videoSource);
       if (cleanup) cleanupTasks.push(cleanup);
@@ -259,11 +259,11 @@ export function NoshHeavenPlayer({
   const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
     try {
       if (!isMountedRef.current || !viewableItems || viewableItems.length === 0) return;
-      
+
       const newIndex = viewableItems[0].index;
       if (typeof newIndex === 'number' && newIndex >= 0 && newIndex !== currentIndex) {
         setCurrentIndex(newIndex);
-        
+
         // Load more meals when approaching the end (only in meals mode)
         if (mode === 'meals' && newIndex >= displayMeals.length - 2 && typeof onLoadMore === 'function') {
           onLoadMore();
@@ -304,10 +304,10 @@ export function NoshHeavenPlayer({
       if (!item || typeof index !== 'number' || !isMountedRef.current) {
         return null;
       }
-      
+
       const isPreloaded = preloadedVideos.has(item.videoSource);
       const isCurrentItem = index === currentIndex;
-      
+
       return (
         <MealVideoCard
           key={item.id}
@@ -343,7 +343,7 @@ export function NoshHeavenPlayer({
       }}>
         <StatusBar hidden />
         <MealVideoCardSkeleton isVisible={true} />
-        
+
         {/* Close Button */}
         <Pressable
           onPress={handleClosePress}
@@ -396,7 +396,7 @@ export function NoshHeavenPlayer({
       backgroundColor: '#000',
     }}>
       <StatusBar hidden />
-      
+
       {/* Optimized FlatList with performance configurations */}
       <FlatList
         ref={flatListRef}

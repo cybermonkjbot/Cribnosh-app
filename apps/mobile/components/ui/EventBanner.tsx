@@ -1,6 +1,5 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 interface EventBannerProps {
@@ -11,7 +10,7 @@ interface EventBannerProps {
 export function EventBanner({ onPress, isFirstSection = false }: EventBannerProps) {
   return (
     <View style={{ paddingHorizontal: 16, paddingVertical: 20, paddingTop: isFirstSection ? 35 : 20 }}>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={{ borderRadius: 16, overflow: 'hidden' }}
         onPress={onPress}
         activeOpacity={0.8}
@@ -22,7 +21,7 @@ export function EventBanner({ onPress, isFirstSection = false }: EventBannerProp
             style={{ width: '100%', height: 100 }}
             contentFit="cover"
           />
-          
+
           {/* Dark overlay for better text readability */}
           <LinearGradient
             colors={['rgba(234, 88, 12, 0.8)', 'rgba(194, 65, 12, 0.9)']}
@@ -34,26 +33,26 @@ export function EventBanner({ onPress, isFirstSection = false }: EventBannerProp
               bottom: 0,
             }}
           />
-          
-          <View style={{ 
-            position: 'absolute', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            bottom: 0, 
-            justifyContent: 'center', 
-            paddingHorizontal: 20 
+
+          <View style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            justifyContent: 'center',
+            paddingHorizontal: 20
           }}>
-            <Text style={{ 
-              color: '#fff', 
-              fontSize: 18, 
+            <Text style={{
+              color: '#fff',
+              fontSize: 18,
               fontWeight: 'bold',
               marginBottom: 2
             }}>
-              Get chef for an event
+              Get food creator for an event
             </Text>
-            <Text style={{ 
-              color: '#fff', 
+            <Text style={{
+              color: '#fff',
               fontSize: 14,
               opacity: 0.95
             }}>
@@ -61,7 +60,7 @@ export function EventBanner({ onPress, isFirstSection = false }: EventBannerProp
             </Text>
           </View>
         </View>
-      </TouchableOpacity>
-    </View>
+      </TouchableOpacity >
+    </View >
   );
 } 

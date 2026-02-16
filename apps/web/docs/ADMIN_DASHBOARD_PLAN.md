@@ -12,16 +12,7 @@ This document outlines the plan for creating a comprehensive admin dashboard to 
   - ✅ Blog Posts (`/admin/content/blog`)
   - ✅ Recipes (`/admin/content/recipes`)
   - ✅ Static Pages (`/admin/content/pages`)
-- ✅ **Chefs** (`/admin/chefs`) - Chef/kitchen management
-- ✅ **Orders** (`/admin/orders`) - Order management
-- ✅ **Analytics** (`/admin/analytics`) - Analytics and reports
-- ✅ **Waitlist** (`/admin/waitlist`) - Waitlist management
-- ✅ **Careers** (`/admin/careers`) - Job postings and applications
-- ✅ **Staff** (`/admin/staff`) - Staff management
-- ✅ **Delivery** (`/admin/delivery`) - Delivery management
-- ✅ **Settings** (`/admin/settings`) - System settings
-
-### Missing Content Management Pages
+- ✅ **Food Creators** (`/admin/food-creators`) - Food Creator/kitchen management
 - ❌ **Videos (Nosh Heaven)** - Video posts management
 - ❌ **Stories** - Story content management
 - ❌ **Meals/Dishes** - Meal management
@@ -32,175 +23,50 @@ This document outlines the plan for creating a comprehensive admin dashboard to 
 ## Content Types to Manage
 
 ### 1. Videos (Nosh Heaven) - `videoPosts`
-**Table**: `videoPosts`  
+**Table**: `videoPosts`
 **Location**: `/admin/content/videos`
 
 **Fields to Manage**:
-- Title, Description
-- Video file (upload via Convex storage)
-- Thumbnail (upload via Convex storage)
 - Creator/Kitchen association
-- Status (draft, published, archived, flagged, removed)
-- Visibility (public, followers, private)
-- Tags, Cuisine, Difficulty
-- Engagement metrics (likes, comments, shares, views)
-- Duration, File size, Resolution
 - Live session association
 
-**Features Needed**:
-- List all videos with filters (status, visibility, creator, cuisine)
-- Create/Edit video posts
-- Upload video files and thumbnails
-- Publish/Archive/Flag videos
-- View engagement metrics
-- Moderate flagged content
-- Bulk operations (publish, archive, delete)
-
-**Convex Functions**:
-- `queries.videoPosts.getVideoFeed`
-- `queries.videoPosts.getVideoById`
-- `queries.videoPosts.searchVideos`
-- `mutations.videoPosts.createVideoPost`
-- `mutations.videoPosts.updateVideoPost`
-- `mutations.videoPosts.publishVideoPost`
-- `mutations.videoPosts.deleteVideoPost`
-- `mutations.videoPosts.flagVideo`
-
----
-
 ### 2. Stories - `stories`
-**Table**: `stories` (if exists) or part of `content` table  
+**Table**: `stories` (if exists) or part of `content` table
 **Location**: `/admin/content/stories`
 
 **Fields to Manage**:
 - Title, Content
 - Author
 - Featured image
-- Status (draft, published, archived)
-- Tags, Categories
-- Associated video (if any)
-- Views, Engagement metrics
-
-**Features Needed**:
-- List all stories with filters
-- Create/Edit stories
-- Publish/Archive stories
-- View analytics
-- Image upload
-
-**Convex Functions**:
-- Check if stories table exists or use content table with type='story'
-- Create appropriate queries/mutations
-
----
 
 ### 3. Meals/Dishes - `meals`
-**Table**: `meals`  
+**Table**: `meals`
 **Location**: `/admin/content/meals`
 
 **Fields to Manage**:
 - Name, Description
-- Chef/Kitchen association
-- Price, Currency
-- Images (multiple)
-- Cuisine, Dietary info
-- Ingredients, Allergens
-- Availability status
+- Food Creator/Kitchen association
 - Featured status
 - Reviews and ratings
 
-**Features Needed**:
-- List all meals with filters (chef, cuisine, status)
-- Create/Edit meals
-- Upload multiple images
-- Set primary image
-- Manage pricing
-- Set availability
-- View reviews and ratings
-- Bulk operations
-
-**Convex Functions**:
-- `queries.meals.getAll`
-- `queries.meals.getById`
-- `queries.meals.searchMeals`
-- `mutations.meals.createMeal`
-- `mutations.meals.updateMeal`
-- `mutations.meals.deleteMeal`
-- `mutations.meals.setPrimaryMealImage`
-
----
-
 ### 4. Live Sessions - `liveSessions`
-**Table**: `liveSessions`  
+**Table**: `liveSessions`
 **Location**: `/admin/content/live-sessions`
 
 **Fields to Manage**:
 - Session ID
-- Chef/Kitchen
+- Food Creator/Kitchen
 - Status (scheduled, live, ended)
-- Start/End times
-- Viewer count
-- Associated video post
-- Chat moderation
-- Orders from session
-
-**Features Needed**:
-- List all live sessions (current and past)
-- View active sessions
-- End sessions manually
-- Moderate chat
-- View session analytics
-- View orders from session
-
-**Convex Functions**:
-- `queries.liveSessions.list`
-- `queries.liveSessions.getLiveSessionById`
-- `queries.liveSessions.adminGetLiveSessionStats`
-- `mutations.liveSessions.endLiveSession`
-- `mutations.liveSessions.moderateChatMessage`
-
----
-
-### 5. Comments - `videoComments`
-**Table**: `videoComments`  
-**Location**: `/admin/content/comments`
-
-**Fields to Manage**:
-- Comment text
-- Author
-- Associated video/post
-- Status (active, flagged, deleted)
-- Likes count
-- Timestamp
-- Parent comment (if reply)
-
-**Features Needed**:
-- List all comments with filters
-- View comment context
-- Flag/Delete comments
-- Moderate flagged comments
-- View commenter info
-- Bulk moderation
-
-**Convex Functions**:
-- `queries.videoComments.getVideoComments`
-- `queries.videoComments.getCommentById`
-- `mutations.videoComments.deleteComment`
-- `mutations.videoComments.flagComment`
-
----
 
 ### 6. Reviews - `reviews`
-**Table**: `reviews`  
+**Table**: `reviews`
 **Location**: `/admin/content/reviews`
 
 **Fields to Manage**:
 - Review text
-- Rating
 - Reviewer
-- Associated meal/chef
-- Status (pending, approved, rejected)
-- Response from chef
+- Associated meal/food creator
+- Response from food creator
 - Timestamp
 
 **Features Needed**:

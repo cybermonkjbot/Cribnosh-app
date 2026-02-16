@@ -1,9 +1,9 @@
-# Chef App Implementation Status
+# Food Creator App Implementation Status
 
 ## ✅ Completed
 
 ### Core Setup
-- [x] App structure created in `apps/chef-app`
+- [x] App structure created in `apps/food-creator-app`
 - [x] Package.json configured with all dependencies
 - [x] Metro bundler configured for monorepo
 - [x] TypeScript configuration
@@ -11,18 +11,18 @@
 - [x] Convex client integration (direct, no REST endpoints)
 
 ### Authentication
-- [x] `ChefAuthContext` created with session token support
+- [x] `FoodCreatorAuthContext` created with session token support
 - [x] Integration with Convex `getUserBySessionToken` query
-- [x] Chef profile fetching via `getByUserId` query
+- [x] Food Creator profile fetching via `getByUserId` query
 
 ### Navigation
-- [x] Root layout with ConvexProvider and ChefAuthProvider
+- [x] Root layout with ConvexProvider and FoodCreatorAuthProvider
 - [x] Tab navigation structure
-- [x] Stack navigation for chef screens
+- [x] Stack navigation for food creator screens
 - [x] Index screen with splash and auth routing
 
 ### Dashboard
-- [x] Chef dashboard screen (`app/(tabs)/chef/index.tsx`)
+- [x] Food Creator dashboard screen (`app/(tabs)/index.tsx`)
 - [x] Status card (online/offline)
 - [x] Quick stats cards
 - [x] Earnings summary (using analytics query)
@@ -69,11 +69,11 @@
 - Error boundaries ready
 
 ## 🔗 Related Documentation
-- PRD: `apps/web/docs/CHEF_PLATFORM_PRD.md`
-- User Stories: `apps/web/docs/CHEF_PLATFORM_USER_STORIES.md`
-- User Journeys: `apps/web/docs/CHEF_PLATFORM_USER_JOURNEYS.md`
-- Schema Design: `apps/web/docs/CHEF_PLATFORM_SCHEMA_DESIGN.md`
-- API Design: `apps/web/docs/CHEF_PLATFORM_API_DESIGN.md`
-- UI/UX Plan: `apps/web/docs/CHEF_PLATFORM_UI_UX_PLAN.md`
-- Implementation Phases: `apps/web/docs/CHEF_PLATFORM_IMPLEMENTATION_PHASES.md`
+- PRD: `apps/web/docs/FOOD_CREATOR_PLATFORM_PRD.md`
+- User Stories: `apps/web/docs/FOOD_CREATOR_PLATFORM_USER_STORIES.md`
+- User Journeys: `apps/web/docs/FOOD_CREATOR_PLATFORM_USER_JOURNEYS.md`
+- Schema Design: `apps/web/docs/FOOD_CREATOR_PLATFORM_SCHEMA_DESIGN.md`
+- API Design: `apps/web/docs/FOOD_CREATOR_PLATFORM_API_DESIGN.md`
+- UI/UX Plan: `apps/web/docs/FOOD_CREATOR_PLATFORM_UI_UX_PLAN.md`
+- Implementation Phases: `apps/web/docs/FOOD_CREATOR_PLATFORM_IMPLEMENTATION_PHASES.md`
 

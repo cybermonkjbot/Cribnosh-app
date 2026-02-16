@@ -1,4 +1,4 @@
-# Chef Platform - Database Schema Design
+# Food Creator Platform - Database Schema Design
 
 ## Document Information
 - **Version**: 1.0
@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document defines the database schema extensions needed for the chef platform, including tables for courses, documents, recipes, stories, payouts, and tax records.
+This document defines the database schema extensions needed for the food creator platform, including tables for courses, documents, recipes, stories, payouts, and tax records.
 
 ## Schema Extensions
 
@@ -238,7 +238,7 @@ chefRecipes: defineTable({
 - `by_chef`: Get all recipes for a chef
 - `by_status`: Filter by publication status
 - `by_cuisine`: Filter by cuisine type
-- `by_chef_status`: Get recipes by chef and status
+- `by_chef_status`: Get recipes by food creator and status
 - `by_published`: Get published recipes sorted by date
 - `by_views`: Get popular recipes
 - `by_meal`: Get recipe linked to a meal
@@ -290,7 +290,7 @@ chefStories: defineTable({
 **Indexes**:
 - `by_chef`: Get all stories for a chef
 - `by_status`: Filter by publication status
-- `by_chef_status`: Get stories by chef and status
+- `by_chef_status`: Get stories by food creator and status
 - `by_published`: Get published stories sorted by date
 - `by_category`: Filter by category
 - `by_views`: Get popular stories
@@ -381,7 +381,7 @@ chefPayouts: defineTable({
 **Indexes**:
 - `by_chef`: Get all payouts for a chef
 - `by_status`: Filter by payout status
-- `by_chef_status`: Get payouts by chef and status
+- `by_chef_status`: Get payouts by food creator and status
 - `by_requested`: Sort by request date
 - `by_stripe_payout`: Look up by Stripe payout ID
 
@@ -468,7 +468,7 @@ chefEarnings: defineTable({
 **Indexes**:
 - `by_chef`: Get all earnings for a chef
 - `by_order`: Get earnings for an order
-- `by_chef_date`: Get earnings by chef and date range
+- `by_chef_date`: Get earnings by food creator and date range
 - `by_payment_status`: Filter by payment status
 - `by_payout`: Get earnings included in a payout
 
@@ -476,12 +476,12 @@ chefEarnings: defineTable({
 
 ## Schema Updates to Existing Tables
 
-### chefs Table Extensions
+### food creators Table Extensions
 
 Add the following fields to the existing `chefs` table:
 
 ```typescript
-// Add to existing chefs table
+// Add to existing food creators table
 onboardingStatus: v.optional(v.union(
   v.literal("not_started"),
   v.literal("in_progress"),
@@ -503,7 +503,7 @@ pendingPayouts: v.optional(v.number()), // in pence, in pending payouts
 
 ### users Table Extensions
 
-The existing `users` table already has support for chef role. No additional fields needed for basic chef functionality, but consider:
+The existing `users` table already has support for food creator role. No additional fields needed for basic food creator functionality, but consider:
 
 ```typescript
 // Optional: Add chef-specific preferences to users table
@@ -522,26 +522,26 @@ chefPreferences: v.optional(v.object({
 
 ## Data Relationships
 
-### Chef Onboarding Flow
+### Food Creator Onboarding Flow
 ```
-chefs (1) ──< (many) chefCourses
-chefs (1) ──< (many) chefDocuments
-chefs (1) ──< (many) certificates
+food creators (1) ──< (many) chefCourses
+food creators (1) ──< (many) chefDocuments
+food creators (1) ──< (many) certificates
 ```
 
 ### Content Creation
 ```
-chefs (1) ──< (many) chefRecipes
-chefs (1) ──< (many) chefStories
-chefs (1) ──< (many) videoPosts (existing)
+food creators (1) ──< (many) chefRecipes
+food creators (1) ──< (many) chefStories
+food creators (1) ──< (many) videoPosts (existing)
 ```
 
 ### Financial Management
 ```
-chefs (1) ──< (many) chefBankAccounts
-chefs (1) ──< (many) chefPayouts
-chefs (1) ──< (many) chefEarnings
-chefs (1) ──< (many) chefTaxRecords
+food creators (1) ──< (many) chefBankAccounts
+food creators (1) ──< (many) chefPayouts
+food creators (1) ──< (many) chefEarnings
+food creators (1) ──< (many) chefTaxRecords
 chefPayouts (many) ──< (many) chefEarnings
 chefBankAccounts (1) ──< (many) chefPayouts
 ```
@@ -549,7 +549,7 @@ chefBankAccounts (1) ──< (many) chefPayouts
 ### Order Integration
 ```
 orders (1) ──< (1) chefEarnings
-chefs (1) ──< (many) orders (existing)
+food creators (1) ──< (many) orders (existing)
 ```
 
 ---
@@ -622,7 +622,7 @@ chefs (1) ──< (many) orders (existing)
 - Use Convex encryption or external encryption service
 
 ### Access Control
-- Chefs can only access their own records
+- Food Creators can only access their own records
 - Admins can access all records for verification
 - Document URLs should be signed/expiring
 

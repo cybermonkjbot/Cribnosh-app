@@ -1,4 +1,4 @@
-# Chef Platform - Implementation Phases
+# Food Creator Platform - Implementation Phases
 
 ## Document Information
 - **Version**: 1.0
@@ -7,13 +7,13 @@
 
 ## Overview
 
-This document defines the implementation phases and priorities for rolling out chef platform features. The implementation is divided into 5 phases, with each phase building upon the previous one.
+This document defines the implementation phases and priorities for rolling out food creator platform features. The implementation is divided into 5 phases, with each phase building upon the previous one.
 
 ## Implementation Strategy
 
 ### Approach
 - **Incremental Development**: Build and deploy features incrementally
-- **User-Centric**: Prioritize features that enable chefs to start earning quickly
+- **User-Centric**: Prioritize features that enable food creators to start earning quickly
 - **Quality First**: Ensure each phase is stable before moving to the next
 - **Feedback Loop**: Gather user feedback after each phase
 
@@ -29,7 +29,7 @@ This document defines the implementation phases and priorities for rolling out c
 
 ## Phase 1: Core Onboarding (MVP)
 
-**Goal**: Enable chefs to register, complete compliance course, and upload documents
+**Goal**: Enable food creators to register, complete compliance course, and upload documents
 
 **Duration**: 4-6 weeks
 
@@ -37,8 +37,8 @@ This document defines the implementation phases and priorities for rolling out c
 
 ### Features
 
-#### 1.1 Chef Registration
-- [ ] Chef registration endpoint
+#### 1.1 Food Creator Registration
+- [ ] Food Creator registration endpoint
 - [ ] Email verification
 - [ ] Role assignment (chef)
 - [ ] Basic profile creation
@@ -47,8 +47,8 @@ This document defines the implementation phases and priorities for rolling out c
 **Dependencies**: None
 
 **Acceptance Criteria**:
-- Chefs can register with email, name, password
-- Account is created with chef role
+- Food Creators can register with email, name, password
+- Account is created with food creator role
 - Onboarding dashboard is accessible
 
 ---
@@ -61,10 +61,10 @@ This document defines the implementation phases and priorities for rolling out c
 - [ ] Completion tracking
 - [ ] Certificate generation
 
-**Dependencies**: Chef registration
+**Dependencies**: Food Creator registration
 
 **Acceptance Criteria**:
-- Chefs are auto-enrolled in course
+- Food Creators are auto-enrolled in course
 - Can view and complete all 13 modules
 - Progress is tracked accurately
 - Certificate is generated upon completion
@@ -85,10 +85,10 @@ This document defines the implementation phases and priorities for rolling out c
 - [ ] Document list/view
 - [ ] Document deletion (if not verified)
 
-**Dependencies**: Chef registration
+**Dependencies**: Food Creator registration
 
 **Acceptance Criteria**:
-- Chefs can upload documents (PDF, JPG, PNG)
+- Food Creators can upload documents (PDF, JPG, PNG)
 - File size limit enforced (10MB)
 - Documents are stored securely
 - Can view uploaded documents
@@ -112,7 +112,7 @@ This document defines the implementation phases and priorities for rolling out c
 **Acceptance Criteria**:
 - Admins can review documents
 - Verification status updates in real-time
-- Chefs receive notifications on status changes
+- Food Creators receive notifications on status changes
 - Rejected documents include feedback
 
 **Technical Tasks**:
@@ -132,7 +132,7 @@ This document defines the implementation phases and priorities for rolling out c
 **Dependencies**: Course system, document system
 
 **Acceptance Criteria**:
-- Chefs see clear checklist
+- Food Creators see clear checklist
 - Progress is accurate
 - Can navigate to incomplete items
 - Completion status is clear
@@ -146,7 +146,7 @@ This document defines the implementation phases and priorities for rolling out c
 ---
 
 ### Phase 1 Deliverables
-- Chef registration flow
+- Food Creator registration flow
 - Complete course system with 13 modules
 - Document upload and verification
 - Onboarding checklist
@@ -162,7 +162,7 @@ This document defines the implementation phases and priorities for rolling out c
 
 ## Phase 2: Profile & Availability
 
-**Goal**: Enable chefs to create profiles, manage kitchen details, and control availability
+**Goal**: Enable food creators to create profiles, manage kitchen details, and control availability
 
 **Duration**: 3-4 weeks
 
@@ -180,7 +180,7 @@ This document defines the implementation phases and priorities for rolling out c
 **Dependencies**: Phase 1
 
 **Acceptance Criteria**:
-- Chefs can create complete profiles
+- Food Creators can create complete profiles
 - Profile image uploads work
 - All profile fields are editable
 - Profile is viewable by customers
@@ -203,10 +203,10 @@ This document defines the implementation phases and priorities for rolling out c
 **Dependencies**: Phase 1
 
 **Acceptance Criteria**:
-- Chefs can create kitchen profiles
+- Food Creators can create kitchen profiles
 - Multiple images can be uploaded
 - Kitchen details are complete
-- Kitchen is linked to chef profile
+- Kitchen is linked to food creator profile
 
 **Technical Tasks**:
 - Update `kitchens` table (if needed)
@@ -226,7 +226,7 @@ This document defines the implementation phases and priorities for rolling out c
 **Dependencies**: Profile management
 
 **Acceptance Criteria**:
-- Chefs can set availability per day
+- Food Creators can set availability per day
 - Time ranges are configurable
 - Max orders limit is enforced
 - Special dates can be marked unavailable
@@ -248,7 +248,7 @@ This document defines the implementation phases and priorities for rolling out c
 **Dependencies**: Availability settings
 
 **Acceptance Criteria**:
-- Chefs can toggle online/offline
+- Food Creators can toggle online/offline
 - Status changes immediately
 - Customers see current status
 - Orders only come when online
@@ -269,14 +269,14 @@ This document defines the implementation phases and priorities for rolling out c
 
 ### Phase 2 Success Metrics
 - 90%+ profile completion rate
-- 80%+ chefs set availability
-- 70%+ chefs go online regularly
+- 80%+ food creators set availability
+- 70%+ food creators go online regularly
 
 ---
 
 ## Phase 3: Content Creation
 
-**Goal**: Enable chefs to create and manage recipes, stories, and videos
+**Goal**: Enable food creators to create and manage recipes, stories, and videos
 
 **Duration**: 4-5 weeks
 
@@ -295,7 +295,7 @@ This document defines the implementation phases and priorities for rolling out c
 **Dependencies**: Phase 2
 
 **Acceptance Criteria**:
-- Chefs can create recipes with all fields
+- Food Creators can create recipes with all fields
 - Images can be added
 - Recipes can be saved as draft or published
 - Recipe library shows all recipes
@@ -319,7 +319,7 @@ This document defines the implementation phases and priorities for rolling out c
 **Dependencies**: Phase 2
 
 **Acceptance Criteria**:
-- Chefs can write stories with rich text
+- Food Creators can write stories with rich text
 - Images can be inserted
 - Stories can be published or scheduled
 - Story library is accessible
@@ -385,8 +385,8 @@ This document defines the implementation phases and priorities for rolling out c
 - Content-to-meal linking
 
 ### Phase 3 Success Metrics
-- 5+ recipes per chef per month
-- 2+ stories per chef per month
+- 5+ recipes per food creator per month
+- 2+ stories per food creator per month
 - 80%+ content published (not just drafts)
 - 60%+ recipes linked to meals
 
@@ -394,7 +394,7 @@ This document defines the implementation phases and priorities for rolling out c
 
 ## Phase 4: Financial Management
 
-**Goal**: Enable chefs to manage earnings, bank accounts, and payouts
+**Goal**: Enable food creators to manage earnings, bank accounts, and payouts
 
 **Duration**: 5-6 weeks
 
@@ -437,7 +437,7 @@ This document defines the implementation phases and priorities for rolling out c
 **Dependencies**: None
 
 **Acceptance Criteria**:
-- Chefs can add UK bank accounts
+- Food Creators can add UK bank accounts
 - Account details are validated
 - Multiple accounts supported
 - Primary account can be set
@@ -462,7 +462,7 @@ This document defines the implementation phases and priorities for rolling out c
 **Acceptance Criteria**:
 - Bank accounts can be verified via Stripe
 - Verification status is tracked
-- Chefs receive notifications
+- Food Creators receive notifications
 - Verification is secure
 
 **Technical Tasks**:
@@ -484,7 +484,7 @@ This document defines the implementation phases and priorities for rolling out c
 **Dependencies**: Bank account verification, earnings system
 
 **Acceptance Criteria**:
-- Chefs can request payouts
+- Food Creators can request payouts
 - Minimum amount is enforced
 - Payouts process correctly
 - Status is tracked accurately
@@ -534,7 +534,7 @@ This document defines the implementation phases and priorities for rolling out c
 - 100% payout success rate
 - < 3 business days payout processing
 - 100% tax document generation for active chefs
-- 2+ payouts per chef per month
+- 2+ payouts per food creator per month
 
 ---
 
@@ -595,7 +595,7 @@ This document defines the implementation phases and priorities for rolling out c
 ---
 
 #### 5.3 Support Chat Integration
-- [ ] Chef support chat access
+- [ ] Food Creator support chat access
 - [ ] Support case creation
 - [ ] Case tracking
 - [ ] Support history
@@ -603,21 +603,21 @@ This document defines the implementation phases and priorities for rolling out c
 **Dependencies**: Existing support system
 
 **Acceptance Criteria**:
-- Chefs can access support chat
+- Food Creators can access support chat
 - Cases are created correctly
 - Status is tracked
 - History is accessible
 
 **Technical Tasks**:
 - Integrate with existing support system
-- Build chef support UI
+- Build food creator support UI
 - Add case tracking
 - Implement history view
 
 ---
 
-#### 5.4 Mobile App Chef Features
-- [ ] Mobile chef dashboard
+#### 5.4 Mobile App Food Creator Features
+- [ ] Mobile food creator dashboard
 - [ ] Order management on mobile
 - [ ] Earnings view on mobile
 - [ ] Push notifications
@@ -626,13 +626,13 @@ This document defines the implementation phases and priorities for rolling out c
 **Dependencies**: All previous phases
 
 **Acceptance Criteria**:
-- Mobile app has chef features
+- Mobile app has food creator features
 - All key functions work on mobile
 - Push notifications work
 - UI is mobile-optimized
 
 **Technical Tasks**:
-- Build mobile chef screens
+- Build mobile food creator screens
 - Implement mobile APIs
 - Add push notifications
 - Optimize for mobile
@@ -643,11 +643,11 @@ This document defines the implementation phases and priorities for rolling out c
 - Live streaming order integration
 - Advanced analytics
 - Support chat integration
-- Mobile app chef features
+- Mobile app food creator features
 
 ### Phase 5 Success Metrics
-- 50%+ chefs use live streaming
-- 70%+ chefs use analytics
+- 50%+ food creators use live streaming
+- 70%+ food creators use analytics
 - 80%+ support satisfaction
 - 60%+ mobile app usage
 
@@ -712,17 +712,17 @@ This document defines the implementation phases and priorities for rolling out c
 ## Success Criteria Summary
 
 ### Overall Platform Success
-- 1000+ active chefs within 6 months
+- 1000+ active food creators within 6 months
 - 80%+ onboarding completion rate
-- 70%+ monthly active chef rate
-- 4.5+ average chef rating
+- 70%+ monthly active food creator rate
+- 4.5+ average food creator rating
 - 99%+ payment processing success
 
 ### Phase-Specific Success
 - **Phase 1**: 80%+ onboarding completion
 - **Phase 2**: 90%+ profile completion
-- **Phase 3**: 5+ content items per chef per month
-- **Phase 4**: 2+ payouts per chef per month
+- **Phase 3**: 5+ content items per food creator per month
+- **Phase 4**: 2+ payouts per food creator per month
 - **Phase 5**: 50%+ feature adoption
 
 ---
@@ -751,5 +751,5 @@ This document defines the implementation phases and priorities for rolling out c
 
 ## Conclusion
 
-This phased approach ensures a stable, scalable chef platform that enables chefs to start earning quickly while building towards a comprehensive feature set. Each phase delivers value independently while building the foundation for future phases.
+This phased approach ensures a stable, scalable food creator platform that enables food creators to start earning quickly while building towards a comprehensive feature set. Each phase delivers value independently while building the foundation for future phases.
 

@@ -3,7 +3,6 @@ import { useFoodCreatorAuth } from '@/contexts/FoodCreatorAuthContext';
 import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
 
 export default function Index() {
   const router = useRouter();
@@ -16,10 +15,10 @@ export default function Index() {
     // Safety timeout: if loading takes more than 10 seconds, navigate anyway
     const timeout = setTimeout(() => {
       if (!navigatedRef.current) {
-        console.warn('Chef App Index: Timeout reached, forcing navigation');
+        console.warn('Food Creator App Index: Timeout reached, forcing navigation');
         navigatedRef.current = true;
         setShowSplash(false);
-        SplashScreen.hideAsync().catch(() => {});
+        SplashScreen.hideAsync().catch(() => { });
         // Navigate based on authentication state
         if (isAuthenticated) {
           router.replace('/(tabs)');
@@ -33,21 +32,21 @@ export default function Index() {
     if (splashCompleted && !isLoading && !navigatedRef.current) {
       navigatedRef.current = true;
       clearTimeout(timeout);
-      
+
       // Hide native splash screen
-      SplashScreen.hideAsync().catch(() => {});
-      
+      SplashScreen.hideAsync().catch(() => { });
+
       // Hide splash and navigate
       setShowSplash(false);
-      
+
       // Use requestAnimationFrame to ensure state update happens before navigation
       requestAnimationFrame(() => {
         // Navigate based on authentication state
         if (isAuthenticated) {
-          console.log('Chef App Index: Navigating to dashboard', { isAuthenticated });
+          console.log('Food Creator App Index: Navigating to dashboard', { isAuthenticated });
           router.replace('/(tabs)');
         } else {
-          console.log('Chef App Index: Navigating to sign-in', { isAuthenticated });
+          console.log('Food Creator App Index: Navigating to sign-in', { isAuthenticated });
           router.replace('/sign-in?notDismissable=true');
         }
       });
@@ -65,8 +64,8 @@ export default function Index() {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
-        <AnimatedSplashScreen 
-          onAnimationComplete={handleSplashComplete} 
+        <AnimatedSplashScreen
+          onAnimationComplete={handleSplashComplete}
           duration={2500}
         />
       </>

@@ -1,4 +1,4 @@
-# Chef Platform - UI/UX Plan (Mobile App)
+# Food Creator Platform - UI/UX Plan (Mobile App)
 
 ## Document Information
 - **Version**: 1.0
@@ -9,7 +9,7 @@
 
 ## Overview
 
-This document outlines the UI/UX design and implementation plan for the chef platform within the mobile app. All data operations use Convex directly (actions, queries, mutations) - no REST API endpoints.
+This document outlines the UI/UX design and implementation plan for the food creator platform within the mobile app. All data operations use Convex directly (actions, queries, mutations) - no REST API endpoints.
 
 ## Design Principles
 
@@ -44,16 +44,16 @@ This document outlines the UI/UX design and implementation plan for the chef pla
 
 ### Main Navigation
 
-The chef platform will be integrated into the existing tab-based navigation with a new "Chef" tab.
+The food creator platform will be integrated into the existing tab-based navigation with a new "Chef" tab.
 
 ```
 (tabs)/
   ├── index.tsx (Home - existing)
   ├── orders/ (Orders - existing)
   ├── profile.tsx (Profile - existing)
-  └── chef/ (NEW - Chef Platform)
+  └── chef/ (NEW - Food Creator Platform)
       ├── _layout.tsx
-      ├── index.tsx (Chef Dashboard)
+      ├── index.tsx (Food Creator Dashboard)
       ├── onboarding/
       │   ├── _layout.tsx
       │   ├── index.tsx (Onboarding Overview)
@@ -63,7 +63,7 @@ The chef platform will be integrated into the existing tab-based navigation with
       │   └── documents/
       │       └── index.tsx (Document Upload)
       ├── profile/
-      │   ├── index.tsx (Chef Profile)
+      │   ├── index.tsx (Food Creator Profile)
       │   ├── kitchen.tsx (Kitchen Profile)
       │   └── availability.tsx (Availability Settings)
       ├── content/
@@ -109,7 +109,7 @@ The chef platform will be integrated into the existing tab-based navigation with
 Add "Chef" tab to existing `CustomTabBar` component:
 
 ```typescript
-// Only show Chef tab if user has chef role
+// Only show Food Creator tab if user has food creator role
 <Tabs.Screen
   name="chef"
   options={{
@@ -123,14 +123,14 @@ Add "Chef" tab to existing `CustomTabBar` component:
 
 ## Screen Designs
 
-### 1. Chef Dashboard (`chef/index.tsx`)
+### 1. Food Creator Dashboard (`chef/index.tsx`)
 
 **Purpose**: Main entry point for chefs, showing overview and quick actions
 
 **Layout**:
 ```
 ┌─────────────────────────────┐
-│  Header: "Chef Dashboard"   │
+│  Header: "Food Creator Dashboard"   │
 │  [Profile Avatar] [Settings]│
 ├─────────────────────────────┤
 │  Status Card                │
@@ -170,7 +170,7 @@ Add "Chef" tab to existing `CustomTabBar` component:
 **Data Fetching**:
 ```typescript
 // Use Convex queries directly
-const chef = useQuery(api.queries.chefs.getByUserId, { userId });
+const food creator = useQuery(api.queries.chefs.getByUserId, { userId });
 const recentOrders = useQuery(api.queries.orders.getRecentForChef, { chefId });
 const earnings = useQuery(api.queries.chefs.getEarningsSummary, { chefId });
 ```
@@ -364,9 +364,9 @@ const deleteDocument = useMutation(api.mutations.chefDocuments.delete);
 
 ### 3. Profile Management
 
-#### 3.1 Chef Profile (`chef/profile/index.tsx`)
+#### 3.1 Food Creator Profile (`chef/profile/index.tsx`)
 
-**Purpose**: View and edit chef profile
+**Purpose**: View and edit food creator profile
 
 **Layout**:
 ```
@@ -396,7 +396,7 @@ const deleteDocument = useMutation(api.mutations.chefDocuments.delete);
 
 **Data Fetching**:
 ```typescript
-const chef = useQuery(api.queries.chefs.getByUserId, { userId });
+const food creator = useQuery(api.queries.chefs.getByUserId, { userId });
 ```
 
 **Actions**:
@@ -937,7 +937,7 @@ const viewerCount = useQuery(api.queries.liveSessions.getViewerCount, { sessionI
 
 ## Hooks Pattern
 
-### Custom Hooks for Chef Features
+### Custom Hooks for Food Creator Features
 
 #### 1. `useChefOnboarding`
 ```typescript
@@ -1047,7 +1047,7 @@ All data operations use Convex directly:
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 
-const chef = useQuery(api.queries.chefs.getByUserId, { userId });
+const food creator = useQuery(api.queries.chefs.getByUserId, { userId });
 ```
 
 #### Mutations
@@ -1086,13 +1086,13 @@ const result = await convex.action(
 
 ## State Management
 
-### Context for Chef Data
+### Context for Food Creator Data
 
 ```typescript
 // contexts/ChefContext.tsx
 export const ChefContext = createContext<{
   chefId: string | null;
-  chef: Chef | null;
+  chef: Food Creator | null;
   isLoading: boolean;
 }>({
   chefId: null,
@@ -1182,7 +1182,7 @@ try {
 - Support universal links
 
 ### Tab Navigation
-- Add Chef tab to main tab bar
+- Add Food Creator tab to main tab bar
 - Show badge for notifications
 - Handle tab switching
 
@@ -1220,7 +1220,7 @@ try {
 3. **Query Optimization**: Use pagination for lists
 4. **Memoization**: Memoize expensive computations
 5. **Virtual Lists**: Use `FlatList` for long lists
-6. **Code Splitting**: Split chef features into separate bundles
+6. **Code Splitting**: Split food creator features into separate bundles
 
 ### Implementation
 ```typescript
@@ -1266,7 +1266,7 @@ const OrderCard = memo(({ order }) => {
 ## Implementation Checklist
 
 ### Phase 1: Core Onboarding
-- [ ] Chef dashboard screen
+- [ ] Food Creator dashboard screen
 - [ ] Onboarding overview screen
 - [ ] Course module list
 - [ ] Module detail screen
@@ -1275,7 +1275,7 @@ const OrderCard = memo(({ order }) => {
 - [ ] Convex queries/mutations for documents
 
 ### Phase 2: Profile Management
-- [ ] Chef profile screen
+- [ ] Food Creator profile screen
 - [ ] Kitchen profile screen
 - [ ] Availability settings screen
 - [ ] Online/offline toggle
@@ -1322,7 +1322,7 @@ const OrderCard = memo(({ order }) => {
 - 80%+ onboarding completion
 - 70%+ profile completion
 - 5+ content items per chef
-- 2+ payouts per chef per month
+- 2+ payouts per food creator per month
 
 ---
 
@@ -1340,5 +1340,5 @@ const OrderCard = memo(({ order }) => {
 
 ## Conclusion
 
-This UI/UX plan provides a comprehensive guide for implementing the chef platform in the mobile app using Convex directly. All screens, components, and data patterns follow existing app conventions while adding chef-specific functionality.
+This UI/UX plan provides a comprehensive guide for implementing the food creator platform in the mobile app using Convex directly. All screens, components, and data patterns follow existing app conventions while adding chef-specific functionality.
 

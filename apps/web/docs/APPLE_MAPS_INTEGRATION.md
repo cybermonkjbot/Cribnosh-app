@@ -228,15 +228,15 @@ function calculateDistance(userLocation: any, mealLocation: any): string {
 }
 ```
 
-### 2. Chef Location Services
+### 2. Food Creator Location Services
 
-Enhance chef location queries with Apple Maps:
+Enhance food creator location queries with Apple Maps:
 
 ```typescript
-// In convex/queries/chefs.ts
+// In convex/queries/food creators.ts
 import { locationService } from '@/lib/location/service';
 
-export const getNearbyChefs = query({
+export const getNearbyFood Creators = query({
   args: {
     latitude: v.number(),
     longitude: v.number(),
@@ -249,15 +249,15 @@ export const getNearbyChefs = query({
     // Get enhanced location data
     const enhancedLocation = await locationService.reverseGeocode(location);
     
-    // Search for nearby chefs using Apple Maps places search
+    // Search for nearby food creators using Apple Maps places search
     const nearbyPlaces = await locationService.searchNearbyPlaces(
-      'chef kitchen',
+      'food creator kitchen',
       location,
       args.radius || 5000,
       ['restaurant', 'food']
     );
     
-    // Combine with your existing chef data
+    // Combine with your existing food creator data
     // ... rest of your implementation
   },
 });

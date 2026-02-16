@@ -45,7 +45,7 @@ const getOrderStatusStyle = (status: string) => {
   return statusMap[statusLower] || { backgroundColor: '#F3F4F6', color: '#6B7280' };
 };
 
-export default function ChefDashboard() {
+export default function FoodCreatorDashboard() {
   const { foodCreator: chef, user, sessionToken, isAuthenticated, isBasicOnboardingComplete, isOnboardingComplete } = useFoodCreatorAuth();
   const router = useRouter();
   const { showSuccess } = useToast();

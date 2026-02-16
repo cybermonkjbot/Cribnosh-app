@@ -12,7 +12,7 @@ The Emotions Engine is an AI-powered backend service that generates food/snack r
 2. **Context Aggregation**
    - **UIContext Engine**: Collects real-time session data from frontend
    - **APIContext Engine**: Fetches stored user data (order history, dietary tags, preferences)
-   - **Backend Cuisine Context**: If user location is provided, the engine queries backend for nearby chefs and aggregates all unique cuisines (from chef specialties) within a 10km radius. These are included as `nearby_cuisines` in the context for more relevant recommendations.
+   - **Backend Cuisine Context**: If user location is provided, the engine queries backend for nearby food creators and aggregates all unique cuisines (from food creator specialties) within a 10km radius. These are included as `nearby_cuisines` in the context for more relevant recommendations.
 3. **Provider Selection Layer**
    - Decides LLM provider based on prompt size, user tier, mood, intent, and cost/priority
    - Implements decision logic (see below)

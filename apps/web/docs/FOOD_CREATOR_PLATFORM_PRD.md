@@ -1,4 +1,4 @@
-# Chef Platform - Product Requirements Document (PRD)
+# Food Creator Platform - Product Requirements Document (PRD)
 
 ## Document Information
 - **Version**: 1.0
@@ -8,15 +8,15 @@
 
 ## Executive Summary
 
-The Chef Platform is a comprehensive system that enables chefs to sell meals, manage their business, create content, and interact with customers through live streaming and order management. This document outlines all features, requirements, and technical specifications for the chef/creator platform.
+The Food Creator Platform is a comprehensive system that enables food creators to sell meals, manage their business, create content, and interact with customers through live streaming and order management. This document outlines all features, requirements, and technical specifications for the chef/creator platform.
 
 ## 1. Product Overview
 
 ### 1.1 Vision
-Enable home chefs to monetize their cooking skills by providing a complete platform for selling meals, creating content, and building their culinary brand.
+Enable home food creators to monetize their cooking skills by providing a complete platform for selling meals, creating content, and building their culinary brand.
 
 ### 1.2 Target Users
-- Home chefs looking to sell meals and takeaways
+- Food creators looking to sell meals and takeaways
 - Food creators wanting to share recipes and stories
 - Culinary entrepreneurs building a food business from home
 
@@ -29,13 +29,13 @@ Enable home chefs to monetize their cooking skills by providing a complete platf
 
 ## 2. Core Features
 
-### 2.1 Chef Onboarding & Compliance
+### 2.1 Food Creator Onboarding & Compliance
 
 #### 2.1.1 13-Module Compliance Course
-**Description**: Progressive course system introducing chefs to cooking from home for platform compliance.
+**Description**: Progressive course system introducing food creators to cooking from home for platform compliance.
 
 **Requirements**:
-- Automatic enrollment upon chef registration
+- Automatic enrollment upon food creator registration
 - 13 distinct modules covering:
   - Food Safety & Hygiene
   - UK Food Regulations
@@ -64,7 +64,7 @@ Enable home chefs to monetize their cooking skills by providing a complete platf
 - Quiz pass rate: 70%+ (with retakes allowed)
 
 #### 2.1.2 Gradual Documentation Upload
-**Description**: "Let them in" approach - chefs can start with minimal docs, complete required documentation at their own pace before receiving orders.
+**Description**: "Let them in" approach - food creators can start with minimal docs, complete required documentation at their own pace before receiving orders.
 
 **Requirements**:
 - Minimum required for account creation:
@@ -92,7 +92,7 @@ Enable home chefs to monetize their cooking skills by providing a complete platf
   - Expired (if applicable)
 
 **Success Criteria**:
-- 90%+ of chefs upload at least one document within 7 days
+- 90%+ of food creators upload at least one document within 7 days
 - Average time to complete all required documents: 14-21 days
 
 #### 2.1.3 Course Progress Tracking
@@ -126,7 +126,7 @@ Enable home chefs to monetize their cooking skills by providing a complete platf
 - Renewal reminders
 - Secure document storage
 
-### 2.2 Chef Profile & Kitchen Management
+### 2.2 Food Creator Profile & Kitchen Management
 
 #### 2.2.1 Personal Profile
 **Description**: Chef's personal information and branding.
@@ -160,7 +160,7 @@ Enable home chefs to monetize their cooking skills by providing a complete platf
 - Kitchen operating hours
 
 #### 2.2.3 Availability Management
-**Description**: Set when chef is available to receive orders.
+**Description**: Set when food creator is available to receive orders.
 
 **Requirements**:
 - Availability settings:
@@ -409,13 +409,13 @@ Enable home chefs to monetize their cooking skills by providing a complete platf
 - Export functionality
 
 #### 2.5.5 Payment Processing
-**Description**: Automatic payment from customer orders to chef account.
+**Description**: Automatic payment from customer orders to food creator account.
 
 **Requirements**:
 - Payment flow:
   - Customer pays for order
   - Platform fee deducted
-  - Chef earnings added to balance
+  - Food Creator earnings added to balance
   - Automatic payout eligibility
 - Payment tracking:
   - Per-order payment details
@@ -730,14 +730,14 @@ Bank account information for payouts.
 - `GET /api/chef/courses/{courseId}/certificate` - Get completion certificate
 
 #### 3.2.2 Document Management
-- `GET /api/chef/documents` - Get all chef documents
+- `GET /api/chef/documents` - Get all food creator documents
 - `POST /api/chef/documents` - Upload new document
 - `GET /api/chef/documents/{documentId}` - Get document details
 - `DELETE /api/chef/documents/{documentId}` - Delete document
 - `GET /api/chef/documents/requirements` - Get document requirements checklist
 
 #### 3.2.3 Recipe Management
-- `GET /api/chef/recipes` - Get all chef recipes
+- `GET /api/chef/recipes` - Get all food creator recipes
 - `POST /api/chef/recipes` - Create new recipe
 - `GET /api/chef/recipes/{recipeId}` - Get recipe details
 - `PUT /api/chef/recipes/{recipeId}` - Update recipe
@@ -746,7 +746,7 @@ Bank account information for payouts.
 - `POST /api/chef/recipes/{recipeId}/archive` - Archive recipe
 
 #### 3.2.4 Story Management
-- `GET /api/chef/stories` - Get all chef stories
+- `GET /api/chef/stories` - Get all food creator stories
 - `POST /api/chef/stories` - Create new story
 - `GET /api/chef/stories/{storyId}` - Get story details
 - `PUT /api/chef/stories/{storyId}` - Update story
@@ -779,7 +779,7 @@ Bank account information for payouts.
 ### 3.3 Integration Points
 
 #### 3.3.1 Stripe Connect
-- Stripe Connect for chef payouts
+- Stripe Connect for food creator payouts
 - UK bank account verification via Financial Connections
 - Payout processing
 - Payment tracking
@@ -838,8 +838,8 @@ Bank account information for payouts.
 - Time to first order: < 30 days average
 
 ### 5.2 Engagement Metrics
-- Active chef rate: 60%+ monthly active
-- Content creation rate: 5+ items per chef per month
+- Active food creator rate: 60%+ monthly active
+- Content creation rate: 5+ items per food creator per month
 - Order acceptance rate: 85%+
 - Average orders per chef: 20+ per month
 
@@ -894,7 +894,7 @@ Bank account information for payouts.
 ### 8.1 Glossary
 - **Chef**: Home cook selling meals on the platform
 - **Course**: 13-module compliance training program
-- **Document**: Required paperwork for chef verification
+- **Document**: Required paperwork for food creator verification
 - **Payout**: Transfer of earnings to chef's bank account
 - **Live Stream**: Real-time cooking session with order capability
 
@@ -902,5 +902,5 @@ Bank account information for payouts.
 - UK Food Safety Regulations
 - Stripe Connect Documentation
 - Platform Terms of Service
-- Chef Agreement Template
+- Food Creator Agreement Template
 
