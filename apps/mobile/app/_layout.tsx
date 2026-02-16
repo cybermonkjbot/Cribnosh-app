@@ -19,7 +19,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
-import { STRIPE_CONFIG } from '@/constants/api';
+import { StripeContainer } from '@/components/StripeContainer';
 import { FeatureFlagProvider } from '@/context/FeatureFlagContext';
 import { ModalSheetProvider } from '@/context/ModalSheetContext';
 import { AddressSelectionProvider } from '@/contexts/AddressSelectionContext';
@@ -323,52 +323,12 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 
-  // Wrap in StripeProvider only if available (not in Expo Go)
-  // Debug: Log Stripe configuration
-  if (__DEV__) {
-    console.log('Stripe Configuration:', {
-      hasStripeProvider: !!StripeProvider,
-      publishableKey: STRIPE_CONFIG.publishableKey ? `${STRIPE_CONFIG.publishableKey.substring(0, 20)}...` : 'MISSING',
-      publishableKeyLength: STRIPE_CONFIG.publishableKey?.length || 0,
-      isExpoGo,
-      willWrap: !!(StripeProvider && STRIPE_CONFIG.publishableKey),
-    });
-
-    if (!STRIPE_CONFIG.publishableKey) {
-      console.error('❌ STRIPE_CONFIG.publishableKey is empty! Stripe features will not work.');
-      console.error('   Check: apps/mobile/.env has EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY set');
-    }
-  }
-
-  // Ensure publishable key is valid before wrapping
-  const isValidKey = STRIPE_CONFIG.publishableKey &&
-    (STRIPE_CONFIG.publishableKey.startsWith('pk_test_') || STRIPE_CONFIG.publishableKey.startsWith('pk_live_'));
-
-  const wrappedContent = StripeProvider && isValidKey ? (
-    <StripeProvider
-      publishableKey={STRIPE_CONFIG.publishableKey}
-      merchantIdentifier="merchant.com.cribnosh.co.uk"
-      urlScheme="cribnoshapp" // Required for 3D Secure and redirects
-      threeDSecureParams={{
-        timeout: 5,
-      }}
-    >
+  // Main app content JSX is now wrapped in StripeContainer
+  const wrappedContent = (
+    <StripeContainer>
       {appContent}
-    </StripeProvider>
-  ) : (
-    appContent
+    </StripeContainer>
   );
-
-  // Log warning if StripeProvider is not wrapping content
-  if (__DEV__ && (!StripeProvider || !isValidKey)) {
-    if (!StripeProvider) {
-      console.warn('⚠️ StripeProvider is not available. Stripe features will not work.');
-    }
-    if (!isValidKey) {
-      console.warn('⚠️ Stripe publishable key is invalid or missing. StripeProvider will not wrap content.');
-      console.warn('   Key:', STRIPE_CONFIG.publishableKey ? `${STRIPE_CONFIG.publishableKey.substring(0, 30)}...` : 'MISSING');
-    }
-  }
 
   const convexClient = getConvexReactClient();
 
