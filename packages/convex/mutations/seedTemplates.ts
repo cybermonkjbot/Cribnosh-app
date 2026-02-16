@@ -182,7 +182,7 @@ const DEFAULT_TEMPLATES = [
 
 export const seedTemplates = mutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<{ createdCount: number; updatedCount: number }> => {
     let createdCount = 0;
     let updatedCount = 0;
 

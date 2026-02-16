@@ -11,7 +11,9 @@ export const seedAllTemplates = action({
     args: {},
     handler: async (ctx) => {
         console.log("Seeding email templates...");
-        const result = await ctx.runMutation(api.mutations.seedTemplates.seedTemplates, {});
+        // Break the type inference chain to avoid "Type instantiation is excessively deep" errors
+        const seedTemplatesMutation = api.mutations.seedTemplates.seedTemplates as any;
+        const result = await ctx.runMutation(seedTemplatesMutation, {});
         console.log(`Templates seeded: ${result.createdCount} created, ${result.updatedCount} updated.`);
         return result;
     },
