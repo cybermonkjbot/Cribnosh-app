@@ -213,7 +213,7 @@ export default function HelpSupportScreen() {
         },
         {
           title: 'Allergen Information',
-          content: 'You can set your allergies and dietary preferences in your account settings. Chefs will be notified of your requirements, and you\'ll see allergen information for each dish.',
+          content: 'You can set your allergies and dietary preferences in your account settings. Food Creators will be notified of your requirements, and you\'ll see allergen information for each dish.',
         },
         {
           title: 'Reporting Issues',

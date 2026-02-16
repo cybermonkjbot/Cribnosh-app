@@ -62,13 +62,13 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
     title: 'Nigerian Jollof',
     price: '£ 16',
     imageSource: 'https://avatar.iran.liara.run/public/44',
-    description: 'Watch Chef Minnie craft authentic Nigerian Jollof Rice live! Fresh tomatoes, aromatic spices, and perfectly seasoned rice - order now before it\'s ready.',
+    description: 'Watch Food Creator Minnie craft authentic Nigerian Jollof Rice live! Fresh tomatoes, aromatic spices, and perfectly seasoned rice - order now before it\'s ready.', // Changed 'Chef Minnie' to 'Food Creator Minnie'
     kitchenName: 'Minnies Kitchen',
     ingredients: ['Premium Basmati Rice', 'Fresh Tomatoes', 'Bell Peppers', 'Red Onions', 'Secret Spice Blend'],
     cookingTime: '25 minutes',
-    chefBio: 'Chef Minnie brings 15+ years of authentic Nigerian cooking experience. Every dish tells a story of tradition and love.',
+    foodCreatorBio: 'Food Creator Minnie brings 15+ years of authentic Nigerian cooking experience. Every dish tells a story of tradition and love.', // Changed from chefBio and updated content
     liveViewers: 127,
-  },  
+  },
 }) => {
   // State management
   const [isExpanded, setIsExpanded] = useState(false);
@@ -95,14 +95,14 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
 
   const handleSheetChanges = useCallback((index: number) => {
     setCurrentSnapPoint(index);
-    
+
     // Update expanded state based on snap point
     if (index === 1) {
       setIsExpanded(true);
     } else if (index === 0) {
       setIsExpanded(false);
     }
-    
+
     if (index === -1) {
       onToggleVisibility();
     }
@@ -111,7 +111,7 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
   const handleQuantityChange = useCallback((value: number) => {
     onQuantityChange?.(value);
   }, [onQuantityChange]);
-  
+
   const handleOrder = useCallback(() => {
     // Trigger add to cart when Order button is clicked
     onAddToCart?.();
@@ -147,11 +147,11 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
         <View style={buttonPositionStyle}>
           <LoveThisButton onLikeChange={onReaction ? handleReaction : undefined} />
         </View>
-        
+
         {/* Skeleton Loading State */}
-        <OnTheStoveBottomSheetSkeleton 
-          isVisible={true} 
-          isExpanded={isExpanded} 
+        <OnTheStoveBottomSheetSkeleton
+          isVisible={true}
+          isExpanded={isExpanded}
         />
       </>
     );
@@ -163,7 +163,7 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
       <View style={buttonPositionStyle}>
         <LoveThisButton onLikeChange={onReaction ? handleReaction : undefined} />
       </View>
-      
+
       <BottomSheetBase
         snapPoints={snapPoints}
         index={0}
@@ -191,7 +191,7 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
             <Text style={styles.title}>
               #{mealData.title}
             </Text>
-            
+
             {/* Sparkles Icon */}
             <View style={styles.sparklesContainer}>
               <AISparkles size={32} color="#094327" />
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-}); 
+});
 
 function setQuantity(value: number) {
   throw new Error('Function not implemented.');

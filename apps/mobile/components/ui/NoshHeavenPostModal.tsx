@@ -6,7 +6,7 @@ import { CameraView } from 'expo-camera';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { Camera, FoodCreator as FoodCreatorHat, Image as ImageIcon, Utensils, Video as VideoIcon, X } from 'lucide-react-native';
+import { Camera, ChefHat, Image as ImageIcon, Utensils, Video as VideoIcon, X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Image, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

@@ -1,5 +1,5 @@
-export { ChefNotes } from './ChefNotes';
 export { DietCompatibilityBar } from './DietCompatibilityBar';
+export { FoodCreatorNotes } from './FoodCreatorNotes';
 export { KitchenInfo } from './KitchenInfo';
 export { MealBadges } from './MealBadges';
 export { MealDescription } from './MealDescription';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 interface FoodCreatorNotesProps {
@@ -11,40 +10,37 @@ interface FoodCreatorNotesProps {
 export function FoodCreatorNotes({ story, tips, chefName, chefAvatar }: FoodCreatorNotesProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Chef&apos;s Notes</Text>
-      
       <View style={styles.notesContainer}>
         {/* Chef Info */}
         <View style={styles.chefInfo}>
-          <View style={styles.chefDetails}>
-            <Text style={styles.chefName}>{chefName || "Chef&apos;s Special"}</Text>
-            <Text style={styles.chefSubtitle}>Personal Recipe</Text>
-          </View>
+          <Text style={styles.header}>Food Creator&apos;s Notes</Text>
+          <Text style={styles.chefName}>{chefName || "Food Creator&apos;s Special"}</Text>
+          <Text style={styles.chefSubtitle}>Personal Recipe</Text>
         </View>
-
-        {/* Story */}
-        {story && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>The Story</Text>
-            <Text style={styles.storyText}>{story}</Text>
-          </View>
-        )}
-
-        {/* Tips */}
-        {tips && tips.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Chef&apos;s Tips</Text>
-            {tips.map((tip, index) => (
-              <View key={index} style={styles.tipItem}>
-                <View style={styles.tipBullet}>
-                  <Text style={styles.bulletText}>•</Text>
-                </View>
-                <Text style={styles.tipText}>{tip}</Text>
-              </View>
-            ))}
-          </View>
-        )}
       </View>
+
+      {/* Story */}
+      {story && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>The Story</Text>
+          <Text style={styles.storyText}>{story}</Text>
+        </View>
+      )}
+
+      {/* Tips */}
+      {tips && tips.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Food Creator&apos;s Tips</Text>
+          {tips.map((tip, index) => (
+            <View key={index} style={styles.tipItem}>
+              <View style={styles.tipBullet}>
+                <Text style={styles.bulletText}>•</Text>
+              </View>
+              <Text style={styles.tipText}>{tip}</Text>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 }

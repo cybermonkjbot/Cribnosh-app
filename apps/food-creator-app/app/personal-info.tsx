@@ -36,13 +36,14 @@ const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none
   <path d="M19 12H5M12 19L5 12L12 5" stroke="#094327" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-type TabType = 'chef' | 'kitchen' | 'availability';
+type TabType = 'foodCreator' | 'kitchen' | 'availability';
 
 export default function PersonalInfoScreen() {
   const router = useRouter();
   const { showToast } = useToast();
   const { foodCreator: chef, user, sessionToken: authSessionToken, isAuthenticated } = useFoodCreatorAuth();
-  const [activeTab, setActiveTab] = useState<TabType>('chef');
+  const [activeTab, setActiveTab] = useState<TabType>('foodCreator');
+
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
@@ -706,7 +707,7 @@ export default function PersonalInfoScreen() {
   };
 
   const handleSave = () => {
-    if (activeTab === 'chef') {
+    if (activeTab === 'foodCreator') {
       handleSaveChefSettings();
     } else if (activeTab === 'kitchen') {
       handleSaveKitchenSettings();
@@ -887,12 +888,12 @@ export default function PersonalInfoScreen() {
             contentContainerStyle={styles.tabsContainer}
           >
             <TouchableOpacity
-              style={[styles.tab, activeTab === 'chef' && styles.tabActive]}
-              onPress={() => setActiveTab('chef')}
+              style={[styles.tab, activeTab === 'foodCreator' && styles.tabActive]}
+              onPress={() => setActiveTab('foodCreator')}
               activeOpacity={0.7}
             >
-              <Text style={[styles.tabText, activeTab === 'chef' && styles.tabTextActive]}>
-                Chef Settings
+              <Text style={[styles.tabText, activeTab === 'foodCreator' && styles.tabTextActive]}>
+                Food Creator Settings
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -922,9 +923,9 @@ export default function PersonalInfoScreen() {
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
         >
-          {activeTab === 'chef' && (
+          {activeTab === 'foodCreator' && (
             <>
-              {/* Chef Account Status */}
+              {/* Food Creator Account Status */}
               {chef && (
                 <View style={styles.statusCard}>
                   <Text style={styles.statusLabel}>Account Status</Text>
