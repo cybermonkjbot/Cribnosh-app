@@ -1,11 +1,10 @@
 import { SharedOrderingHeader } from "@/components/ui/SharedOrderingHeader";
-import { CustomOrder } from "@/types/customer";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { api } from '@/convex/_generated/api';
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState, useEffect, useCallback } from "react";
-import { getConvexClient, getSessionToken } from "@/lib/convexClient";
-import { api } from '@/convex/_generated/api';
-import { useAuthContext } from "@/contexts/AuthContext";
+import { useCallback, useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -23,13 +22,15 @@ export default function SharedOrderingSetup() {
   const [amount, setAmount] = useState("");
   const [selectedAmount, setSelectedAmount] = useState<string | null>(null);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [customOrdersError, setCustomOrdersError] = useState<any>(null);
+  const [customOrdersData, setCustomOrdersData] = useState<any>(null);
 
 
 
   // Fetch existing custom orders from Convex
   const fetchCustomOrders = useCallback(async () => {
     if (!isAuthenticated) return;
-    
+
     try {
       const convex = getConvexClient();
       const sessionToken = await getSessionToken();
@@ -147,15 +148,15 @@ export default function SharedOrderingSetup() {
       });
     } catch (error: any) {
       console.error("Error creating custom order:", error);
-      
+
       // Skip error handling for 401 errors - global handler already redirected to sign-in
       const errorStatus = error?.status || error?.data?.error?.code || error?.data?.status;
       const errorCode = error?.data?.error?.code;
       if (errorStatus === 401 || errorStatus === "401" || errorCode === 401 || errorCode === "401") {
         return;
       }
-      
-      const errorMessage = 
+
+      const errorMessage =
         error?.data?.error?.message ||
         error?.data?.message ||
         error?.message ||
@@ -228,7 +229,7 @@ export default function SharedOrderingSetup() {
                   style={[
                     styles.presetButtonText,
                     selectedAmount === preset &&
-                      styles.presetButtonTextSelected,
+                    styles.presetButtonTextSelected,
                   ]}
                 >
                   {preset}

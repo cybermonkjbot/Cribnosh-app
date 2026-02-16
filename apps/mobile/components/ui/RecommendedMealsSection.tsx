@@ -43,7 +43,7 @@ const RecommendedMealsSectionComponent: React.FC<RecommendedMealsSectionProps> =
   const { isAuthenticated, user } = useAuthContext();
   const { getRecommendedMeals, isLoading: isLoadingMeals } = useMeals();
   const locationState = useUserLocation();
-  
+
   const [recommendationsData, setRecommendationsData] = useState<any>(null);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   const [recommendationsError, setRecommendationsError] = useState<any>(null);
@@ -99,7 +99,7 @@ const RecommendedMealsSectionComponent: React.FC<RecommendedMealsSectionProps> =
     if (recommendationsData?.success && recommendationsData.data?.recommendations) {
       const transformedMeals = recommendationsData.data.recommendations
         .map(transformMealData)
-        .filter((meal): meal is Meal => meal !== null);
+        .filter((meal: any): meal is Meal => meal !== null);
       return transformedMeals;
     }
     return [];
@@ -249,7 +249,7 @@ const RecommendedMealsSectionComponent: React.FC<RecommendedMealsSectionProps> =
           }}>
             {title}
           </Text>
-          
+
           {shouldShowSeeAll && (
             <TouchableOpacity onPress={onSeeAllPress} hitSlop={12}>
               <Text style={{
@@ -263,7 +263,7 @@ const RecommendedMealsSectionComponent: React.FC<RecommendedMealsSectionProps> =
           )}
         </View>
       )}
-      
+
       {/* First Row */}
       <ScrollView
         horizontal
@@ -276,7 +276,7 @@ const RecommendedMealsSectionComponent: React.FC<RecommendedMealsSectionProps> =
       >
         {meals.slice(0, 4).map(renderMealCard)}
       </ScrollView>
-      
+
       {/* Second Row */}
       {meals.length > 4 && (
         <ScrollView

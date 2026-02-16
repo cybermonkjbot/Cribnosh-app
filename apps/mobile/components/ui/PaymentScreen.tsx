@@ -64,7 +64,7 @@ export default function PaymentScreen({
   const [hasCheckedMultipleFoodCreators, setHasCheckedMultipleFoodCreators] = useState(false);
   const [showOfflineFoodCreatorsModal, setShowOfflineFoodCreatorsModal] = useState(false);
   const [hasCheckedOfflineFoodCreators, setHasCheckedOfflineFoodCreators] = useState(false);
-  const [offlineChefs, setOfflineFoodCreators] = useState<Array<{ foodCreatorId: string; chefName: string; itemNames: string[] }>>([]);
+  const [offlineFoodCreators, setOfflineFoodCreators] = useState<Array<{ foodCreatorId: string; foodCreatorName: string; itemNames: string[] }>>([]);
   const [cartOrderNote, setCartOrderNote] = useState<string | undefined>(undefined);
 
   // Using Convex directly for all API calls
@@ -536,19 +536,19 @@ export default function PaymentScreen({
           return;
         }
 
-        const availability = await convex.query(api.queries.orders.checkCartChefAvailability, {
+        const availability = await convex.query(api.queries.orders.checkCartFoodCreatorAvailability, {
           userId: user._id,
           sessionToken,
         });
 
         setHasCheckedOfflineFoodCreators(true);
 
-        if (!availability.allChefsOnline && availability.offlineChefs.length > 0) {
-          setOfflineFoodCreators(availability.offlineChefs);
+        if (!availability.allFoodCreatorsOnline && availability.offlineFoodCreators.length > 0) {
+          setOfflineFoodCreators(availability.offlineFoodCreators);
           setShowOfflineFoodCreatorsModal(true);
         }
       } catch (error) {
-        console.error('Error checking chef availability:', error);
+        console.error('Error checking food creator availability:', error);
         // Continue with payment if check fails
         setHasCheckedOfflineFoodCreators(true);
       }
@@ -662,16 +662,16 @@ export default function PaymentScreen({
         onClose={() => setShowRegionModal(false)}
       />
 
-      {/* Multiple Chefs Warning Modal - shown before payment screen */}
+      {/* Multiple Food Creators Warning Modal - shown before payment screen */}
       <MultipleFoodCreatorsWarningModal
         isVisible={showMultipleFoodCreatorsModal}
         onConfirm={handleConfirmMultipleFoodCreators}
         onCancel={handleCancelMultipleFoodCreators}
       />
-      {/* Offline Chefs Warning Modal - shown before payment screen */}
+      {/* Offline Food Creators Warning Modal - shown before payment screen */}
       <OfflineFoodCreatorsWarningModal
         isVisible={showOfflineFoodCreatorsModal}
-        offlineChefs={offlineChefs}
+        offlineFoodCreators={offlineFoodCreators}
         onConfirm={() => {
           // This shouldn't be called since modal only has cancel button
           setShowOfflineFoodCreatorsModal(false);

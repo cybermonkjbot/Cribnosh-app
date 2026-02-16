@@ -22,7 +22,7 @@ export const useFoodCreators = () => {
         const sessionToken = await getSessionToken();
 
         const result = await convex.action(
-          api.actions.chefs.customerGetNearbyChefs,
+          api.actions.foodCreators.customerGetNearbyFoodCreators,
           {
             sessionToken: sessionToken || undefined,
             latitude: data.latitude,
@@ -40,10 +40,11 @@ export const useFoodCreators = () => {
         return {
           success: true,
           data: {
-            chefs: result.chefs || [],
+            foodCreators: result.foodCreators || [],
             pagination: result.pagination,
           },
         };
+
       } catch (error: any) {
         // Let components handle errors - no toast in hooks
         throw error;
@@ -65,10 +66,10 @@ export const useFoodCreators = () => {
         const sessionToken = await getSessionToken();
 
         const result = await convex.action(
-          api.actions.chefs.customerGetChefDetails,
+          api.actions.foodCreators.customerGetFoodCreatorDetails,
           {
             sessionToken: sessionToken || undefined,
-            chef_id,
+            foodCreatorId: chef_id,
             latitude,
             longitude,
           }
@@ -102,7 +103,7 @@ export const useFoodCreators = () => {
       const sessionToken = await getSessionToken();
 
       const result = await convex.action(
-        api.actions.chefs.customerGetPopularChefs,
+        api.actions.foodCreators.customerGetPopularFoodCreators,
         {
           sessionToken: sessionToken || undefined,
         }
@@ -115,7 +116,7 @@ export const useFoodCreators = () => {
       return {
         success: true,
         data: {
-          chefs: result.chefs || [],
+          foodCreators: result.foodCreators || [],
         },
       };
     } catch (error: any) {
@@ -137,10 +138,10 @@ export const useFoodCreators = () => {
         const sessionToken = await getSessionToken();
 
         const result = await convex.action(
-          api.actions.users.customerGetPopularChefDetails,
+          api.actions.foodCreators.customerGetPopularFoodCreatorDetails,
           {
             sessionToken: sessionToken || undefined,
-            chef_id,
+            foodCreatorId: chef_id,
           }
         );
 
@@ -177,11 +178,9 @@ export const useFoodCreators = () => {
         const sessionToken = await getSessionToken();
 
         const result = await convex.action(
-          api.actions.chefs.customerGetFeaturedKitchens,
+          api.actions.foodCreators.customerGetFeaturedKitchens,
           {
             sessionToken: sessionToken || undefined,
-            sentiment: filters?.sentiment,
-            is_live: filters?.is_live,
             limit: filters?.limit,
           }
         );
@@ -228,13 +227,13 @@ export const useFoodCreators = () => {
         const sessionToken = await getSessionToken();
 
         const result = await convex.action(
-          api.actions.chefs.customerSearchChefs,
+          api.actions.foodCreators.customerSearchFoodCreators,
           {
             sessionToken: sessionToken || undefined,
-            query: data.query,
-            location: data.location,
+            q: data.query,
+            latitude: data.location?.latitude,
+            longitude: data.location?.longitude,
             radius: data.radius,
-            cuisine: data.cuisine,
             limit: data.limit,
           }
         );
@@ -246,7 +245,7 @@ export const useFoodCreators = () => {
         return {
           success: true,
           data: {
-            chefs: result.chefs || [],
+            foodCreators: result.foodCreators || [],
             metadata: result.metadata,
           },
         };
@@ -277,14 +276,13 @@ export const useFoodCreators = () => {
         const sessionToken = await getSessionToken();
 
         const result = await convex.action(
-          api.actions.users.customerSearchChefsByLocation,
+          api.actions.foodCreators.customerSearchFoodCreatorsByLocation,
           {
             sessionToken: sessionToken || undefined,
             latitude: data.latitude,
             longitude: data.longitude,
             radius: data.radius,
             limit: data.limit,
-            page: data.page,
           }
         );
 
@@ -297,7 +295,7 @@ export const useFoodCreators = () => {
         return {
           success: true,
           data: {
-            chefs: result.chefs || [],
+            foodCreators: result.foodCreators || [],
             pagination: result.pagination,
           },
         };
@@ -326,7 +324,7 @@ export const useFoodCreators = () => {
         }
 
         const result = await convex.action(
-          api.actions.users.customerGetKitchenFavoriteStatus,
+          api.actions.foodCreators.customerGetKitchenFavoriteStatus,
           {
             sessionToken,
             kitchenId,
@@ -368,7 +366,7 @@ export const useFoodCreators = () => {
         }
 
         const result = await convex.action(
-          api.actions.users.customerAddKitchenFavorite,
+          api.actions.foodCreators.customerAddKitchenFavorite,
           {
             sessionToken,
             kitchenId,
@@ -409,7 +407,7 @@ export const useFoodCreators = () => {
         }
 
         const result = await convex.action(
-          api.actions.users.customerRemoveKitchenFavorite,
+          api.actions.foodCreators.customerRemoveKitchenFavorite,
           {
             sessionToken,
             kitchenId,
@@ -451,7 +449,7 @@ export const useFoodCreators = () => {
           throw new Error('Please log in to view kitchen details');
         }
 
-        const result = await convex.action(api.actions.chefs.customerGetKitchenDetails, {
+        const result = await convex.action(api.actions.foodCreators.customerGetKitchenDetails, {
           sessionToken,
           kitchenId,
         });
@@ -485,7 +483,7 @@ export const useFoodCreators = () => {
           throw new Error('Please log in to view featured video');
         }
 
-        const result = await convex.action(api.actions.chefs.customerGetKitchenFeaturedVideo, {
+        const result = await convex.action(api.actions.foodCreators.customerGetKitchenFeaturedVideo, {
           sessionToken,
           kitchenId,
         });
@@ -520,7 +518,7 @@ export const useFoodCreators = () => {
         }
 
         const result = await convex.action(
-          api.actions.chefs.customerGetKitchenCategories,
+          api.actions.foodCreators.customerGetKitchenCategories,
           {
             sessionToken,
             kitchenId,
@@ -561,7 +559,7 @@ export const useFoodCreators = () => {
           throw new Error("Not authenticated");
         }
 
-        const result = await convex.action(api.actions.chefs.customerGetKitchenTags, {
+        const result = await convex.action(api.actions.foodCreators.customerGetKitchenTags, {
           sessionToken,
           kitchenId,
         });
@@ -600,7 +598,7 @@ export const useFoodCreators = () => {
           throw new Error("Not authenticated");
         }
 
-        const result = await convex.action(api.actions.chefs.customerGetChefMeals, {
+        const result = await convex.action(api.actions.foodCreators.customerGetFoodCreatorMeals, {
           sessionToken,
           limit,
           offset,
@@ -654,7 +652,7 @@ export const useFoodCreators = () => {
           throw new Error("Not authenticated");
         }
 
-        const result = await convex.action(api.actions.chefs.customerStartLiveSession, {
+        const result = await convex.action(api.actions.foodCreators.customerStartLiveSession, {
           sessionToken,
           channelName: data.channelName,
           title: data.title,

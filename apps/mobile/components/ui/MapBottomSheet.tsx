@@ -13,7 +13,7 @@ import { MapView } from './MapView';
 // Screen dimensions and snap point constants (following OnTheStoveBottomSheet pattern)
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const DRAWER_HEIGHT = Math.min(SCREEN_HEIGHT * 0.85, 600); // Max 85% of screen or 600px
-const COLLAPSED_HEIGHT = 200; // Collapsed height for chef list
+const COLLAPSED_HEIGHT = 200; // Collapsed height for food creator list
 const HALF_HEIGHT = SCREEN_HEIGHT * 0.5; // Half screen height
 
 // Snap points represent the visible height of the drawer
@@ -23,7 +23,7 @@ const SNAP_POINTS = {
   EXPANDED: DRAWER_HEIGHT
 };
 
-// Memoized Chef Item Component (moved outside for better performance)
+// Memoized Food Creator Item Component (moved outside for better performance)
 interface FoodCreatorItemProps {
   foodCreator: FoodCreatorMarker;
   onPress: (foodCreator: FoodCreatorMarker) => void;
@@ -31,39 +31,39 @@ interface FoodCreatorItemProps {
   colorScheme: 'light' | 'dark';
 }
 
-const FoodCreatorItem = React.memo(({ 
-  foodCreator, 
-  onPress, 
+const FoodCreatorItem = React.memo(({
+  foodCreator,
+  onPress,
   onGetDirections,
   colorScheme: itemColorScheme
 }: FoodCreatorItemProps) => {
   const itemStyles = {
-    chefItem: {
+    foodCreatorItem: {
       borderRadius: 12,
       marginVertical: 4,
       padding: 16,
       borderWidth: 1,
       borderColor: '#E0E0E0',
     },
-    chefItemContent: {
+    foodCreatorItemContent: {
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
     },
-    chefInfo: {
+    foodCreatorInfo: {
       flex: 1,
     },
-    chefName: {
+    foodCreatorName: {
       fontSize: 16,
       fontWeight: '600' as const,
       marginBottom: 4,
     },
-    chefCuisine: {
+    foodCreatorCuisine: {
       fontSize: 14,
       color: '#666',
       marginBottom: 8,
     },
-    chefStats: {
+    foodCreatorStats: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
     },
@@ -77,7 +77,7 @@ const FoodCreatorItem = React.memo(({
       color: '#666',
       marginLeft: 4,
     },
-    chefActions: {
+    foodCreatorActions: {
       alignItems: 'center' as const,
     },
     distanceText: {
@@ -95,21 +95,21 @@ const FoodCreatorItem = React.memo(({
   return (
     <TouchableOpacity
       style={[
-        itemStyles.chefItem,
+        itemStyles.foodCreatorItem,
         { backgroundColor: Colors[itemColorScheme as keyof typeof Colors].background }
       ]}
       onPress={() => onPress(foodCreator)}
     >
-      <View style={itemStyles.chefItemContent}>
-        <View style={itemStyles.chefInfo}>
+      <View style={itemStyles.foodCreatorItemContent}>
+        <View style={itemStyles.foodCreatorInfo}>
           <Text style={[
-            itemStyles.chefName,
+            itemStyles.foodCreatorName,
             { color: Colors[itemColorScheme as keyof typeof Colors].text }
           ]}>
             {foodCreator.kitchen_name}
           </Text>
-          <Text style={itemStyles.chefCuisine}>{foodCreator.cuisine}</Text>
-          <View style={itemStyles.chefStats}>
+          <Text style={itemStyles.foodCreatorCuisine}>{foodCreator.cuisine}</Text>
+          <View style={itemStyles.foodCreatorStats}>
             <View style={itemStyles.statItem}>
               <Star size={12} color="#FFD700" />
               <Text style={itemStyles.statText}>{foodCreator.rating}</Text>
@@ -126,7 +126,7 @@ const FoodCreatorItem = React.memo(({
             )}
           </View>
         </View>
-        <View style={itemStyles.chefActions}>
+        <View style={itemStyles.foodCreatorActions}>
           <Text style={itemStyles.distanceText}>{foodCreator.distance}</Text>
           <TouchableOpacity
             style={itemStyles.directionsButton}
@@ -141,7 +141,7 @@ const FoodCreatorItem = React.memo(({
 });
 FoodCreatorItem.displayName = 'FoodCreatorItem';
 
-export function MapBottomSheet({ 
+export function MapBottomSheet({
   isVisible,
   onToggleVisibility,
   foodCreators,
@@ -155,8 +155,8 @@ export function MapBottomSheet({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<FoodCreatorMarker[]>([]);
-  const [chefLoadError, setChefLoadError] = useState<string | null>(null);
-  
+  const [foodCreatorLoadError, setFoodCreatorLoadError] = useState<string | null>(null);
+
   // Location hook
   const locationState = useUserLocation();
   const currentUserLocation = userLocation || locationState.location;
@@ -172,13 +172,13 @@ export function MapBottomSheet({
   // Handle sheet changes
   const handleSheetChanges = useCallback((index: number) => {
     setCurrentSnapPoint(index);
-    
+
     if (index === -1) {
       onToggleVisibility();
     }
   }, [onToggleVisibility]);
 
-  // Handle chef selection
+  // Handle food creator selection
   const handleFoodCreatorSelect = useCallback((foodCreator: FoodCreatorMarker) => {
     setSelectedFoodCreator(foodCreator);
     onFoodCreatorSelect?.(foodCreator);
@@ -194,7 +194,7 @@ export function MapBottomSheet({
     // Don't search if user location is not available
     if (!currentUserLocation) {
       setIsSearching(false);
-      setSearchError("Please enable location services to search for kitchens.");
+      setFoodCreatorLoadError("Please enable location services to search for kitchens.");
       return;
     }
 
@@ -208,7 +208,7 @@ export function MapBottomSheet({
         undefined, // no specific cuisine filter
         20 // limit to 20 results
       );
-      
+
       setSearchResults(searchResult.foodCreators);
     } catch (error) {
       console.error('Search error:', error);
@@ -227,7 +227,7 @@ export function MapBottomSheet({
 
     try {
       const directions = await getDirections(currentUserLocation, foodCreator.location, 'driving');
-      
+
       if (directions.success) {
         const route = directions.data.routes[0];
         Alert.alert(
@@ -248,7 +248,7 @@ export function MapBottomSheet({
   // Memoize safe colorScheme value
   const safeColorScheme = useMemo(() => (colorScheme || 'light') as 'light' | 'dark', [colorScheme]);
 
-  // Render chef item wrapper
+  // Render food creator item wrapper
   const renderFoodCreatorItem = useCallback(({ item: foodCreator }: { item: FoodCreatorMarker }) => (
     <FoodCreatorItem
       foodCreator={foodCreator}
@@ -261,10 +261,10 @@ export function MapBottomSheet({
   // Memoized keyExtractor
   const keyExtractor = useCallback((item: FoodCreatorMarker) => item.id, []);
 
-  // Chef list data (memoized)
-  const chefListData = useMemo(() => {
+  // Food Creator list data (memoized)
+  const foodCreatorListData = useMemo(() => {
     return searchResults.length > 0 ? searchResults : foodCreators;
-  }, [searchResults, chefs]);
+  }, [searchResults, foodCreators]);
 
   // Render content based on snap point
   const renderContent = () => {
@@ -302,7 +302,7 @@ export function MapBottomSheet({
         </View>
       );
     } else {
-      // Collapsed or half - show search and chef list
+      // Collapsed or half - show search and food creator list
       return (
         <View style={styles.collapsedContent}>
           {/* Search Bar */}
@@ -329,19 +329,19 @@ export function MapBottomSheet({
             )}
           </View>
 
-          {/* Chef List */}
-          {chefLoadError ? (
+          {/* Food Creator List */}
+          {foodCreatorLoadError ? (
             <View style={styles.errorState}>
               <Text style={[
                 styles.errorText,
                 { color: Colors[colorScheme as keyof typeof Colors].text }
               ]}>
-                {chefLoadError}
+                {foodCreatorLoadError}
               </Text>
               <TouchableOpacity
                 style={styles.retryButton}
                 onPress={() => {
-                  setChefLoadError(null);
+                  setFoodCreatorLoadError(null);
                   // Trigger reload by toggling visibility
                   onToggleVisibility();
                 }}
@@ -351,10 +351,10 @@ export function MapBottomSheet({
             </View>
           ) : (
             <FlatList
-              data={chefListData}
+              data={foodCreatorListData}
               renderItem={renderFoodCreatorItem}
               keyExtractor={keyExtractor}
-              style={styles.chefList}
+              style={styles.foodCreatorList}
               showsVerticalScrollIndicator={false}
               removeClippedSubviews={true}
               maxToRenderPerBatch={10}
@@ -368,7 +368,7 @@ export function MapBottomSheet({
                     styles.emptyStateText,
                     { color: Colors[colorScheme as keyof typeof Colors].text }
                   ]}>
-                    {searchQuery ? 'No restaurants found' : 'No chefs nearby'}
+                    {searchQuery ? 'No restaurants found' : 'No food creators nearby'}
                   </Text>
                 </View>
               }
@@ -427,36 +427,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
-  chefList: {
+  foodCreatorList: {
     flex: 1,
     paddingHorizontal: 16,
   },
-  chefItem: {
+  foodCreatorItem: {
     borderRadius: 12,
     marginVertical: 4,
     padding: 16,
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
-  chefItemContent: {
+  foodCreatorItemContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  chefInfo: {
+  foodCreatorInfo: {
     flex: 1,
   },
-  chefName: {
+  foodCreatorName: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
   },
-  chefCuisine: {
+  foodCreatorCuisine: {
     fontSize: 14,
     color: '#666',
     marginBottom: 8,
   },
-  chefStats: {
+  foodCreatorStats: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     color: '#666',
     marginLeft: 4,
   },
-  chefActions: {
+  foodCreatorActions: {
     alignItems: 'center',
   },
   distanceText: {

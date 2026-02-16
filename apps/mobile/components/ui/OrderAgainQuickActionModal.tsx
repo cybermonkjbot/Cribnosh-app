@@ -1,18 +1,18 @@
+import { BlurEffect } from '@/utils/blurEffects';
+import { BlurView } from 'expo-blur';
+import { X } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
-  Modal,
-  Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X } from 'lucide-react-native';
-import { BlurView } from 'expo-blur';
-import { BlurEffect } from '@/utils/blurEffects';
 
 interface OrderAgainQuickActionModalProps {
   isVisible: boolean;
@@ -40,7 +40,7 @@ export function OrderAgainQuickActionModal({
 
   const handleAddItem = useCallback(async () => {
     if (!item || isLoading) return;
-    
+
     try {
       setIsLoading(true);
       setLoadingAction('add-item');
@@ -56,7 +56,7 @@ export function OrderAgainQuickActionModal({
 
   const handleAddEntireOrder = useCallback(async () => {
     if (!item?.lastOrderId || isLoading) return;
-    
+
     try {
       setIsLoading(true);
       setLoadingAction('add-order');
@@ -100,7 +100,7 @@ export function OrderAgainQuickActionModal({
               intensity={80}
               tint="light"
               useGradient={true}
-              style={StyleSheet.absoluteFill}
+              style={StyleSheet.absoluteFill as any}
             />
           )}
         </View>
@@ -110,9 +110,9 @@ export function OrderAgainQuickActionModal({
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.title}>Order Again</Text>
-              <TouchableOpacity 
-                onPress={onClose} 
-                style={styles.closeButton} 
+              <TouchableOpacity
+                onPress={onClose}
+                style={styles.closeButton}
                 disabled={isLoading}
               >
                 <X size={24} color="#111827" />

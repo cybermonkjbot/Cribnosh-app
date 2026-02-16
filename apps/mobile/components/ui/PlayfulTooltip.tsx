@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Modal as RNModal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { Pressable, Modal as RNModal, StyleSheet, Text, View } from 'react-native';
 import { Mascot } from '../Mascot';
 
 interface PlayfulTooltipProps {
@@ -40,12 +40,10 @@ export function PlayfulTooltip({
       <Pressable
         style={styles.overlay}
         onPress={onClose}
-        activeOpacity={1}
       >
         <Pressable
           style={styles.contentContainer}
           onPress={(e) => e.stopPropagation()}
-          activeOpacity={1}
         >
           <View style={styles.mascotContainer}>
             <View

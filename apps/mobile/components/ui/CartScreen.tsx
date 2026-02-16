@@ -12,7 +12,7 @@ import Feather from "@expo/vector-icons/Feather";
 import { useQuery } from "convex/react";
 import { Link, router, usePathname } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { CarFront, MessageSquare, Utensils, FoodCreator as FoodCreatorHat } from "lucide-react-native";
+import { CarFront, ChefHat, MessageSquare, Utensils } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -154,7 +154,7 @@ export default function CartScreen() {
       totalItems: cartItems.length,
       uniqueKitchenIds: Array.from(uniqueKitchenIds),
       hasMultiple: result,
-      itemsWithChefId: cartItems.map((item: any) => ({
+      itemsWithFoodCreatorId: cartItems.map((item: any) => ({
         name: item.dish_name,
         chef_id: item.chef_id,
         chef_profile_image: item.chef_profile_image,
@@ -166,22 +166,22 @@ export default function CartScreen() {
   const pathname = usePathname();
   const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousPathnameRef = useRef<string>(pathname);
-  
+
   // Track pathname changes to detect navigation
   useEffect(() => {
     previousPathnameRef.current = pathname;
   }, [pathname]);
-  
+
   const handleBack = () => {
     // Clear any existing timeout
     if (navigationTimeoutRef.current) {
       clearTimeout(navigationTimeoutRef.current);
     }
-    
+
     if (router.canGoBack()) {
       // Go back once
       router.back();
-      
+
       // After navigation completes, check if we landed on the orders screen
       // If so, navigate to home to skip it
       navigationTimeoutRef.current = setTimeout(() => {
@@ -189,9 +189,9 @@ export default function CartScreen() {
         // Use the ref which should be updated by the useEffect when pathname changes
         const currentPath = previousPathnameRef.current;
         // Check if we're on the orders list screen (not cart or other order screens)
-        const isOnOrdersListScreen = currentPath === '/(tabs)/orders' || 
+        const isOnOrdersListScreen = currentPath === '/(tabs)/orders' ||
           (currentPath?.includes('/orders') && !currentPath?.includes('/cart') && !currentPath?.includes('/group'));
-        
+
         if (isOnOrdersListScreen) {
           // We're on the orders list screen, navigate to home to skip it
           router.replace("/(tabs)");
@@ -207,7 +207,7 @@ export default function CartScreen() {
       router.replace("/(tabs)");
     }
   };
-  
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -349,12 +349,12 @@ export default function CartScreen() {
       setAppliedCouponType(type);
       setAppliedCouponId(null);
       setAppliedPoints(pointsAmount);
-      
+
       // Calculate discount from points (1 point = £0.01)
       const pointsDiscount = pointsAmount * 0.01;
       setDiscountAmount(pointsDiscount);
       setFreeDelivery(false);
-      
+
       // Store discount info for order creation
       await SecureStore.setItemAsync('cart_discount_info', JSON.stringify({
         type: 'nosh_pass',
@@ -367,7 +367,7 @@ export default function CartScreen() {
       setAppliedCouponType(type);
       setAppliedCouponId(couponId);
       setAppliedPoints(null);
-      
+
       // Calculate discount (will store discount info automatically)
       await calculateDiscount(couponId, code);
     } else {
@@ -378,7 +378,7 @@ export default function CartScreen() {
       setAppliedPoints(null);
       setDiscountAmount(0);
       setFreeDelivery(false);
-      
+
       // Clear stored discount info
       await SecureStore.deleteItemAsync('cart_discount_info');
     }
@@ -404,7 +404,7 @@ export default function CartScreen() {
       if (result.success) {
         setDiscountAmount(result.discountAmount || 0);
         setFreeDelivery(result.freeDelivery || false);
-        
+
         // Store discount info for order creation
         await SecureStore.setItemAsync('cart_discount_info', JSON.stringify({
           type: 'discount',
@@ -455,7 +455,7 @@ export default function CartScreen() {
               await Promise.all(
                 cartItems.map((item: any) => removeFromCart(item._id, true))
               );
-              
+
               // Show single toast after all items are removed
               showToast({
                 type: "success",
@@ -463,7 +463,7 @@ export default function CartScreen() {
                 message: "All items removed from cart",
                 duration: 2000,
               });
-              
+
               // Cart will automatically update via reactive query, no need to manually refresh
             } catch (error) {
               console.error('Error clearing cart:', error);
@@ -650,11 +650,11 @@ export default function CartScreen() {
                   <View style={styles.itemLeft}>
                     {(() => {
                       const absoluteImageUrl = getAbsoluteImageUrl(item.image_url);
-                      const kitchenProfileImage = item.chef_profile_image 
+                      const kitchenProfileImage = item.chef_profile_image
                         ? getAbsoluteImageUrl(item.chef_profile_image)
                         : null;
                       const showKitchenBadge = hasMultipleKitchens;
-                      
+
                       // Debug logging
                       if (hasMultipleKitchens) {
                         console.log('Cart Item - Badge check:', {
@@ -665,7 +665,7 @@ export default function CartScreen() {
                           showKitchenBadge,
                         });
                       }
-                      
+
                       return absoluteImageUrl ? (
                         <View style={styles.imageContainer}>
                           <Image

@@ -1097,16 +1097,16 @@ export const getEnrichedCartBySessionToken = query({
 
 // Check if any chefs in the cart are offline
 // @ts-ignore: Type instantiation is excessively deep
-export const checkCartChefAvailability = query({
+export const checkCartFoodCreatorAvailability = query({
   args: {
     userId: v.id("users"),
     sessionToken: v.optional(v.string())
   },
   returns: v.object({
-    allChefsOnline: v.boolean(),
-    offlineChefs: v.array(v.object({
-      chefId: v.string(),
-      chefName: v.string(),
+    allFoodCreatorsOnline: v.boolean(),
+    offlineFoodCreators: v.array(v.object({
+      foodCreatorId: v.string(),
+      foodCreatorName: v.string(),
       itemNames: v.array(v.string()),
     })),
   }),
@@ -1128,8 +1128,8 @@ export const checkCartChefAvailability = query({
 
     if (!cart || !cart.items || cart.items.length === 0) {
       return {
-        allChefsOnline: true,
-        offlineChefs: [],
+        allFoodCreatorsOnline: true,
+        offlineFoodCreators: [],
       };
     }
 
@@ -1162,8 +1162,8 @@ export const checkCartChefAvailability = query({
       chefItems.get(chefIdStr)!.itemNames.push(itemName);
     }
 
-    // Check availability for each chef
-    const offlineChefs: Array<{ chefId: string; chefName: string; itemNames: string[] }> = [];
+    // Check availability for each Food Creator
+    const offlineFoodCreators: Array<{ foodCreatorId: string; foodCreatorName: string; itemNames: string[] }> = [];
 
     for (const chefIdStr of chefIds) {
       try {
@@ -1179,22 +1179,22 @@ export const checkCartChefAvailability = query({
         if (chef.isAvailable !== true) {
           const chefData = chefItems.get(chefIdStr);
           if (chefData) {
-            offlineChefs.push({
-              chefId: chefIdStr,
-              chefName: chefData.chefName || chef.name,
+            offlineFoodCreators.push({
+              foodCreatorId: chefIdStr,
+              foodCreatorName: chefData.chefName || chef.name,
               itemNames: chefData.itemNames,
             });
           }
         }
       } catch (error) {
         // Chef not found or error accessing, skip
-        console.warn(`Error checking chef availability for ${chefIdStr}:`, error);
+        console.warn(`Error checking Food Creator availability for ${chefIdStr}:`, error);
       }
     }
 
     return {
-      allChefsOnline: offlineChefs.length === 0,
-      offlineChefs,
+      allFoodCreatorsOnline: offlineFoodCreators.length === 0,
+      offlineFoodCreators,
     };
   },
 });

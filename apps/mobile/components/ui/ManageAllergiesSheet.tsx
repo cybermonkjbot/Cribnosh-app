@@ -2,13 +2,13 @@ import { usePreferences } from '@/hooks/usePreferences';
 import { AlertTriangle } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { useToast } from '../../lib/ToastContext';
@@ -201,14 +201,14 @@ export function ManageAllergiesSheet({
         ...customAllergens,
       ];
 
-      await updateAllergies({
-        allergies: allAllergies.map((a) => ({
-          name: a.name,
-          type: a.type,
-          severity: a.severity,
-          notes: a.notes,
-        })),
-      });
+      const allAllergiesList = allAllergies.map((a) => ({
+        name: a.name,
+        type: a.type,
+        severity: a.severity,
+        notes: a.notes,
+      }));
+
+      await updateAllergies(allAllergiesList as any);
 
       onClose();
     } catch (error) {
@@ -347,7 +347,7 @@ export function ManageAllergiesSheet({
                                   style={[
                                     styles.selectorButtonText,
                                     state.severity === severity &&
-                                      styles.selectorButtonTextActive,
+                                    styles.selectorButtonTextActive,
                                   ]}
                                 >
                                   {severity.charAt(0).toUpperCase() + severity.slice(1)}
@@ -521,7 +521,7 @@ export function ManageAllergiesSheet({
                               style={[
                                 styles.selectorButtonText,
                                 allergen.severity === severity &&
-                                  styles.selectorButtonTextActive,
+                                styles.selectorButtonTextActive,
                               ]}
                             >
                               {severity.charAt(0).toUpperCase() + severity.slice(1)}

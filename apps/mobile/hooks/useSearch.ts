@@ -1,7 +1,7 @@
-import { useCallback, useState } from "react";
-import { getConvexClient, getSessionToken } from "@/lib/convexClient";
 import { api } from '@/convex/_generated/api';
+import { getConvexClient, getSessionToken } from "@/lib/convexClient";
 import { useToast } from "@/lib/ToastContext";
+import { useCallback, useState } from "react";
 
 export const useSearch = () => {
   const { showToast } = useToast();
@@ -69,9 +69,9 @@ export const useSearch = () => {
   );
 
   /**
-   * Search chefs (already exists in useChefs, but keeping for API compatibility)
+   * Search food creators (already exists in useFoodCreators, but keeping for API compatibility)
    */
-  const searchChefs = useCallback(
+  const searchFoodCreators = useCallback(
     async (data: {
       query: string;
       location?: { latitude: number; longitude: number };
@@ -87,30 +87,32 @@ export const useSearch = () => {
         }
 
         const result = await convex.action(
-          api.actions.users.customerSearchChefs,
+          api.actions.foodCreators.customerSearchFoodCreators,
           {
             sessionToken,
-            query: data.query,
-            location: data.location,
+            q: data.query,
+            latitude: data.location?.latitude,
+            longitude: data.location?.longitude,
             limit: data.limit,
           }
         );
 
         if (result.success === false) {
-          throw new Error(result.error || "Failed to search chefs");
+          throw new Error(result.error || "Failed to search food creators");
         }
 
         return {
           success: true,
           data: {
-            chefs: result.chefs || [],
+            foodCreators: result.foodCreators || [],
+            metadata: result.metadata, // API might not return metadata yet locally, but let's keep it if backend adds it
           },
         };
       } catch (error: any) {
         const errorMessage =
           error?.message ||
           error?.data?.error?.message ||
-          "Failed to search chefs";
+          "Failed to search food creators";
         showToast({
           type: "error",
           title: "Search Error",
@@ -237,7 +239,7 @@ export const useSearch = () => {
   return {
     isLoading,
     search,
-    searchChefs,
+    searchFoodCreators,
     getSearchSuggestions,
     getTrendingSearches,
   };

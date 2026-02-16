@@ -37,7 +37,7 @@ export const NoticesSection: React.FC = () => {
                 <NoticeCard
                     variant="progress"
                     title="Order #8592 - Preparing"
-                    message="Chef Marco is currently preparing your Lasagna. It smells delicious!"
+                    message="Food Creator Marco is currently preparing your Lasagna. It smells delicious!"
                     progress={{
                         current: 3,
                         total: 5,

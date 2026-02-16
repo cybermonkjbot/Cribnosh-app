@@ -1,10 +1,10 @@
-import { FoodCreatorHat, Sparkles, Utensils } from 'lucide-react-native';
+import { ChefHat, Sparkles, Utensils } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
 import { Animated, Text, View } from 'react-native';
 import AnimatedReanimated, {
-    SharedValue,
-    useAnimatedStyle,
-    useDerivedValue,
+  SharedValue,
+  useAnimatedStyle,
+  useDerivedValue,
 } from 'react-native-reanimated';
 
 interface PullToNoshHeavenTriggerProps {
@@ -73,7 +73,7 @@ export function PullToNoshHeavenTrigger({
   });
 
   return (
-    <Animated.View 
+    <Animated.View
       style={{
         opacity: fadeAnim,
         alignItems: 'center',
@@ -84,7 +84,7 @@ export function PullToNoshHeavenTrigger({
       pointerEvents={isVisible ? 'auto' : 'none'}
     >
       {/* Icons with progress-based animation */}
-      <AnimatedReanimated.View 
+      <AnimatedReanimated.View
         style={[
           {
             flexDirection: 'row',

@@ -7,8 +7,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { showError, showSuccess, showWarning } from "../../lib/GlobalToastManager";
 import { navigateToSignIn } from "../../utils/signInNavigationGuard";
 import { CartButton } from "./CartButton";
-import { FoodCreatorNotes } from "./MealItemDetails/FoodCreatorNotes";
 import { DietCompatibilityBar } from "./MealItemDetails/DietCompatibilityBar";
+import { FoodCreatorNotes } from "./MealItemDetails/FoodCreatorNotes";
 import { KitchenInfo } from "./MealItemDetails/KitchenInfo";
 import { MealBadges } from "./MealItemDetails/MealBadges";
 import { MealDescription } from "./MealItemDetails/MealDescription";
@@ -20,8 +20,8 @@ import { MealTitle } from "./MealItemDetails/MealTitle";
 import { NutritionalInfo } from "./MealItemDetails/NutritionalInfo";
 import { SimilarMeals } from "./MealItemDetails/SimilarMeals";
 import {
-  FoodCreatorNotesSkeleton,
   DietCompatibilityBarSkeleton,
+  FoodCreatorNotesSkeleton,
   KitchenInfoSkeleton,
   MealBadgesSkeleton,
   MealDescriptionSkeleton,
@@ -63,9 +63,9 @@ interface MealItemDetailsProps {
     // New fields for additional sections
     prepTime?: string;
     deliveryTime?: string;
-    chefName?: string;
-    chefStory?: string;
-    chefTips?: string[];
+    foodCreatorName?: string;
+    foodCreatorStory?: string;
+    foodCreatorTips?: string[];
     similarMeals?: {
       id: string;
       name: string;
@@ -121,14 +121,14 @@ export function MealItemDetails({
   const getDishFavoriteStatusRef = useRef(getDishFavoriteStatus);
   const getSimilarMealsRef = useRef(getSimilarMeals);
   const isMountedRef = useRef(true);
-  
+
   // Update refs when functions change
   useEffect(() => {
     getDishDetailsRef.current = getDishDetails;
     getDishFavoriteStatusRef.current = getDishFavoriteStatus;
     getSimilarMealsRef.current = getSimilarMeals;
   }, [getDishDetails, getDishFavoriteStatus, getSimilarMeals]);
-  
+
   // Set mounted ref to true on mount
   useEffect(() => {
     isMountedRef.current = true;
@@ -264,13 +264,13 @@ export function MealItemDetails({
   // Transform API dish details to mealData format
   const apiMealData = useMemo(() => {
     if (!dishDetailsData?.success || !dishDetailsData.data) return undefined;
-    
+
     const dish = dishDetailsData.data as any; // Type assertion for API response
     return {
       title: dish.name || '',
       description: dish.description || '',
-      price: typeof dish.price === 'string' 
-        ? parseFloat((dish.price as string).replace(/[£$]/g, '')) * 100 
+      price: typeof dish.price === 'string'
+        ? parseFloat((dish.price as string).replace(/[£$]/g, '')) * 100
         : (dish.price || 0),
       imageUrl: dish.image_url || (dish as any).images?.[0],
       kitchenName: dish.kitchen_name || (dish as any).chef?.name || '',
@@ -293,9 +293,9 @@ export function MealItemDetails({
       isSafeForYou: dish.is_safe_for_you !== undefined ? dish.is_safe_for_you : true,
       prepTime: dish.prep_time || (dish as any).preparation_time,
       deliveryTime: dish.delivery_time,
-      chefName: (dish as any).chef?.name,
-      chefStory: (dish as any).chef?.story || (dish as any).chef?.bio,
-      chefTips: (dish as any).chef_tips || (dish as any).tips || [],
+      foodCreatorName: (dish as any).chef?.name,
+      foodCreatorStory: (dish as any).chef?.story || (dish as any).chef?.bio,
+      foodCreatorTips: (dish as any).chef_tips || (dish as any).tips || [],
       // Extract reviews and sentiment for sentiment bar
       reviews: dish.reviews || [],
       sentiment: dish.sentiment || undefined,
@@ -307,7 +307,7 @@ export function MealItemDetails({
   const finalMealData = useMemo(() => {
     return apiMealData || mealData;
   }, [apiMealData, mealData]);
-  
+
   const isLoading = isLoadingDishDetails || (propIsLoading && !apiMealData);
 
   // Use API similar meals data - prioritize API data over prop data
@@ -335,7 +335,7 @@ export function MealItemDetails({
   const handleAddToCart = useCallback(async () => {
     // Prevent rapid clicks
     if (isAddingToCart) return;
-    
+
     if (!finalMealData?.title) return;
 
     // Check authentication and token validity
@@ -439,7 +439,7 @@ export function MealItemDetails({
   const hasDietCompatibility = hasBasicInfo && finalMealData.dietCompatibility !== undefined;
   const hasNutritionalInfo = hasBasicInfo && finalMealData.calories !== undefined;
   const hasIngredients = hasBasicInfo && finalMealData.ingredients && finalMealData.ingredients.length > 0;
-  const hasFoodCreatorNotes = hasBasicInfo && (finalMealData.chefStory || (finalMealData.chefTips && finalMealData.chefTips.length > 0));
+  const hasFoodCreatorNotes = hasBasicInfo && (finalMealData.foodCreatorStory || (finalMealData.foodCreatorTips && finalMealData.foodCreatorTips.length > 0));
   const hasSimilarMeals = !isLoadingSimilarMeals && similarMeals && similarMeals.length > 0;
 
   return (
@@ -519,8 +519,8 @@ export function MealItemDetails({
 
           {/* Diet Compatibility Bar Component */}
           {hasDietCompatibility ? (
-            <DietCompatibilityBar 
-              compatibility={finalMealData.dietCompatibility} 
+            <DietCompatibilityBar
+              compatibility={finalMealData.dietCompatibility}
               reviews={(finalMealData as any).reviews}
               sentiment={(finalMealData as any).sentiment}
             />
@@ -548,13 +548,13 @@ export function MealItemDetails({
             <MealIngredientsSkeleton />
           )}
 
-          {/* Chef Notes Component */}
+          {/* Food Creator Notes Component */}
           {hasFoodCreatorNotes ? (
             <FoodCreatorNotes
-              story={finalMealData.chefStory}
-              tips={finalMealData.chefTips}
-              chefName={finalMealData.chefName}
-              chefAvatar={finalMealData.kitchenAvatar}
+              story={finalMealData.foodCreatorStory}
+              tips={finalMealData.foodCreatorTips}
+              foodCreatorName={finalMealData.foodCreatorName}
+              foodCreatorAvatar={finalMealData.kitchenAvatar}
             />
           ) : (
             <FoodCreatorNotesSkeleton />

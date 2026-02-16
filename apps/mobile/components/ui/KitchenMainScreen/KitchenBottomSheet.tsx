@@ -1,4 +1,7 @@
 import { useFoodCreators } from '@/hooks/useFoodCreators';
+import { useUserLocation } from '@/hooks/useUserLocation';
+import { showError } from '@/lib/GlobalToastManager';
+import { sendChatMessage, transformDishToProductCard } from '@/utils/aiChatUtils';
 import { BlurEffect } from '@/utils/blurEffects';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -16,15 +19,12 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import SearchArea from '../../SearchArea';
+import { AIChatDrawer } from '../AIChatDrawer';
+import { AISearchResponseOverlay, ProductCardProps } from '../AISearchResponseOverlay';
 import { CartButton } from '../CartButton';
+import { InlineAILoader } from '../InlineAILoader';
 import { KitchenBottomSheetContent } from './KitchenBottomSheetContent';
 import { KitchenBottomSheetHeader } from './KitchenBottomSheetHeader';
-import { AISearchResponseOverlay, ProductCardProps } from '../AISearchResponseOverlay';
-import { InlineAILoader } from '../InlineAILoader';
-import { sendChatMessage, transformDishToProductCard } from '@/utils/aiChatUtils';
-import { AIChatDrawer } from '../AIChatDrawer';
-import { useUserLocation } from '@/hooks/useUserLocation';
-import { showError } from '@/lib/GlobalToastManager';
 
 interface KitchenBottomSheetProps {
   deliveryTime: string;
@@ -132,7 +132,7 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
 
   // Use fetched kitchen name from API
   const isDemoName = propKitchenName === "Amara's Kitchen";
-  const kitchenName = kitchenId 
+  const kitchenName = kitchenId
     ? (apiKitchenName || (!isDemoName && propKitchenName) || "Amara's Kitchen")
     : (propKitchenName || "Amara's Kitchen");
 
@@ -198,7 +198,7 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
     try {
       // Use search query or default prompt
       const message = searchQuery.trim() || "What are some great meal recommendations for me?";
-      
+
       // Prepare location data
       const location = locationState.location ? {
         latitude: locationState.location.latitude,
@@ -218,7 +218,7 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
         : [];
 
       // Store dish IDs for cart operations
-      const dishIds = response.data.recommendations?.map(r => r.dish_id) || [];
+      const dishIds = response.data.recommendations?.map((r: any) => r.dish_id) || [];
 
       setAiResponse({
         message: response.data.message,
@@ -283,7 +283,7 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   // Haptic feedback helper
   const triggerHaptic = useCallback(() => {
     try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => { });
     } catch {
       // Ignore haptic errors
     }
@@ -417,11 +417,11 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
     const isExpanded = drawerHeight.value > SNAP_POINTS.COLLAPSED + 50;
     const opacity = isExpanded
       ? interpolate(
-          drawerHeight.value,
-          [SNAP_POINTS.COLLAPSED + 50, SNAP_POINTS.EXPANDED],
-          [0.1, 0.3],
-          Extrapolate.CLAMP
-        )
+        drawerHeight.value,
+        [SNAP_POINTS.COLLAPSED + 50, SNAP_POINTS.EXPANDED],
+        [0.1, 0.3],
+        Extrapolate.CLAMP
+      )
       : 0;
 
     return {
@@ -545,10 +545,10 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
                       <Text style={styles.cancelText}>Cancel</Text>
                     </TouchableOpacity>
                   </View>
-                  
+
                   {/* Search Input */}
                   <View style={styles.searchInputContainer}>
-                    <SearchArea 
+                    <SearchArea
                       ref={searchInputRef}
                       value={searchQuery}
                       onChange={setSearchQuery}
@@ -591,9 +591,9 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
                       )}
                     </>
                   )}
-                  
+
                   {/* Search Results */}
-                  <KitchenBottomSheetContent 
+                  <KitchenBottomSheetContent
                     ref={contentScrollRef}
                     isExpanded={true}
                     deliveryTime={deliveryTime}
@@ -617,9 +617,9 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
                     onHeartPress={onHeartPress}
                     onSearchPress={handleSearchPress}
                   />
-                  
+
                   {/* Content */}
-                  <KitchenBottomSheetContent 
+                  <KitchenBottomSheetContent
                     ref={contentScrollRef}
                     isExpanded={isExpanded}
                     onScrollAttempt={() => !isExpanded && animateToSnapPoint(SNAP_POINTS.EXPANDED)}
@@ -632,7 +632,7 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
                   />
                 </>
               )}
-              
+
               {/* Action Buttons */}
               <View style={styles.actionButtonsContainer}>
                 {/* Cart Button */}
@@ -653,9 +653,9 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
       </GestureDetector>
 
       {/* AI Chat Drawer */}
-      <AIChatDrawer 
-        isVisible={isAIChatDrawerVisible} 
-        onClose={handleCloseAIChatDrawer} 
+      <AIChatDrawer
+        isVisible={isAIChatDrawerVisible}
+        onClose={handleCloseAIChatDrawer}
       />
     </>
   );

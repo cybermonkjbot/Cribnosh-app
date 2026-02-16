@@ -1,8 +1,8 @@
 // DEPRECATED: This file contains mock data that is no longer used in production.
-// The app now uses real API calls via getNearbyChefs in appleMapsService.ts
+// The app now uses real API calls via getNearbyFoodCreators in appleMapsService.ts
 // This file is kept for reference only and should not be imported in production code.
 
-// Mock chef location data for development and testing
+// Mock food creator location data for development and testing
 import { FoodCreatorMarker } from '@/types/maps';
 
 // Base location (San Francisco area for testing)
@@ -15,22 +15,22 @@ const BASE_LOCATION = {
 function generateRandomLocation(baseLat: number, baseLng: number, radiusKm: number = 5): { latitude: number; longitude: number } {
   const angle = Math.random() * 2 * Math.PI;
   const distance = Math.random() * radiusKm;
-  
+
   // Convert km to degrees (approximate)
   const latOffset = (distance * Math.cos(angle)) / 111;
   const lngOffset = (distance * Math.sin(angle)) / (111 * Math.cos(baseLat * Math.PI / 180));
-  
+
   return {
     latitude: baseLat + latOffset,
     longitude: baseLng + lngOffset,
   };
 }
 
-// Mock chef data with realistic variety
-const mockChefs: FoodCreatorMarker[] = [
+// Mock food creator data with realistic variety
+const mockFoodCreators: FoodCreatorMarker[] = [
   {
-    id: 'chef-001',
-    name: 'Chef Maria',
+    id: 'food-creator-001',
+    name: 'Food Creator Maria',
     kitchen_name: "Maria's Authentic Mexican",
     cuisine: 'Mexican',
     rating: 4.8,
@@ -46,8 +46,8 @@ const mockChefs: FoodCreatorMarker[] = [
     created_at: '2024-01-15T10:30:00Z',
   },
   {
-    id: 'chef-002',
-    name: 'Chef James',
+    id: 'food-creator-002',
+    name: 'Food Creator James',
     kitchen_name: "James' Italian Kitchen",
     cuisine: 'Italian',
     rating: 4.6,
@@ -62,8 +62,8 @@ const mockChefs: FoodCreatorMarker[] = [
     created_at: '2024-01-10T14:20:00Z',
   },
   {
-    id: 'chef-003',
-    name: 'Chef Priya',
+    id: 'food-creator-003',
+    name: 'Food Creator Priya',
     kitchen_name: 'Spice Garden',
     cuisine: 'Indian',
     rating: 4.9,
@@ -79,8 +79,8 @@ const mockChefs: FoodCreatorMarker[] = [
     created_at: '2024-01-20T09:15:00Z',
   },
   {
-    id: 'chef-004',
-    name: 'Chef David',
+    id: 'food-creator-004',
+    name: 'Food Creator David',
     kitchen_name: 'Fresh Catch Seafood',
     cuisine: 'Seafood',
     rating: 4.4,
@@ -95,8 +95,8 @@ const mockChefs: FoodCreatorMarker[] = [
     created_at: '2024-01-05T16:45:00Z',
   },
   {
-    id: 'chef-005',
-    name: 'Chef Sarah',
+    id: 'food-creator-005',
+    name: 'Food Creator Sarah',
     kitchen_name: 'Green Bowl',
     cuisine: 'Healthy',
     rating: 4.7,
@@ -112,8 +112,8 @@ const mockChefs: FoodCreatorMarker[] = [
     created_at: '2024-01-18T11:30:00Z',
   },
   {
-    id: 'chef-006',
-    name: 'Chef Tony',
+    id: 'food-creator-006',
+    name: 'Food Creator Tony',
     kitchen_name: 'Tony\'s BBQ Pit',
     cuisine: 'BBQ',
     rating: 4.5,
@@ -128,8 +128,8 @@ const mockChefs: FoodCreatorMarker[] = [
     created_at: '2024-01-12T13:20:00Z',
   },
   {
-    id: 'chef-007',
-    name: 'Chef Lisa',
+    id: 'food-creator-007',
+    name: 'Food Creator Lisa',
     kitchen_name: 'Lisa\'s Thai Kitchen',
     cuisine: 'Thai',
     rating: 4.8,
@@ -145,8 +145,8 @@ const mockChefs: FoodCreatorMarker[] = [
     created_at: '2024-01-22T08:45:00Z',
   },
   {
-    id: 'chef-008',
-    name: 'Chef Michael',
+    id: 'food-creator-008',
+    name: 'Food Creator Michael',
     kitchen_name: 'Michael\'s Steakhouse',
     cuisine: 'Steakhouse',
     rating: 4.3,
@@ -161,8 +161,8 @@ const mockChefs: FoodCreatorMarker[] = [
     created_at: '2024-01-08T19:30:00Z',
   },
   {
-    id: 'chef-009',
-    name: 'Chef Ana',
+    id: 'food-creator-009',
+    name: 'Food Creator Ana',
     kitchen_name: 'Ana\'s Vegan Delights',
     cuisine: 'Vegan',
     rating: 4.6,
@@ -178,8 +178,8 @@ const mockChefs: FoodCreatorMarker[] = [
     created_at: '2024-01-25T12:15:00Z',
   },
   {
-    id: 'chef-010',
-    name: 'Chef Roberto',
+    id: 'food-creator-010',
+    name: 'Food Creator Roberto',
     kitchen_name: 'Roberto\'s Pizza Corner',
     cuisine: 'Pizza',
     rating: 4.4,
@@ -194,8 +194,8 @@ const mockChefs: FoodCreatorMarker[] = [
     created_at: '2024-01-14T15:40:00Z',
   },
   {
-    id: 'chef-011',
-    name: 'Chef Yuki',
+    id: 'food-creator-011',
+    name: 'Food Creator Yuki',
     kitchen_name: 'Yuki\'s Sushi Bar',
     cuisine: 'Japanese',
     rating: 4.9,
@@ -211,8 +211,8 @@ const mockChefs: FoodCreatorMarker[] = [
     created_at: '2024-01-28T17:20:00Z',
   },
   {
-    id: 'chef-012',
-    name: 'Chef Ahmed',
+    id: 'food-creator-012',
+    name: 'Food Creator Ahmed',
     kitchen_name: 'Ahmed\'s Middle Eastern',
     cuisine: 'Middle Eastern',
     rating: 4.7,
@@ -227,8 +227,8 @@ const mockChefs: FoodCreatorMarker[] = [
     created_at: '2024-01-16T10:50:00Z',
   },
   {
-    id: 'chef-013',
-    name: 'Chef Emma',
+    id: 'food-creator-013',
+    name: 'Food Creator Emma',
     kitchen_name: 'Emma\'s Farm Fresh',
     cuisine: 'Farm-to-Table',
     rating: 4.5,
@@ -244,8 +244,8 @@ const mockChefs: FoodCreatorMarker[] = [
     created_at: '2024-01-11T14:25:00Z',
   },
   {
-    id: 'chef-014',
-    name: 'Chef Carlos',
+    id: 'food-creator-014',
+    name: 'Food Creator Carlos',
     kitchen_name: 'Carlos\' Cuban Kitchen',
     cuisine: 'Cuban',
     rating: 4.6,
@@ -260,8 +260,8 @@ const mockChefs: FoodCreatorMarker[] = [
     created_at: '2024-01-19T16:10:00Z',
   },
   {
-    id: 'chef-015',
-    name: 'Chef Jennifer',
+    id: 'food-creator-015',
+    name: 'Food Creator Jennifer',
     kitchen_name: 'Jennifer\'s Dessert Bar',
     cuisine: 'Desserts',
     rating: 4.8,
@@ -279,42 +279,42 @@ const mockChefs: FoodCreatorMarker[] = [
 ];
 
 // Utility functions for mock data
-export function getMockChefs(): FoodCreatorMarker[] {
-  return [...mockChefs];
+export function getMockFoodCreators(): FoodCreatorMarker[] {
+  return [...mockFoodCreators];
 }
 
-export function getMockChefsByCuisine(cuisine: string): FoodCreatorMarker[] {
-  return mockChefs.filter(chef => chef.cuisine.toLowerCase() === cuisine.toLowerCase());
+export function getMockFoodCreatorsByCuisine(cuisine: string): FoodCreatorMarker[] {
+  return mockFoodCreators.filter(fc => fc.cuisine.toLowerCase() === cuisine.toLowerCase());
 }
 
-export function getMockChefsNearby(
+export function getMockFoodCreatorsNearby(
   userLocation: { latitude: number; longitude: number },
   radiusKm: number = 5
 ): FoodCreatorMarker[] {
-  return mockChefs.filter(chef => {
-    if (!chef.location) return false;
-    
+  return mockFoodCreators.filter(fc => {
+    if (!fc.location) return false;
+
     const distance = calculateDistance(
       userLocation.latitude,
       userLocation.longitude,
-      chef.location.latitude,
-      chef.location.longitude
+      fc.location.latitude,
+      fc.location.longitude
     );
-    
+
     return distance <= radiusKm;
   });
 }
 
-export function getMockChefsBySentiment(sentiment: string): FoodCreatorMarker[] {
-  return mockChefs.filter(chef => chef.sentiment === sentiment);
+export function getMockFoodCreatorsBySentiment(sentiment: string): FoodCreatorMarker[] {
+  return mockFoodCreators.filter(fc => fc.sentiment === sentiment);
 }
 
-export function getMockLiveChefs(): FoodCreatorMarker[] {
-  return mockChefs.filter(chef => chef.is_live);
+export function getMockLiveFoodCreators(): FoodCreatorMarker[] {
+  return mockFoodCreators.filter(fc => fc.is_live);
 }
 
-export function getMockChefById(id: string): FoodCreatorMarker | undefined {
-  return mockChefs.find(chef => chef.id === id);
+export function getMockFoodCreatorById(id: string): FoodCreatorMarker | undefined {
+  return mockFoodCreators.find(fc => fc.id === id);
 }
 
 // Calculate distance between two coordinates (Haversine formula)
@@ -327,30 +327,30 @@ function calculateDistance(
   const R = 6371; // Earth's radius in kilometers
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // Distance in kilometers
 }
 
-// Generate additional mock chefs dynamically
-export function generateAdditionalMockChefs(count: number = 5): FoodCreatorMarker[] {
+// Generate additional mock food creators dynamically
+export function generateAdditionalMockFoodCreators(count: number = 5): FoodCreatorMarker[] {
   const cuisines = ['Chinese', 'Korean', 'French', 'Mediterranean', 'Ethiopian', 'Peruvian', 'Vietnamese', 'Lebanese'];
   const sentiments: FoodCreatorMarker['sentiment'][] = ['fire', 'bussing', 'elite', 'slaps', 'solid', 'decent', 'mid', 'meh'];
-  
-  const additionalChefs: FoodCreatorMarker[] = [];
-  
+
+  const additionalFoodCreators: FoodCreatorMarker[] = [];
+
   for (let i = 0; i < count; i++) {
     const cuisine = cuisines[Math.floor(Math.random() * cuisines.length)];
     const sentiment = sentiments[Math.floor(Math.random() * sentiments.length)];
     const location = generateRandomLocation(BASE_LOCATION.latitude, BASE_LOCATION.longitude, 8);
-    
-    additionalChefs.push({
-      id: `chef-${String(mockChefs.length + i + 1).padStart(3, '0')}`,
-      name: `Chef ${String.fromCharCode(65 + i)}`,
-      kitchen_name: `Chef ${String.fromCharCode(65 + i)}'s ${cuisine} Kitchen`,
+
+    additionalFoodCreators.push({
+      id: `food-creator-${String(mockFoodCreators.length + i + 1).padStart(3, '0')}`,
+      name: `Food Creator ${String.fromCharCode(65 + i)}`,
+      kitchen_name: `Food Creator ${String.fromCharCode(65 + i)}'s ${cuisine} Kitchen`,
       cuisine,
       rating: 4.0 + Math.random() * 1.0, // 4.0 to 5.0
       review_count: Math.floor(Math.random() * 200) + 20,
@@ -365,8 +365,8 @@ export function generateAdditionalMockChefs(count: number = 5): FoodCreatorMarke
       created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
     });
   }
-  
-  return additionalChefs;
+
+  return additionalFoodCreators;
 }
 
-export default mockChefs;
+export default mockFoodCreators;

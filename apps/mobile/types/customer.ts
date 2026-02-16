@@ -1352,7 +1352,7 @@ export interface FoodCreatorSearchParams {
   offset?: number;
 }
 
-export interface SearchChef {
+export interface SearchFoodCreator {
   _id: string;
   name: string;
   bio?: string;
@@ -1374,7 +1374,7 @@ export interface SearchChef {
 export interface FoodCreatorSearchResponse {
   success: boolean;
   data: {
-    chefs: SearchChef[];
+    chefs: SearchFoodCreator[];
     metadata: {
       query: string;
       total_results: number;

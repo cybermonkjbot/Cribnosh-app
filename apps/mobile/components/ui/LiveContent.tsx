@@ -1552,7 +1552,7 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
     lineHeight: 15,
   },
-  chefName: {
+  foodCreatorName: {
     fontSize: 12,
     color: "#16a34a",
     fontWeight: "500",

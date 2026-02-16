@@ -39,7 +39,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
   const [cartLoading, setCartLoading] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const insets = useSafeAreaInsets();
-  
+
   // Detect if this is a mock ID (simple numeric string like "1", "2", etc.)
   const isMockId = useMemo(() => {
     return /^\d+$/.test(sessionId) && sessionId.length <= 3;
@@ -93,7 +93,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
 
     fetchLiveSession();
   }, [sessionId, isMockId, isAuthenticated]);
-  
+
   // Load cart data to show cart button when items exist
   useEffect(() => {
     if (isAuthenticated) {
@@ -126,46 +126,27 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
       }
     }
   }, [isAuthenticated, getCart]);
-  
+
   // Calculate cart item count
   const cartItemCount = useMemo(() => {
     if (!cartData?.data?.items) return 0;
     return cartData.data.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
   }, [cartData]);
-  
+
   // Find if the meal is already in cart and get its cart item ID
   const cartItem = useMemo(() => {
     if (!cartData?.data?.items || !sessionData?.data?.meal?._id) return null;
-    return cartData.data.items.find((item: any) => 
-      item.dish_id === sessionData.data.meal?._id || 
+    return cartData.data.items.find((item: any) =>
+      item.dish_id === sessionData.data.meal?._id ||
       item.dish_id === String(sessionData.data.meal?._id) ||
       item.meal_id === sessionData.data.meal?._id ||
       item.meal_id === String(sessionData.data.meal?._id)
     );
   }, [cartData, sessionData]);
-  
+
   const isOrdered = !!cartItem;
 
   // Get viewer count from API - prioritize liveViewersData over session data
-  const viewerCount = useMemo(() => {
-    // Use API viewers data if available
-    if (liveViewersData?.success && liveViewersData.data?.summary?.totalViewers !== undefined) {
-      return liveViewersData.data.summary.totalViewers;
-    }
-    
-    // Fallback to session data
-    if (sessionData?.data?.session) {
-      return sessionData.data.session.viewer_count || sessionData.data.session.current_viewers || 0;
-    }
-    
-    // Fallback to mock data
-    if (isMockId && mockKitchenData) {
-      return mockKitchenData.viewers || 0;
-    }
-    
-    return 0;
-  }, [liveViewersData, sessionData, isMockId, mockKitchenData]);
-
   // Live comments state
   const [liveCommentsData, setLiveCommentsData] = useState<any>(null);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
@@ -175,6 +156,25 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
 
   // Live reactions state
   const [liveReactionsData, setLiveReactionsData] = useState<any>(null);
+
+  const viewerCount = useMemo(() => {
+    // Use API viewers data if available
+    if (liveViewersData?.success && liveViewersData.data?.summary?.totalViewers !== undefined) {
+      return liveViewersData.data.summary.totalViewers;
+    }
+
+    // Fallback to session data
+    if (sessionData?.data?.session) {
+      return sessionData.data.session.viewer_count || sessionData.data.session.current_viewers || 0;
+    }
+
+    // Fallback to mock data
+    if (isMockId && mockKitchenData) {
+      return mockKitchenData.viewers || 0;
+    }
+
+    return 0;
+  }, [liveViewersData, sessionData, isMockId, mockKitchenData]);
 
   // Fetch live comments from Convex
   const fetchLiveComments = useCallback(async () => {
@@ -323,7 +323,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
 
   // Set up polling for live data with app state detection
   const appState = useRef(AppState.currentState);
-  
+
   useEffect(() => {
     if (!sessionId || isMockId || !isAuthenticated) return;
 
@@ -560,8 +560,8 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
 
     // Wait for cart to be refetched if we just added an item
     // If item is already in cart, update it
-    const currentCartItem = cartData?.data?.items?.find((item: any) => 
-      item.dish_id === sessionData.data.meal?._id || 
+    const currentCartItem = cartData?.data?.items?.find((item: any) =>
+      item.dish_id === sessionData.data.meal?._id ||
       item.dish_id === String(sessionData.data.meal?._id) ||
       item.meal_id === sessionData.data.meal?._id ||
       item.meal_id === String(sessionData.data.meal?._id)
@@ -601,11 +601,11 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
         title: mockKitchenData.description || mockKitchenData.name || 'Live Cooking',
         price: '£ 16', // Default price for mock data
         imageSource: mockKitchenData.image || require('../../assets/images/cribnoshpackaging.png'),
-        description: mockKitchenData.description || `Watch ${mockKitchenData.chef} cook amazing ${mockKitchenData.cuisine} cuisine live!`,
-        kitchenName: mockKitchenData.name || 'Chef\'s Kitchen',
+        description: mockKitchenData.description || `Watch ${mockKitchenData.name} cook amazing ${mockKitchenData.cuisine} cuisine live!`,
+        kitchenName: mockKitchenData.name || 'Food Creator\'s Kitchen',
         ingredients: ['Fresh Ingredients', 'Premium Spices', 'Authentic Recipe'],
         cookingTime: '25 minutes',
-        chefBio: `${mockKitchenData.chef} brings years of ${mockKitchenData.cuisine} cooking experience.`,
+        foodCreatorBio: `${mockKitchenData.name} brings years of ${mockKitchenData.cuisine} cooking experience.`,
         liveViewers: mockKitchenData.viewers || 0,
       };
     }
@@ -620,15 +620,16 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
         kitchenName: 'Loading...',
         ingredients: [],
         cookingTime: undefined,
-        chefBio: undefined,
+
+        foodCreatorBio: undefined,
         liveViewers: 0,
       };
     }
 
-    const { session, chef, meal } = sessionData.data;
+    const { session, foodCreator, meal } = sessionData.data;
 
     // Format price
-    const price = meal 
+    const price = meal
       ? `£ ${typeof meal.price === 'number' ? meal.price.toFixed(2) : meal.price || '0'}`
       : '£ 0';
 
@@ -641,7 +642,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     const ingredients = meal?.ingredients || [];
 
     // Get cooking time
-    const cookingTime = meal?.cooking_time 
+    const cookingTime = meal?.cooking_time
       ? `${meal.cooking_time}`
       : undefined;
 
@@ -650,27 +651,27 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
       price,
       imageSource: typeof mealImage === 'string' ? mealImage : mealImage,
       description: meal?.description || session.description || 'Watch this amazing live cooking session!',
-      kitchenName: chef?.kitchen_name || 'Chef\'s Kitchen',
+      kitchenName: foodCreator?.kitchen_name || 'Food Creator\'s Kitchen',
       ingredients,
       cookingTime,
-      chefBio: chef?.bio || undefined,
+      foodCreatorBio: foodCreator?.bio || undefined,
       liveViewers: viewerCount,
     };
   }, [sessionData, isMockId, mockKitchenData, viewerCount]);
 
-  // Get chef info for header
-  const chefInfo = useMemo(() => {
+  // Get food creator info for header
+  const foodCreatorInfo = useMemo(() => {
     // Use mock data if available
     if (isMockId && mockKitchenData) {
       return {
-        name: mockKitchenData.chef || mockKitchenData.name || 'Food Creator',
+        name: mockKitchenData.name || 'Food Creator',
         avatar: mockKitchenData.image || 'https://fhfhfhhf',
         viewers: viewerCount,
       };
     }
 
     // Use API data
-    if (!sessionData?.data?.chef) {
+    if (!sessionData?.data?.foodCreator) {
       return {
         name: 'Loading...',
         avatar: 'https://fhfhfhhf',
@@ -678,7 +679,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
       };
     }
 
-    const { chef } = sessionData.data;
+    const { foodCreator } = sessionData.data;
     return {
       name: foodCreator.name || 'Food Creator',
       avatar: foodCreator.profile_image || 'https://fhfhfhhf',
@@ -697,8 +698,8 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
         onRequestClose={handleClose}
       >
         <View style={styles.container}>
-          <StatusBar 
-            hidden={true} 
+          <StatusBar
+            hidden={true}
             backgroundColor="transparent"
             translucent={true}
             barStyle="light-content"
@@ -722,8 +723,8 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
         onRequestClose={handleClose}
       >
         <View style={styles.container}>
-          <StatusBar 
-            hidden={true} 
+          <StatusBar
+            hidden={true}
             backgroundColor="transparent"
             translucent={true}
             barStyle="light-content"
@@ -752,8 +753,8 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
         onRequestClose={handleClose}
       >
         <View style={styles.container}>
-          <StatusBar 
-            hidden={true} 
+          <StatusBar
+            hidden={true}
             backgroundColor="transparent"
             translucent={true}
             barStyle="light-content"
@@ -762,9 +763,9 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
             source={
               sessionData?.data?.session?.thumbnail_url
                 ? { uri: sessionData.data.session.thumbnail_url }
-                : sessionData?.data?.chef?.profile_image
-                ? { uri: sessionData.data.foodCreator.profile_image }
-                : require('../../assets/images/KitchenLive-01.png')
+                : sessionData?.data?.foodCreator?.profile_image
+                  ? { uri: sessionData.data.foodCreator.profile_image }
+                  : require('../../assets/images/KitchenLive-01.png')
             }
             style={styles.backgroundImage}
             resizeMode="cover"
@@ -773,18 +774,18 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
               <TouchableOpacity onPress={handleClose} style={styles.backButton}>
                 <ChevronLeft color="#E6FFE8" size={24} />
               </TouchableOpacity>
-              
+
               <View style={styles.endedContent}>
                 <Text style={styles.endedTitle}>Livestream Ended</Text>
                 <Text style={styles.endedSubtitle}>
                   This livestream has ended. Thank you for watching!
                 </Text>
-                {sessionData?.data?.chef && (
-                  <Text style={styles.endedChefName}>
+                {sessionData?.data?.foodCreator && (
+                  <Text style={styles.endedFoodCreatorName}>
                     {sessionData.data.foodCreator.name}
                   </Text>
                 )}
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.backToHomeButton}
                   onPress={handleClose}
                 >
@@ -807,36 +808,36 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
       onRequestClose={handleClose}
     >
       <View style={styles.container}>
-        <StatusBar 
-          hidden={true} 
+        <StatusBar
+          hidden={true}
           backgroundColor="transparent"
           translucent={true}
           barStyle="light-content"
         />
-          <ImageBackground
-            source={
-              (isMockId && mockKitchenData?.image)
-                ? { uri: mockKitchenData.image }
-                : (sessionData?.data?.session?.thumbnail_url)
+        <ImageBackground
+          source={
+            (isMockId && mockKitchenData?.image)
+              ? { uri: mockKitchenData.image }
+              : (sessionData?.data?.session?.thumbnail_url)
                 ? { uri: sessionData.data.session.thumbnail_url }
                 : (sessionData?.data?.chef?.profile_image)
-                ? { uri: sessionData.data.foodCreator.profile_image }
-                : require('../../assets/images/KitchenLive-01.png')
-            }
-            style={styles.backgroundImage}
-            resizeMode="cover"
-          >
+                  ? { uri: sessionData.data.foodCreator.profile_image }
+                  : require('../../assets/images/KitchenLive-01.png')
+          }
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        >
           {/* Back Button and Live Info Header */}
           <View style={styles.headerContainer}>
             <TouchableOpacity onPress={handleClose} style={styles.backButton}>
               <ChevronLeft color="#E6FFE8" size={24} />
             </TouchableOpacity>
-            
+
             {/* Live Header Info */}
             <View style={styles.liveInfoContainer}>
               <CribnoshLiveHeader
-                kitchenTitle={chefInfo.name}
-                viewers={chefInfo.viewers}
+                kitchenTitle={foodCreatorInfo.name}
+                viewers={foodCreatorInfo.viewers}
               />
             </View>
           </View>
@@ -894,7 +895,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
           isOrdered={isOrdered}
           onReaction={isMockId ? undefined : handleSendReaction}
         />
-        
+
         {/* Floating Cart Button - shows when cart has items */}
         {cartItemCount > 0 && (
           <CartButton
@@ -1052,7 +1053,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 24,
   },
-  endedChefName: {
+  endedFoodCreatorName: {
     fontSize: 18,
     fontWeight: '600',
     color: '#10B981',

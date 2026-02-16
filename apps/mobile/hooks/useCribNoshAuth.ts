@@ -35,7 +35,9 @@ export interface RegisterData {
   email: string;
   password: string;
   name: string;
-  role: Role;
+  role?: Role;
+  confirmPassword?: string;
+  phone_number?: string;
 }
 
 export interface LoginData {
@@ -331,7 +333,7 @@ export const useCribNoshAuth = () => {
         const response = await authAPI.register(data);
 
         setAuthState({
-          user: response.user,
+          user: response.user ?? null,
           isLoading: false,
           isAuthenticated: true,
           error: null,
@@ -379,7 +381,7 @@ export const useCribNoshAuth = () => {
         const response = await authAPI.login(data);
 
         setAuthState({
-          user: response.user,
+          user: response.user ?? null,
           isLoading: false,
           isAuthenticated: true,
           error: null,
@@ -571,7 +573,7 @@ export const useCribNoshAuth = () => {
         });
 
         setAuthState({
-          user: response.user,
+          user: response.user ?? null,
           isLoading: false,
           isAuthenticated: true,
           error: null,

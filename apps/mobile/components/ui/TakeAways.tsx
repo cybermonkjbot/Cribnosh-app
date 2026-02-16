@@ -6,9 +6,8 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { showError, showSuccess, showWarning } from '../../lib/GlobalToastManager';
 import { navigateToSignIn } from '../../utils/signInNavigationGuard';
-import { TakeAwaysEmpty } from './TakeAwaysEmpty';
-import { TakeAwaysSkeleton } from './TakeAwaysSkeleton';
 import { SkeletonWithTimeout } from './SkeletonWithTimeout';
+import { TakeAwaysSkeleton } from './TakeAwaysSkeleton';
 
 interface TakeAwayItem {
   id: string;
@@ -61,7 +60,7 @@ function TakeAwaysComponent({ onOpenDrawer, useBackend = true, hasInitialLoadCom
 
     // Handle different response structures
     const item = apiItem.dish || apiItem.meal || apiItem;
-    
+
     return {
       id: item._id || item.id || '',
       name: item.name || 'Unknown Item',
@@ -79,11 +78,11 @@ function TakeAwaysComponent({ onOpenDrawer, useBackend = true, hasInitialLoadCom
 
     // SearchResponse.data is an array of SearchResult
     const items = Array.isArray(takeawayData.data) ? takeawayData.data : [];
-    
+
     const transformedItems = items
       .map((item: any) => transformTakeawayItem(item))
-      .filter((item): item is TakeAwayItem => item !== null);
-    
+      .filter((item: TakeAwayItem | null): item is TakeAwayItem => item !== null);
+
     return transformedItems;
   }, [takeawayData, useBackend, transformTakeawayItem]);
 
@@ -124,10 +123,10 @@ function TakeAwaysComponent({ onOpenDrawer, useBackend = true, hasInitialLoadCom
     setIsAddingToCart(true);
     try {
       // Extract price from string format "£X.XX" or number
-      const priceValue = typeof item.price === 'string' 
-        ? parseFloat(item.price.replace('£', '')) * 100 
+      const priceValue = typeof item.price === 'string'
+        ? parseFloat(item.price.replace('£', '')) * 100
         : item.price;
-      
+
       await addToCart(item.id, 1);
       showSuccess("Added to Cart", `${item.name} added to your cart`);
     } catch (error: any) {
@@ -139,12 +138,12 @@ function TakeAwaysComponent({ onOpenDrawer, useBackend = true, hasInitialLoadCom
 
   return (
     <View style={{ paddingVertical: 20, paddingTop: isFirstSection ? 35 : 20 }}>
-      <View style={{ 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: 16, 
-        paddingHorizontal: 16 
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+        paddingHorizontal: 16
       }}>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
           Take aways
@@ -153,16 +152,16 @@ function TakeAwaysComponent({ onOpenDrawer, useBackend = true, hasInitialLoadCom
           <Text style={{ fontSize: 16, color: '#666' }}>→</Text>
         </TouchableOpacity>
       </View>
-      
-      <ScrollView 
-        horizontal 
+
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingLeft: 16 }} // Changed from paddingHorizontal to paddingLeft only
       >
         {takeAwayItems.map((item, index) => (
           <View
             key={item.id}
-            style={{ 
+            style={{
               width: 180,
               backgroundColor: '#fff',
               borderRadius: 16,
@@ -180,43 +179,43 @@ function TakeAwaysComponent({ onOpenDrawer, useBackend = true, hasInitialLoadCom
               style={{ width: 180, height: 100 }}
               contentFit="cover"
             />
-            
+
             <View style={{ padding: 12 }}>
-              <Text style={{ 
-                fontSize: 14, 
-                fontWeight: 'bold', 
+              <Text style={{
+                fontSize: 14,
+                fontWeight: 'bold',
                 color: '#000',
                 marginBottom: 4
               }}>
                 {item.name}
               </Text>
-              
-              <Text style={{ 
-                fontSize: 11, 
+
+              <Text style={{
+                fontSize: 11,
                 color: '#6b7280',
                 marginBottom: 12,
                 lineHeight: 14
               }}>
                 {item.description}
               </Text>
-              
-              <View style={{ 
-                flexDirection: 'row', 
-                justifyContent: 'space-between', 
-                alignItems: 'center' 
+
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center'
               }}>
-                <Text style={{ 
-                  fontSize: 16, 
-                  fontWeight: 'bold', 
-                  color: '#ef4444' 
+                <Text style={{
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  color: '#ef4444'
                 }}>
                   {item.price}
                 </Text>
-                
-                <TouchableOpacity 
-                  style={{ 
-                    width: 28, 
-                    height: 28, 
+
+                <TouchableOpacity
+                  style={{
+                    width: 28,
+                    height: 28,
                     borderRadius: 14,
                     backgroundColor: '#ef4444',
                     alignItems: 'center',
@@ -227,10 +226,10 @@ function TakeAwaysComponent({ onOpenDrawer, useBackend = true, hasInitialLoadCom
                   disabled={isAddingToCart}
                   activeOpacity={0.8}
                 >
-                  <Text style={{ 
-                    color: '#fff', 
-                    fontSize: 16, 
-                    fontWeight: 'bold' 
+                  <Text style={{
+                    color: '#fff',
+                    fontSize: 16,
+                    fontWeight: 'bold'
                   }}>+</Text>
                 </TouchableOpacity>
               </View>

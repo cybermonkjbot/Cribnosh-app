@@ -1,15 +1,15 @@
 // Apple Maps API service layer for backend integration
 import {
-    FoodCreatorMarker,
-    DirectionsRequest,
-    DirectionsResponse,
-    GeocodeRequest,
-    GeocodeResponse,
-    MapLocation,
-    PlacesSearchRequest,
-    PlacesSearchResponse,
-    ReverseGeocodeRequest,
-    ReverseGeocodeResponse,
+  DirectionsRequest,
+  DirectionsResponse,
+  FoodCreatorMarker,
+  GeocodeRequest,
+  GeocodeResponse,
+  MapLocation,
+  PlacesSearchRequest,
+  PlacesSearchResponse,
+  ReverseGeocodeRequest,
+  ReverseGeocodeResponse,
 } from '@/types/maps';
 
 import { API_CONFIG } from '@/constants/api';
@@ -39,7 +39,7 @@ async function apiRequest<T>(
     }
 
     const data = await response.json();
-    
+
     if (!data.success) {
       throw new Error(data.error?.message || 'API request failed');
     }
@@ -52,19 +52,19 @@ async function apiRequest<T>(
 }
 
 // ============================================================================
-// CHEF LOCATION SERVICES
+// FOOD CREATOR LOCATION SERVICES
 // ============================================================================
 
 /**
- * Get nearby chefs with location data
+ * Get nearby food creators with location data
  */
-export async function getNearbyChefs(
+export async function getNearbyFoodCreators(
   latitude: number,
   longitude: number,
   radius: number = 5,
   limit: number = 20,
   page: number = 1
-): Promise<{ chefs: FoodCreatorMarker[]; pagination: any }> {
+): Promise<{ foodCreators: FoodCreatorMarker[]; pagination: any }> {
   const params = new URLSearchParams({
     latitude: latitude.toString(),
     longitude: longitude.toString(),
@@ -74,23 +74,23 @@ export async function getNearbyChefs(
   });
 
   const response = await apiRequest<any>(`/customer/chefs/nearby?${params}`, 'GET');
-  
+
   return {
-    chefs: response.data.chefs,
+    foodCreators: response.data.chefs,
     pagination: response.data.pagination,
   };
 }
 
 /**
- * Search chefs by location/address
+ * Search food creators by location/address
  */
-export async function searchChefsByLocation(
+export async function searchFoodCreatorsByLocation(
   query: string,
   location: MapLocation,
   radius: number = 3,
   cuisine?: string,
   limit: number = 10
-): Promise<{ chefs: FoodCreatorMarker[]; searchMetadata: any }> {
+): Promise<{ foodCreators: FoodCreatorMarker[]; searchMetadata: any }> {
   const request = {
     query,
     location,
@@ -100,17 +100,17 @@ export async function searchChefsByLocation(
   };
 
   const response = await apiRequest<any>('/customer/chefs/search-by-location', 'POST', request);
-  
+
   return {
-    chefs: response.data.chefs,
+    foodCreators: response.data.chefs,
     searchMetadata: response.data.search_metadata,
   };
 }
 
 /**
- * Get chef details with location
+ * Get food creator details with location
  */
-export async function getChefDetails(chefId: string): Promise<FoodCreatorMarker> {
+export async function getFoodCreatorDetails(chefId: string): Promise<FoodCreatorMarker> {
   const response = await apiRequest<any>(`/customer/chefs/${chefId}`, 'GET');
   return response.data;
 }
@@ -225,9 +225,9 @@ export async function getDirections(
 }
 
 /**
- * Get driving directions to a chef/restaurant
+ * Get driving directions to a food creator/restaurant
  */
-export async function getDirectionsToChef(
+export async function getDirectionsToFoodCreator(
   userLocation: MapLocation,
   chefLocation: MapLocation,
   mode: 'driving' | 'walking' | 'transit' = 'driving'
@@ -251,11 +251,11 @@ export function calculateDistance(
   const R = 6371; // Earth's radius in kilometers
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // Distance in kilometers
 }
 

@@ -1,11 +1,11 @@
 // Core MapView component using expo-maps with fallback for Expo Go
+import { FoodCreatorMarker, MapRegion, MapViewProps } from '@/types/maps';
+import { MapPin } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { FoodCreatorMarker, MapRegion, MapViewProps } from '@/types/maps';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { MapMarker } from './MapMarker';
-import { MapPin } from 'lucide-react-native';
 
 // Try to import expo-maps, fallback if not available
 let ExpoMap: any = null;
@@ -44,8 +44,9 @@ export function MapView({
   const currentRegion = mapRegion || initialRegion || defaultRegion;
 
   // Handle marker press
+  // Handle marker press
   const handleMarkerPress = (foodCreator: FoodCreatorMarker) => {
-    onMarkerPress?.(chef);
+    onMarkerPress?.(foodCreator);
   };
 
   // Handle map region change
@@ -53,7 +54,7 @@ export function MapView({
     setMapRegion(region);
   };
 
-  // Focus on a specific chef
+  // Focus on a specific food creator
   const focusOnFoodCreator = (foodCreator: FoodCreatorMarker) => {
     if (mapRef.current && foodCreator.location && isMapsAvailable) {
       const region: MapRegion = {
@@ -62,7 +63,7 @@ export function MapView({
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       };
-      
+
       mapRef.current.setCamera({
         center: {
           latitude: foodCreator.location.latitude,
@@ -102,7 +103,7 @@ export function MapView({
             <Text style={styles.fallbackSubtitleDelivery}>
               Your order is on the way. Check back soon for live updates.
             </Text>
-            
+
             {/* Delivery Status Cards */}
             <View style={styles.deliveryStatusContainer}>
               {foodCreators.map((foodCreator) => {
@@ -160,16 +161,16 @@ export function MapView({
             styles.fallbackSubtitle,
             { color: Colors[colorScheme as keyof typeof Colors].text }
           ]}>
-            Maps require a development build. Showing chef list instead.
+            Maps require a development build. Showing food creator list instead.
           </Text>
           <FlatList
-            data={chefs}
+            data={foodCreators}
             keyExtractor={(item) => item.id}
             renderItem={({ item: foodCreator }) => (
               <TouchableOpacity
                 style={[
-                  styles.fallbackChefItem,
-                  { 
+                  styles.fallbackFoodCreatorItem,
+                  {
                     backgroundColor: Colors[colorScheme as keyof typeof Colors].background,
                     borderColor: '#E0E0E0'
                   }
@@ -201,7 +202,7 @@ export function MapView({
                   styles.emptyText,
                   { color: Colors[colorScheme as keyof typeof Colors].text }
                 ]}>
-                  No chefs available
+                  No food creators available
                 </Text>
               </View>
             }
@@ -255,7 +256,7 @@ export function MapView({
       >
         {foodCreators.map((foodCreator) => {
           if (!foodCreator.location) return null;
-          
+
           return (
             <ExpoMarker
               key={foodCreator.id}
@@ -315,7 +316,7 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: 16,
   },
-  fallbackChefItem: {
+  fallbackFoodCreatorItem: {
     padding: 12,
     marginVertical: 8,
     borderRadius: 12,

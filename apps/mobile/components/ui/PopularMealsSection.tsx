@@ -47,7 +47,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
   const { isAuthenticated, user } = useAuthContext();
   const { getRandomMeals, isLoading: isLoadingMeals } = useMeals();
   const locationState = useUserLocation();
-  
+
   const [popularMealsData, setPopularMealsData] = useState<any>(null);
   const [backendLoading, setBackendLoading] = useState(false);
   const [backendError, setBackendError] = useState<any>(null);
@@ -64,14 +64,14 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
           const result = await getRandomMeals(20, locationState.location || null);
           if (result.success) {
             // Transform to match expected format
-            setPopularMealsData({ 
-              success: true, 
-              data: { 
+            setPopularMealsData({
+              success: true,
+              data: {
                 popular: result.data.meals.map((meal: any) => ({
                   meal,
                   foodCreator: meal.chef || null,
                 }))
-              } 
+              }
             });
           }
         } catch (error: any) {
@@ -121,7 +121,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
     if (useBackend && popularMealsData?.success && popularMealsData.data?.popular) {
       const transformedMeals = popularMealsData.data.popular
         .map(transformMealData)
-        .filter((meal): meal is Meal => meal !== null);
+        .filter((meal: any): meal is Meal => meal !== null);
       return transformedMeals;
     }
 
@@ -172,7 +172,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
             resizeMode: 'cover',
           }}
         />
-        
+
         {/* Popular Badge */}
         {meal.isPopular && (
           <View style={{
@@ -193,7 +193,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
             </Text>
           </View>
         )}
-        
+
         {/* New Badge */}
         {meal.isNew && (
           <View style={{
@@ -215,7 +215,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
           </View>
         )}
       </View>
-      
+
       {/* Meal Info */}
       <View style={{ padding: 12 }}>
         <Text style={{
@@ -227,7 +227,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
         }}>
           {meal.name}
         </Text>
-        
+
         <Text style={{
           color: '#666666',
           fontSize: 11,
@@ -236,7 +236,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
         }}>
           {meal.kitchen}
         </Text>
-        
+
         {/* Sentiment and Delivery Time */}
         {meal.sentiment && meal.deliveryTime && (
           <View style={{
@@ -255,7 +255,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
             </Text>
           </View>
         )}
-        
+
         {/* Price */}
         <View style={{
           flexDirection: 'row',
@@ -310,7 +310,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
           }}>
             {title || 'Popular Meals'}
           </Text>
-          
+
           {shouldShowSeeAll && (
             <TouchableOpacity onPress={onSeeAllPress} hitSlop={12}>
               <Text style={{
@@ -324,7 +324,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
           )}
         </View>
       )}
-      
+
       {/* First Row */}
       <ScrollView
         horizontal
@@ -337,7 +337,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
       >
         {meals.slice(0, 4).map(renderMealCard)}
       </ScrollView>
-      
+
       {/* Second Row */}
       <ScrollView
         horizontal

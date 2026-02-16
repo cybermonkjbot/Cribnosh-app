@@ -1,7 +1,7 @@
+import { SpecialOffer } from '@/types/customer';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { SpecialOffer } from '@/types/customer';
 
 interface OrdersCampaignBannerProps {
   offer?: SpecialOffer;
@@ -16,7 +16,7 @@ export function OrdersCampaignBanner({ offer, onPress }: OrdersCampaignBannerPro
   const badgeText = offer?.badge_text || offer?.offer_type === "limited_time" ? "LIMITED TIME" : "";
   const backgroundImageUrl = offer?.background_image_url || 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=120&fit=crop';
   const backgroundColor = offer?.background_color || '#dc2626';
-  
+
   // Convert hex color to rgba for gradient
   const hexToRgba = (hex: string, alpha: number = 0.85) => {
     const r = parseInt(hex.slice(1, 3), 16);
@@ -28,12 +28,12 @@ export function OrdersCampaignBanner({ offer, onPress }: OrdersCampaignBannerPro
   const gradientColors = [
     hexToRgba(backgroundColor, 0.85),
     hexToRgba(backgroundColor, 0.95),
-  ];
+  ] as const;
 
   return (
     <View style={{ paddingHorizontal: 20, paddingVertical: 16 }}>
       <View style={{ position: 'relative' }}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={{ borderRadius: 20, overflow: 'hidden' }}
           onPress={onPress}
           activeOpacity={0.9}
@@ -44,7 +44,7 @@ export function OrdersCampaignBanner({ offer, onPress }: OrdersCampaignBannerPro
               style={{ width: '100%', height: 120 }}
               contentFit="cover"
             />
-            
+
             {/* Gradient overlay for better text readability */}
             <LinearGradient
               colors={gradientColors}
@@ -56,27 +56,27 @@ export function OrdersCampaignBanner({ offer, onPress }: OrdersCampaignBannerPro
                 bottom: 0,
               }}
             />
-            
+
             {/* Main content */}
-            <View style={{ 
-              position: 'absolute', 
-              top: 0, 
-              left: 0, 
-              right: 0, 
-              bottom: 0, 
-              justifyContent: 'center', 
-              paddingHorizontal: 20 
+            <View style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              justifyContent: 'center',
+              paddingHorizontal: 20
             }}>
-              <Text style={{ 
-                color: '#fff', 
-                fontSize: 20, 
+              <Text style={{
+                color: '#fff',
+                fontSize: 20,
                 fontWeight: 'bold',
                 marginBottom: 4
               }}>
                 {title}
               </Text>
-              <Text style={{ 
-                color: '#fff', 
+              <Text style={{
+                color: '#fff',
                 fontSize: 15,
                 opacity: 0.95,
                 marginBottom: 8
@@ -101,7 +101,7 @@ export function OrdersCampaignBanner({ offer, onPress }: OrdersCampaignBannerPro
             </View>
           </View>
         </TouchableOpacity>
-        
+
         {/* Campaign badge - positioned outside the TouchableOpacity */}
         {badgeText && (
           <View style={{

@@ -158,7 +158,7 @@ const SpecialOffersSectionComponent: React.FC<SpecialOffersSectionProps> = ({
     if (useBackend && offersData?.success && offersData.data?.offers) {
       const transformedOffers = offersData.data.offers
         .map(transformOfferData)
-        .filter((offer): offer is SpecialOffer => offer !== null);
+        .filter((offer: any): offer is SpecialOffer => offer !== null);
       return transformedOffers;
     }
 
@@ -193,182 +193,182 @@ const SpecialOffersSectionComponent: React.FC<SpecialOffersSectionProps> = ({
 
   const renderOfferCard = (offer: SpecialOffer, index: number) => {
     const fullOffer = fullApiOffers.find((o: any) => (o.offer_id || o._id) === offer.id);
-    
+
     return (
-    <TouchableOpacity
-      key={offer.id}
-      style={{
-        width: 280,
-        marginRight: 16,
-        borderRadius: 20,
-        overflow: "hidden",
-        backgroundColor: "rgba(255, 255, 255, 0.1)",
-        borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.15)",
-      }}
-      onPress={() => {
-        if (fullOffer) {
-          handleClaimNow(fullOffer.offer_id || fullOffer._id || offer.id);
-        }
-      }}
-      activeOpacity={0.8}
-    >
-      {/* Offer Image */}
-      <View style={{ position: "relative" }}>
-        <Image
-          source={offer.image}
-          style={{
-            width: "100%",
-            height: 140,
-            resizeMode: "cover",
-          }}
-        />
-
-        {/* Discount Badge */}
-        <View
-          style={{
-            position: "absolute",
-            top: 12,
-            left: 12,
-            backgroundColor: "#ef4444",
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            borderRadius: 16,
-          }}
-        >
-          <Text
+      <TouchableOpacity
+        key={offer.id}
+        style={{
+          width: 280,
+          marginRight: 16,
+          borderRadius: 20,
+          overflow: "hidden",
+          backgroundColor: "rgba(255, 255, 255, 0.1)",
+          borderWidth: 1,
+          borderColor: "rgba(255, 255, 255, 0.15)",
+        }}
+        onPress={() => {
+          if (fullOffer) {
+            handleClaimNow(fullOffer.offer_id || fullOffer._id || offer.id);
+          }
+        }}
+        activeOpacity={0.8}
+      >
+        {/* Offer Image */}
+        <View style={{ position: "relative" }}>
+          <Image
+            source={offer.image}
             style={{
-              color: "#ffffff",
-              fontSize: 14,
-              fontWeight: "700",
+              width: "100%",
+              height: 140,
+              resizeMode: "cover",
             }}
-          >
-            {offer.discount} OFF
-          </Text>
-        </View>
+          />
 
-        {/* Limited Time Badge */}
-        {offer.isLimited && (
+          {/* Discount Badge */}
           <View
             style={{
               position: "absolute",
               top: 12,
-              right: 12,
-              backgroundColor: "rgba(0, 0, 0, 0.8)",
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              borderRadius: 12,
+              left: 12,
+              backgroundColor: "#ef4444",
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 16,
             }}
           >
             <Text
               style={{
                 color: "#ffffff",
-                fontSize: 10,
-                fontWeight: "600",
+                fontSize: 14,
+                fontWeight: "700",
               }}
             >
-              LIMITED
+              {offer.discount} OFF
             </Text>
           </View>
-        )}
 
-        {/* Remaining Time */}
-        {offer.remainingTime && (
-          <View
-            style={{
-              position: "absolute",
-              bottom: 12,
-              right: 12,
-              backgroundColor: "rgba(0, 0, 0, 0.8)",
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 8,
-            }}
-          >
-            <Text
+          {/* Limited Time Badge */}
+          {offer.isLimited && (
+            <View
               style={{
-                color: "#ffffff",
-                fontSize: 10,
-                fontWeight: "500",
+                position: "absolute",
+                top: 12,
+                right: 12,
+                backgroundColor: "rgba(0, 0, 0, 0.8)",
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 12,
               }}
             >
-              {offer.remainingTime}
-            </Text>
-          </View>
-        )}
-      </View>
+              <Text
+                style={{
+                  color: "#ffffff",
+                  fontSize: 10,
+                  fontWeight: "600",
+                }}
+              >
+                LIMITED
+              </Text>
+            </View>
+          )}
 
-      {/* Offer Info */}
-      <View style={{ padding: 16 }}>
-        <Text
-          style={{
-            color: "#1a1a1a",
-            fontSize: 16,
-            fontWeight: "700",
-            marginBottom: 4,
-            lineHeight: 20,
-          }}
-        >
-          {offer.title}
-        </Text>
+          {/* Remaining Time */}
+          {offer.remainingTime && (
+            <View
+              style={{
+                position: "absolute",
+                bottom: 12,
+                right: 12,
+                backgroundColor: "rgba(0, 0, 0, 0.8)",
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                borderRadius: 8,
+              }}
+            >
+              <Text
+                style={{
+                  color: "#ffffff",
+                  fontSize: 10,
+                  fontWeight: "500",
+                }}
+              >
+                {offer.remainingTime}
+              </Text>
+            </View>
+          )}
+        </View>
 
-        <Text
-          style={{
-            color: "#666666",
-            fontSize: 13,
-            fontWeight: "400",
-            marginBottom: 8,
-            lineHeight: 16,
-          }}
-        >
-          {offer.description}
-        </Text>
-
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
+        {/* Offer Info */}
+        <View style={{ padding: 16 }}>
           <Text
             style={{
-              color: "#ef4444",
-              fontSize: 12,
-              fontWeight: "600",
+              color: "#1a1a1a",
+              fontSize: 16,
+              fontWeight: "700",
+              marginBottom: 4,
+              lineHeight: 20,
             }}
           >
-            Valid until {formatDateWithoutYear(offer.validUntil)}
+            {offer.title}
           </Text>
 
-          <TouchableOpacity
+          <Text
             style={{
-              backgroundColor: "#ef4444",
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 20,
+              color: "#666666",
+              fontSize: 13,
+              fontWeight: "400",
+              marginBottom: 8,
+              lineHeight: 16,
             }}
-            onPress={(e) => {
-              e.stopPropagation();
-              if (fullOffer) {
-                handleClaimNow(fullOffer.offer_id || fullOffer._id || offer.id);
-              }
+          >
+            {offer.description}
+          </Text>
+
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
-            activeOpacity={0.8}
           >
             <Text
               style={{
-                color: "#ffffff",
+                color: "#ef4444",
                 fontSize: 12,
                 fontWeight: "600",
               }}
             >
-              Claim Now
+              Valid until {formatDateWithoutYear(offer.validUntil)}
             </Text>
-          </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#ef4444",
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+              }}
+              onPress={(e) => {
+                e.stopPropagation();
+                if (fullOffer) {
+                  handleClaimNow(fullOffer.offer_id || fullOffer._id || offer.id);
+                }
+              }}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={{
+                  color: "#ffffff",
+                  fontSize: 12,
+                  fontWeight: "600",
+                }}
+              >
+                Claim Now
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
     );
   };
 

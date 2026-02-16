@@ -13,8 +13,8 @@ export { KitchenBottomSheetHeader } from './KitchenMainScreen/KitchenBottomSheet
 export { KitchenIntroCard } from './KitchenMainScreen/KitchenIntroCard';
 
 // Export Meal Item Details components
-export { ChefNotes } from './MealItemDetails/ChefNotes';
 export { DietCompatibilityBar } from './MealItemDetails/DietCompatibilityBar';
+export { FoodCreatorNotes } from './MealItemDetails/FoodCreatorNotes';
 export { KitchenInfo } from './MealItemDetails/KitchenInfo';
 export { MealBadges } from './MealItemDetails/MealBadges';
 export { MealDescription } from './MealItemDetails/MealDescription';

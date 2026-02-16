@@ -1,11 +1,10 @@
 import { useFoodCreators } from '@/hooks/useFoodCreators';
 import { Image } from 'expo-image';
 import { MapPin } from 'lucide-react-native';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useUserLocation } from '../../hooks/useUserLocation';
-import { showError } from '../../lib/GlobalToastManager';
 import { KitchensNearMeSkeleton } from './KitchensNearMeSkeleton';
 import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
@@ -26,8 +25,8 @@ interface KitchensNearMeProps {
   isFirstSection?: boolean;
 }
 
-export function KitchensNearMe({ 
-  onKitchenPress, 
+export function KitchensNearMe({
+  onKitchenPress,
   onMapPress,
   useBackend = true,
   hasInitialLoadCompleted = false,
@@ -37,14 +36,14 @@ export function KitchensNearMe({
   const locationState = useUserLocation();
   const { getNearbyFoodCreators } = useFoodCreators();
 
-  const [nearbyChefsData, setNearbyChefsData] = useState<any>(null);
+  const [nearbyFoodCreatorsData, setNearbyFoodCreatorsData] = useState<any>(null);
   const [backendLoading, setBackendLoading] = useState(false);
   const [backendError, setBackendError] = useState<any>(null);
 
-  // Load nearby chefs
+  // Load nearby food creators
   useEffect(() => {
     if (useBackend && isAuthenticated && locationState.location?.latitude && locationState.location?.longitude) {
-      const loadNearbyChefs = async () => {
+      const loadNearbyFoodCreators = async () => {
         try {
           setBackendLoading(true);
           setBackendError(null);
@@ -56,7 +55,7 @@ export function KitchensNearMe({
             page: 1,
           });
           if (result.success) {
-            setNearbyChefsData({ success: true, data: result.data });
+            setNearbyFoodCreatorsData({ success: true, data: result.data });
           }
         } catch (error: any) {
           setBackendError(error);
@@ -64,47 +63,47 @@ export function KitchensNearMe({
           setBackendLoading(false);
         }
       };
-      loadNearbyChefs();
+      loadNearbyFoodCreators();
     } else {
-      setNearbyChefsData(null);
+      setNearbyFoodCreatorsData(null);
     }
   }, [useBackend, isAuthenticated, locationState.location?.latitude, locationState.location?.longitude, getNearbyFoodCreators]);
 
   // Transform API data to component format
-  const transformKitchenData = useCallback((apiChef: any): Kitchen | null => {
-    if (!apiChef) return null;
+  const transformKitchenData = useCallback((apiFoodCreator: any): Kitchen | null => {
+    if (!apiFoodCreator) return null;
 
     // Format distance
-    const distanceKm = apiChef.distance || 0;
-    const distanceText = distanceKm < 1 
+    const distanceKm = apiFoodCreator.distance || 0;
+    const distanceText = distanceKm < 1
       ? `${Math.round(distanceKm * 1000)}m away from you`
       : `${distanceKm.toFixed(1)}km away from you`;
 
     // Get cuisine as description
-    const description = apiChef.cuisine || 'Various cuisines available';
+    const description = apiFoodCreator.cuisine || 'Various cuisines available';
 
     return {
-      id: apiChef.id || '',
-      name: apiChef.name || 'Unknown Kitchen',
+      id: apiFoodCreator.id || '',
+      name: apiFoodCreator.name || 'Unknown Kitchen',
       description,
       distance: distanceText,
-      image: apiChef.image_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face',
-      isVerified: apiChef.rating ? apiChef.rating >= 4.0 : false, // Verified if high rating
+      image: apiFoodCreator.image_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face',
+      isVerified: apiFoodCreator.rating ? apiFoodCreator.rating >= 4.0 : false, // Verified if high rating
     };
   }, []);
 
   // Process kitchens data
   const kitchens: Kitchen[] = useMemo(() => {
-    if (!useBackend || !nearbyChefsData?.success || !nearbyChefsData.data?.chefs) {
+    if (!useBackend || !nearbyFoodCreatorsData?.success || !nearbyFoodCreatorsData.data?.foodCreators) {
       return [];
     }
 
-    const transformedKitchens = nearbyChefsData.data.chefs
+    const transformedKitchens = nearbyFoodCreatorsData.data.foodCreators
       .map(transformKitchenData)
-      .filter((kitchen): kitchen is Kitchen => kitchen !== null);
-    
+      .filter((kitchen: Kitchen | null): kitchen is Kitchen => kitchen !== null);
+
     return transformedKitchens;
-  }, [nearbyChefsData, useBackend, transformKitchenData]);
+  }, [nearbyFoodCreatorsData, useBackend, transformKitchenData]);
 
   // Error state is shown in UI - no toast needed
 
@@ -123,11 +122,11 @@ export function KitchensNearMe({
   }
   return (
     <View style={{ paddingVertical: 20, paddingHorizontal: 16, paddingTop: isFirstSection ? 35 : 20 }}>
-      <View style={{ 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: 16 
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16
       }}>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
           Kitchens near me
@@ -154,12 +153,12 @@ export function KitchensNearMe({
           </TouchableOpacity>
         </View>
       </View>
-      
+
       <View>
         {kitchens.map((kitchen, index) => (
           <TouchableOpacity
             key={kitchen.id}
-            style={{ 
+            style={{
               backgroundColor: '#fff',
               borderRadius: 16,
               padding: 16,
@@ -174,11 +173,11 @@ export function KitchensNearMe({
             activeOpacity={0.8}
           >
             <View style={{ flexDirection: 'row' }}>
-              <View style={{ 
-                width: 56, 
-                height: 56, 
-                borderRadius: 16, 
-                overflow: 'hidden', 
+              <View style={{
+                width: 56,
+                height: 56,
+                borderRadius: 16,
+                overflow: 'hidden',
                 backgroundColor: '#f3f4f6',
                 marginRight: 12
               }}>
@@ -188,51 +187,51 @@ export function KitchensNearMe({
                   contentFit="cover"
                 />
               </View>
-              
+
               <View style={{ flex: 1 }}>
-                <View style={{ 
-                  flexDirection: 'row', 
-                  alignItems: 'center', 
-                  marginBottom: 4 
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  marginBottom: 4
                 }}>
-                  <Text style={{ 
-                    fontSize: 16, 
-                    fontWeight: 'bold', 
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: 'bold',
                     color: '#000',
                     marginRight: 6
                   }}>
                     {kitchen.name}
                   </Text>
                   {kitchen.isVerified && (
-                    <View style={{ 
-                      width: 18, 
-                      height: 18, 
-                      borderRadius: 9, 
+                    <View style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: 9,
                       backgroundColor: '#3b82f6',
                       justifyContent: 'center',
                       alignItems: 'center'
                     }}>
-                      <Text style={{ 
-                        color: '#fff', 
-                        fontSize: 10, 
-                        fontWeight: 'bold' 
+                      <Text style={{
+                        color: '#fff',
+                        fontSize: 10,
+                        fontWeight: 'bold'
                       }}>
                         ✓
                       </Text>
                     </View>
                   )}
                 </View>
-                <Text style={{ 
-                  fontSize: 14, 
-                  color: '#666', 
+                <Text style={{
+                  fontSize: 14,
+                  color: '#666',
                   marginBottom: 4,
                   lineHeight: 20
                 }}>
                   {kitchen.description}
                 </Text>
-                <Text style={{ 
-                  fontSize: 12, 
-                  color: '#999' 
+                <Text style={{
+                  fontSize: 12,
+                  color: '#999'
                 }}>
                   {kitchen.distance}
                 </Text>

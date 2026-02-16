@@ -1,8 +1,12 @@
+import { api } from "@/convex/_generated/api";
+import { useQuery } from "convex/react";
+import { Video } from "expo-av";
 import { ChevronLeft } from "lucide-react-native";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -10,13 +14,9 @@ import {
   TouchableOpacity,
   View,
   useWindowDimensions,
-  Linking,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
 import RenderHTML, { HTMLContentModel, HTMLElementModel } from "react-native-render-html";
-import { Video } from "expo-av";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import HearEmoteIcon from "./HearEmoteIcon";
 
 interface StoryDetailScreenProps {
@@ -65,7 +65,7 @@ export function StoryDetailScreen({ storyId, onClose }: StoryDetailScreenProps) 
               source={{ uri: src }}
               style={styles.htmlVideoPlayer}
               useNativeControls
-              resizeMode="contain"
+              resizeMode={"contain" as any}
               posterSource={poster ? { uri: poster } : undefined}
             />
           </View>
@@ -132,7 +132,7 @@ export function StoryDetailScreen({ storyId, onClose }: StoryDetailScreenProps) 
   // Preprocess HTML to handle common issues
   const preprocessHTML = useCallback((html: string): string => {
     if (!html) return '';
-    
+
     // Decode common HTML entities that might not be handled
     let processed = html
       .replace(/&#039;/g, "'")
@@ -148,16 +148,16 @@ export function StoryDetailScreen({ storyId, onClose }: StoryDetailScreenProps) 
       .replace(/&lsquo;/g, "'")
       .replace(/&rdquo;/g, '"')
       .replace(/&ldquo;/g, '"');
-    
+
     // Remove script and style tags completely
     processed = processed.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
     processed = processed.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
-    
+
     // Fix self-closing tags that might cause issues
     processed = processed.replace(/<br\s*\/?>/gi, '<br />');
     processed = processed.replace(/<hr\s*\/?>/gi, '<hr />');
     processed = processed.replace(/<img([^>]*?)(?:\s*\/\s*>|>)/gi, '<img$1 />');
-    
+
     return processed;
   }, []);
 
@@ -267,7 +267,7 @@ export function StoryDetailScreen({ storyId, onClose }: StoryDetailScreenProps) 
                     baseStyle={styles.htmlBase}
                     renderers={renderers}
                     customHTMLElementModels={customHTMLElementModels}
-                    systemFonts={systemFonts}
+                    systemFonts={systemFonts as any}
                     tagsStyles={{
                       p: styles.htmlParagraph,
                       h1: styles.htmlH1,
@@ -319,7 +319,7 @@ export function StoryDetailScreen({ storyId, onClose }: StoryDetailScreenProps) 
                     baseStyle={styles.htmlBase}
                     renderers={renderers}
                     customHTMLElementModels={customHTMLElementModels}
-                    systemFonts={systemFonts}
+                    systemFonts={systemFonts as any}
                     tagsStyles={{
                       p: styles.htmlParagraph,
                       h1: styles.htmlH1,
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     marginVertical: 16,
-    overflow: "scroll",
+    overflow: "hidden",
   },
   htmlTable: {
     width: "100%",

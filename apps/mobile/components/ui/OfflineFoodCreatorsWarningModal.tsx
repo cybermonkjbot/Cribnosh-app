@@ -1,20 +1,20 @@
 /**
- * Offline Chefs Warning Modal Component
+ * Offline Food Creator Warning Modal Component
  * 
- * Displays a warning modal when a user tries to checkout with items from chefs that are currently offline.
+ * Displays a warning modal when a user tries to checkout with items from food creators that are currently offline.
  */
 
+import { Mascot } from '@/components/Mascot';
 import { useRouter } from 'expo-router';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Mascot } from '@/components/Mascot';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 
 export interface OfflineFoodCreatorsWarningModalProps {
   isVisible: boolean;
-  offlineChefs: {
+  offlineFoodCreators: {
     foodCreatorId: string;
-    chefName: string;
+    foodCreatorName: string;
     itemNames: string[];
   }[];
   onConfirm: () => void;
@@ -23,7 +23,7 @@ export interface OfflineFoodCreatorsWarningModalProps {
 
 export function OfflineFoodCreatorsWarningModal({
   isVisible,
-  offlineChefs,
+  offlineFoodCreators,
   onConfirm,
   onCancel,
 }: OfflineFoodCreatorsWarningModalProps) {
@@ -36,14 +36,14 @@ export function OfflineFoodCreatorsWarningModal({
     router.back();
   };
 
-  const chefNames = offlineChefs.map(c => c.chefName).join(', ');
+  const foodCreatorNames = offlineFoodCreators.map(c => c.foodCreatorName).join(', ');
 
   return (
     <Modal
       visible={isVisible}
       transparent
       animationType="fade"
-      onRequestClose={() => {}} // Prevent dismissal via back button
+      onRequestClose={() => { }} // Prevent dismissal via back button
     >
       <View style={styles.overlay}>
         <View
@@ -60,7 +60,7 @@ export function OfflineFoodCreatorsWarningModal({
             </View>
 
             <Text style={[styles.message, { color: colors.icon }]}>
-              The following food creator(s) are currently offline: {chefNames}. Please remove their items from your cart or wait until they come online before placing your order.
+              The following food creator(s) are currently offline: {foodCreatorNames}. Please remove their items from your cart or wait until they come online before placing your order.
             </Text>
           </View>
 

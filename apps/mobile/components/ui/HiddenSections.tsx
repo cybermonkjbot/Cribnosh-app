@@ -1,20 +1,19 @@
-import { Ionicons } from '@expo/vector-icons'; // Added Ionicons import
-import { Image } from 'expo-image';
-import * as Haptics from 'expo-haptics';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useOrders } from '@/hooks/useOrders';
-import { useConnections } from '@/hooks/useConnections';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { showError } from '../../lib/GlobalToastManager';
+import { useConnections } from '@/hooks/useConnections';
+import { useOrders } from '@/hooks/useOrders';
+import { Ionicons } from '@expo/vector-icons'; // Added Ionicons import
+import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import {
   getPlayToWinData,
   UserBehavior
 } from '../../utils/hiddenSections';
-import { UsualDinnerSectionSkeleton } from './UsualDinnerSectionSkeleton';
 import { PlayToWinSectionSkeleton } from './PlayToWinSectionSkeleton';
 import { SkeletonWithTimeout } from './SkeletonWithTimeout';
+import { UsualDinnerSectionSkeleton } from './UsualDinnerSectionSkeleton';
 
 interface UsualDinnerItem {
   dish_id: string;
@@ -29,10 +28,10 @@ interface UsualDinnerItem {
 }
 
 // Usual Dinner Section Component
-export function UsualDinnerSection({ 
+export function UsualDinnerSection({
   userBehavior,
   hasInitialLoadCompleted = false,
-}: { 
+}: {
   userBehavior: UserBehavior;
   hasInitialLoadCompleted?: boolean;
 }) {
@@ -78,19 +77,19 @@ export function UsualDinnerSection({
   }, [dinnerItemsData]);
 
   // Error state is shown in UI - no toast needed
-  
+
   const handleItemPress = useCallback((item: UsualDinnerItem) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     console.log('Selected usual dinner item:', item);
     // Navigate to meal details
     if (item.dish_id) {
       router.push({
-        pathname: '/meal-details',
+        pathname: '/meal-details' as any,
         params: { mealId: item.dish_id },
       });
     } else if (item.kitchen_id) {
       router.push({
-        pathname: '/kitchen',
+        pathname: '/kitchen' as any,
         params: { kitchenId: item.kitchen_id },
       });
     }
@@ -166,9 +165,9 @@ export function UsualDinnerSection({
                   contentFit="cover"
                 />
               ) : (
-                <View style={{ 
-                  width: 96, 
-                  height: 96, 
+                <View style={{
+                  width: 96,
+                  height: 96,
                   borderRadius: 12,
                   backgroundColor: '#f5f5f5',
                   alignItems: 'center',
@@ -194,19 +193,19 @@ export function UsualDinnerSection({
                 <Ionicons name="time-outline" size={8} color="#ffffff" />
               </View>
             </View>
-            
-            <Text style={{ 
-              fontSize: 12, 
-              fontWeight: '500', 
+
+            <Text style={{
+              fontSize: 12,
+              fontWeight: '500',
               color: '#000',
-              marginBottom: 4 
+              marginBottom: 4
             }} numberOfLines={1}>
               {item.name}
             </Text>
-            <Text style={{ 
-              fontSize: 14, 
-              fontWeight: 'bold', 
-              color: '#000' 
+            <Text style={{
+              fontSize: 14,
+              fontWeight: 'bold',
+              color: '#000'
             }}>
               £{(item.price / 100).toFixed(2)}
             </Text>
@@ -218,10 +217,10 @@ export function UsualDinnerSection({
 }
 
 // Play to Win Section Component
-export function PlayToWinSection({ 
+export function PlayToWinSection({
   userBehavior,
   hasInitialLoadCompleted = false,
-}: { 
+}: {
   userBehavior: UserBehavior;
   hasInitialLoadCompleted?: boolean;
 }) {
@@ -243,15 +242,15 @@ export function PlayToWinSection({
           const result = await getConnections();
           if (result && result.success) {
             // Filter for colleague connections
-            const colleagues = (result.data || []).filter((conn: any) => 
+            const colleagues = (result.data || []).filter((conn: any) =>
               conn.connection_type === 'colleague'
             );
-            setColleaguesData({ 
-              success: true, 
-              data: { 
+            setColleaguesData({
+              success: true,
+              data: {
                 colleagueCount: colleagues.length,
                 colleagues: colleagues
-              } 
+              }
             });
           }
         } catch (error: any) {
@@ -281,14 +280,14 @@ export function PlayToWinSection({
   // Combine API data with userBehavior fallback
   const data = useMemo(() => {
     const baseData = getPlayToWinData(userBehavior);
-    
+
     // Override with API data if available
     if (colleaguesData?.success && colleaguesData.data) {
       baseData.colleagueConnections = colleaguesData.data.colleagueCount || userBehavior.colleagueConnections || 0;
     } else if (userBehavior.colleagueConnections) {
       baseData.colleagueConnections = userBehavior.colleagueConnections;
     }
-    
+
     if (playToWinHistoryData?.success && playToWinHistoryData.data) {
       baseData.playHistory = {
         gamesPlayed: playToWinHistoryData.data.gamesPlayed || 0,
@@ -304,25 +303,25 @@ export function PlayToWinSection({
         lastPlayed: userBehavior.playToWinHistory.lastPlayed,
       };
     }
-    
+
     return baseData;
   }, [userBehavior, colleaguesData, playToWinHistoryData]);
 
   // Handle errors
   // Error states are shown in UI - no toasts needed
-  
+
   const handleStartGame = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     console.log('Starting play to win game');
     // Navigate to game creation screen
-    router.push('/play-to-win/create');
+    router.push('/play-to-win/create' as any);
   }, [router]);
 
   const handleInviteColleagues = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     console.log('Inviting colleagues');
     // Navigate to colleague invitation screen
-    router.push('/play-to-win/invite');
+    router.push('/play-to-win/invite' as any);
   }, [router]);
 
   // Only show skeleton during initial load, never after initial load is complete
@@ -336,7 +335,7 @@ export function PlayToWinSection({
 
   // Hide section if no colleagues available (don't show empty state)
   if ((colleaguesData?.success && colleaguesData.data?.colleagueCount === 0) ||
-      (data.colleagueConnections === 0 && isAuthenticated)) {
+    (data.colleagueConnections === 0 && isAuthenticated)) {
     return null;
   }
 
@@ -420,7 +419,7 @@ export function PlayToWinSection({
                   Start Game
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 onPress={handleInviteColleagues}
                 style={{
@@ -444,9 +443,9 @@ export function PlayToWinSection({
               </TouchableOpacity>
             </View>
 
-            <View style={{ 
-              paddingTop: 16, 
-              borderTopWidth: 1, 
+            <View style={{
+              paddingTop: 16,
+              borderTopWidth: 1,
               borderTopColor: '#F3F4F6',
               alignItems: 'center',
             }}>
@@ -476,22 +475,22 @@ export function PlayToWinSection({
 }
 
 // Main Hidden Sections Component
-export function HiddenSections({ 
+export function HiddenSections({
   userBehavior,
   hasInitialLoadCompleted = false,
   isFirstSection = false,
-}: { 
+}: {
   userBehavior: UserBehavior;
   hasInitialLoadCompleted?: boolean;
   isFirstSection?: boolean;
 }) {
   return (
     <View style={{ paddingTop: isFirstSection ? 15 : 0 }}>
-      <UsualDinnerSection 
+      <UsualDinnerSection
         userBehavior={userBehavior}
         hasInitialLoadCompleted={hasInitialLoadCompleted}
       />
-      <PlayToWinSection 
+      <PlayToWinSection
         userBehavior={userBehavior}
         hasInitialLoadCompleted={hasInitialLoadCompleted}
       />

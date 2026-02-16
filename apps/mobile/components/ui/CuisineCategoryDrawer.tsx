@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useCategoryDrawerSearch } from '@/hooks/useCategoryDrawerSearch';
+import { useSearch } from '@/hooks/useSearch';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { CategoryFoodItemsGrid } from './CategoryFoodItemsGrid';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
-import { useSearch } from '@/hooks/useSearch';
-import { useAuthContext } from '@/contexts/AuthContext';
 import { EmptyState } from './EmptyState';
 
 interface CuisineCategoryDrawerProps {
@@ -28,7 +28,7 @@ export function CuisineCategoryDrawer({
   const { isAuthenticated } = useAuthContext();
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const { search } = useSearch();
-  
+
   const [cuisineMealsData, setCuisineMealsData] = useState<any>(null);
   const [isLoadingMeals, setIsLoadingMeals] = useState(false);
   const [mealsError, setMealsError] = useState<any>(null);
@@ -39,7 +39,7 @@ export function CuisineCategoryDrawer({
       setCuisineMealsData(null);
       return;
     }
-    
+
     try {
       setIsLoadingMeals(true);
       setMealsError(null);
@@ -71,7 +71,7 @@ export function CuisineCategoryDrawer({
     if (!apiMeal) return null;
 
     const item = apiMeal.dish || apiMeal.meal || apiMeal;
-    
+
     return {
       id: item._id || item.id || '',
       title: item.name || 'Unknown Item',
@@ -94,7 +94,7 @@ export function CuisineCategoryDrawer({
       const items = Array.isArray(cuisineMealsData.data) ? cuisineMealsData.data : [];
       return items
         .map(transformMealData)
-        .filter((item): item is NonNullable<typeof item> => item !== null);
+        .filter((item: any): item is NonNullable<typeof item> => item !== null);
     }
     return [];
   }, [cuisineMealsData]);
@@ -102,8 +102,8 @@ export function CuisineCategoryDrawer({
   // Filter meals based on active filters
   const filterMealsByChips = useMemo(() => {
     if (activeFilters.length === 0) return allMeals;
-    
-    return allMeals.filter((meal) => {
+
+    return allMeals.filter((meal: any) => {
       if (activeFilters.includes('popular') && !meal.isPopular) return false;
       if (activeFilters.includes('quick') && !meal.isQuick) return false;
       if (activeFilters.includes('healthy') && !meal.isHealthy) return false;
@@ -121,12 +121,12 @@ export function CuisineCategoryDrawer({
 
   // Popular meals (high rated)
   const popularMeals = useMemo(() => {
-    return filteredMeals.filter(meal => meal.isPopular).slice(0, 10);
+    return (filteredMeals as any[]).filter(meal => meal.isPopular).slice(0, 10);
   }, [filteredMeals]);
 
   // Quick meals
   const quickMeals = useMemo(() => {
-    return filteredMeals.filter(meal => meal.isQuick).slice(0, 10);
+    return (filteredMeals as any[]).filter(meal => meal.isQuick).slice(0, 10);
   }, [filteredMeals]);
 
   const handleFilterChange = (filterId: string) => {
@@ -181,7 +181,7 @@ export function CuisineCategoryDrawer({
               <CategoryFoodItemsGrid
                 title="Popular & Quick"
                 subtitle="Most ordered dishes, ready in 15 minutes"
-                items={popularMeals}
+                items={popularMeals as any}
                 onAddToCart={onAddToCart}
                 onItemPress={onItemPress}
                 showShadow={true}
@@ -195,7 +195,7 @@ export function CuisineCategoryDrawer({
               <CategoryFoodItemsGrid
                 title="Quick Meals"
                 subtitle="Fast delivery options"
-                items={quickMeals}
+                items={quickMeals as any}
                 onAddToCart={onAddToCart}
                 onItemPress={onItemPress}
                 showSentiments={true}
@@ -207,7 +207,7 @@ export function CuisineCategoryDrawer({
             <CategoryFoodItemsGrid
               title="All Available"
               subtitle={`Complete ${cuisine.name} menu from local kitchens`}
-              items={filteredMeals}
+              items={filteredMeals as any}
               onAddToCart={onAddToCart}
               onItemPress={onItemPress}
               showSentiments={true}
@@ -222,9 +222,9 @@ export function CuisineCategoryDrawer({
             actionButton={
               activeFilters.length > 0
                 ? {
-                    label: 'Clear Filters',
-                    onPress: () => setActiveFilters([]),
-                  }
+                  label: 'Clear Filters',
+                  onPress: () => setActiveFilters([]),
+                }
                 : undefined
             }
           />

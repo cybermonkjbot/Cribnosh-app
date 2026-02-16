@@ -52,13 +52,14 @@ import { Button } from "./Button";
 import { RecipeDetailScreen } from "./RecipeDetailScreen";
 
 // Customer API imports
+import { useFeatureFlag } from "@/context/FeatureFlagContext";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useFoodCreators } from "@/hooks/useFoodCreators";
 import { useOffers } from "@/hooks/useOffers";
 import { useSearch } from "@/hooks/useSearch";
 import { getConvexClient, getSessionToken } from "@/lib/convexClient";
 import {
-  SearchChef,
+  SearchFoodCreator,
   SearchSuggestion,
   TrendingItem
 } from "@/types/customer";
@@ -408,6 +409,8 @@ export function BottomSearchDrawer({
   const { isAuthenticated: authIsAuthenticated } = useAuthContext();
   const effectiveIsAuthenticated = isAuthenticated || authIsAuthenticated;
 
+  const { isEnabled: isFeatureEnabled } = useFeatureFlag();
+
   // Profile state for preferences
   const [profileData, setProfileData] = useState<any>(null);
 
@@ -474,6 +477,7 @@ export function BottomSearchDrawer({
   // Filter chips state
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeSearchFilter, setActiveSearchFilter] = useState("all");
+  const [snapPointState, setSnapPointState] = useState(SNAP_POINTS.COLLAPSED);
 
   // AI response state
   const [isAIModeActive, setIsAIModeActive] = useState(false);
@@ -941,20 +945,20 @@ export function BottomSearchDrawer({
   // Emotions search mutation for natural language queries
   const [isSearchingWithEmotions, setIsSearchingWithEmotions] = useState(false);
 
-  // Chef search using useFoodCreators hook (kept for backward compatibility, but unified search will be primary)
+  // Food Creator search using useFoodCreators hook (kept for backward compatibility, but unified search will be primary)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { searchFoodCreators } = useFoodCreators();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [chefSearchData, setChefSearchData] = useState<any>(null);
+  const [foodCreatorSearchData, setFoodCreatorSearchData] = useState<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isLoadingChefSearch, setIsLoadingChefSearch] = useState(false);
+  const [isLoadingFoodCreatorSearch, setIsLoadingFoodCreatorSearch] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isErrorChefSearch, setIsErrorChefSearch] = useState(false);
+  const [isErrorFoodCreatorSearch, setIsErrorFoodCreatorSearch] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [chefSearchError, setChefSearchError] = useState<any>(null);
+  const [foodCreatorSearchError, setFoodCreatorSearchError] = useState<any>(null);
 
-  // Chef search is now handled by unified search, but keeping this for backward compatibility
-  // when chef-specific search is needed separately
+  // Food Creator search is now handled by unified search, but keeping this for backward compatibility
+  // when food creator-specific search is needed separately
 
   // Search suggestions hook
   const { getSearchSuggestions } = useSearch();
@@ -1047,7 +1051,7 @@ export function BottomSearchDrawer({
   }, [isAuthenticated, getActiveOffers]);
 
   // Combined loading state for all search operations
-  const isSearching = isLoading || isSearchingWithEmotions || isLoadingSearch || isLoadingChefSearch || isLoadingSuggestionsQuery || isLoadingTrendingQuery || isLoadingEmotionsSearch;
+  const isSearching = isLoading || isSearchingWithEmotions || isLoadingSearch || isLoadingFoodCreatorSearch || isLoadingSuggestionsQuery || isLoadingTrendingQuery || isLoadingEmotionsSearch;
 
   // Removed unused bottomSheetRef
   const handleNavigate = (): void => {
@@ -1722,7 +1726,6 @@ export function BottomSearchDrawer({
   const [blurIntensityState, setBlurIntensityState] = useState(80);
   const [scrollEnabledState, setScrollEnabledState] = useState(false);
   const [buttonDisabledState, setButtonDisabledState] = useState(false);
-  const [snapPointState, setSnapPointState] = useState(SNAP_POINTS.COLLAPSED);
   const [isExpandedState, setIsExpandedState] = useState(false);
 
   // Derived values for safe access in JSX
@@ -1988,7 +1991,7 @@ export function BottomSearchDrawer({
             distance: foodCreator.distance || foodCreator.location || "Nearby",
             type: "kitchens",
             rating: foodCreator.rating ? foodCreator.rating.toString() : "4.5",
-            originalResult: chef,
+            originalResult: foodCreator,
           });
         });
       }
@@ -2112,10 +2115,10 @@ export function BottomSearchDrawer({
     return [];
   }, []);
 
-  // Transform chef search results to component format (kept for backward compatibility, but unified search handles this now)
+  // Transform food creator search results to component format (kept for backward compatibility, but unified search handles this now)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const transformChefResults = useCallback((chefs: SearchChef[]) => {
-    return chefs.map((chef) => ({
+  const transformFoodCreatorResults = useCallback((chefs: SearchFoodCreator[]) => {
+    return chefs.map((foodCreator) => ({
       id: foodCreator._id,
       text: foodCreator.name,
       category: foodCreator.cuisines.join(", "),
@@ -2184,9 +2187,9 @@ export function BottomSearchDrawer({
   const transformEmotionsSearchResults = useCallback((chefs: any[], dishes: any[]) => {
     const results: any[] = [];
 
-    // Transform chefs
+    // Transform food creators
     if (Array.isArray(chefs)) {
-      chefs.forEach((chef) => {
+      chefs.forEach((foodCreator) => {
         results.push({
           id: foodCreator._id || foodCreator.id || `chef-${Math.random()}`,
           text: foodCreator.name || foodCreator.kitchen_name || "Unknown Kitchen",
@@ -2197,7 +2200,7 @@ export function BottomSearchDrawer({
           type: "kitchens",
           rating: foodCreator.rating ? foodCreator.rating.toString() : "4.5",
           relevance_score: foodCreator.relevance_score || 0.5,
-          originalResult: chef,
+          originalResult: foodCreator,
         });
       });
     }
@@ -2436,12 +2439,7 @@ export function BottomSearchDrawer({
     return emptyGroups;
   }, [searchData, searchQuery, filteredMealsData, trendingData, activeFilter, activeSearchFilter]);
 
-  // Memoized onSubmitEditing handler to prevent re-renders
-  const handleSubmitEditing = useCallback(() => {
-    if (searchQuery.trim()) {
-      handleSearchSubmit(searchQuery);
-    }
-  }, [searchQuery, handleSearchSubmit]);
+
 
   // Safe search submission handler
   const handleSearchSubmit = useCallback(
@@ -2580,13 +2578,20 @@ export function BottomSearchDrawer({
     ]
   );
 
+  // Memoized onSubmitEditing handler to prevent re-renders
+  const handleSubmitEditing = useCallback(() => {
+    if (searchQuery.trim()) {
+      handleSearchSubmit(searchQuery);
+    }
+  }, [searchQuery, handleSearchSubmit]);
+
   // Handle search API errors
   useEffect(() => {
     if (searchError && isAuthenticated) {
       showError("Search failed", "Please try again");
     }
-    if (chefSearchError && isAuthenticated) {
-      showError("Chef search failed", "Please try again");
+    if (foodCreatorSearchError && isAuthenticated) {
+      showError("Food Creator search failed", "Please try again");
     }
     if (suggestionsError && isAuthenticated) {
       showError("Search suggestions failed", "Please try again");
@@ -2600,7 +2605,7 @@ export function BottomSearchDrawer({
     }
   }, [
     searchError,
-    chefSearchError,
+    foodCreatorSearchError,
     suggestionsError,
     trendingError,
     emotionsSearchError,

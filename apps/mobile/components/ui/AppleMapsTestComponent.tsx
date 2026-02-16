@@ -1,21 +1,21 @@
 // Test component to verify Apple Maps API integration
+import { FoodCreatorMarker } from '@/types/maps';
+import { getDirections, getNearbyFoodCreators, searchFoodCreatorsByLocation } from '@/utils/appleMapsService';
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { FoodCreatorMarker } from '@/types/maps';
-import * as AppleMapsService from '../../utils/appleMapsService';
 
 export function AppleMapsTestComponent() {
-  const [chefs, setChefs] = useState<FoodCreatorMarker[]>([]);
+  const [foodCreators, setFoodCreators] = useState<FoodCreatorMarker[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Test coordinates (San Francisco)
   const testLocation = { latitude: 37.7749, longitude: -122.4194 };
 
-  const testNearbyChefs = async () => {
+  const testNearbyFoodCreators = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const result = await getNearbyFoodCreators(
         testLocation.latitude,
@@ -24,22 +24,22 @@ export function AppleMapsTestComponent() {
         10, // limit to 10 chefs
         1 // first page
       );
-      
-      setChefs(result.chefs);
-      Alert.alert('Success', `Loaded ${result.chefs.length} chefs`);
+
+      setFoodCreators(result.foodCreators);
+      Alert.alert('Success', `Loaded ${result.foodCreators.length} food creators`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
-      Alert.alert('Error', `Failed to load chefs: ${errorMessage}`);
+      Alert.alert('Error', `Failed to load food creators: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const testSearchChefs = async () => {
+  const testSearchFoodCreators = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const result = await searchFoodCreatorsByLocation(
         'restaurants near Union Square',
@@ -48,9 +48,9 @@ export function AppleMapsTestComponent() {
         undefined, // no cuisine filter
         5 // limit to 5 results
       );
-      
-      setChefs(result.chefs);
-      Alert.alert('Success', `Found ${result.chefs.length} restaurants`);
+
+      setFoodCreators(result.foodCreators);
+      Alert.alert('Success', `Found ${result.foodCreators.length} restaurants`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
@@ -61,20 +61,20 @@ export function AppleMapsTestComponent() {
   };
 
   const testDirections = async () => {
-    if (chefs.length === 0) {
-      Alert.alert('No Chefs', 'Please load chefs first');
+    if (foodCreators.length === 0) {
+      Alert.alert('No Food Creators', 'Please load food creators first');
       return;
     }
 
     try {
-      const chef = chefs[0];
+      const foodCreator = foodCreators[0];
       if (!foodCreator.location) {
         Alert.alert('No Location', 'Selected chef has no location data');
         return;
       }
 
       const directions = await getDirections(testLocation, foodCreator.location, 'driving');
-      
+
       if (directions.success) {
         const route = directions.data.routes[0];
         Alert.alert(
@@ -91,31 +91,31 @@ export function AppleMapsTestComponent() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Apple Maps API Test</Text>
-      
+
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
-        onPress={testNearbyChefs}
+        onPress={testNearbyFoodCreators}
         disabled={isLoading}
       >
         <Text style={styles.buttonText}>
-          {isLoading ? 'Loading...' : 'Test Nearby Chefs'}
+          {isLoading ? 'Loading...' : 'Test Nearby Food Creators'}
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
-        onPress={testSearchChefs}
+        onPress={testSearchFoodCreators}
         disabled={isLoading}
       >
         <Text style={styles.buttonText}>
-          {isLoading ? 'Searching...' : 'Test Search Chefs'}
+          {isLoading ? 'Searching...' : 'Test Search Food Creators'}
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={testDirections}
-        disabled={isLoading || chefs.length === 0}
+        disabled={isLoading || foodCreators.length === 0}
       >
         <Text style={styles.buttonText}>Test Directions</Text>
       </TouchableOpacity>
@@ -125,19 +125,19 @@ export function AppleMapsTestComponent() {
       )}
 
       <Text style={styles.resultsText}>
-        Results: {chefs.length} chefs loaded
+        Results: {foodCreators.length} food creators loaded
       </Text>
 
-      {chefs.length > 0 && (
+      {foodCreators.length > 0 && (
         <View style={styles.resultsContainer}>
-          <Text style={styles.resultsTitle}>Loaded Chefs:</Text>
-          {chefs.slice(0, 3).map((chef) => (
+          <Text style={styles.resultsTitle}>Loaded Food Creators:</Text>
+          {foodCreators.slice(0, 3).map((foodCreator) => (
             <Text key={foodCreator.id} style={styles.chefText}>
               • {foodCreator.kitchen_name} ({foodCreator.cuisine}) - {foodCreator.distance}
             </Text>
           ))}
-          {chefs.length > 3 && (
-            <Text style={styles.chefText}>... and {chefs.length - 3} more</Text>
+          {foodCreators.length > 3 && (
+            <Text style={styles.resultsText}>... and {foodCreators.length - 3} more</Text>
           )}
         </View>
       )}

@@ -1,5 +1,5 @@
-export { ChefNotesSkeleton } from './ChefNotesSkeleton';
 export { DietCompatibilityBarSkeleton } from './DietCompatibilityBarSkeleton';
+export { FoodCreatorNotesSkeleton } from './FoodCreatorNotesSkeleton';
 export { KitchenInfoSkeleton } from './KitchenInfoSkeleton';
 export { MealBadgesSkeleton } from './MealBadgesSkeleton';
 export { MealDescriptionSkeleton } from './MealDescriptionSkeleton';

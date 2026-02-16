@@ -6,13 +6,13 @@ export function FoodCreatorNotesSkeleton() {
     <View style={styles.container}>
       {/* Header */}
       <SkeletonBox width={140} height={20} borderRadius={4} style={styles.header} />
-      
+
       <View style={styles.notesContainer}>
-        {/* Chef Info */}
-        <View style={styles.chefInfo}>
-          <SkeletonBox width={48} height={48} borderRadius={24} style={styles.chefAvatar} />
-          <View style={styles.chefDetails}>
-            <SkeletonBox width={120} height={16} borderRadius={4} style={styles.chefName} />
+        {/* Food Creator Info */}
+        <View style={styles.foodCreatorInfo}>
+          <SkeletonBox width={48} height={48} borderRadius={24} style={styles.foodCreatorAvatar} />
+          <View style={styles.foodCreatorDetails}>
+            <SkeletonBox width={120} height={16} borderRadius={4} style={styles.foodCreatorName} />
             <SkeletonBox width={100} height={14} borderRadius={4} />
           </View>
         </View>
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5E5',
   },
-  chefInfo: {
+  foodCreatorInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
@@ -66,14 +66,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
-  chefAvatar: {
+  foodCreatorAvatar: {
     marginRight: 12,
   },
-  chefDetails: {
+  foodCreatorDetails: {
     flex: 1,
     gap: 4,
   },
-  chefName: {
+  foodCreatorName: {
     marginBottom: 2,
   },
   section: {

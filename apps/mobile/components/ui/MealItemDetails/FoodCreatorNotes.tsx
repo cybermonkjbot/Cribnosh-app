@@ -3,19 +3,19 @@ import { StyleSheet, Text, View } from 'react-native';
 interface FoodCreatorNotesProps {
   story?: string;
   tips?: string[];
-  chefName?: string;
-  chefAvatar?: string;
+  foodCreatorName?: string;
+  foodCreatorAvatar?: string;
 }
 
-export function FoodCreatorNotes({ story, tips, chefName, chefAvatar }: FoodCreatorNotesProps) {
+export function FoodCreatorNotes({ story, tips, foodCreatorName, foodCreatorAvatar }: FoodCreatorNotesProps) {
   return (
     <View style={styles.container}>
       <View style={styles.notesContainer}>
-        {/* Chef Info */}
-        <View style={styles.chefInfo}>
+        {/* Food Creator Info */}
+        <View style={styles.foodCreatorInfo}>
           <Text style={styles.header}>Food Creator&apos;s Notes</Text>
-          <Text style={styles.chefName}>{chefName || "Food Creator&apos;s Special"}</Text>
-          <Text style={styles.chefSubtitle}>Personal Recipe</Text>
+          <Text style={styles.foodCreatorName}>{foodCreatorName || "Food Creator&apos;s Special"}</Text>
+          <Text style={styles.foodCreatorSubtitle}>Personal Recipe</Text>
         </View>
       </View>
 
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5E5',
   },
-  chefInfo: {
+  foodCreatorInfo: {
     marginBottom: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
@@ -72,13 +72,13 @@ const styles = StyleSheet.create({
   chefDetails: {
     flex: 1,
   },
-  chefName: {
+  foodCreatorName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#094327',
     marginBottom: 2,
   },
-  chefSubtitle: {
+  foodCreatorSubtitle: {
     fontSize: 14,
     color: '#6C757D',
   },

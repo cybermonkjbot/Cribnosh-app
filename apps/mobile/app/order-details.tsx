@@ -129,7 +129,7 @@ export default function OrderDetailsScreen() {
 
   const handleTrackOrder = () => {
     if (orderId) {
-      router.push(`/(tabs)/orders/cart/on-the-way?order_id=${orderId}`);
+      router.push(`/(tabs)/orders/cart/on-the-way?order_id=${orderId}` as any);
     }
   };
 
@@ -348,7 +348,7 @@ export default function OrderDetailsScreen() {
                 </View>
                 <TouchableOpacity
                   style={styles.shareLinkButton}
-                  onPress={() => router.push(`/orders/payment-request?order_id=${orderId}`)}
+                  onPress={() => router.push(`/orders/payment-request?order_id=${orderId}` as any)}
                 >
                   <Text style={styles.shareLinkText}>Share Link</Text>
                 </TouchableOpacity>

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { FoodCreatorHat, UtensilsCrossed, Fish, Beef, Sushi, Pizza, Hamburger, Grape, Apple, Cookie } from 'lucide-react-native';
+import { Apple, Beef, Cookie, Fish, ChefHat as FoodCreatorHat, Grape, Hamburger, Pizza, UtensilsCrossed } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,13 +30,13 @@ export const OnboardingCuisinesScreen: React.FC<OnboardingCuisinesScreenProps> =
     { id: 'Thai', label: 'Thai', icon: Cookie },
     { id: 'American', label: 'American', icon: Hamburger },
     { id: 'Mediterranean', label: 'Mediterranean', icon: Apple },
-    { id: 'Sushi', label: 'Sushi', icon: Sushi },
+    { id: 'Sushi', label: 'Sushi', icon: Fish },
     { id: 'Pizza', label: 'Pizza', icon: Pizza },
     { id: 'Burgers', label: 'Burgers', icon: Hamburger },
   ];
 
   const handleCuisineToggle = (cuisineId: string) => {
-    setSelectedCuisines(prev => 
+    setSelectedCuisines(prev =>
       prev.includes(cuisineId)
         ? prev.filter(id => id !== cuisineId)
         : [...prev, cuisineId]
@@ -58,10 +58,10 @@ export const OnboardingCuisinesScreen: React.FC<OnboardingCuisinesScreenProps> =
         <View style={styles.logoContainer}>
           <CribNoshLogo size={172} variant="default" />
         </View>
-        
+
         {/* Onboarding Content Card */}
         <View style={[styles.cardContainer, { bottom: 0 }]}>
-          <ScrollView 
+          <ScrollView
             style={styles.contentCard}
             contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
             showsVerticalScrollIndicator={false}
@@ -75,7 +75,7 @@ export const OnboardingCuisinesScreen: React.FC<OnboardingCuisinesScreenProps> =
               <Ionicons name="arrow-back" size={20} color="#02120A" />
               <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
-            
+
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.title}>Setup your Cribnosh experience</Text>
@@ -83,17 +83,17 @@ export const OnboardingCuisinesScreen: React.FC<OnboardingCuisinesScreenProps> =
                 <Text style={styles.skipButtonText}>Skip</Text>
               </TouchableOpacity>
             </View>
-            
+
             {/* Description */}
             <Text style={styles.description}>
               Tell us what you like, skip what you don&apos;t.
             </Text>
-            
+
             {/* Cuisine Question */}
             <Text style={styles.cuisineQuestion}>
               What cuisines do you love?
             </Text>
-            
+
             {/* Cuisine Chips Section */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Select your favorite cuisines</Text>
@@ -112,9 +112,9 @@ export const OnboardingCuisinesScreen: React.FC<OnboardingCuisinesScreenProps> =
                       activeOpacity={0.7}
                     >
                       <View style={styles.chipIcon}>
-                        <IconComponent 
-                          color={isSelected ? '#FFFFFF' : '#6B7280'} 
-                          size={14} 
+                        <IconComponent
+                          color={isSelected ? '#FFFFFF' : '#6B7280'}
+                          size={14}
                         />
                       </View>
                       <Text style={[
@@ -129,7 +129,7 @@ export const OnboardingCuisinesScreen: React.FC<OnboardingCuisinesScreenProps> =
               </View>
             </View>
           </ScrollView>
-          
+
           {/* Floating Continue Button */}
           <View style={[styles.floatingButtonContainer, { paddingBottom: insets.bottom }]}>
             <TouchableOpacity style={styles.continueButton} onPress={handleNext}>

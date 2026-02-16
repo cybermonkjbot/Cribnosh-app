@@ -1,5 +1,7 @@
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import { useState, useEffect, useRef } from 'react';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,9 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
-import { useAuthContext } from '@/contexts/AuthContext';
 import { useToast } from '../lib/ToastContext';
-import { useAuth } from '@/hooks/useAuth';
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -34,66 +34,66 @@ export default function Verify2FAScreen() {
   const { login } = useAuthContext();
   const { handleVerify2FA } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const verificationToken = params.verificationToken as string;
   const [code, setCode] = useState('');
   const [useBackupCode, setUseBackupCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const inputRefs = useRef<(TextInput | null)[]>([]);
-  
+
   useEffect(() => {
     if (!verificationToken) {
       Alert.alert('Error', 'Invalid verification session. Please try signing in again.');
       router.back();
     }
   }, [verificationToken, router]);
-  
+
   const handleCodeChange = (text: string, index: number) => {
     // Only allow digits
     const cleaned = text.replace(/[^0-9]/g, '');
     if (cleaned.length > 1) {
       return; // Prevent multiple digits in one input
     }
-    
+
     const newCode = code.split('');
     newCode[index] = cleaned;
     const updatedCode = newCode.join('').slice(0, 6);
     setCode(updatedCode);
     setError(null);
-    
+
     // Auto-focus next input
     if (cleaned && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
-    
+
     // Auto-submit when 6 digits are entered (for TOTP codes)
     if (!useBackupCode && updatedCode.length === 6 && updatedCode.split('').every(d => d !== '')) {
       handleVerify();
     }
   };
-  
+
   const handleKeyPress = (key: string, index: number) => {
     if (key === 'Backspace' && !code[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
-  
+
   const handleVerify = async () => {
     if (code.length !== 6) {
       setError(useBackupCode ? 'Please enter a valid backup code.' : 'Please enter a 6-digit code.');
       return;
     }
-    
+
     if (!verificationToken) {
       setError('Invalid verification session. Please try signing in again.');
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const result = await handleVerify2FA(verificationToken, code.trim());
-      
+
       if (result.data?.token && result.data?.user) {
         // Store authentication data
         await login(result.data.token, {
@@ -105,14 +105,14 @@ export default function Verify2FAScreen() {
           isNewUser: result.data.user.isNewUser || false,
           provider: result.data.user.provider || 'email',
         });
-        
+
         showToast({
           type: 'success',
           title: 'Verification Successful',
           message: 'You have been signed in successfully.',
           duration: 3000,
         });
-        
+
         // Navigate to onboarding for new users, otherwise to main app
         if (result.data.user.isNewUser === true) {
           router.replace('/onboarding' as any);
@@ -130,7 +130,7 @@ export default function Verify2FAScreen() {
         error?.message ||
         'Invalid code. Please try again.';
       setError(errorMessage);
-      
+
       // Clear code on error
       setCode('');
       inputRefs.current[0]?.focus();
@@ -138,11 +138,11 @@ export default function Verify2FAScreen() {
       setIsLoading(false);
     }
   };
-  
+
   const handleBack = () => {
     router.back();
   };
-  
+
   return (
     <>
       <Stack.Screen
@@ -153,21 +153,21 @@ export default function Verify2FAScreen() {
       />
       <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-        
+
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
             <SvgXml xml={backArrowSVG} width={24} height={24} />
           </TouchableOpacity>
         </View>
-        
+
         {/* Content */}
         <View style={styles.content}>
           {/* Icon */}
           <View style={styles.iconContainer}>
             <SvgXml xml={shieldIconSVG} width={80} height={80} />
           </View>
-          
+
           {/* Title */}
           <Text style={styles.title}>Two-Factor Authentication</Text>
           <Text style={styles.subtitle}>
@@ -175,7 +175,7 @@ export default function Verify2FAScreen() {
               ? 'Enter one of your backup codes'
               : 'Enter the 6-digit code from your authenticator app'}
           </Text>
-          
+
           {/* Code Input (shown when NOT using backup code) */}
           {!useBackupCode && (
             <View style={styles.codeContainer}>
@@ -201,14 +201,14 @@ export default function Verify2FAScreen() {
               ))}
             </View>
           )}
-          
+
           {/* Error Message */}
           {error && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
-          
+
           {/* Backup Code Toggle */}
           <TouchableOpacity
             style={styles.backupToggle}
@@ -223,7 +223,7 @@ export default function Verify2FAScreen() {
               {useBackupCode ? 'Use authenticator code' : 'Use backup code instead'}
             </Text>
           </TouchableOpacity>
-          
+
           {/* Backup Code Input (shown when useBackupCode is true) */}
           {useBackupCode && (
             <View style={styles.backupCodeInputContainer}>
@@ -244,7 +244,7 @@ export default function Verify2FAScreen() {
               />
             </View>
           )}
-          
+
           {/* Verify Button */}
           <TouchableOpacity
             style={[
@@ -260,7 +260,7 @@ export default function Verify2FAScreen() {
               <Text style={styles.verifyButtonText}>Verify</Text>
             )}
           </TouchableOpacity>
-          
+
           {/* Help Text */}
           <Text style={styles.helpText}>
             Can&apos;t access your authenticator app?{'\n'}
@@ -391,6 +391,27 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: '#9CA3AF',
     textAlign: 'center',
+  },
+  backupCodeInputContainer: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  backupCodeInput: {
+    width: '100%',
+    height: 64,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    textAlign: 'center',
+    fontFamily: 'Inter',
+    fontWeight: '600',
+    fontSize: 24,
+    lineHeight: 32,
+    color: '#094327',
+  },
+  backupCodeInputError: {
+    borderColor: '#EF4444',
   },
 });
 

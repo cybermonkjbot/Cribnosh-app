@@ -68,7 +68,7 @@ export default function HelpSupportScreen() {
   // Fetch recent orders from Convex (limit to 1 most recent)
   const fetchRecentOrders = useCallback(async () => {
     if (!isAuthenticated) return;
-    
+
     try {
       setOrdersLoading(true);
       const convex = getConvexClient();
@@ -136,12 +136,12 @@ export default function HelpSupportScreen() {
     if (!recentOrder?.order_items || recentOrder.order_items.length === 0) {
       return 'Order';
     }
-    
+
     const items = recentOrder.order_items;
     const itemNames = items
       .map((item: any) => item.name)
       .filter((name: string) => name);
-    
+
     if (itemNames.length === 0) {
       return 'Order';
     } else if (itemNames.length === 1) {
@@ -205,7 +205,7 @@ export default function HelpSupportScreen() {
       sections: [
         {
           title: 'Food Creator Certification',
-          content: 'All chefs on Cribnosh are required to have valid food safety certifications. We verify these certifications before allowing chefs to join our platform.',
+          content: 'All food creators on Cribnosh are required to have valid food safety certifications. We verify these certifications before allowing food creators to join our platform.',
         },
         {
           title: 'Kitchen Standards',
@@ -213,7 +213,7 @@ export default function HelpSupportScreen() {
         },
         {
           title: 'Allergen Information',
-          content: 'You can set your allergies and dietary preferences in your account settings. Chefs will be notified of your requirements, and you\'ll see allergen information for each dish.',
+          content: 'You can set your allergies and dietary preferences in your account settings. Food Creators will be notified of your requirements, and you\'ll see allergen information for each dish.',
         },
         {
           title: 'Reporting Issues',
@@ -230,7 +230,7 @@ export default function HelpSupportScreen() {
       sections: [
         {
           title: 'Ordering',
-          content: 'Browse menus from local chefs, customize your orders, and track deliveries in real-time. You can also place custom orders for special occasions.',
+          content: 'Browse menus from local food creators, customize your orders, and track deliveries in real-time. You can also place custom orders for special occasions.',
         },
         {
           title: 'Group Orders',
@@ -238,7 +238,7 @@ export default function HelpSupportScreen() {
         },
         {
           title: 'Live Sessions',
-          content: 'Watch chefs prepare meals live. Place orders directly from live cooking sessions and interact with chefs.',
+          content: 'Watch food creators prepare meals live. Place orders directly from live cooking sessions and interact with food creators.',
         },
         {
           title: 'Personalization',
@@ -284,7 +284,7 @@ export default function HelpSupportScreen() {
         },
         {
           title: 'Pricing',
-          content: 'Prices are set by individual chefs and include preparation costs. Delivery fees may apply based on your location.',
+          content: 'Prices are set by individual food creators and include preparation costs. Delivery fees may apply based on your location.',
         },
         {
           title: 'Refunds',
@@ -305,7 +305,7 @@ export default function HelpSupportScreen() {
       sections: [
         {
           title: 'Getting Started',
-          content: 'Create an account, set your preferences, and start browsing local chefs. Add your delivery address to see available options.',
+          content: 'Create an account, set your preferences, and start browsing local food creators. Add your delivery address to see available options.',
         },
         {
           title: 'Placing Orders',
@@ -313,11 +313,11 @@ export default function HelpSupportScreen() {
         },
         {
           title: 'Custom Orders',
-          content: 'Need something special? Place a custom order and describe what you\'re looking for. Chefs can create personalized meals for you.',
+          content: 'Need something special? Place a custom order and describe what you\'re looking for. Food creators can create personalized meals for you.',
         },
         {
           title: 'Tips and Tricks',
-          content: 'Follow your favorite chefs to see their latest dishes. Use the shake feature to let Cribnosh decide for you when you can\'t choose. Save your favorite dishes for quick reordering.',
+          content: 'Follow your favorite food creators to see their latest dishes. Use the shake feature to let Cribnosh decide for you when you can\'t choose. Save your favorite dishes for quick reordering.',
         },
       ],
     });
@@ -329,15 +329,15 @@ export default function HelpSupportScreen() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false,
           title: 'Help & Support'
-        }} 
+        }}
       />
       <SafeAreaView style={styles.mainContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAFFFA" />
-        
+
         {/* Header with back button */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -350,7 +350,7 @@ export default function HelpSupportScreen() {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Main Title */}
           <Text style={styles.mainTitle}>How can we help?</Text>
-          
+
           {/* Support Cases Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Support cases</Text>
@@ -390,7 +390,7 @@ export default function HelpSupportScreen() {
               </View>
             ) : recentOrder ? (
               <>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.orderCard}
                   onPress={handleRecentOrderPress}
                   activeOpacity={0.7}
@@ -413,7 +413,7 @@ export default function HelpSupportScreen() {
                   </Text>
                 </TouchableOpacity>
                 <View style={styles.separator} />
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.olderOrderLink}
                   onPress={handleSelectOlderOrder}
                   hitSlop={12}
@@ -443,7 +443,7 @@ export default function HelpSupportScreen() {
           {/* Other Help Categories */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Get help with something else</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.helpCategoryItem}
               onPress={handleFoodSafetyPress}
             >
@@ -451,7 +451,7 @@ export default function HelpSupportScreen() {
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.helpCategoryItem}
               onPress={handleAppFeaturesPress}
             >
@@ -459,7 +459,7 @@ export default function HelpSupportScreen() {
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.helpCategoryItem}
               onPress={handleAccountDataPress}
             >
@@ -467,7 +467,7 @@ export default function HelpSupportScreen() {
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.helpCategoryItem}
               onPress={handlePaymentsPricingPress}
             >
@@ -475,7 +475,7 @@ export default function HelpSupportScreen() {
               <SvgXml xml={chevronRightIconSVG} width={20} height={20} />
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.helpCategoryItem}
               onPress={handleUsingCribnoshPress}
             >
@@ -486,7 +486,7 @@ export default function HelpSupportScreen() {
         </ScrollView>
 
         {/* Floating Live Chat Icon */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.floatingChatButton}
           onPress={handleOpenLiveChat}
           activeOpacity={0.8}
@@ -495,7 +495,7 @@ export default function HelpSupportScreen() {
         </TouchableOpacity>
 
         {/* Live Chat Drawer */}
-        <LiveChatDrawer 
+        <LiveChatDrawer
           isVisible={isLiveChatVisible}
           onClose={handleCloseLiveChat}
           caseId={selectedChatCaseId || undefined}

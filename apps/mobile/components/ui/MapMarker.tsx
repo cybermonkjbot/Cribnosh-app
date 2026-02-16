@@ -1,7 +1,7 @@
-// Custom MapMarker component with chef styling
+// Custom MapMarker component with food creator styling
+import { MapMarkerProps } from '@/types/maps';
 import { Image } from 'expo-image';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { MapMarkerProps } from '@/types/maps';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 
@@ -48,7 +48,7 @@ export function MapMarker({ foodCreator, onPress, isSelected = false }: MapMarke
       onPress={() => onPress?.(foodCreator)}
       activeOpacity={0.8}
     >
-      {/* Chef Avatar */}
+      {/* Food Creator Avatar */}
       <View style={[styles.avatarContainer, { backgroundColor: sentimentColor }]}>
         {foodCreator.image_url ? (
           <Image
@@ -63,7 +63,7 @@ export function MapMarker({ foodCreator, onPress, isSelected = false }: MapMarke
             </Text>
           </View>
         )}
-        
+
         {/* Live Indicator */}
         {isLive && (
           <View style={styles.liveIndicator}>
@@ -75,7 +75,7 @@ export function MapMarker({ foodCreator, onPress, isSelected = false }: MapMarke
 
       {/* Kitchen Name */}
       <View style={styles.nameContainer}>
-        <Text 
+        <Text
           style={[
             styles.kitchenName,
             { color: Colors[colorScheme as keyof typeof Colors].text }
@@ -84,7 +84,7 @@ export function MapMarker({ foodCreator, onPress, isSelected = false }: MapMarke
         >
           {foodCreator.kitchen_name}
         </Text>
-        
+
         {/* Rating */}
         <View style={styles.ratingContainer}>
           <Text style={styles.ratingText}>★ {foodCreator.rating}</Text>

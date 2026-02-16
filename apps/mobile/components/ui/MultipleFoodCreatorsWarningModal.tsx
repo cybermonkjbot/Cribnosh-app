@@ -1,12 +1,12 @@
 /**
- * Multiple Chefs Warning Modal Component
+ * Multiple Food Creators Warning Modal Component
  * 
  * Displays a warning modal when a user tries to checkout with items from multiple food creators.
  */
 
+import { Mascot } from '@/components/Mascot';
 import { useRouter } from 'expo-router';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Mascot } from '@/components/Mascot';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 
@@ -35,7 +35,7 @@ export function MultipleFoodCreatorsWarningModal({
       visible={isVisible}
       transparent
       animationType="fade"
-      onRequestClose={() => {}} // Prevent dismissal via back button
+      onRequestClose={() => { }} // Prevent dismissal via back button
     >
       <View style={styles.overlay}>
         <View

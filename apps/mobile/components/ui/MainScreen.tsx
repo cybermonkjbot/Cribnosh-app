@@ -1,6 +1,7 @@
 import { useFeatureFlag } from "@/context/FeatureFlagContext";
 import { api } from "@/convex/_generated/api";
 import { useAppContext } from "@/utils/AppContext";
+import Constants from 'expo-constants';
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -79,12 +80,12 @@ import { TopKebabs } from "./TopKebabs";
 // Customer API imports
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useCart } from "@/hooks/useCart";
-import { useFoodCreators } from "@/hooks/useFoodCreators";
 import { useCuisines } from "@/hooks/useCuisines";
+import { useFoodCreators } from "@/hooks/useFoodCreators";
 import { useMeals } from "@/hooks/useMeals";
 import { useOffers } from "@/hooks/useOffers";
 import { getConvexClient } from "@/lib/convexClient";
-import { FoodCreator, Cuisine } from "@/types/customer";
+import { Cuisine, FoodCreator } from "@/types/customer";
 
 // Global toast imports
 import {
@@ -353,7 +354,7 @@ export function MainScreen() {
     if (!apiFoodCreators || !Array.isArray(apiFoodCreators)) {
       return [];
     }
-    return apiFoodCreators.map((chef) => ({
+    return apiFoodCreators.map((foodCreator) => ({
       id: foodCreator.id,
       name: foodCreator.kitchen_name,
       cuisine: foodCreator.cuisine,
@@ -1481,7 +1482,7 @@ export function MainScreen() {
         });
 
         if (result.success && result.data) {
-          setMapFoodCreators(result.data.chefs || []);
+          setMapFoodCreators(result.data.foodCreators || []);
 
           // Map updated silently - no toast needed
         }

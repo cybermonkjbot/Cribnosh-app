@@ -50,7 +50,7 @@ export const runHealthCheck = internalAction({
       const totalOrders = orders?.length || 0;
       const totalRevenue = orders?.reduce((sum: number, order: any) => sum + (order.total_amount || 0), 0) || 0;
       const activeUsers = users?.filter((u: any) => u.status === 'active').length || 0;
-      const activeChefs = chefs?.filter((c: any) => c.status === 'active').length || 0;
+      const activeFoodCreators = chefs?.filter((c: any) => c.status === 'active').length || 0;
       const activeDrivers = users?.filter((u: any) => u.roles?.includes('driver')).length || 0;
       const liveSessionsCount = liveSessions?.length || 0;
 
@@ -65,7 +65,7 @@ export const runHealthCheck = internalAction({
         total_orders: totalOrders,
         total_revenue: totalRevenue,
         active_users: activeUsers,
-        active_chefs: activeChefs,
+        active_food_creators: activeFoodCreators,
         active_drivers: activeDrivers,
         live_sessions: liveSessionsCount,
         order_completion_rate: orderCompletionRate,
@@ -108,7 +108,7 @@ export const runBusinessMetrics = internalAction({
       const totalOrders = orders?.length || 0;
       const totalRevenue = orders?.reduce((sum: number, order: any) => sum + (order.total_amount || 0), 0) || 0;
       const activeUsers = users?.filter((u: any) => u.status === 'active').length || 0;
-      const activeChefs = chefs?.filter((c: any) => c.status === 'active').length || 0;
+      const activeFoodCreators = chefs?.filter((c: any) => c.status === 'active').length || 0;
       const activeDrivers = users?.filter((u: any) => u.roles?.includes('driver')).length || 0;
       const liveSessionsCount = liveSessions?.length || 0;
 
@@ -123,7 +123,7 @@ export const runBusinessMetrics = internalAction({
         total_orders: totalOrders,
         total_revenue: totalRevenue,
         active_users: activeUsers,
-        active_chefs: activeChefs,
+        active_food_creators: activeFoodCreators,
         active_drivers: activeDrivers,
         live_sessions: liveSessionsCount,
         order_completion_rate: orderCompletionRate,

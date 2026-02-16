@@ -1,7 +1,8 @@
+import { useModalSheet } from '@/context/ModalSheetContext';
 import { useCartCount } from '@/hooks/useCartCount';
 import { BlurEffect } from '@/utils/blurEffects';
 import { useRouter } from 'expo-router';
-import { Camera, FoodCreator as FoodCreatorHat, Plus, ShoppingCart } from 'lucide-react-native';
+import { Camera, ChefHat, Plus, ShoppingCart } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
@@ -11,7 +12,6 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { useModalSheet } from '@/context/ModalSheetContext';
 
 interface FloatingActionButtonProps {
   bottomPosition?: number;
@@ -33,27 +33,27 @@ export function FloatingActionButton({
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
   const [lastUsedFunction, setLastUsedFunction] = useState<'camera' | 'recipe' | 'cart' | null>(null);
   const router = useRouter();
-  
+
   // Use reactive cart count from Convex query
   const cartItemCount = useCartCount();
-  
+
   // Get modal/sheet states from context
   const { isSearchDrawerExpanded, isAnySheetOpen, isAnyModalOpen } = useModalSheet();
-  
+
   // Animated bottom position that adjusts when modals/sheets are open
   const animatedBottomPosition = useSharedValue(bottomPosition);
-  
+
   // Adjust position when search drawer is expanded or any sheet/modal is open
   useEffect(() => {
     const shouldMoveDown = isSearchDrawerExpanded || isAnySheetOpen || isAnyModalOpen;
     const targetPosition = shouldMoveDown ? 20 : bottomPosition; // Move closer to bottom when sheets are open
-    
+
     animatedBottomPosition.value = withSpring(targetPosition, {
       damping: 20,
       stiffness: 300,
     });
   }, [isSearchDrawerExpanded, isAnySheetOpen, isAnyModalOpen, bottomPosition, animatedBottomPosition]);
-  
+
   // Animation values for badge and icon
   const badgeScale = useSharedValue(cartItemCount > 0 ? 1 : 0);
   const iconOpacity = useSharedValue(1);
@@ -79,7 +79,7 @@ export function FloatingActionButton({
   const cartOpacity = useSharedValue(0);
   const cartTranslateX = useSharedValue(0);
   const cartTranslateY = useSharedValue(0);
-  
+
   // Animate badge when cart count changes
   useEffect(() => {
     if (cartItemCount > 0) {
@@ -95,7 +95,7 @@ export function FloatingActionButton({
     prevCartCountRef.current = cartItemCount;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartItemCount]);
-  
+
   // Animate icon opacity when switching (only if values actually changed)
   useEffect(() => {
     // Skip animation on initial mount
@@ -105,11 +105,11 @@ export function FloatingActionButton({
       prevCartCountRef.current = cartItemCount;
       return;
     }
-    
-    const shouldAnimate = 
-      prevLastFunctionRef.current !== lastUsedFunction || 
+
+    const shouldAnimate =
+      prevLastFunctionRef.current !== lastUsedFunction ||
       prevCartCountRef.current !== cartItemCount;
-    
+
     if (shouldAnimate) {
       iconOpacity.value = withTiming(0, { duration: 100 }, () => {
         iconOpacity.value = withTiming(1, { duration: 200 });
@@ -126,7 +126,7 @@ export function FloatingActionButton({
     if (cartItemCount > 0) {
       return <ShoppingCart size={20} color="#FFFFFF" />;
     }
-    
+
     // Show icon based on last used function if cart is empty
     if (lastUsedFunction === 'camera') {
       return <Camera size={20} color="#FFFFFF" />;
@@ -137,7 +137,7 @@ export function FloatingActionButton({
     if (lastUsedFunction === 'cart') {
       return <ShoppingCart size={20} color="#FFFFFF" />;
     }
-    
+
     // Default plus icon
     return <Plus size={20} color="#FFFFFF" strokeWidth={3} />;
   };
@@ -312,7 +312,7 @@ export function FloatingActionButton({
           <Text style={styles.cartBadgeText}>{displayCartCount}</Text>
         </Animated.View>
       )}
-      
+
       <TouchableOpacity
         style={[
           styles.mainActionButton,
@@ -331,7 +331,7 @@ export function FloatingActionButton({
           backgroundColor="rgba(255, 59, 48, 0.75)"
           style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, { zIndex: 0 }]}
         />
-        
+
         {/* Content container - positioned above blur */}
         <View style={styles.buttonContent}>
           <Animated.View style={[styles.mainButtonIcon, iconAnimatedStyle]}>
@@ -350,15 +350,15 @@ export function FloatingActionButton({
         ]}
         pointerEvents={isActionMenuOpen ? 'auto' : 'none'}
       >
-          <TouchableOpacity
+        <TouchableOpacity
           style={[styles.circularIconButton, { backgroundColor: '#FFFFFF', borderColor: '#FF3B30' }]}
-            onPress={handleCameraPress}
-            activeOpacity={0.8}
+          onPress={handleCameraPress}
+          activeOpacity={0.8}
           accessibilityLabel="Create Food Content"
           accessibilityRole="button"
-          >
+        >
           <Camera size={24} color="#FF3B30" />
-          </TouchableOpacity>
+        </TouchableOpacity>
       </Animated.View>
 
       {/* Recipe Share Button - Top Right */}
@@ -370,15 +370,15 @@ export function FloatingActionButton({
         ]}
         pointerEvents={isActionMenuOpen ? 'auto' : 'none'}
       >
-          <TouchableOpacity
+        <TouchableOpacity
           style={[styles.circularIconButton, { backgroundColor: '#FFFFFF', borderColor: '#0B9E58' }]}
-            onPress={handleRecipePress}
-            activeOpacity={0.8}
+          onPress={handleRecipePress}
+          activeOpacity={0.8}
           accessibilityLabel="Recipe Share"
           accessibilityRole="button"
-          >
+        >
           <ChefHat size={24} color="#0B9E58" />
-          </TouchableOpacity>
+        </TouchableOpacity>
       </Animated.View>
 
       {/* Cart Button - Top Left */}
@@ -390,10 +390,10 @@ export function FloatingActionButton({
         ]}
         pointerEvents={isActionMenuOpen ? 'auto' : 'none'}
       >
-          <TouchableOpacity
+        <TouchableOpacity
           style={[styles.circularIconButton, { backgroundColor: '#FFFFFF', borderColor: '#0B9E58' }]}
-            onPress={handleCartPress}
-            activeOpacity={0.8}
+          onPress={handleCartPress}
+          activeOpacity={0.8}
           accessibilityLabel={cartItemCount > 0 ? `Cart (${cartItemCount} items)` : 'View Cart'}
           accessibilityRole="button"
         >
@@ -403,7 +403,7 @@ export function FloatingActionButton({
               <Text style={styles.cartBadgeTextSmall}>{displayCartCount}</Text>
             </Animated.View>
           )}
-          </TouchableOpacity>
+        </TouchableOpacity>
       </Animated.View>
 
       {/* Backdrop - closes menu when tapped - rendered last so it's behind menu items */}
