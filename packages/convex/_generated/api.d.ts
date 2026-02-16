@@ -18,6 +18,7 @@ import type * as actions_data_compilation from "../actions/data_compilation.js";
 import type * as actions_delivery from "../actions/delivery.js";
 import type * as actions_dripScheduler from "../actions/dripScheduler.js";
 import type * as actions_emotionsEngine from "../actions/emotionsEngine.js";
+import type * as actions_foodCreators from "../actions/foodCreators.js";
 import type * as actions_generateEmbeddings from "../actions/generateEmbeddings.js";
 import type * as actions_index from "../actions/index.js";
 import type * as actions_liveSessions from "../actions/liveSessions.js";
@@ -305,6 +306,7 @@ declare const fullApi: ApiFromModules<{
   "actions/delivery": typeof actions_delivery;
   "actions/dripScheduler": typeof actions_dripScheduler;
   "actions/emotionsEngine": typeof actions_emotionsEngine;
+  "actions/foodCreators": typeof actions_foodCreators;
   "actions/generateEmbeddings": typeof actions_generateEmbeddings;
   "actions/index": typeof actions_index;
   "actions/liveSessions": typeof actions_liveSessions;
