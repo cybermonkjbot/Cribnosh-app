@@ -20,12 +20,12 @@ let depth = 0;
 while (searchPath !== '/' && searchPath.length > 0 && depth < maxDepth) {
   const testNodeModules = path.join(searchPath, 'node_modules');
   const testExpoPath = path.join(testNodeModules, 'expo');
-  
+
   if (fs.existsSync(testExpoPath)) {
     buildRootNodeModules = testNodeModules;
     break;
   }
-  
+
   const parentPath = path.dirname(searchPath);
   if (parentPath === searchPath) {
     break;
@@ -61,7 +61,7 @@ const isEASBuild = !!buildRootNodeModules && buildRootNodeModules !== workspaceN
 if (!isEASBuild) {
   const appReactPath = path.join(appNodeModules, 'react');
   const appReactDomPath = path.join(appNodeModules, 'react-dom');
-  
+
   if (fs.existsSync(appReactPath) || fs.existsSync(appReactDomPath)) {
     const blockListPatterns = [
       new RegExp(`${workspaceNodeModules.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/react/.*`),
@@ -114,7 +114,7 @@ if (extraNodeModules['react']) {
       if (fs.existsSync(reactIndexPath)) {
         return { filePath: reactIndexPath, type: 'sourceFile' };
       }
-      return originalResolveRequest 
+      return originalResolveRequest
         ? originalResolveRequest({ ...context, originModulePath: extraNodeModules['react'] }, './index', platform)
         : context.resolveRequest({ ...context, originModulePath: extraNodeModules['react'] }, './index', platform);
     }
@@ -123,7 +123,7 @@ if (extraNodeModules['react']) {
       if (fs.existsSync(reactDomIndexPath)) {
         return { filePath: reactDomIndexPath, type: 'sourceFile' };
       }
-      return originalResolveRequest 
+      return originalResolveRequest
         ? originalResolveRequest({ ...context, originModulePath: extraNodeModules['react-dom'] }, './index', platform)
         : context.resolveRequest({ ...context, originModulePath: extraNodeModules['react-dom'] }, './index', platform);
     }
