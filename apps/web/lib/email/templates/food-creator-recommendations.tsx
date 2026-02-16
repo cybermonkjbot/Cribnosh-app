@@ -1,20 +1,20 @@
 import {
+  Column,
+  Container,
   Html as EmailHtml,
   Head,
-  Preview,
-  Container,
-  Section,
-  Row,
-  Column,
   Img,
+  Preview,
+  Row,
+  Section,
 } from '@react-email/components';
 import {
-  HeaderSection,
-  ContentText,
-  PrimaryButton,
-  FooterSection,
   CardSection,
+  ContentText,
   Divider,
+  FooterSection,
+  HeaderSection,
+  PrimaryButton,
   colors,
 } from './components';
 
@@ -46,7 +46,7 @@ interface FoodCreatorRecommendationsEmailProps {
 
 export const FoodCreatorRecommendationsEmail = ({
   customerName,
-  chefs,
+  foodCreators,
   topDishes,
   browseUrl,
   unsubscribeUrl,
@@ -57,12 +57,12 @@ export const FoodCreatorRecommendationsEmail = ({
     <Preview>Discover new flavors from top-rated chefs in your area!</Preview>
     <Container style={{ padding: '40px 20px', background: colors.background }}>
       <HeaderSection title="Curated Just for You" />
-      
+
       <Section style={{ padding: '0 20px' }}>
         <ContentText>
           Hi {customerName},
         </ContentText>
-        
+
         <ContentText>
           Based on your taste preferences, we've handpicked some amazing chefs and dishes we think you'll love. Each chef brings their unique cultural heritage and expertise to create authentic, memorable meals.
         </ContentText>
@@ -71,8 +71,8 @@ export const FoodCreatorRecommendationsEmail = ({
           <ContentText style={{ fontWeight: 'bold', fontSize: '20px', marginBottom: '16px' }}>
             Featured Chefs
           </ContentText>
-          
-          {chefs.map((chef, index) => (
+
+          {foodCreators.map((chef, index) => (
             <CardSection key={index} style={{ marginBottom: '16px' }}>
               <Row>
                 <Column style={{ width: '80px' }}>
@@ -109,11 +109,11 @@ export const FoodCreatorRecommendationsEmail = ({
           <ContentText style={{ fontWeight: 'bold', fontSize: '20px', marginBottom: '16px' }}>
             Trending Dishes
           </ContentText>
-          
+
           {topDishes.map((dish, index) => (
-            <CardSection 
-              key={index} 
-              style={{ 
+            <CardSection
+              key={index}
+              style={{
                 marginBottom: '16px',
                 background: `linear-gradient(45deg, #ffffff, ${colors.primary}10)`,
               }}
