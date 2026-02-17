@@ -213,7 +213,9 @@ export default function StaffLayout({
 }) {
   return (
     <StaffAuthProvider>
-      <StaffLayoutContent>{children}</StaffLayoutContent>
+      <Suspense fallback={<div className="min-h-screen bg-white" />}>
+        <StaffLayoutContent>{children}</StaffLayoutContent>
+      </Suspense>
     </StaffAuthProvider>
   );
 } 

@@ -1,14 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Suspense } from 'react';
-import { AiMetadata } from "../components/AiMetadata";
-import { CanonicalTag } from "../components/CanonicalTag";
-import { ConvexClientProvider } from '../components/ConvexClientProvider';
-import { JsonLd } from "../components/JsonLd";
-import { ClientLayout } from "../components/layout/client-layout";
+import { Suspense } from "react";
+import "./globals.css";
+
+
 import { CustomScrollbar } from "../components/ui/custom-scrollbar";
 import { ScrollToTop } from "../components/ui/scroll-to-top";
 import { LocationProvider } from '../context/location-context';
-import "./globals.css";
+
+import { AiMetadata } from "../components/AiMetadata";
+import { ConvexClientProvider } from "../components/ConvexClientProvider";
+import { JsonLd } from "../components/JsonLd";
+import { ClientLayout } from "../components/layout/client-layout";
 import RootLayoutClient from "./layout-client";
 import AppProviders from './providers';
 
@@ -82,9 +84,8 @@ export const metadata: Metadata = {
 
 // We use Suspense boundaries below to isolate components using usePathname/useSearchParams
 // during static generation. This avoids the need for force-dynamic at the root level.
-// export const dynamic = "force-dynamic";
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -104,9 +105,9 @@ export default async function RootLayout({
         <meta name="googlebot" content="index, follow" />
         <meta name="google-site-verification" content="YOUR_GOOGLE_SITE_VERIFICATION_CODE" />
 
-        <Suspense fallback={null}>
+        {/* <Suspense fallback={null}>
           <CanonicalTag />
-        </Suspense>
+        </Suspense> */}
 
         <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
 
@@ -223,6 +224,6 @@ export default async function RootLayout({
           </AppProviders>
         </ConvexClientProvider>
       </body>
-    </html>
+    </html >
   );
 }

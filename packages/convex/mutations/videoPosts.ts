@@ -1,7 +1,9 @@
 // @ts-nocheck
-import { mutation, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
+import { internalMutation, mutation } from "../_generated/server";
+import { isAdmin, isStaff, requireAuth } from "../utils/auth";
 
 // Generate upload URL for video
 export const generateVideoUploadUrl = mutation({
@@ -111,6 +113,17 @@ export const createVideoPost = mutation({
       viewsCount: 0,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+    });
+
+    // Enqueue moderation check
+    await ctx.scheduler.runAfter(0, internal.mutations.jobQueue.enqueueJob, {
+      jobType: "moderation_check",
+      payload: {
+        contentId: videoId,
+        type: "video",
+        text: `${args.title} ${args.description || ""}`
+      },
+      priority: "normal"
     });
 
     return videoId;
@@ -236,7 +249,7 @@ export const updateVideoPost = mutation({
     // Check if user is the creator or admin
     const isCreator = video.creatorId === user._id;
     const isAdmin = user.roles?.includes('admin');
-    
+
     if (!isCreator && !isAdmin) {
       throw new Error("Not authorized to update this video post");
     }
@@ -251,6 +264,19 @@ export const updateVideoPost = mutation({
       ...(args.visibility && { visibility: args.visibility }),
       updatedAt: Date.now(),
     });
+
+    // Enqueue moderation check if text content changed
+    if (args.title || args.description !== undefined) {
+      await ctx.scheduler.runAfter(0, internal.mutations.jobQueue.enqueueJob, {
+        jobType: "moderation_check",
+        payload: {
+          contentId: args.videoId,
+          type: "video",
+          text: `${args.title || video.title} ${args.description !== undefined ? args.description : (video.description || "")}`
+        },
+        priority: "normal"
+      });
+    }
 
     return null;
   },
@@ -288,7 +314,7 @@ export const publishVideoPost = mutation({
     // Check if user is the creator or admin
     const isCreator = video.creatorId === user._id;
     const isAdmin = user.roles?.includes('admin');
-    
+
     if (!isCreator && !isAdmin) {
       throw new Error("Not authorized to publish this video post");
     }
@@ -336,7 +362,7 @@ export const deleteVideoPost = mutation({
     // Check if user is the creator or admin
     const isCreator = video.creatorId === user._id;
     const isAdmin = user.roles?.includes('admin');
-    
+
     if (!isCreator && !isAdmin) {
       throw new Error("Not authorized to delete this video post");
     }
@@ -533,7 +559,7 @@ export const recordVideoView = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    
+
     let userId: Id<"users"> | undefined;
     if (identity) {
       // Get user from token
@@ -623,7 +649,7 @@ export const flagVideo = mutation({
     }
 
     // Create report
-    await ctx.db.insert('videoReports', {
+    const reportId = await ctx.db.insert('videoReports', {
       videoId: args.videoId,
       reporterId: user._id,
       reason: args.reason,
@@ -632,13 +658,72 @@ export const flagVideo = mutation({
       createdAt: Date.now(),
     });
 
-    // Update video status to flagged
-    await ctx.db.patch(args.videoId, {
-      status: "flagged",
-      updatedAt: Date.now(),
+    // Enqueue report alert
+    await ctx.scheduler.runAfter(0, internal.mutations.jobQueue.enqueueJob, {
+      jobType: "report_alert",
+      payload: {
+        reportId,
+        videoId: args.videoId,
+        reason: args.reason,
+        severity: (args.reason === "violence" || args.reason === "harassment") ? "high" : "normal"
+      },
+      priority: "high"
     });
 
     return null;
+  },
+});
+
+// Admin: Resolve video report
+export const resolveVideoReport = mutation({
+  args: {
+    reportId: v.id("videoReports"),
+    status: v.union(
+      v.literal("resolved"),
+      v.literal("dismissed")
+    ),
+    resolutionNotes: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
+
+    if (!isAdmin(user) && !isStaff(user)) {
+      throw new Error("Unauthorized: Admin or staff access required");
+    }
+
+    const report = await ctx.db.get(args.reportId);
+    if (!report) {
+      return {
+        success: false,
+        message: "Report not found",
+      };
+    }
+
+    await ctx.db.patch(args.reportId, {
+      status: args.status,
+    });
+
+    // Enqueue creator evaluation if report is resolved (violation confirmed)
+    if (args.status === "resolved") {
+      const video = await ctx.db.get(report.videoId);
+      if (video) {
+        await ctx.scheduler.runAfter(0, internal.mutations.jobQueue.enqueueJob, {
+          jobType: "evaluate_creator",
+          payload: { chefId: video.creatorId },
+          priority: "low"
+        });
+      }
+    }
+
+    return {
+      success: true,
+      message: `Video report ${args.status} successfully`,
+    };
   },
 });
 
@@ -664,5 +749,24 @@ export const publishVideoPostForSeed = internalMutation({
     });
 
     return null;
+  },
+});
+
+// Internal version of updateVideoPost for system actions
+export const updateVideoPostInternal = internalMutation({
+  args: {
+    videoId: v.id("videoPosts"),
+    status: v.optional(v.string()),
+    moderationNote: v.optional(v.string()),
+    updates: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    const { videoId, status, moderationNote, updates } = args;
+    await ctx.db.patch(videoId, {
+      ...(status && { status }),
+      ...(moderationNote && { moderationNote }),
+      ...updates,
+      updatedAt: Date.now(),
+    });
   },
 });

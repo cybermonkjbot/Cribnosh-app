@@ -3,21 +3,21 @@
 import { EnhancedActivity } from '@/components/admin/enhanced-activity';
 import { EnhancedStats } from '@/components/admin/enhanced-stats';
 import { EnhancedSystemHealth } from '@/components/admin/enhanced-system-health';
+import { DashboardSkeleton } from '@/components/admin/skeletons';
+import { Button } from '@/components/ui/button';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useMutation as useConvexMutation, useQuery as useConvexQuery } from 'convex/react';
-import { motion } from 'motion/react';
 import {
-    Activity,
-    AlertTriangle,
-    Bell,
-    BarChart3,
-    Shield
+  Activity,
+  AlertTriangle,
+  BarChart3,
+  Bell,
+  Shield
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useAdminUser } from './AdminUserProvider';
-import { Button } from '@/components/ui/button';
-import { DashboardSkeleton } from '@/components/admin/skeletons';
 
 export default function AdminDashboard() {
   // Section chips must be defined before any use
@@ -28,13 +28,13 @@ export default function AdminDashboard() {
   ];
   const [error, setError] = useState<string | null>(null);
   const { user: adminUser, loading: adminLoading } = useAdminUser();
-  
+
   // Get real notifications from Convex
   const notifications = useConvexQuery(
     api.queries.notifications.getUserNotifications,
-    adminUser && adminUser._id ? { 
-      userId: adminUser._id as Id<"users">, 
-      roles: adminUser.role ? [adminUser.role] : [] 
+    adminUser && adminUser._id ? {
+      userId: adminUser._id as Id<"users">,
+      roles: adminUser.role ? [adminUser.role] : []
     } : "skip"
   );
   const markNotificationRead = useConvexMutation(api.mutations.users.markNotificationRead);
@@ -100,7 +100,19 @@ export default function AdminDashboard() {
             Welcome back! Here's what's happening with CribNosh today.
           </p>
         </div>
-        
+
+        {/* System Flags Quick Action */}
+        <div className="flex gap-4">
+          {notifications?.some((n: any) => n.type === 'system_alert') && (
+            <div className="bg-orange-100 border border-orange-200 px-4 py-2 rounded-xl flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-orange-600" />
+              <div className="hidden sm:block">
+                <p className="text-xs font-bold text-orange-800 uppercase tracking-wider">System Flags</p>
+                <p className="text-sm font-bold text-orange-900">Review Required</p>
+              </div>
+            </div>
+          )}
+        </div>
       </motion.div>
 
       {/* Enhanced Section Filter Chips */}
@@ -119,11 +131,10 @@ export default function AdminDashboard() {
               onClick={() => setActiveSection(chip.label)}
               variant={activeSection === chip.label ? "default" : "outline"}
               size="lg"
-              className={`rounded-xl px-2 sm:px-3 md:px-4 lg:px-6 py-2 sm:py-3 font-satoshi shadow-lg transition-all duration-300 whitespace-nowrap font-medium border min-w-fit touch-manipulation min-h-[44px] shrink-0 text-xs sm:text-sm ${
-                activeSection === chip.label
-                  ? 'bg-[#F23E2E] text-white border-[#F23E2E] shadow-xl' 
+              className={`rounded-xl px-2 sm:px-3 md:px-4 lg:px-6 py-2 sm:py-3 font-satoshi shadow-lg transition-all duration-300 whitespace-nowrap font-medium border min-w-fit touch-manipulation min-h-[44px] shrink-0 text-xs sm:text-sm ${activeSection === chip.label
+                  ? 'bg-[#F23E2E] text-white border-[#F23E2E] shadow-xl'
                   : 'bg-white/80 backdrop-blur-sm text-gray-700 border-gray-200 hover:bg-white hover:shadow-xl'
-              }`}
+                }`}
             >
               <Icon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 shrink-0" />
               <span className="hidden sm:inline">{chip.label}</span>
@@ -200,15 +211,14 @@ export default function AdminDashboard() {
                 {notifications.map((notification: any) => (
                   <div
                     key={notification._id}
-                    className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-xl border font-satoshi gap-3 ${
-                      notification.type === 'success'
+                    className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-xl border font-satoshi gap-3 ${notification.type === 'success'
                         ? 'bg-[#F23E2E]/10 border-[#F23E2E]/30 text-[#F23E2E]'
                         : notification.type === 'warning'
-                        ? 'bg-gray-100 border-gray-300 text-gray-800'
-                        : notification.type === 'error'
-                        ? 'bg-gray-100 border-gray-300 text-gray-800'
-                        : 'bg-gray-100 border-gray-300 text-gray-800'
-                    }`}
+                          ? 'bg-gray-100 border-gray-300 text-gray-800'
+                          : notification.type === 'error'
+                            ? 'bg-gray-100 border-gray-300 text-gray-800'
+                            : 'bg-gray-100 border-gray-300 text-gray-800'
+                      }`}
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 wrap-break-word">{notification.message}</p>

@@ -23,10 +23,13 @@ import {
   FileText,
   Home,
   Image,
+  Activity as JobsIcon,
   LogOut,
   Mail,
   MapPin,
   MessageCircle,
+  MessageSquare,
+  Percent,
   Plus,
   PoundSterling,
   Radio,
@@ -34,6 +37,7 @@ import {
   Settings,
   Shield,
   ShoppingCart,
+  Ticket,
   ToggleLeft,
   TrendingUp,
   Truck,
@@ -143,6 +147,32 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       description: 'Delivery management'
     },
     {
+      name: 'Operations',
+      href: '/admin/operations',
+      icon: ClipboardList,
+      description: 'Kitchens, Custom Orders, Reviews',
+      subItems: [
+        {
+          name: 'Kitchens',
+          href: '/admin/kitchens',
+          icon: Utensils,
+          description: 'Kitchen certification & info',
+        },
+        {
+          name: 'Custom Orders',
+          href: '/admin/custom-orders',
+          icon: ShoppingCart,
+          description: 'Manage bespoke requests',
+        },
+        {
+          name: 'Reviews',
+          href: '/admin/reviews',
+          icon: MessageSquare,
+          description: 'Chef & Meal reviews',
+        },
+      ]
+    },
+    {
       name: 'Careers',
       href: '/admin/careers',
       icon: Briefcase,
@@ -193,6 +223,32 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
           href: '/admin/waitlist/emails',
           icon: Mail,
           description: 'Email management',
+        },
+      ]
+    },
+    {
+      name: 'Promotions',
+      href: '/admin/promotions',
+      icon: Ticket,
+      description: 'Offers, Coupons, Referrals',
+      subItems: [
+        {
+          name: 'Special Offers',
+          href: '/admin/offers',
+          icon: Ticket,
+          description: 'Manage seasonal offers',
+        },
+        {
+          name: 'Coupons',
+          href: '/admin/coupons',
+          icon: Percent,
+          description: 'Discount codes & Nosh Pass',
+        },
+        {
+          name: 'Referrals',
+          href: '/admin/referrals',
+          icon: Users,
+          description: 'Track referral rewards',
         },
       ]
     },
@@ -364,7 +420,26 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
           icon: ToggleLeft,
           description: 'Manage feature flags',
         },
+        {
+          name: 'Job Queue',
+          href: '/admin/system/jobs',
+          icon: JobsIcon,
+          description: 'Monitor background jobs',
+        },
       ]
+    },
+    {
+      name: 'Support',
+      href: '/admin/support',
+      icon: MessageCircle,
+      description: 'Contact form submissions',
+    },
+    {
+      name: 'Moderation',
+      href: '/admin/moderation',
+      icon: Shield,
+      description: 'Resolve content & creator reports',
+      badge: 'New',
     },
     {
       name: 'Compliance',

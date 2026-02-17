@@ -56,3 +56,13 @@ export const getUserCouponUsageCount = query({
   },
 });
 
+/**
+ * Get all coupons (for admin)
+ */
+export const getAll = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query('coupons').collect();
+  },
+});
+

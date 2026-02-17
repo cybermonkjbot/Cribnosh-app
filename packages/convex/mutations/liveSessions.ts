@@ -24,13 +24,13 @@ export const createLiveSession = mutation({
   handler: async (ctx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     // Get the chef to verify ownership
     const chef = await ctx.db.get(args.chefId);
     if (!chef) {
       throw new Error('Chef not found');
     }
-    
+
     // Users can only create live sessions for their own chef profile, staff/admin can create for any chef
     if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
       throw new Error('Access denied: You can only create live sessions for yourself');
@@ -223,8 +223,8 @@ export const sendChatMessage = mutation({
       userId: args.userId,
       message: args.message,
       timestamp: Date.now(),
-      type: args.messageType === "reaction" ? "reaction" : 
-            args.messageType === "system" ? "text" : "text" as "text" | "reaction" | "tip",
+      type: args.messageType === "reaction" ? "reaction" :
+        args.messageType === "system" ? "text" : "text" as "text" | "reaction" | "tip",
     };
 
     const chatMessages = session.chatMessages || [];
@@ -233,8 +233,8 @@ export const sendChatMessage = mutation({
     await ctx.db.patch(args.sessionId, {
       chatMessages: updatedMessages,
       totalComments: (session.totalComments || 0) + 1,
-      totalReactions: args.messageType === "reaction" 
-        ? (session.totalReactions || 0) + 1 
+      totalReactions: args.messageType === "reaction"
+        ? (session.totalReactions || 0) + 1
         : (session.totalReactions || 0),
     });
 
@@ -261,7 +261,7 @@ export const endLiveSession = mutation({
   handler: async (ctx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     const session = await ctx.db.get(args.sessionId);
     if (!session) {
       return {
@@ -269,7 +269,7 @@ export const endLiveSession = mutation({
         message: "Live session not found",
       };
     }
-    
+
     // Get the chef to verify ownership
     const chef = await ctx.db.get(session.chef_id);
     if (!chef) {
@@ -278,7 +278,7 @@ export const endLiveSession = mutation({
         message: "Chef not found",
       };
     }
-    
+
     // Users can only end their own live sessions, staff/admin can end any
     if (!isAdmin(user) && !isStaff(user) && chef.userId !== user._id) {
       return {
@@ -302,7 +302,7 @@ export const endLiveSession = mutation({
     });
 
     let videoId: Id<"videoPosts"> | undefined;
-    
+
     // If saveAsVideo is requested, create a video post
     // Note: Actual video recording would need to be handled by Agora recording service
     // This creates a placeholder video post that can be updated when the recording is available
@@ -346,8 +346,8 @@ export const endLiveSession = mutation({
 
     return {
       success: true,
-      message: args.saveAsVideo 
-        ? "Live session ended and saved as video post" 
+      message: args.saveAsVideo
+        ? "Live session ended and saved as video post"
         : "Live session ended successfully",
       videoId,
     };
@@ -373,7 +373,7 @@ export const updateViewerCount = mutation({
     }
 
     const peakViewers = Math.max(session.sessionStats.peakViewers || 0, args.viewerCount);
-    
+
     await ctx.db.patch(args.sessionId, {
       viewerCount: args.viewerCount,
       sessionStats: {
@@ -440,7 +440,7 @@ export const moderateChatMessage = mutation({
     }
 
     const chatMessages = session.chatMessages || [];
-    
+
     if (args.messageIndex < 0 || args.messageIndex >= chatMessages.length) {
       return {
         success: false,
@@ -450,7 +450,7 @@ export const moderateChatMessage = mutation({
 
     let updatedMessages = [...chatMessages];
     const message = updatedMessages[args.messageIndex];
-    
+
     if (args.action === "delete") {
       // Mark message as deleted with moderation info
       updatedMessages[args.messageIndex] = {
@@ -487,7 +487,7 @@ export const moderateChatMessage = mutation({
           action: 'ban'
         }
       };
-      
+
       // Add user to muted users list
       const mutedUsers = session.mutedUsers || [];
       if (!mutedUsers.includes(message.userId)) {
@@ -534,7 +534,7 @@ export const updateSessionSettings = mutation({
     }
 
     const updateData: any = {};
-    
+
     if (args.settings.title !== undefined) updateData.title = args.settings.title;
     if (args.settings.description !== undefined) updateData.description = args.settings.description;
     if (args.settings.tags !== undefined) updateData.tags = args.settings.tags;
@@ -544,7 +544,7 @@ export const updateSessionSettings = mutation({
 
     await ctx.db.patch(args.sessionId, updateData);
 
-    return { 
+    return {
       success: true,
       message: "Session settings updated successfully",
     };
@@ -575,7 +575,7 @@ export const getSessionStats = mutation({
       };
     }
 
-    const sessionDuration = session.endedAt 
+    const sessionDuration = session.endedAt
       ? session.endedAt - (session.actual_start_time || session.scheduled_start_time)
       : Date.now() - (session.actual_start_time || session.scheduled_start_time);
 
@@ -776,7 +776,7 @@ export const adminMuteLiveChatUser = mutation({
     // Update session to add muted user
     const mutedUsers = session.mutedUsers || [];
     const muteExpiry = args.duration ? Date.now() + (args.duration * 60 * 1000) : null;
-    
+
     const muteEntry = {
       userId: args.userId,
       mutedBy: args.adminId,
@@ -843,7 +843,7 @@ export const updateSessionLocation = mutation({
     }
 
     const [longitude, latitude] = args.location.coordinates;
-    
+
     // Validate coordinate ranges
     if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
       return {
@@ -860,6 +860,52 @@ export const updateSessionLocation = mutation({
     return {
       success: true,
       message: "Session location updated successfully",
+    };
+  },
+});
+
+// Admin: Resolve live session report
+export const resolveLiveReport = mutation({
+  args: {
+    reportId: v.id("liveSessionReports"),
+    status: v.union(
+      v.literal("resolved"),
+      v.literal("dismissed")
+    ),
+    resolutionNotes: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    // Require authentication
+    const user = await requireAuth(ctx, args.sessionToken);
+
+    // Check if user is admin or staff
+    if (!isAdmin(user) && !isStaff(user)) {
+      throw new Error("Unauthorized: Admin or staff access required");
+    }
+
+    const report = await ctx.db.get(args.reportId);
+    if (!report) {
+      return {
+        success: false,
+        message: "Report not found",
+      };
+    }
+
+    await ctx.db.patch(args.reportId, {
+      status: args.status,
+      resolutionNotes: args.resolutionNotes,
+      resolvedBy: user._id,
+      resolvedAt: Date.now(),
+    });
+
+    return {
+      success: true,
+      message: `Report ${args.status} successfully`,
     };
   },
 });

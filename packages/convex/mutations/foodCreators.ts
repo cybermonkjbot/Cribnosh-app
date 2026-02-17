@@ -674,3 +674,47 @@ export const updateFsaRating = mutation({
     });
   }
 });
+
+// Admin: Moderate food creator (suspend, flag, verify)
+export const adminModerateFoodCreator = mutation({
+  args: {
+    chefId: v.id('chefs'),
+    status: v.union(
+      v.literal('active'),
+      v.literal('pending'),
+      v.literal('suspended'),
+      v.literal('rejected'),
+      v.literal('flagged')
+    ),
+    moderationNote: v.optional(v.string()),
+    sessionToken: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.sessionToken);
+
+    if (!isAdmin(user) && !isStaff(user)) {
+      throw new Error("Only admins and staff can moderate food creators");
+    }
+
+    const chef = await ctx.db.get(args.chefId);
+    if (!chef) {
+      throw new Error("Food creator not found");
+    }
+
+    await ctx.db.patch(args.chefId, {
+      status: args.status,
+      // Note: we might need specialized moderation fields in schema
+      updatedAt: Date.now(),
+    });
+
+    // If there's an associated user account, we might want to flag/lock it too
+    // But for now we just change the chef profile status
+
+    console.log(`Food creator ${args.chefId} moderated to status: ${args.status} by ${user._id}`);
+
+    return {
+      success: true,
+      message: `Food creator status updated to ${args.status}`
+    };
+  }
+});

@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
 import { AdminFilterBar, FilterOption } from '@/components/admin/admin-filter-bar';
 import { StatusBadge } from '@/components/admin/content/StatusBadge';

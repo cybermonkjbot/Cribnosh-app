@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -265,11 +264,11 @@ export function PayrollReportsTableSkeleton({ rowCount = 5 }: { rowCount?: numbe
 /**
  * AdminPageSkeleton - For full-page loading (replaces spinners)
  */
-export function AdminPageSkeleton({ 
-  title, 
-  description 
-}: { 
-  title?: string; 
+export function AdminPageSkeleton({
+  title,
+  description
+}: {
+  title?: string;
   description?: string;
 }) {
   return (
@@ -387,7 +386,7 @@ export function AccountSettingsSkeleton() {
         <Skeleton className="w-24 h-24 rounded-full" />
         <Skeleton className="h-10 w-32 rounded-lg" />
       </div>
-      
+
       {/* Form Fields */}
       <div className="space-y-6">
         <div>
@@ -621,3 +620,30 @@ export function WorkIdListSkeleton({ rowCount = 5 }: { rowCount?: number }) {
   );
 }
 
+/**
+ * GenericTableSkeleton - A flexible skeleton for standard admin tables
+ */
+export function GenericTableSkeleton({
+  rowCount = 5,
+  columnCount = 5
+}: {
+  rowCount?: number;
+  columnCount?: number;
+}) {
+  return (
+    <>
+      {[...Array(rowCount)].map((_, i) => (
+        <tr key={i} className="animate-pulse">
+          {[...Array(columnCount)].map((_, j) => (
+            <td key={j} className="px-6 py-4">
+              <Skeleton className={cn(
+                "h-4 w-full",
+                j === 0 ? "w-32" : j === columnCount - 1 ? "w-16" : "w-24"
+              )} />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}

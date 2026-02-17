@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 import {
   handleConvexError
 } from '../../../apps/web/lib/errors/convex-exports';
+import { internal } from "../_generated/api";
 import { mutation } from '../_generated/server';
 
 export const logActivity = mutation({
@@ -215,7 +216,7 @@ export const createContent = mutation({
   returns: v.id("content"),
   handler: async (ctx, args) => {
     try {
-      return await ctx.db.insert("content", {
+      const contentId = await ctx.db.insert("content", {
         ...args,
         lastModified: Date.now(),
         metadata: args.metadata || {
@@ -224,6 +225,19 @@ export const createContent = mutation({
           readTime: 0,
         },
       });
+
+      // Enqueue moderation check
+      await ctx.scheduler.runAfter(0, internal.mutations.jobQueue.enqueueJob, {
+        jobType: "moderation_check",
+        payload: {
+          contentId,
+          type: args.type,
+          text: `${args.title} ${args.content}`
+        },
+        priority: "normal"
+      });
+
+      return contentId;
     } catch (error) {
       throw handleConvexError(error);
     }
@@ -252,6 +266,21 @@ export const updateContent = mutation({
         lastModified: Date.now(),
         ...(updates.status === "published" && { publishDate: Date.now() }),
       });
+
+      // Enqueue moderation check if title or content changed
+      if (updates.title || updates.content) {
+        const content = await ctx.db.get(contentId);
+        await ctx.scheduler.runAfter(0, internal.mutations.jobQueue.enqueueJob, {
+          jobType: "moderation_check",
+          payload: {
+            contentId: contentId,
+            type: content?.type || "unknown",
+            text: `${updates.title || content?.title || ""} ${updates.content || content?.content || ""}`
+          },
+          priority: "normal"
+        });
+      }
+
       return null;
     } catch (error) {
       throw handleConvexError(error);
@@ -325,6 +354,24 @@ export const insertAdminLog = mutation({
       timestamp: args.timestamp ?? Date.now(),
       userId: args.adminId, // Use adminId as userId for admin actions
       adminId: args.adminId,
+    });
+  },
+});
+
+export const createAdminNotification = internalMutation({
+  args: {
+    type: v.string(),
+    title: v.string(),
+    message: v.string(),
+    priority: v.union(v.literal("low"), v.literal("normal"), v.literal("high"), v.literal("urgent")),
+    category: v.string(),
+    metadata: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("adminNotifications", {
+      ...args,
+      timestamp: Date.now(),
+      resolved: false,
     });
   },
 });
@@ -430,7 +477,7 @@ export const updateUserPermissions = mutation({
         .query("userPermissions")
         .filter((q) => q.eq(q.field("userId"), args.userId))
         .first();
-    
+
       // Convert permission objects to string array for schema compatibility
       const permissionStrings = args.permissions
         .filter((p) => p.granted)
@@ -450,7 +497,7 @@ export const updateUserPermissions = mutation({
           updatedBy: args.userId,
         });
       }
-      
+
       // Log the activity
       await ctx.db.insert('adminActivity', {
         type: "permission_update",
@@ -463,7 +510,7 @@ export const updateUserPermissions = mutation({
           details: { permissions: args.permissions }
         }
       });
-      
+
       return { success: true };
     } catch (error) {
       throw handleConvexError(error);
@@ -487,10 +534,10 @@ export const toggleUserPermission = mutation({
         .query("userPermissions")
         .filter((q) => q.eq(q.field("userId"), args.userId))
         .first();
-      
+
       // Schema expects array of strings, so we work with that
       const existingPermStrings = (existingPermissions?.permissions as string[]) || [];
-      
+
       if (args.granted) {
         // Add permission if not already present
         if (!existingPermStrings.includes(args.permissionId)) {
@@ -503,7 +550,7 @@ export const toggleUserPermission = mutation({
           existingPermStrings.splice(index, 1);
         }
       }
-      
+
       if (existingPermissions) {
         await ctx.db.patch(existingPermissions._id, {
           permissions: existingPermStrings,
@@ -518,7 +565,7 @@ export const toggleUserPermission = mutation({
           updatedBy: args.userId,
         });
       }
-      
+
       // Log the activity
       await ctx.db.insert('adminActivity', {
         type: "permission_toggle",
@@ -531,7 +578,7 @@ export const toggleUserPermission = mutation({
           details: { permissionId: args.permissionId, granted: args.granted }
         }
       });
-      
+
       return { success: true };
     } catch (error) {
       throw handleConvexError(error);
@@ -562,7 +609,7 @@ export const createUserRole = mutation({
         createdAt: Date.now(),
         updatedAt: Date.now()
       });
-      
+
       // Log the activity
       await ctx.db.insert('adminActivity', {
         type: "role_create",
@@ -574,7 +621,7 @@ export const createUserRole = mutation({
           details: { name: args.name, permissions: args.permissions }
         }
       });
-      
+
       return { success: true, roleId };
     } catch (error) {
       throw handleConvexError(error);
@@ -596,19 +643,19 @@ export const updateUserRole = mutation({
     try {
       // Update an existing user role
       const existingRole = await ctx.db.get(args.roleId);
-      
+
       if (!existingRole) {
         throw new Error("Role not found");
       }
-      
+
       const updates: Record<string, unknown> = {};
       if (args.name !== undefined) updates.name = args.name;
       if (args.description !== undefined) updates.description = args.description;
       if (args.permissions !== undefined) updates.permissions = args.permissions;
       updates.updatedAt = Date.now();
-      
+
       await ctx.db.patch(args.roleId, updates);
-      
+
       // Log the activity
       await ctx.db.insert('adminActivity', {
         type: "role_update",
@@ -620,7 +667,7 @@ export const updateUserRole = mutation({
           details: { name: args.name, permissions: args.permissions }
         }
       });
-      
+
       return { success: true };
     } catch (error) {
       throw handleConvexError(error);
@@ -639,31 +686,31 @@ export const deleteUserRole = mutation({
     try {
       // Delete a user role from the database
       const existingRole = await ctx.db.get(args.roleId);
-      
+
       if (!existingRole) {
         throw new Error("Role not found");
       }
-      
+
       if (existingRole.isSystem) {
         throw new Error("Cannot delete system roles");
       }
-      
+
       // Check if any users have this role
       const usersWithRole = await ctx.db
         .query("users")
         .collect();
-      
+
       const usersWithThisRole = usersWithRole.filter((user) => {
         const userRoles = (user as { roles?: unknown[] }).roles;
         return Array.isArray(userRoles) && userRoles.includes(args.roleId);
       });
-      
+
       if (usersWithThisRole.length > 0) {
         throw new Error("Cannot delete role that is assigned to users");
       }
-      
+
       await ctx.db.delete(args.roleId);
-      
+
       // Log the activity
       await ctx.db.insert('adminActivity', {
         type: "role_delete",
@@ -675,7 +722,7 @@ export const deleteUserRole = mutation({
           details: { name: existingRole.name }
         }
       });
-      
+
       return { success: true };
     } catch (error) {
       throw handleConvexError(error);
@@ -698,13 +745,13 @@ export const assignUserRole = mutation({
       if (!user) {
         throw new Error("User not found");
       }
-      
+
       const role = await ctx.db.get(args.roleId);
-      
+
       if (!role) {
         throw new Error("Role not found");
       }
-      
+
       // Update user's roles
       const userWithRoles = user as { roles?: string[] };
       const currentRoles: string[] = Array.isArray(userWithRoles.roles) ? userWithRoles.roles : [];
@@ -714,11 +761,11 @@ export const assignUserRole = mutation({
           roles: [...currentRoles, roleIdString]
         });
       }
-      
+
       const roleName = (role as { name?: unknown }).name as string | undefined || 'Unknown';
       const userData = user as { name?: unknown; email?: unknown };
       const userName = (userData.name as string | undefined) || (userData.email as string | undefined) || 'Unknown';
-      
+
       // Log the activity
       await ctx.db.insert('adminActivity', {
         type: "role_assign",
@@ -731,7 +778,7 @@ export const assignUserRole = mutation({
           details: { roleId: args.roleId, roleName: roleName }
         }
       });
-      
+
       return { success: true };
     } catch (error) {
       throw handleConvexError(error);
@@ -754,83 +801,83 @@ export const initializeDefaultRoles = mutation({
       }
 
       // Initialize default roles
-    const defaultRoles = [
-      {
-        name: "Administrator",
-        description: "Full system access",
-        permissions: [
-          "users.view",
-          "users.create", 
-          "users.edit",
-          "users.delete",
-          "chefs.view",
-          "chefs.approve",
-          "chefs.reject",
-          "orders.view",
-          "orders.manage",
-          "analytics.view",
-          "settings.manage",
-          "staff.manage",
-          "payroll.view",
-          "content.manage",
-          "compliance.view"
-        ],
-        isDefault: true,
-        isSystem: true,
-        userCount: 0,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      },
-      {
-        name: "Moderator",
-        description: "Content and user moderation",
-        permissions: [
-          "content.manage",
-          "users.view",
-          "analytics.view"
-        ],
-        isDefault: false,
-        isSystem: true,
-        userCount: 0,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      },
-      {
-        name: "Support Agent",
-        description: "Customer support and order assistance",
-        permissions: [
-          "orders.view",
-          "orders.manage",
-          "users.view",
-          "analytics.view"
-        ],
-        isDefault: false,
-        isSystem: true,
-        userCount: 0,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      },
-      {
-        name: "Data Analyst",
-        description: "Analytics and reporting access",
-        permissions: [
-          "analytics.view",
-          "users.view",
-          "orders.view"
-        ],
-        isDefault: false,
-        isSystem: false,
-        userCount: 0,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      }
-    ];
-    
+      const defaultRoles = [
+        {
+          name: "Administrator",
+          description: "Full system access",
+          permissions: [
+            "users.view",
+            "users.create",
+            "users.edit",
+            "users.delete",
+            "chefs.view",
+            "chefs.approve",
+            "chefs.reject",
+            "orders.view",
+            "orders.manage",
+            "analytics.view",
+            "settings.manage",
+            "staff.manage",
+            "payroll.view",
+            "content.manage",
+            "compliance.view"
+          ],
+          isDefault: true,
+          isSystem: true,
+          userCount: 0,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        },
+        {
+          name: "Moderator",
+          description: "Content and user moderation",
+          permissions: [
+            "content.manage",
+            "users.view",
+            "analytics.view"
+          ],
+          isDefault: false,
+          isSystem: true,
+          userCount: 0,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        },
+        {
+          name: "Support Agent",
+          description: "Customer support and order assistance",
+          permissions: [
+            "orders.view",
+            "orders.manage",
+            "users.view",
+            "analytics.view"
+          ],
+          isDefault: false,
+          isSystem: true,
+          userCount: 0,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        },
+        {
+          name: "Data Analyst",
+          description: "Analytics and reporting access",
+          permissions: [
+            "analytics.view",
+            "users.view",
+            "orders.view"
+          ],
+          isDefault: false,
+          isSystem: false,
+          userCount: 0,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        }
+      ];
+
       // Insert default roles
       for (const role of defaultRoles) {
         await ctx.db.insert("userRoles", role);
       }
-      
+
       return { success: true, message: "Default roles initialized" };
     } catch (error) {
       throw handleConvexError(error);
@@ -960,12 +1007,12 @@ export const initializeDefaultPermissions = mutation({
           createdAt: Date.now()
         }
       ];
-    
+
       // Insert default permissions
       for (const permission of defaultPermissions) {
         await ctx.db.insert("permissions", permission);
       }
-      
+
       return { success: true, message: "Default permissions initialized" };
     } catch (error) {
       throw handleConvexError(error);

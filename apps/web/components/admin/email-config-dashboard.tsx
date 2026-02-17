@@ -23,6 +23,7 @@ import {
   Zap
 } from 'lucide-react';
 import { useState } from 'react';
+import { EmailAnalyticsDashboard } from './email-analytics-dashboard';
 
 import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
@@ -35,14 +36,13 @@ interface EmailConfigDashboardProps {
 export function EmailConfigDashboard({ className }: EmailConfigDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('templates');
-  const data = useQuery(api.email_configs.getConfigs);
-  const templatesData = useQuery(api.queries.emailConfig.getAllTemplates);
+  const data = useQuery(api.email_configs.getConfigs, {});
+  const templatesData = useQuery(api.queries.emailConfig.getAllTemplates, {});
   const saveConfig = useMutation(api.email_configs.saveConfig);
   const importConfigs = useMutation(api.email_configs.importConfigs);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  const configs = data?.configs || {};
+  const configs = (data?.configs || {}) as any;
   const templates = templatesData || [];
   const loading = data === undefined || templatesData === undefined;
 
@@ -394,16 +394,14 @@ export function EmailConfigDashboard({ className }: EmailConfigDashboardProps) {
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">Email Analytics</h2>
+          <EmailAnalyticsDashboard />
+
+          <div className="flex items-center justify-between pt-8">
+            <h2 className="text-2xl font-semibold">Analytics Configuration</h2>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => handleExportConfig('analytics')}>
                 <Download className="h-4 w-4 mr-2" />
                 Export
-              </Button>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                New Dashboard
               </Button>
             </div>
           </div>
@@ -413,7 +411,7 @@ export function EmailConfigDashboard({ className }: EmailConfigDashboardProps) {
               <Card key={analytics.configId}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Analytics Config
+                    Analytics Tracking Settings
                   </CardTitle>
                   <Badge variant={analytics.trackingEnabled ? 'default' : 'secondary'}>
                     {analytics.trackingEnabled ? 'Enabled' : 'Disabled'}
@@ -430,16 +428,6 @@ export function EmailConfigDashboard({ className }: EmailConfigDashboardProps) {
                         <div className={`w-2 h-2 rounded-full ${analytics.clickTracking ? 'bg-green-500' : 'bg-gray-300'}`} />
                         <span className="text-sm">Click Tracking</span>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline">
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <BarChart3 className="h-4 w-4 mr-1" />
-                        View Dashboard
-                      </Button>
                     </div>
                   </div>
                 </CardContent>

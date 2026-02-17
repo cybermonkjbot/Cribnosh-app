@@ -76,4 +76,12 @@ crons.interval(
   {}
 );
 
+// Process generic job queue every minute
+crons.interval(
+  "process generic job queue",
+  { minutes: 1 },
+  internal.actions.jobProcessor.processQueue,
+  { processorId: "system-cron-1" }
+);
+
 export default crons;

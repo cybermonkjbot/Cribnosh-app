@@ -9,7 +9,11 @@ import { notFound } from "next/navigation";
 
 type Params = { slug: string };
 
+export const dynamic = "force-dynamic";
+
 export async function generateStaticParams() {
+  return [];
+  /*
   const convex = getConvexClient();
   try {
     // @ts-ignore - TypeScript has issues with deep type instantiation for Convex queries
@@ -24,6 +28,7 @@ export async function generateStaticParams() {
     console.error('Error generating static params:', error);
     return [];
   }
+  */
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
@@ -406,10 +411,10 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
                       )}
                       {section.callout && typeof section.callout === 'object' && section.callout.text && typeof section.callout.text === 'string' && (
                         <div className={`mt-3 p-4 rounded-xl border ${section.callout.variant === 'warning'
-                            ? 'bg-yellow-50 border-yellow-200 text-yellow-900'
-                            : section.callout.variant === 'tip'
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                              : 'bg-neutral-50 border-neutral-200 text-neutral-800'
+                          ? 'bg-yellow-50 border-yellow-200 text-yellow-900'
+                          : section.callout.variant === 'tip'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                            : 'bg-neutral-50 border-neutral-200 text-neutral-800'
                           }`}>
                           <p className="text-sm">{section.callout.text}</p>
                         </div>

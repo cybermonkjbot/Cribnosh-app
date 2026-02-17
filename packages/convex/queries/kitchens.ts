@@ -94,7 +94,7 @@ export const getFeaturedVideo = query({
 
     // Generate URLs from Convex storage IDs
     const videoUrl = await ctx.storage.getUrl(video.videoStorageId) || '';
-    const thumbnailUrl = video.thumbnailStorageId 
+    const thumbnailUrl = video.thumbnailStorageId
       ? await ctx.storage.getUrl(video.thumbnailStorageId) || undefined
       : undefined;
 
@@ -179,7 +179,7 @@ export const getKitchenDetails = query({
 
     // Try as kitchen ID first
     kitchen = await ctx.db.get(id);
-    
+
     // If not found as kitchen, try as chef ID
     if (!kitchen) {
       const chef = await ctx.db.get(id);
@@ -317,5 +317,15 @@ export const getKitchenTags = query({
       .sort((a, b) => b.count - a.count);
 
     return tags;
+  },
+});
+
+/**
+ * Get all kitchens (for admin)
+ */
+export const getAll = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query('kitchens').collect();
   },
 });
