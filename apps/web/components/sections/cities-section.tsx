@@ -18,6 +18,25 @@ interface CityData {
 
 const cities: CityData[] = [
   {
+    title: "Edinburgh",
+    description: "Scotland's capital & cultural heart",
+    src: "/images/cities/optimized/edinburgh.jpeg",
+    placeholder: "blur",
+    blurDataURL: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQrJyEkKSM4Mjc1NjM4PTEwPT08Mi83RkdPT1pXWVlgYGBwYHCEhICE/9j/CABEIAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/2gAIAQEAAAAAoD//xAAUAQEAAAAAAAAAAAAAAAAAAAAA/9oACAECEAAAAH//xAAUAQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDEAAAAH//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/AH//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAECAQE/AH//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/AH//2Q==",
+    ctaText: "Learn More",
+    ctaLink: "/cities/edinburgh",
+    content: () => (
+      <>
+        <p>Edinburgh is the capital city of Scotland and one of its 32 council areas. Historically part of the county of Midlothian, it is located in Lothian on the southern shore of the Firth of Forth.</p>
+        <ul className="list-disc pl-4">
+          <li>Population: 500,000+</li>
+          <li>Key Areas: Old Town, New Town, Leith, Stockbridge</li>
+          <li>Major Industries: Finance, Tourism, Technology, Education</li>
+        </ul>
+      </>
+    ),
+  },
+  {
     title: "London",
     description: "Capital city & financial hub",
     src: "/images/cities/optimized/london.jpeg",

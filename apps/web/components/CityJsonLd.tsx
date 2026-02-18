@@ -21,7 +21,7 @@ export function CityJsonLd({ cityName, description, image }: CityJsonLdProps) {
         address: {
             "@type": "PostalAddress",
             addressLocality: cityName,
-            addressRegion: "West Midlands", // Most are in Midlands, generalize or customize if needed
+            addressRegion: cityName.toLowerCase() === 'edinburgh' ? "Scotland" : "West Midlands", // Handle Scotland for Edinburgh, default to Midlands for others
             addressCountry: "GB"
         },
         geo: {

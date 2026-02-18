@@ -97,6 +97,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fallback static city routes (in case DB fetch fails or for key landing pages)
   const staticCityRoutes = [
     '/cities', // Index page
+    '/cities/edinburgh',
     '/cities/birmingham',
     '/cities/leicester',
     '/cities/nottingham',
@@ -118,7 +119,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
     changeFrequency: 'weekly',
-    priority: route === '/cities' ? 0.7 : 0.6,
+    priority: route === '/cities' ? 0.7 : (route === '/cities/edinburgh' ? 0.9 : 0.6),
   }));
 
   return [...mainSitemap, ...staticCitiesSitemap, ...dynamicCityRoutes, ...dynamicBlogRoutes, ...dynamicFoodCreatorRoutes];

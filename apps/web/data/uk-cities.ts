@@ -1,7 +1,7 @@
 export const UK_CITIES = [
     // Major Cities
-    "London", "Birmingham", "Manchester", "Glasgow", "Leeds", "Liverpool", "Newcastle", "Sheffield", "Bristol", "Nottingham",
-    "Leicester", "Edinburgh", "Cardiff", "Coventry", "Bradford", "Belfast", "Stoke-on-Trent", "Wolverhampton", "Plymouth", "Southampton",
+    "Edinburgh", "London", "Birmingham", "Manchester", "Glasgow", "Leeds", "Liverpool", "Newcastle", "Sheffield", "Bristol", "Nottingham",
+    "Leicester", "Cardiff", "Coventry", "Bradford", "Belfast", "Stoke-on-Trent", "Wolverhampton", "Plymouth", "Southampton",
     "Reading", "Derby", "Dudley", "Northampton", "Portsmouth", "Luton", "Preston", "Aberdeen", "Norwich", "Bournemouth",
     "Sunderland", "Walsall", "Swansea", "Swindon", "Southend-on-Sea", "Oxford", "Middlesbrough", "Blackpool", "Bolton", "Ipswich",
     "Telford", "York", "West Bromwich", "Peterborough", "Stockport", "Brighton", "Slough", "Gloucester", "Watford", "Rotherham",
