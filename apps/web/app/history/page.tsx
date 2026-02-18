@@ -1,18 +1,18 @@
 "use client";
 
-import { motion } from "motion/react";
-import { Timeline } from "@/components/ui/timeline";
-import { ParallaxGroup, ParallaxLayer } from "@/components/ui/parallax";
 import HeroGeometric from "@/components/hero-geometric";
-import { ThoughtBubble } from "@/components/ui/thought-bubble";
-import { CustomScrollbar } from "@/components/ui/custom-scrollbar";
-import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import { ContainerScrollAnimation } from "@/components/ui/container-scroll-animation";
+import { CustomScrollbar } from "@/components/ui/custom-scrollbar";
+import { ParallaxGroup, ParallaxLayer } from "@/components/ui/parallax";
+import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import { SparkleEffect } from "@/components/ui/sparkle-effect";
+import { ThoughtBubble } from "@/components/ui/thought-bubble";
+import { Timeline } from "@/components/ui/timeline";
+import { motion } from "motion/react";
 
 // Memoized timeline item component to prevent unnecessary re-renders
 const TimelineItemContent = ({ title, items }: { title: string; items: string[] }) => (
-  <motion.div 
+  <motion.div
     initial={{ opacity: 0 }}
     whileInView={{ opacity: 1 }}
     viewport={{ once: true, margin: "0px 0px -100px 0px" }} // Reduced intersection margin
@@ -23,7 +23,7 @@ const TimelineItemContent = ({ title, items }: { title: string; items: string[] 
     </SparkleEffect>
     <ul className="space-y-4 text-white/70 font-satoshi">
       {items.map((item, index) => (
-        <motion.li 
+        <motion.li
           key={index}
           initial={{ x: -20, opacity: 0 }}
           whileInView={{ x: 0, opacity: 1 }}
@@ -40,7 +40,7 @@ const TimelineItemContent = ({ title, items }: { title: string; items: string[] 
 
 const timelineData = [
   {
-    title: "2025",
+    title: "2026",
     items: [
       "Launched early access program with 50 certified Food Creators",
       "Introduced AI-powered personalized meal recommendations",
@@ -73,13 +73,13 @@ export default function HistoryPage() {
     <main className="relative">
       <CustomScrollbar />
       <ScrollToTop />
-      
+
       <ParallaxGroup>
         {/* Simplified background layers */}
         <ParallaxLayer asBackground speed={0.2} className="z-0">
           <div className="fixed inset-0 bg-gradient-to-br from-[#ff3b30] to-[#ff5e54] opacity-90" />
         </ParallaxLayer>
-        
+
         {/* Reduced blur effects */}
         <ParallaxLayer asBackground speed={0.4} className="z-0 pointer-events-none">
           <div className="fixed inset-0">
@@ -91,17 +91,17 @@ export default function HistoryPage() {
         {/* Content layer */}
         <div className="relative z-10 flex-1">
           {/* Hero Section */}
-          <section 
+          <section
             data-section-theme="dark"
             className="w-full"
           >
-            <HeroGeometric 
+            <HeroGeometric
               badge="Our Journey"
               title1="The CribNosh"
               title2="Story"
               fullScreen
             />
-            
+
             <ContainerScrollAnimation>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -112,7 +112,7 @@ export default function HistoryPage() {
                 <p className="text-xl text-gray-300 font-satoshi leading-relaxed">
                   From a simple idea to revolutionize home dining, to a vibrant community of passionate chefs and food lovers. Here's how CribNosh has grown and evolved.
                 </p>
-                
+
                 <div className="mt-4 flex justify-center">
                   <ThoughtBubble className="transform hover:scale-105 transition-transform" />
                 </div>
@@ -121,14 +121,14 @@ export default function HistoryPage() {
           </section>
 
           {/* Timeline Section */}
-          <section 
-            data-section-theme="light" 
+          <section
+            data-section-theme="light"
             className="relative"
           >
             <div className="absolute inset-0 bg-gradient-to-b from-black via-black/95 to-black/90 backdrop-blur-sm" />
-            
+
             <div className="relative">
-              <Timeline 
+              <Timeline
                 data={timelineData.map(item => ({
                   title: item.title,
                   content: <TimelineItemContent title={item.title} items={item.items} />

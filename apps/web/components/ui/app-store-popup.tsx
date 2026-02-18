@@ -1,7 +1,7 @@
 "use client";
 
-import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -16,14 +16,14 @@ const PLATFORM_DATA = {
     storeIcon: "/apple-icon.png",
     appIcon: "/logo.svg",
     name: "iOS",
-    releaseDate: "September 15, 2025",
+    releaseDate: "September 15, 2026",
     description: "Experience CribNosh on your iPhone and iPad with our native iOS app",
   },
   android: {
     storeIcon: "/android-chrome-192x192.png",
     appIcon: "/logo.svg",
     name: "Android",
-    releaseDate: "August 1, 2025",
+    releaseDate: "August 1, 2026",
     description: "Get the best of CribNosh on your Android device with our native app",
   },
 };

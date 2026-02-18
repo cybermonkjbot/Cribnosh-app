@@ -193,7 +193,7 @@ export default function CoventryPage() {
                 <div className="md:w-1/2 md:pr-8 md:text-right"></div>
                 <div className="absolute left-[-8px] md:left-1/2 w-4 h-4 bg-white border-2 border-[#8b5cf6] rounded-full transform md:translate-x-[-50%] top-0 md:top-6"></div>
                 <div className="md:w-1/2 md:pl-8">
-                  <h3 className="text-xl font-bold text-[#8b5cf6]">Early 2025</h3>
+                  <h3 className="text-xl font-bold text-[#8b5cf6]">Early 2026</h3>
                   <h4 className="text-lg font-bold text-gray-900">Kitchen Certification Program</h4>
                   <p className="text-gray-800">
                     We launched our rigorous kitchen certification program to ensure all home kitchens meet our high standards.
@@ -209,7 +209,7 @@ export default function CoventryPage() {
                 transition={{ delay: 0.3 }}
               >
                 <div className="md:w-1/2 md:pr-8 md:text-right">
-                  <h3 className="text-xl font-bold text-[#8b5cf6]">Mid 2025</h3>
+                  <h3 className="text-xl font-bold text-[#8b5cf6]">Mid 2026</h3>
                   <h4 className="text-lg font-bold text-gray-900">Waitlist Opens</h4>
                   <p className="text-gray-800">
                     We opened our waitlist to Coventry residents, with overwhelming interest from the community.

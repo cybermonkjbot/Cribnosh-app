@@ -89,7 +89,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
 
   // Use currentPostIdRef for queries to handle auto-saved posts
   const effectivePostId = currentPostIdRef.current || postId;
-  
+
   // Fetch existing post if editing
   const existingPost = useQuery(
     api.queries.blog.getBlogPostById,
@@ -119,7 +119,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
         seoDescription: existingPost.seoDescription || '',
         date: existingPost.date || '',
       };
-      
+
       setTitle(loadedState.title);
       setSlug(loadedState.slug);
       setExcerpt(loadedState.excerpt);
@@ -128,14 +128,14 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       setFeaturedImage(loadedState.featuredImage);
       setCategories(loadedState.categories);
       setTags(loadedState.tags);
-      
+
       // Determine the correct status to use
       // Priority: 1) If post has publishedAt, it's published (even if query shows draft - query might be stale)
       //           2) If we just published from this form, preserve published status
       //           3) Otherwise, use status from query
       const hasPublishedAt = existingPost.publishedAt !== undefined;
       const shouldBePublished = hasPublishedAt || justPublishedRef.current;
-      
+
       if (shouldBePublished) {
         // Post is published (either has publishedAt or we just published it)
         if (loadedState.status === 'published') {
@@ -162,18 +162,18 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
         // Normal case: update status from query
         setStatus(loadedState.status);
       }
-      
+
       // Store original author to preserve it
       const originalAuthor = {
         name: existingPost.author?.name || 'CribNosh Team',
         avatar: existingPost.author?.avatar || '/card-images/IMG_2262.png'
       };
       originalAuthorRef.current = originalAuthor;
-      
+
       // Check if this is a CribNosh Team post
       const isCribNoshTeam = originalAuthor.name === 'CribNosh Team' || originalAuthor.name === '';
       setIsCribNoshTeamPost(isCribNoshTeam);
-      
+
       // For CribNosh Team posts, always use CribNosh Team
       // For user posts, preserve the original author
       if (isCribNoshTeam) {
@@ -183,20 +183,20 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
         setAuthorName(loadedState.authorName);
         setAuthorAvatar(loadedState.authorAvatar);
       }
-      
+
       setSeoTitle(loadedState.seoTitle);
       setSeoDescription(loadedState.seoDescription);
       setDate(loadedState.date);
-      
+
       // Reset manual edit flags when loading existing post
       excerptManuallyEditedRef.current = false;
       slugManuallyEditedRef.current = false;
-      
+
       // Store original state for comparison
       originalStateRef.current = loadedState;
       isInitialLoadRef.current = false;
       setHasUnsavedChanges(false);
-      
+
       // Reset the just published flag after a delay to allow query to update
       // Only reset if we haven't already set a timeout from handlePublish
       if (justPublishedRef.current && !justPublishedTimeoutRef.current) {
@@ -205,7 +205,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
           justPublishedTimeoutRef.current = null;
         }, 2000);
       }
-      
+
       return () => {
         if (justPublishedTimeoutRef.current) {
           clearTimeout(justPublishedTimeoutRef.current);
@@ -222,7 +222,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       };
       setAuthorName('CribNosh Team');
       setAuthorAvatar('/card-images/IMG_2262.png');
-      
+
       originalStateRef.current = {
         title: '',
         slug: '',
@@ -279,7 +279,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
     }
 
     const original = originalStateRef.current;
-    
+
     // Helper to compare arrays
     const arraysEqual = (a: string[], b: string[]) => {
       if (a.length !== b.length) return false;
@@ -291,8 +291,8 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
     const currentSlug = (!effectivePostId && !slugManuallyEditedRef.current) ? original.slug : slug;
     // Exclude auto-generated excerpt if it wasn't manually edited
     const currentExcerpt = (!excerptManuallyEditedRef.current && !excerpt) ? original.excerpt : excerpt;
-    
-    const hasChanges = 
+
+    const hasChanges =
       title !== original.title ||
       currentSlug !== original.slug ||
       currentExcerpt !== original.excerpt ||
@@ -330,11 +330,11 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
     if (isSavingRef.current) {
       return;
     }
-    
+
     // Don't auto-save if post was published before or is not a draft
     const wasPublishedBefore = existingPost?.publishedAt !== undefined;
     const isDraft = status === 'draft';
-    
+
     if (!title.trim() || !hasActualTextContent(content) || !staff || !hasUnsavedChanges || !isDraft || wasPublishedBefore) {
       return;
     }
@@ -348,22 +348,22 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       if (isSavingRef.current) {
         return;
       }
-      
+
       isSavingRef.current = true;
       setSaving(true);
       setError(null);
 
       try {
         // Preserve original author for user posts, use CribNosh Team for CribNosh Team posts
-        const finalAuthor = isCribNoshTeamPost 
+        const finalAuthor = isCribNoshTeamPost
           ? { name: 'CribNosh Team', avatar: '/card-images/IMG_2262.png' }
           : (originalAuthorRef.current || { name: authorName || 'CribNosh Team', avatar: authorAvatar || '/card-images/IMG_2262.png' });
-        
+
         // If post was published before, preserve published status (don't let auto-save change it to draft)
-        const finalStatus = wasPublishedBefore 
-          ? 'published' 
+        const finalStatus = wasPublishedBefore
+          ? 'published'
           : (effectivePostId ? status : 'draft');
-        
+
         const postData = {
           title,
           slug,
@@ -407,8 +407,8 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
           categories,
           tags,
           status: finalStatus,
-        authorName: finalAuthor.name,
-        authorAvatar: finalAuthor.avatar,
+          authorName: finalAuthor.name,
+          authorAvatar: finalAuthor.avatar,
           seoTitle: seoTitle || title,
           seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
           date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
@@ -493,52 +493,52 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
     setError(null);
 
     try {
-        // Preserve original author for user posts, use CribNosh Team for CribNosh Team posts
-        const finalAuthor = isCribNoshTeamPost 
-          ? { name: 'CribNosh Team', avatar: '/card-images/IMG_2262.png' }
-          : (originalAuthorRef.current || { name: authorName || 'CribNosh Team', avatar: authorAvatar || '/card-images/IMG_2262.png' });
-        
-        // If post was published before, preserve published status unless user explicitly changed it via dropdown
-        // The issue: status state can get reset to 'draft' due to query refetches, so we need to preserve published status
-        const wasPublished = existingPost?.publishedAt !== undefined;
-        const originalWasPublished = originalStateRef.current?.status === 'published';
-        // If post was published and status state is draft, check if this is intentional
-        // If user made other changes (not just status), they likely intentionally changed status too
-        // Otherwise, it's likely a bug (state reset) and we should preserve published
-        let finalStatus = status;
-        if ((wasPublished || originalWasPublished) && status === 'draft' && originalWasPublished) {
-          // Check if user made other changes - if so, they might have intentionally changed status
-          const hasOtherChanges = originalStateRef.current && (
-            title !== originalStateRef.current.title ||
-            content !== originalStateRef.current.content ||
-            excerpt !== originalStateRef.current.excerpt ||
-            coverImage !== originalStateRef.current.coverImage ||
-            featuredImage !== originalStateRef.current.featuredImage ||
-            categories.length !== originalStateRef.current.categories.length ||
-            tags.length !== originalStateRef.current.tags.length
-          );
-          // Only preserve published if no other changes were made (likely a bug)
-          // If other changes were made, user might have intentionally changed status too
-          if (!hasOtherChanges) {
-            finalStatus = 'published'; // Preserve published status - likely a bug where state got reset
-          }
+      // Preserve original author for user posts, use CribNosh Team for CribNosh Team posts
+      const finalAuthor = isCribNoshTeamPost
+        ? { name: 'CribNosh Team', avatar: '/card-images/IMG_2262.png' }
+        : (originalAuthorRef.current || { name: authorName || 'CribNosh Team', avatar: authorAvatar || '/card-images/IMG_2262.png' });
+
+      // If post was published before, preserve published status unless user explicitly changed it via dropdown
+      // The issue: status state can get reset to 'draft' due to query refetches, so we need to preserve published status
+      const wasPublished = existingPost?.publishedAt !== undefined;
+      const originalWasPublished = originalStateRef.current?.status === 'published';
+      // If post was published and status state is draft, check if this is intentional
+      // If user made other changes (not just status), they likely intentionally changed status too
+      // Otherwise, it's likely a bug (state reset) and we should preserve published
+      let finalStatus = status;
+      if ((wasPublished || originalWasPublished) && status === 'draft' && originalWasPublished) {
+        // Check if user made other changes - if so, they might have intentionally changed status
+        const hasOtherChanges = originalStateRef.current && (
+          title !== originalStateRef.current.title ||
+          content !== originalStateRef.current.content ||
+          excerpt !== originalStateRef.current.excerpt ||
+          coverImage !== originalStateRef.current.coverImage ||
+          featuredImage !== originalStateRef.current.featuredImage ||
+          categories.length !== originalStateRef.current.categories.length ||
+          tags.length !== originalStateRef.current.tags.length
+        );
+        // Only preserve published if no other changes were made (likely a bug)
+        // If other changes were made, user might have intentionally changed status too
+        if (!hasOtherChanges) {
+          finalStatus = 'published'; // Preserve published status - likely a bug where state got reset
         }
-        
-        const postData = {
-          title,
-          slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-          excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
-          content,
-          coverImage,
-          featuredImage,
-          categories,
-          tags,
-          status: finalStatus,
-          seoTitle: seoTitle || title,
-          seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
-          date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-          author: finalAuthor,
-        };
+      }
+
+      const postData = {
+        title,
+        slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
+        content,
+        coverImage,
+        featuredImage,
+        categories,
+        tags,
+        status: finalStatus,
+        seoTitle: seoTitle || title,
+        seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
+        date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        author: finalAuthor,
+      };
 
       if (effectivePostId) {
         // Update existing post
@@ -627,26 +627,26 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
     setError(null);
 
     try {
-        // Preserve original author for user posts, use CribNosh Team for CribNosh Team posts
-        const finalAuthor = isCribNoshTeamPost 
-          ? { name: 'CribNosh Team', avatar: '/card-images/IMG_2262.png' }
-          : (originalAuthorRef.current || { name: authorName || 'CribNosh Team', avatar: authorAvatar || '/card-images/IMG_2262.png' });
-        
-        const postData = {
-          title,
-          slug: finalSlug,
-          excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
-          content,
-          coverImage,
-          featuredImage,
-          categories,
-          tags,
-          status: 'published' as const,
-          seoTitle: seoTitle || title,
-          seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
-          date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-          author: finalAuthor,
-        };
+      // Preserve original author for user posts, use CribNosh Team for CribNosh Team posts
+      const finalAuthor = isCribNoshTeamPost
+        ? { name: 'CribNosh Team', avatar: '/card-images/IMG_2262.png' }
+        : (originalAuthorRef.current || { name: authorName || 'CribNosh Team', avatar: authorAvatar || '/card-images/IMG_2262.png' });
+
+      const postData = {
+        title,
+        slug: finalSlug,
+        excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160) + '...',
+        content,
+        coverImage,
+        featuredImage,
+        categories,
+        tags,
+        status: 'published' as const,
+        seoTitle: seoTitle || title,
+        seoDescription: seoDescription || excerpt || content.replace(/<[^>]*>/g, '').substring(0, 160),
+        date: date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        author: finalAuthor,
+      };
 
       if (effectivePostId) {
         // Update existing post and publish
@@ -668,7 +668,7 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
       setStatus('published');
       setLastSaved(new Date());
       setHasUnsavedChanges(false);
-      
+
       // Clear any existing timeout and set a new one
       if (justPublishedTimeoutRef.current) {
         clearTimeout(justPublishedTimeoutRef.current);
@@ -751,83 +751,83 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
     <div className={`h-screen flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-white' : ''}`}>
       {/* Sticky Header */}
       {!isFullscreen && (
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
-          <div>
-            <h2 className="text-xl font-bold font-asgard text-gray-900">
-              {postId ? 'Edit Blog Post' : 'Create New Blog Post'}
-            </h2>
-            <div className="flex items-center gap-3 mt-1">
-              {lastSaved && !hasUnsavedChanges && (
-                <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                  <CheckCircle2 className="w-3 h-3 text-green-600" />
-                  <span>Saved {lastSaved.toLocaleTimeString()}</span>
-                </div>
-              )}
-              {hasUnsavedChanges && !saving && (
-                <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                  <Circle className="w-3 h-3 text-amber-500 fill-amber-500" />
-                  <span>Unsaved changes</span>
-                </div>
-              )}
-              {saving && (
-                <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  <span>Saving...</span>
-                </div>
-              )}
-              <Badge variant={status === 'published' ? 'default' : status === 'draft' ? 'secondary' : 'outline'} className="text-xs">
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </Badge>
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-4">
+            <div>
+              <h2 className="text-xl font-bold font-asgard text-gray-900">
+                {postId ? 'Edit Blog Post' : 'Create New Blog Post'}
+              </h2>
+              <div className="flex items-center gap-3 mt-1">
+                {lastSaved && !hasUnsavedChanges && (
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <CheckCircle2 className="w-3 h-3 text-green-600" />
+                    <span>Saved {lastSaved.toLocaleTimeString()}</span>
+                  </div>
+                )}
+                {hasUnsavedChanges && !saving && (
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <Circle className="w-3 h-3 text-amber-500 fill-amber-500" />
+                    <span>Unsaved changes</span>
+                  </div>
+                )}
+                {saving && (
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Saving...</span>
+                  </div>
+                )}
+                <Badge variant={status === 'published' ? 'default' : status === 'draft' ? 'secondary' : 'outline'} className="text-xs">
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </Badge>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="text-xs text-gray-500 hidden md:block">
-            {wordCount} words • {charCount} chars
-          </div>
-          <Button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            variant="outline"
-            size="sm"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                {postId ? 'Update' : 'Save'}
-              </>
-            )}
-          </Button>
-          {status !== 'published' && (
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-gray-500 hidden md:block">
+              {wordCount} words • {charCount} chars
+            </div>
             <Button
               type="button"
-              onClick={handlePublish}
+              onClick={handleSave}
               disabled={saving}
-              className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
+              variant="outline"
               size="sm"
             >
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Publishing...
+                  Saving...
                 </>
               ) : (
                 <>
-                  <Send className="w-4 h-4 mr-2" />
-                  Publish
+                  <Save className="w-4 h-4 mr-2" />
+                  {postId ? 'Update' : 'Save'}
                 </>
               )}
             </Button>
-          )}
+            {status !== 'published' && (
+              <Button
+                type="button"
+                onClick={handlePublish}
+                disabled={saving}
+                className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
+                size="sm"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Publishing...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Publish
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
       )}
 
       {error && (
@@ -939,250 +939,249 @@ export function BlogPostForm({ postId, onSave, onCancel }: BlogPostFormProps) {
 
             {/* Right Column - Metadata (1/3 width) */}
             <div className="space-y-4">
-            {/* Status */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select value={status} onValueChange={(value: any) => setStatus(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="published">Published</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
-
-            {/* Author Settings - Only show for user posts, hidden for CribNosh Team posts */}
-            {!isCribNoshTeamPost && (
+              {/* Status */}
               <Card className="shadow-sm">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Author</CardTitle>
+                  <CardTitle className="text-base">Status</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <Label htmlFor="authorName" className="text-xs text-gray-600 mb-1 block">Author Name</Label>
-                    <Input
-                      id="authorName"
-                      value={authorName}
-                      onChange={(e) => {
-                        setAuthorName(e.target.value);
-                        setError(null);
-                      }}
-                      placeholder="Author name"
-                      className="text-sm"
-                      readOnly={!!originalAuthorRef.current && originalAuthorRef.current.name !== 'CribNosh Team'}
-                    />
-                    {originalAuthorRef.current && originalAuthorRef.current.name !== 'CribNosh Team' && (
-                      <p className="text-xs text-gray-500 mt-1">Original author - cannot be changed</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="authorAvatar" className="text-xs text-gray-600 mb-1 block">Author Avatar URL</Label>
-                    <Input
-                      id="authorAvatar"
-                      value={authorAvatar}
-                      onChange={(e) => {
-                        setAuthorAvatar(e.target.value);
-                        setError(null);
-                      }}
-                      placeholder="/card-images/IMG_2262.png"
-                      className="text-sm"
-                      readOnly={!!originalAuthorRef.current && originalAuthorRef.current.name !== 'CribNosh Team'}
-                    />
-                    {originalAuthorRef.current && originalAuthorRef.current.name !== 'CribNosh Team' && (
-                      <p className="text-xs text-gray-500 mt-1">Original author avatar - cannot be changed</p>
-                    )}
-                  </div>
+                <CardContent>
+                  <Select value={status} onValueChange={(value: any) => setStatus(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </CardContent>
               </Card>
-            )}
 
-            {/* Images & Excerpt */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Media & Excerpt</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label className="text-xs text-gray-600 mb-1 block">Cover Image</Label>
-                  <BlogImageUpload
-                    onImageUploaded={(url) => setCoverImage(url)}
-                    existingUrl={coverImage}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-600 mb-1 block">Featured Image</Label>
-                  <BlogImageUpload
-                    onImageUploaded={(url) => setFeaturedImage(url)}
-                    existingUrl={featuredImage}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="excerpt" className="text-xs text-gray-600 mb-1 block">Excerpt</Label>
-                  <textarea
-                    id="excerpt"
-                    value={excerpt}
-                    onChange={(e) => {
-                      setExcerpt(e.target.value);
-                      excerptManuallyEditedRef.current = true;
-                      setError(null); // Clear error when user makes changes
-                    }}
-                    placeholder="Brief description (auto-generated from content)"
-                    rows={3}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-[#F23E2E] transition-all duration-200"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+              {/* Author Settings - Only show for user posts, hidden for CribNosh Team posts */}
+              {!isCribNoshTeamPost && (
+                <Card className="shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Author</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <Label htmlFor="authorName" className="text-xs text-gray-600 mb-1 block">Author Name</Label>
+                      <Input
+                        id="authorName"
+                        value={authorName}
+                        onChange={(e) => {
+                          setAuthorName(e.target.value);
+                          setError(null);
+                        }}
+                        placeholder="Author name"
+                        className="text-sm"
+                        readOnly={!!originalAuthorRef.current && originalAuthorRef.current.name !== 'CribNosh Team'}
+                      />
+                      {originalAuthorRef.current && originalAuthorRef.current.name !== 'CribNosh Team' && (
+                        <p className="text-xs text-gray-500 mt-1">Original author - cannot be changed</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="authorAvatar" className="text-xs text-gray-600 mb-1 block">Author Avatar URL</Label>
+                      <Input
+                        id="authorAvatar"
+                        value={authorAvatar}
+                        onChange={(e) => {
+                          setAuthorAvatar(e.target.value);
+                          setError(null);
+                        }}
+                        placeholder="/card-images/IMG_2262.png"
+                        className="text-sm"
+                        readOnly={!!originalAuthorRef.current && originalAuthorRef.current.name !== 'CribNosh Team'}
+                      />
+                      {originalAuthorRef.current && originalAuthorRef.current.name !== 'CribNosh Team' && (
+                        <p className="text-xs text-gray-500 mt-1">Original author avatar - cannot be changed</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-            {/* Categories */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Categories</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.map((category) => (
-                    <button
-                      key={category}
-                      type="button"
-                      onClick={() => handleToggleCategory(category)}
-                      className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
-                        categories.includes(category)
-                          ? 'bg-[#F23E2E] text-white border-[#F23E2E]'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-[#F23E2E]'
-                      }`}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tags */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Tags</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex gap-2">
-                  <Input
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddTag();
-                      }
-                    }}
-                    placeholder="Add tag"
-                    className="text-sm"
-                  />
-                  <Button type="button" onClick={handleAddTag} variant="outline" size="sm">
-                    Add
-                  </Button>
-                </div>
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="flex items-center gap-1 text-xs">
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveTag(tag)}
-                          className="ml-0.5 hover:text-red-600"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Slug & Date */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Settings</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <Label htmlFor="slug" className="text-xs text-gray-600 mb-1 block">Slug</Label>
-                <Input
-                  id="slug"
-                  value={slug}
-                  onChange={(e) => {
-                    setSlug(e.target.value);
-                    slugManuallyEditedRef.current = true;
-                    setError(null); // Clear error when user makes changes
-                  }}
-                  placeholder="auto-generated"
-                  className="text-sm"
-                />
-                </div>
-                <div>
-                  <Label htmlFor="date" className="text-xs text-gray-600 mb-1 block">Date</Label>
-                  <Input
-                    id="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    placeholder="August 2025"
-                    className="text-sm"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* SEO Settings - Collapsible */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3">
-                <button
-                  type="button"
-                  onClick={() => setShowSeo(!showSeo)}
-                  className="flex items-center justify-between w-full"
-                >
-                  <CardTitle className="text-base">SEO Settings</CardTitle>
-                  {showSeo ? (
-                    <ChevronUp className="w-4 h-4 text-gray-500" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-500" />
-                  )}
-                </button>
-              </CardHeader>
-              {showSeo && (
-                <CardContent className="space-y-3">
+              {/* Images & Excerpt */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Media & Excerpt</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div>
-                    <Label htmlFor="seoTitle" className="text-xs text-gray-600 mb-1 block">SEO Title</Label>
-                    <Input
-                      id="seoTitle"
-                      value={seoTitle}
-                      onChange={(e) => setSeoTitle(e.target.value)}
-                      placeholder="Leave empty to use post title"
-                      className="text-sm"
+                    <Label className="text-xs text-gray-600 mb-1 block">Cover Image</Label>
+                    <BlogImageUpload
+                      onImageUploaded={(url) => setCoverImage(url)}
+                      existingUrl={coverImage}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="seoDescription" className="text-xs text-gray-600 mb-1 block">SEO Description</Label>
+                    <Label className="text-xs text-gray-600 mb-1 block">Featured Image</Label>
+                    <BlogImageUpload
+                      onImageUploaded={(url) => setFeaturedImage(url)}
+                      existingUrl={featuredImage}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="excerpt" className="text-xs text-gray-600 mb-1 block">Excerpt</Label>
                     <textarea
-                      id="seoDescription"
-                      value={seoDescription}
-                      onChange={(e) => setSeoDescription(e.target.value)}
-                      placeholder="Leave empty to use excerpt"
-                      rows={2}
+                      id="excerpt"
+                      value={excerpt}
+                      onChange={(e) => {
+                        setExcerpt(e.target.value);
+                        excerptManuallyEditedRef.current = true;
+                        setError(null); // Clear error when user makes changes
+                      }}
+                      placeholder="Brief description (auto-generated from content)"
+                      rows={3}
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-[#F23E2E] transition-all duration-200"
                     />
                   </div>
                 </CardContent>
-              )}
-            </Card>
+              </Card>
+
+              {/* Categories */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Categories</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {CATEGORIES.map((category) => (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => handleToggleCategory(category)}
+                        className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${categories.includes(category)
+                            ? 'bg-[#F23E2E] text-white border-[#F23E2E]'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-[#F23E2E]'
+                          }`}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Tags */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Tags</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddTag();
+                        }
+                      }}
+                      placeholder="Add tag"
+                      className="text-sm"
+                    />
+                    <Button type="button" onClick={handleAddTag} variant="outline" size="sm">
+                      Add
+                    </Button>
+                  </div>
+                  {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="flex items-center gap-1 text-xs">
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTag(tag)}
+                            className="ml-0.5 hover:text-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Slug & Date */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <Label htmlFor="slug" className="text-xs text-gray-600 mb-1 block">Slug</Label>
+                    <Input
+                      id="slug"
+                      value={slug}
+                      onChange={(e) => {
+                        setSlug(e.target.value);
+                        slugManuallyEditedRef.current = true;
+                        setError(null); // Clear error when user makes changes
+                      }}
+                      placeholder="auto-generated"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="date" className="text-xs text-gray-600 mb-1 block">Date</Label>
+                    <Input
+                      id="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      placeholder="August 2026"
+                      className="text-sm"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* SEO Settings - Collapsible */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowSeo(!showSeo)}
+                    className="flex items-center justify-between w-full"
+                  >
+                    <CardTitle className="text-base">SEO Settings</CardTitle>
+                    {showSeo ? (
+                      <ChevronUp className="w-4 h-4 text-gray-500" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-gray-500" />
+                    )}
+                  </button>
+                </CardHeader>
+                {showSeo && (
+                  <CardContent className="space-y-3">
+                    <div>
+                      <Label htmlFor="seoTitle" className="text-xs text-gray-600 mb-1 block">SEO Title</Label>
+                      <Input
+                        id="seoTitle"
+                        value={seoTitle}
+                        onChange={(e) => setSeoTitle(e.target.value)}
+                        placeholder="Leave empty to use post title"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="seoDescription" className="text-xs text-gray-600 mb-1 block">SEO Description</Label>
+                      <textarea
+                        id="seoDescription"
+                        value={seoDescription}
+                        onChange={(e) => setSeoDescription(e.target.value)}
+                        placeholder="Leave empty to use excerpt"
+                        rows={2}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-[#F23E2E] transition-all duration-200"
+                      />
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
             </div>
           </div>
         )}

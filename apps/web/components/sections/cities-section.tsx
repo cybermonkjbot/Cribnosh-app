@@ -13,6 +13,7 @@ interface CityData {
   blurDataURL: string;
   ctaText: string;
   ctaLink: string;
+  isLaunchCity?: boolean;
   content: () => JSX.Element;
 }
 
@@ -25,6 +26,7 @@ const cities: CityData[] = [
     blurDataURL: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQrJyEkKSM4Mjc1NjM4PTEwPT08Mi83RkdPT1pXWVlgYGBwYHCEhICE/9j/CABEIAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/2gAIAQEAAAAAoD//xAAUAQEAAAAAAAAAAAAAAAAAAAAA/9oACAECEAAAAH//xAAUAQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDEAAAAH//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/AH//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAECAQE/AH//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/AH//2Q==",
     ctaText: "Learn More",
     ctaLink: "/cities/edinburgh",
+    isLaunchCity: true,
     content: () => (
       <>
         <p>Edinburgh is the capital city of Scotland and one of its 32 council areas. Historically part of the county of Midlothian, it is located in Lothian on the southern shore of the Firth of Forth.</p>
@@ -120,9 +122,21 @@ export function CitiesSection({ isHome = false }: { isHome?: boolean } = {}) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300"
+              className={`group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ${!city.isLaunchCity ? 'opacity-80 grayscale-[0.5] hover:opacity-100 hover:grayscale-0' : 'ring-2 ring-[#ff3b30]'}`}
             >
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent z-10" />
+
+              {city.isLaunchCity && (
+                <div className="absolute top-4 left-4 z-30 bg-[#ff3b30] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                  First Launch City
+                </div>
+              )}
+
+              {!city.isLaunchCity && (
+                <div className="absolute top-4 left-4 z-30 bg-gray-800/80 text-white text-xs font-medium px-3 py-1 rounded-full backdrop-blur-sm">
+                  Coming Soon
+                </div>
+              )}
 
               <Image
                 src={city.src}
@@ -132,7 +146,7 @@ export function CitiesSection({ isHome = false }: { isHome?: boolean } = {}) {
                 placeholder={city.placeholder}
                 blurDataURL={city.blurDataURL}
                 className="w-full h-64 object-cover transform group-hover:scale-105 transition-transform duration-500"
-                priority={index === 0}
+                priority={city.isLaunchCity}
               />
 
               <div className="absolute inset-0 z-20 flex flex-col justify-end p-6">
@@ -143,10 +157,10 @@ export function CitiesSection({ isHome = false }: { isHome?: boolean } = {}) {
                   {city.description}
                 </p>
                 <Link
-                  href="/waitlist"
+                  href={city.isLaunchCity ? city.ctaLink : "/waitlist"}
                   className="mt-4 inline-flex items-center text-white hover:text-[#ff3b30] transition-colors"
                 >
-                  <span>Join Waitlist</span>
+                  <span>{city.isLaunchCity ? "Explore Edinburgh" : "Join Waitlist"}</span>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"

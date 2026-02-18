@@ -1,15 +1,15 @@
 ﻿/* eslint-disable @next/next/no-img-element */
-import { Resend } from 'resend';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { Resend } from 'resend';
 import {
-  EmailWrapper,
-  HeaderSection,
-  ContentText,
-  PrimaryButton,
-  FooterSection,
   CardSection,
+  ContentText,
   Divider,
+  EmailWrapper,
+  FooterSection,
+  HeaderSection,
+  PrimaryButton,
   SocialLinks,
 } from './components';
 
@@ -758,7 +758,7 @@ export function previewAllPrelaunchEmails({
     const props = {
       user,
       days_since_signup: 5,
-      expected_launch_date: '2025-07-01',
+      expected_launch_date: '2026-07-01',
       days_to_launch: 10,
       featured_chef: {
         name: 'Chef Sample',
@@ -796,7 +796,7 @@ export function previewPrelaunchEmailByKey(
   const props = {
     user,
     days_since_signup: 5,
-    expected_launch_date: '2025-07-01',
+    expected_launch_date: '2026-07-01',
     days_to_launch: 10,
     featured_chef: {
       name: 'Chef Sample',

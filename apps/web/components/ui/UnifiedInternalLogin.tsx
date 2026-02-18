@@ -377,7 +377,7 @@ export default function UnifiedInternalLogin({ role, apiEndpoint, redirectPath }
           )}
         </GlassCard>
         <footer className="mt-4 text-center text-gray-500 font-satoshi text-xs">
-          <span>© 2025 CribNosh. All rights reserved.</span>
+          <span>© 2026 CribNosh. All rights reserved.</span>
         </footer>
       </main>
     </div>

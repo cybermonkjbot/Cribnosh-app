@@ -643,7 +643,7 @@ export default function AdminCompliancePage() {
               <Calendar className="w-6 h-6 text-purple-600" />
             </div>
             <p className="text-lg font-bold text-purple-600 font-asgard">Last Audit</p>
-            <p className="text-sm text-purple-700 font-satoshi">January 15, 2025</p>
+            <p className="text-sm text-purple-700 font-satoshi">January 15, 2026</p>
           </div>
         </div>
       </motion.div>

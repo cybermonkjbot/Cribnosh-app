@@ -1,12 +1,12 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { ImageViewer } from "@/components/ui/image-viewer";
+import { ArrowLeft, Forward, Heart } from "lucide-react";
+import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Heart, Forward } from "lucide-react";
+import { useParams } from "next/navigation";
 import { useState } from "react";
-import { ImageViewer } from "@/components/ui/image-viewer";
 
 export default function StoryPage() {
   const params = useParams();
@@ -21,7 +21,7 @@ export default function StoryPage() {
     mealImage: "/card-images/c846b65e-1de1-4595-9079-b2cfe134f414.jpeg",
     story: "My grandmother's recipe brought to life by Chef Luis. Every bite takes me back to Sunday afternoons in her kitchen, watching her carefully fold each empanada with love and precision. The way Chef Luis has captured those exact flavors, from the perfectly seasoned beef to the flaky pastry, is nothing short of magical. It's not just food - it's a bridge to my childhood memories, a taste of home delivered right to my door. What makes it even more special is how Chef Luis added his own subtle twist with a homemade chimichurri that complements the traditional recipe perfectly. This is exactly what CribNosh is about - preserving our culinary heritage while creating new memories.",
     likes: 124,
-    date: "March 15, 2025",
+    date: "March 15, 2026",
     location: "Miami, FL",
     chefName: "Chef Luis Rodriguez",
     chefImage: "/delivery-/IMG_2270.png",
@@ -44,7 +44,7 @@ export default function StoryPage() {
     setIsAnimating(true);
     setIsLoved(!isLoved);
     setLikeCount(prev => isLoved ? prev - 1 : prev + 1);
-    
+
     // Reset animation state after animation completes
     setTimeout(() => {
       setIsAnimating(false);
@@ -59,10 +59,10 @@ export default function StoryPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50  ">
       {/* Hero Section */}
-      <div 
+      <div
         data-section-theme="dark"
         className="relative h-screen w-screen cursor-pointer"
-        style={{ 
+        style={{
           marginTop: 'calc(-1 * var(--header-height))',
           marginLeft: 'calc(-50vw + 50%)',
           width: '100vw',
@@ -81,8 +81,8 @@ export default function StoryPage() {
           />
         </div>
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60" />
-        
-        <Link 
+
+        <Link
           href="/community"
           className="absolute top-[calc(var(--header-height)+1.5rem)] left-6 z-10"
           onClick={(e) => e.stopPropagation()}
@@ -100,7 +100,7 @@ export default function StoryPage() {
         {/* Story Title */}
         <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
           <div className="container mx-auto">
-            <motion.h1 
+            <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-4xl md:text-5xl font-bold text-white mb-4 font-['Asgard']"
@@ -130,7 +130,7 @@ export default function StoryPage() {
       </div>
 
       {/* Story Content */}
-      <div 
+      <div
         data-section-theme="light"
         className="container mx-auto px-6 py-12"
       >
@@ -179,8 +179,8 @@ export default function StoryPage() {
             className="grid grid-cols-1 md:grid-cols-2 gap-4"
           >
             {story.additionalImages.map((image, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className="relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer group"
                 onClick={() => openImageViewer(index + 1)}
               >
@@ -204,11 +204,10 @@ export default function StoryPage() {
           >
             <motion.button
               onClick={handleLove}
-              className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all ${
-                isLoved 
-                  ? 'bg-[#ff3b30] text-white' 
+              className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all ${isLoved
+                  ? 'bg-[#ff3b30] text-white'
                   : 'bg-gray-100  text-gray-700 '
-              }`}
+                }`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               data-cursor-text="Tap to like"
@@ -223,7 +222,7 @@ export default function StoryPage() {
               </motion.div>
               <span className="font-['Satoshi'] font-medium">{likeCount} loves</span>
             </motion.button>
-            
+
             <motion.button
               onClick={() => {
                 if (navigator.share) {

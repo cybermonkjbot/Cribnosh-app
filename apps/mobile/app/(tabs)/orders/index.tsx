@@ -476,7 +476,7 @@ export default function OrdersScreen() {
       return (
         <>
           <SectionHeader
-            title={activeTab === "ongoing" ? "Current Orders" : "June 2025"}
+            title={activeTab === "ongoing" ? "Current Orders" : "June 2026"}
           />
           {Array.from({ length: 3 }).map((_, index) => (
             <OrderCardSkeleton
@@ -531,7 +531,7 @@ export default function OrdersScreen() {
     return (
       <>
         <SectionHeader
-          title={activeTab === "ongoing" ? "Current Orders" : "June 2025"}
+          title={activeTab === "ongoing" ? "Current Orders" : "June 2026"}
         />
 
         {/* All Orders (Regular + Custom) - Sorted by time */}
