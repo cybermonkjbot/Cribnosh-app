@@ -28,6 +28,70 @@ resource "azurerm_log_analytics_workspace" "logs" {
   retention_in_days   = 30
 }
 
+# Application Insights
+resource "azurerm_application_insights" "app_insights" {
+  name                = "${var.app_name}-${var.environment}-insights"
+  location            = azurerm_resource_group.app_rg.location
+  resource_group_name = azurerm_resource_group.app_rg.name
+  workspace_id        = azurerm_log_analytics_workspace.logs.id
+  application_type    = "web"
+}
+
+# Microsoft Sentinel (Onboarding to Log Analytics Workspace)
+resource "azurerm_sentinel_log_analytics_workspace_onboarding" "sentinel" {
+  workspace_id = azurerm_log_analytics_workspace.logs.id
+}
+
+# Microsoft Defender for Cloud (Standard Tier for Subscription)
+resource "azurerm_security_center_subscription_pricing" "defender_default" {
+  tier          = "Standard"
+  resource_type = "VirtualMachines" # Example: Enable for VMs first
+}
+
+resource "azurerm_security_center_subscription_pricing" "defender_app_services" {
+  tier          = "Standard"
+  resource_type = "AppServices"
+}
+
+resource "azurerm_security_center_subscription_pricing" "defender_sql" {
+  tier          = "Standard"
+  resource_type = "SqlServers"
+}
+
+resource "azurerm_security_center_subscription_pricing" "defender_keyvaults" {
+  tier          = "Standard"
+  resource_type = "KeyVaults"
+}
+
+resource "azurerm_security_center_subscription_pricing" "defender_arm" {
+  tier          = "Standard"
+  resource_type = "Arm"
+}
+
+resource "azurerm_security_center_subscription_pricing" "defender_containers" {
+  tier          = "Standard"
+  resource_type = "Containers"
+}
+
+resource "azurerm_security_center_subscription_pricing" "defender_registry" {
+  tier          = "Standard"
+  resource_type = "ContainerRegistry"
+}
+
+
+# Microsoft Purview Account
+resource "azurerm_purview_account" "governance" {
+  name                        = var.purview_account_name
+  resource_group_name         = azurerm_resource_group.app_rg.name
+  location                    = azurerm_resource_group.app_rg.location
+  sku_name                    = "Standard_4" # Minimum capacity
+  public_network_access_enabled = var.enable_purview_public_access
+  
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
 resource "azurerm_container_app_environment" "app_env" {
   name                       = "${var.app_name}-${var.environment}-env"
   location                   = azurerm_resource_group.app_rg.location
@@ -67,6 +131,10 @@ resource "azurerm_container_app" "web_app" {
         name  = "CLOUD_PROVIDER"
         value = "azure"
       }
+      env {
+        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        value = azurerm_application_insights.app_insights.connection_string
+      }
     }
   }
 
@@ -77,6 +145,46 @@ resource "azurerm_container_app" "web_app" {
     traffic_weight {
       percentage      = 100
       latest_revision = true
+    }
+  }
+}
+
+# Diagnostic Settings for Container App
+resource "azurerm_monitor_diagnostic_setting" "app_diagnostics" {
+  name                       = "${var.app_name}-app-diagnostics"
+  target_resource_id         = azurerm_container_app.web_app.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
+
+  # Container Apps usually have specific log categories like "ContainerAppConsoleLogs", "ContainerAppSystemLogs"
+  # But Terraform provider validation for `log` block categories can be tricky without exact names.
+  # For now, we will enable all logs if possible, or list specific ones known.
+  # Checking documentation, valid categories usually are: "ContainerAppConsoleLogs", "ContainerAppSystemLogs"
+
+  enabled_log {
+    category = "ContainerAppConsoleLogs"
+
+    retention_policy {
+      enabled = false
+      days    = 0
+    }
+  }
+
+  enabled_log {
+    category = "ContainerAppSystemLogs"
+
+    retention_policy {
+      enabled = false
+      days    = 0
+    }
+  }
+
+  metric {
+    category = "AllMetrics"
+    enabled  = true
+
+    retention_policy {
+      enabled = false
+      days    = 0
     }
   }
 }

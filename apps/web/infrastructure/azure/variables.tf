@@ -32,3 +32,15 @@ variable "image_tag" {
   type        = string
   default     = "latest"
 }
+
+variable "purview_account_name" {
+  description = "Name of the Microsoft Purview account"
+  type        = string
+  default     = "cribnosh-purview"
+}
+
+variable "enable_purview_public_access" {
+  description = "Enable public network access for Purview"
+  type        = bool
+  default     = true
+}
