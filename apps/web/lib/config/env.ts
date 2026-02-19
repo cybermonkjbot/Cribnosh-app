@@ -39,6 +39,15 @@ const S3_BUCKET_NAME = validatedEnv.S3_BUCKET_NAME || '';
 const STAFF_PORTAL_ENABLED = validatedEnv.STAFF_PORTAL_ENABLED === 'true' ? 'true' : 'false';
 const STAFF_ACCESS_TOKEN = validatedEnv.STAFF_ACCESS_TOKEN || '';
 
+// Azure Configuration
+const CLOUD_PROVIDER = validatedEnv.CLOUD_PROVIDER || 'aws';
+const AZURE_STORAGE_CONNECTION_STRING = validatedEnv.AZURE_STORAGE_CONNECTION_STRING || '';
+const AZURE_STORAGE_CONTAINER_NAME = validatedEnv.AZURE_STORAGE_CONTAINER_NAME || '';
+const AZURE_OPENAI_API_KEY = validatedEnv.AZURE_OPENAI_API_KEY || '';
+const AZURE_OPENAI_ENDPOINT = validatedEnv.AZURE_OPENAI_ENDPOINT || '';
+const AZURE_OPENAI_DEPLOYMENT_NAME = validatedEnv.AZURE_OPENAI_DEPLOYMENT_NAME || '';
+const AZURE_OPENAI_API_VERSION = validatedEnv.AZURE_OPENAI_API_VERSION || '';
+
 
 // Cloudflare Configuration
 const CLOUDFLARE_ZONE_ID = validatedEnv.CLOUDFLARE_ZONE_ID || '';
@@ -103,6 +112,15 @@ const fullEnv = {
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS,
   RATE_LIMIT_MAX_REQUESTS,
+
+  // Azure Configuration
+  CLOUD_PROVIDER,
+  AZURE_STORAGE_CONNECTION_STRING,
+  AZURE_STORAGE_CONTAINER_NAME,
+  AZURE_OPENAI_API_KEY,
+  AZURE_OPENAI_ENDPOINT,
+  AZURE_OPENAI_DEPLOYMENT_NAME,
+  AZURE_OPENAI_API_VERSION,
 };
 
 export const env = fullEnv;

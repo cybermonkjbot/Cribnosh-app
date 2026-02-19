@@ -1,0 +1,109 @@
+# Azure Infrastructure for CribNosh
+# This is a draft configuration for migrating from AWS to Azure.
+
+terraform {
+  required_version = ">= 1.0"
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "app_rg" {
+  name     = "${var.app_name}-${var.environment}-rg"
+  location = var.location
+}
+
+resource "azurerm_log_analytics_workspace" "logs" {
+  name                = "${var.app_name}-${var.environment}-logs"
+  location            = azurerm_resource_group.app_rg.location
+  resource_group_name = azurerm_resource_group.app_rg.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
+resource "azurerm_container_app_environment" "app_env" {
+  name                       = "${var.app_name}-${var.environment}-env"
+  location                   = azurerm_resource_group.app_rg.location
+  resource_group_name        = azurerm_resource_group.app_rg.name
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
+}
+
+resource "azurerm_user_assigned_identity" "app_identity" {
+  name                = "${var.app_name}-${var.environment}-identity"
+  location            = azurerm_resource_group.app_rg.location
+  resource_group_name = azurerm_resource_group.app_rg.name
+}
+
+resource "azurerm_container_app" "web_app" {
+  name                         = "${var.app_name}-${var.environment}-web"
+  container_app_environment_id = azurerm_container_app_environment.app_env.id
+  resource_group_name          = azurerm_resource_group.app_rg.name
+  revision_mode                = "Single"
+
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.app_identity.id]
+  }
+
+  template {
+    container {
+      name   = "web"
+      image  = "${var.container_registry}/${var.image_name}:${var.image_tag}"
+      cpu    = 1.0
+      memory = "2Gi"
+
+      env {
+        name  = "NODE_ENV"
+        value = "production"
+      }
+      env {
+        name  = "CLOUD_PROVIDER"
+        value = "azure"
+      }
+    }
+  }
+
+  ingress {
+    allow_insecure_connections = false
+    external_enabled           = true
+    target_port                = 3000
+    traffic_weight {
+      percentage      = 100
+      latest_revision = true
+    }
+  }
+}
+
+resource "azurerm_storage_account" "app_storage" {
+  name                     = "${replace(var.app_name, "-", "")}${var.environment}storage"
+  resource_group_name      = azurerm_resource_group.app_rg.name
+  location                 = azurerm_resource_group.app_rg.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
+
+resource "azurerm_role_assignment" "storage_blob_contributor" {
+  scope                = azurerm_storage_account.app_storage.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_user_assigned_identity.app_identity.principal_id
+}
+
+resource "azurerm_storage_container" "documents" {
+  name                  = "documents"
+  storage_account_name  = azurerm_storage_account.app_storage.name
+  container_access_type = "private"
+}
+
+# Azure Front Door (CDN) - Draft configuration
+resource "azurerm_cdn_frontdoor_profile" "fd" {
+  name                = "${var.app_name}-fd"
+  resource_group_name = azurerm_resource_group.app_rg.name
+  sku_name            = "Standard_AzureFrontDoor"
+}

@@ -73,6 +73,7 @@ import type * as internal_appleNotifications from "../internal/appleNotification
 import type * as internal_liveSessions from "../internal/liveSessions.js";
 import type * as internal_maintenance from "../internal/maintenance.js";
 import type * as internal_registerMaintenanceCrons from "../internal/registerMaintenanceCrons.js";
+import type * as moderation from "../moderation.js";
 import type * as mutations_accountDeletions from "../mutations/accountDeletions.js";
 import type * as mutations_admin from "../mutations/admin.js";
 import type * as mutations_aiChat from "../mutations/aiChat.js";
@@ -366,6 +367,7 @@ declare const fullApi: ApiFromModules<{
   "internal/liveSessions": typeof internal_liveSessions;
   "internal/maintenance": typeof internal_maintenance;
   "internal/registerMaintenanceCrons": typeof internal_registerMaintenanceCrons;
+  moderation: typeof moderation;
   "mutations/accountDeletions": typeof mutations_accountDeletions;
   "mutations/admin": typeof mutations_admin;
   "mutations/aiChat": typeof mutations_aiChat;

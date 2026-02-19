@@ -1,17 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-
-// S3 Configuration
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
-
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'nosh-heaven-videos';
-const CLOUDFRONT_DOMAIN = process.env.CLOUDFRONT_DOMAIN;
+import { BUCKET_NAME, CLOUDFRONT_DOMAIN, storage } from './storage';
 
 // Video upload configuration
 export const VIDEO_UPLOAD_CONFIG = {
@@ -34,30 +21,7 @@ export async function generateVideoUploadUrl(
   contentType: string,
   expiresIn: number = 3600 // 1 hour
 ): Promise<{ uploadUrl: string; key: string; publicUrl: string }> {
-  const timestamp = Date.now();
-  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-  const key = `videos/${userId}/${timestamp}_${sanitizedFileName}`;
-  
-  const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-    ContentType: contentType,
-    Metadata: {
-      userId,
-      uploadedAt: timestamp.toString(),
-    },
-  });
-
-  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn });
-  const publicUrl = CLOUDFRONT_DOMAIN 
-    ? `https://${CLOUDFRONT_DOMAIN}/${key}`
-    : `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
-
-  return {
-    uploadUrl,
-    key,
-    publicUrl,
-  };
+  return storage.generateUploadUrl(userId, fileName, contentType, 'videos', expiresIn);
 }
 
 // Generate presigned URL for thumbnail upload
@@ -68,31 +32,7 @@ export async function generateThumbnailUploadUrl(
   contentType: string,
   expiresIn: number = 3600
 ): Promise<{ uploadUrl: string; key: string; publicUrl: string }> {
-  const timestamp = Date.now();
-  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-  const key = `thumbnails/${userId}/${videoId}_${timestamp}_${sanitizedFileName}`;
-  
-  const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-    ContentType: contentType,
-    Metadata: {
-      userId,
-      videoId,
-      uploadedAt: timestamp.toString(),
-    },
-  });
-
-  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn });
-  const publicUrl = CLOUDFRONT_DOMAIN 
-    ? `https://${CLOUDFRONT_DOMAIN}/${key}`
-    : `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
-
-  return {
-    uploadUrl,
-    key,
-    publicUrl,
-  };
+  return storage.generateUploadUrl(userId, fileName, contentType, 'thumbnails', expiresIn, { videoId });
 }
 
 // Generate presigned URL for video access (for private videos)
@@ -100,39 +40,22 @@ export async function generateVideoAccessUrl(
   key: string,
   expiresIn: number = 3600
 ): Promise<string> {
-  const command = new GetObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-  });
-
-  return await getSignedUrl(s3Client, command, { expiresIn });
+  return storage.generateAccessUrl(key, expiresIn);
 }
 
 // Delete video from S3
 export async function deleteVideoFromS3(key: string): Promise<void> {
-  const command = new DeleteObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-  });
-
-  await s3Client.send(command);
+  await storage.deleteFile(key);
 }
 
 // Delete thumbnail from S3
 export async function deleteThumbnailFromS3(key: string): Promise<void> {
-  const command = new DeleteObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-  });
-
-  await s3Client.send(command);
+  await storage.deleteFile(key);
 }
 
 // Get public URL for a file
 export function getPublicUrl(key: string): string {
-  return CLOUDFRONT_DOMAIN 
-    ? `https://${CLOUDFRONT_DOMAIN}/${key}`
-    : `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
+  return storage.getPublicUrl(key);
 }
 
 // Extract key from S3 URL
@@ -140,12 +63,12 @@ export function extractKeyFromUrl(url: string): string | null {
   if (CLOUDFRONT_DOMAIN && url.includes(CLOUDFRONT_DOMAIN)) {
     return url.replace(`https://${CLOUDFRONT_DOMAIN}/`, '');
   }
-  
+
   if (url.includes(BUCKET_NAME)) {
     const match = url.match(new RegExp(`${BUCKET_NAME}\\.s3[^/]*/(.+)`));
     return match ? match[1] : null;
   }
-  
+
   return null;
 }
 
@@ -221,4 +144,5 @@ export function validateThumbnailFile(file: {
   return { isValid: true };
 }
 
-export { s3Client, BUCKET_NAME };
+export { BUCKET_NAME };
+

@@ -130,6 +130,14 @@ const getEnvSchema = () => {
 
     // Test URLs - Optional (development only)
     TEST_ONBOARDING_URL: z.string().url().optional().or(z.literal('')),
+    // Azure Configuration - Optional (Migration readiness)
+    CLOUD_PROVIDER: z.enum(['aws', 'azure']).default('aws'),
+    AZURE_STORAGE_CONNECTION_STRING: z.string().optional(),
+    AZURE_STORAGE_CONTAINER_NAME: z.string().optional(),
+    AZURE_OPENAI_API_KEY: z.string().optional(),
+    AZURE_OPENAI_ENDPOINT: z.string().url().optional().or(z.literal('')),
+    AZURE_OPENAI_DEPLOYMENT_NAME: z.string().optional(),
+    AZURE_OPENAI_API_VERSION: z.string().optional(),
 
   });
 };

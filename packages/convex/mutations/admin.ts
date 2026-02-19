@@ -4,7 +4,7 @@ import {
   handleConvexError
 } from '../../../apps/web/lib/errors/convex-exports';
 import { internal } from "../_generated/api";
-import { mutation } from '../_generated/server';
+import { internalMutation, mutation } from '../_generated/server';
 
 export const logActivity = mutation({
   args: {

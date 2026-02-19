@@ -16,7 +16,7 @@ export type EmotionsContext = {
   nearby_cuisines?: string[];
 };
 
-export type Provider = 'gpt-4' | 'gpt-3.5' | 'claude' | 'gemini' | 'huggingface';
+export type Provider = 'gpt-4' | 'gpt-3.5' | 'claude' | 'gemini' | 'huggingface' | 'azure-openai';
 
 export type EmotionsEngineRequest = EmotionsContext & {
   priority?: boolean;

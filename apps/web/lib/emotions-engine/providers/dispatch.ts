@@ -1,8 +1,9 @@
 import { Provider } from '../types';
-import { queryOpenAI } from './openaiProvider';
+import { queryAzureOpenAI } from './azureOpenAIProvider';
 import { queryClaude } from './claudeProvider';
 import { queryGemini } from './geminiProvider';
 import { queryHuggingFace } from './huggingfaceProvider';
+import { queryOpenAI } from './openaiProvider';
 
 export async function dispatchToProvider(
   provider: Provider,
@@ -20,6 +21,8 @@ export async function dispatchToProvider(
       return await queryGemini(systemPrompt, userInput);
     } else if (provider === 'huggingface') {
       return await queryHuggingFace(systemPrompt, userInput);
+    } else if (provider === 'azure-openai') {
+      return await queryAzureOpenAI(systemPrompt, userInput);
     }
   } catch (err) {
     // Fallback to HuggingFace on error
