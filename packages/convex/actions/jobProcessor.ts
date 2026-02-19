@@ -13,13 +13,18 @@ export const processQueue: any = internalAction({
         processorId: v.string(), // Unique ID for this processor instance (e.g., node-1)
     },
     handler: async (ctx: any, args: any) => {
+        // 0. Pre-check: see if anything is available to do before trying to do it
+        const pendingCount = await ctx.runQuery(internal.queries.jobQueue.getPendingCount);
+        if (pendingCount === 0) {
+            return;
+        }
+
         // 1. Get next job
         const job = await ctx.runMutation(internal.mutations.jobQueue.getNextJob, {
             processorId: args.processorId,
         });
 
         if (!job) {
-            console.log(`[Processor:${args.processorId}] No pending jobs found.`);
             return;
         }
 

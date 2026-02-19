@@ -1,9 +1,9 @@
 ﻿"use client";
 
-import Link from "next/link";
-import { motion } from "motion/react";
-import { ChefHat, Users, Sparkles, Heart, Brain, Smile, Group, Gift, Shuffle, ThumbsUp, Leaf, Recycle, Home, Book, Star, ShieldCheck, Award, Flame, Utensils, Calendar, Globe, Apple, Wheat, Fish, Egg, AlertCircle, MapPin, Clock, Zap, BarChart2, PackageCheck } from "lucide-react";
 import { RotatingHeading } from "@/components/ui/rotating-heading";
+import { AlertCircle, Apple, Book, Brain, ChefHat, Flame, Group, Home, Recycle, ShieldCheck, Shuffle, Smile, Sparkles, Star, Users, Zap } from "lucide-react";
+import { motion } from "motion/react";
+import Link from "next/link";
 
 const features = [
 	{
@@ -143,7 +143,7 @@ export default function Features() {
 					>
 						<h1 className="font-asgard text-4xl sm:text-5xl md:text-6xl font-bold mb-6">
 							<span className="text-neutral-900 ">
-								<RotatingHeading 
+								<RotatingHeading
 									className="inline"
 									highlightClassName="text-[#ff3b30]"
 								/>

@@ -30,8 +30,8 @@ const launchCities = [
   }
 ];
 
-// Define the Midland cities with enhanced data and local images
-const midlandCities = [
+// Define future expansion cities
+const expansionCities = [
   {
     name: "Birmingham",
     image: "/images/cities/optimized/birmingham-city.jpg",
@@ -40,57 +40,15 @@ const midlandCities = [
     status: "Future Expansion"
   },
   {
-    name: "Leicester",
-    image: "/images/cities/optimized/leicester-city.jpg",
-    description: "A diverse and historic Midlands city with rich cultural heritage.",
+    name: "London",
+    image: "/images/cities/optimized/london.jpeg",
+    description: "The capital city and a melting pot of global cuisines.",
     launchInfo: "Coming Soon 2026",
     status: "Future Expansion"
-  },
-  {
-    name: "Nottingham",
-    image: "/images/cities/optimized/nottingham-city.jpg",
-    description: "Home of Robin Hood and a vibrant student city.",
-    launchInfo: "Coming Soon 2026",
-    status: "Future Expansion"
-  },
-  {
-    name: "Coventry",
-    image: "/images/cities/optimized/coventry-city.jpg",
-    description: "Historic city with a modern outlook and automotive heritage.",
-    launchInfo: "Coming Soon 2026",
-    status: "Future Expansion"
-  },
-  {
-    name: "Stoke-on-Trent",
-    image: "/images/cities/optimized/stoke-on-trent-city.jpg",
-    description: "The Potteries capital of the UK with ceramic heritage.",
-    launchInfo: "Coming Soon 2026",
-    status: "Future Expansion"
-  },
-  {
-    name: "Derby",
-    image: "/images/cities/optimized/derby-city.jpg",
-    description: "A city at the forefront of the Industrial Revolution.",
-    launchInfo: "Coming Soon 2026",
-    status: "Future Expansion"
-  },
-  {
-    name: "Wolverhampton",
-    image: "/images/cities/optimized/wolverhampton-city.jpg",
-    description: "A city with a rich industrial heritage and football culture.",
-    launchInfo: "Coming Soon 2026",
-    status: "Future Expansion"
-  },
-  {
-    name: "Northampton",
-    image: "/images/cities/optimized/northampton-city.jpg",
-    description: "A historic market town in the East Midlands.",
-    launchInfo: "Coming Soon 2026",
-    status: "Future Expansion"
-  },
+  }
 ];
 
-const allCities = [...launchCities, ...midlandCities];
+const allCities = [...launchCities, ...expansionCities];
 
 // Structured data for SEO
 const structuredData = {
@@ -321,7 +279,7 @@ export default function CitiesIndexPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {midlandCities.map((city) => (
+                {expansionCities.map((city) => (
                   <div
                     key={city.name}
                     className="hover:-translate-y-1 transition-transform duration-300 opacity-80 hover:opacity-100 filter grayscale-[0.2] hover:grayscale-0"
