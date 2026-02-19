@@ -52,7 +52,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Initialize Convex Client
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-  let dynamicCityRoutes: MetadataRoute.Sitemap = [];
   let dynamicBlogRoutes: MetadataRoute.Sitemap = [];
   let dynamicFoodCreatorRoutes: MetadataRoute.Sitemap = [];
 
@@ -60,16 +59,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const convex = new ConvexHttpClient(convexUrl);
 
     try {
-      // Fetch dynamic cities
-      // @ts-ignore
-      const cities = await convex.query(api.queries.cities.getCities, { status: 'active' });
-      dynamicCityRoutes = cities.map((city: any) => ({
-        url: `${baseUrl}/cities/${city.name.toLowerCase().replace(/\s+/g, '-')}`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly',
-        priority: 0.7,
-      }));
-
       // Fetch dynamic blog posts
       // @ts-ignore
       const posts = await convex.query(api.queries.blog.getBlogPosts, { status: 'published' });
@@ -94,20 +83,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  // Fallback static city routes (in case DB fetch fails or for key landing pages)
-  const staticCityRoutes = [
-    '/cities', // Index page
-    '/cities/edinburgh',
-    '/cities/birmingham',
-    '/cities/leicester',
-    '/cities/nottingham',
-    '/cities/coventry',
-    '/cities/stoke-on-trent',
-    '/cities/derby',
-    '/cities/wolverhampton',
-    '/cities/northampton',
-  ];
-
   const mainSitemap: MetadataRoute.Sitemap = routes.map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
@@ -115,12 +90,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: route === '' ? 1 : 0.8,
   }));
 
-  const staticCitiesSitemap: MetadataRoute.Sitemap = staticCityRoutes.map((route) => ({
-    url: `${baseUrl}${route}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly',
-    priority: route === '/cities' ? 0.7 : (route === '/cities/edinburgh' ? 0.9 : 0.6),
-  }));
-
-  return [...mainSitemap, ...staticCitiesSitemap, ...dynamicCityRoutes, ...dynamicBlogRoutes, ...dynamicFoodCreatorRoutes];
-} 
+  return [...mainSitemap, ...dynamicBlogRoutes, ...dynamicFoodCreatorRoutes];
+}
