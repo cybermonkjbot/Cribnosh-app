@@ -20,6 +20,80 @@ resource "azurerm_resource_group" "app_rg" {
   location = var.location
 }
 
+# Networking
+resource "azurerm_virtual_network" "vnet" {
+  name                = "${var.app_name}-${var.environment}-vnet"
+  address_space       = [var.vnet_cidr]
+  location            = azurerm_resource_group.app_rg.location
+  resource_group_name = azurerm_resource_group.app_rg.name
+}
+
+resource "azurerm_subnet" "public" {
+  name                 = "public-subnet"
+  resource_group_name  = azurerm_resource_group.app_rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = [var.public_subnet_cidr]
+}
+
+resource "azurerm_network_security_group" "nsg" {
+  name                = "${var.app_name}-${var.environment}-nsg"
+  location            = azurerm_resource_group.app_rg.location
+  resource_group_name = azurerm_resource_group.app_rg.name
+
+  security_rule {
+    name                       = "SSH"
+    priority                   = 1001
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "HTTP"
+    priority                   = 1002
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "HTTPS"
+    priority                   = 1003
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "Coolify"
+    priority                   = 1004
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "8000"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
+resource "azurerm_subnet_network_security_group_association" "nsg_assoc" {
+  subnet_id                 = azurerm_subnet.public.id
+  network_security_group_id = azurerm_network_security_group.nsg.id
+}
+
 resource "azurerm_log_analytics_workspace" "logs" {
   name                = "${var.app_name}-${var.environment}-logs"
   location            = azurerm_resource_group.app_rg.location
@@ -214,4 +288,109 @@ resource "azurerm_cdn_frontdoor_profile" "fd" {
   name                = "${var.app_name}-fd"
   resource_group_name = azurerm_resource_group.app_rg.name
   sku_name            = "Standard_AzureFrontDoor"
+}
+
+# Coolify VM
+resource "azurerm_public_ip" "vm_pip" {
+  name                = "${var.app_name}-coolify-pip"
+  location            = azurerm_resource_group.app_rg.location
+  resource_group_name = azurerm_resource_group.app_rg.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+}
+
+resource "azurerm_network_interface" "vm_nic" {
+  name                = "${var.app_name}-coolify-nic"
+  location            = azurerm_resource_group.app_rg.location
+  resource_group_name = azurerm_resource_group.app_rg.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.public.id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.vm_pip.id
+  }
+}
+
+resource "azurerm_linux_virtual_machine" "coolify_vm" {
+  name                = "${var.app_name}-coolify"
+  resource_group_name = azurerm_resource_group.app_rg.name
+  location            = azurerm_resource_group.app_rg.location
+  size                = var.vm_size
+  admin_username      = var.admin_username
+  network_interface_ids = [
+    azurerm_network_interface.vm_nic.id,
+  ]
+
+  admin_ssh_key {
+    username   = var.admin_username
+    public_key = var.ssh_public_key
+  }
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts"
+    version   = "latest"
+  }
+}
+
+# Load Balancer
+resource "azurerm_public_ip" "lb_pip" {
+  count               = var.enable_load_balancer ? 1 : 0
+  name                = "${var.app_name}-lb-pip"
+  location            = azurerm_resource_group.app_rg.location
+  resource_group_name = azurerm_resource_group.app_rg.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+}
+
+resource "azurerm_lb" "app_lb" {
+  count               = var.enable_load_balancer ? 1 : 0
+  name                = "${var.app_name}-lb"
+  location            = azurerm_resource_group.app_rg.location
+  resource_group_name = azurerm_resource_group.app_rg.name
+  sku                 = "Standard"
+
+  frontend_ip_configuration {
+    name                 = "PublicIPAddress"
+    public_ip_address_id = azurerm_public_ip.lb_pip[0].id
+  }
+}
+
+resource "azurerm_lb_backend_address_pool" "backend_pool" {
+  count           = var.enable_load_balancer ? 1 : 0
+  loadbalancer_id = azurerm_lb.app_lb[0].id
+  name            = "BackEndAddressPool"
+}
+
+resource "azurerm_network_interface_backend_address_pool_association" "nic_assoc" {
+  count                   = var.enable_load_balancer ? 1 : 0
+  network_interface_id    = azurerm_network_interface.vm_nic.id
+  ip_configuration_name   = "internal"
+  backend_address_pool_id = azurerm_lb_backend_address_pool.backend_pool[0].id
+}
+
+resource "azurerm_lb_probe" "http_probe" {
+  count           = var.enable_load_balancer ? 1 : 0
+  loadbalancer_id = azurerm_lb.app_lb[0].id
+  name            = "http-probe"
+  port            = 80
+}
+
+resource "azurerm_lb_rule" "lb_rule_http" {
+  count                          = var.enable_load_balancer ? 1 : 0
+  loadbalancer_id                = azurerm_lb.app_lb[0].id
+  name                           = "LBRule-HTTP"
+  protocol                       = "Tcp"
+  frontend_port                  = 80
+  backend_port                   = 80
+  frontend_ip_configuration_name = "PublicIPAddress"
+  backend_address_pool_ids        = [azurerm_lb_backend_address_pool.backend_pool[0].id]
+  probe_id                       = azurerm_lb_probe.http_probe[0].id
 }
