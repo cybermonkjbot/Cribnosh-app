@@ -26,8 +26,9 @@ export default function ResetPasswordForm({ role }: ResetPasswordFormProps) {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
+    // Show an immediate error if there's no token in the URL at all.
+    // Token validity (expired / already used) is validated server-side on submit.
     useEffect(() => {
-        console.log("ResetPasswordForm mounted. Token from URL:", token);
         if (!token) {
             setError('Invalid or missing reset token. Please request a new link.');
         }

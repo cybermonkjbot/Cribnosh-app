@@ -240,6 +240,7 @@ import type * as queries_notifications from "../queries/notifications.js";
 import type * as queries_nutrition from "../queries/nutrition.js";
 import type * as queries_orders from "../queries/orders.js";
 import type * as queries_otp from "../queries/otp.js";
+import type * as queries_password_reset from "../queries/password_reset.js";
 import type * as queries_paymentAnalytics from "../queries/paymentAnalytics.js";
 import type * as queries_paymentMethods from "../queries/paymentMethods.js";
 import type * as queries_payroll from "../queries/payroll.js";
@@ -538,6 +539,7 @@ declare const fullApi: ApiFromModules<{
   "queries/nutrition": typeof queries_nutrition;
   "queries/orders": typeof queries_orders;
   "queries/otp": typeof queries_otp;
+  "queries/password_reset": typeof queries_password_reset;
   "queries/paymentAnalytics": typeof queries_paymentAnalytics;
   "queries/paymentMethods": typeof queries_paymentMethods;
   "queries/payroll": typeof queries_payroll;

@@ -39,7 +39,7 @@ export const verifyAndUseToken = mutation({
         const tokenDoc = await ctx.db
             .query("passwordResetTokens")
             .withIndex("by_token", (q) => q.eq("token", args.token))
-            .unique();
+            .first();
 
         if (!tokenDoc) {
             console.error("verifyAndUseToken FAILED: Invalid token - not found in DB");
