@@ -16,10 +16,12 @@ on:
           - production
 
 env:
-  AZURE_CONTAINER_REGISTRY: cribnosh.azurecr.io
-  CONTAINER_NAME: web
-  RESOURCE_GROUP: cribnosh-rg
-  CONTAINER_APP_NAME: cribnosh-web
+  AZURE_CONTAINER_REGISTRY: cribnoshregistry.azurecr.io
+  CONTAINER_NAME: cribnosh-web
+  RESOURCE_GROUP: cribnosh-production-rg
+  CONTAINER_APP_NAME: cribnosh-production-web-v4
+  CONVEX_DEPLOYMENT: dev:wandering-finch-293
+  NEXT_PUBLIC_CONVEX_URL: https://wandering-finch-293.convex.cloud
 
 jobs:
   build-and-deploy:
@@ -43,8 +45,20 @@ jobs:
 
       - name: Build and push image
         run: |
-          docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.CONTAINER_NAME }}:${{ github.sha }} -f apps/web/Dockerfile.prod .
+          docker build \
+            --platform linux/amd64 \
+            --build-arg NODE_ENV="production" \
+            --build-arg NEXT_TELEMETRY_DISABLED="1" \
+            --build-arg CONVEX_DEPLOY_KEY="${{ secrets.CONVEX_DEPLOY_KEY }}" \
+            --build-arg CONVEX_DEPLOYMENT="${{ env.CONVEX_DEPLOYMENT }}" \
+            --build-arg RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}" \
+            --build-arg NEXT_PUBLIC_CONVEX_URL="${{ env.NEXT_PUBLIC_CONVEX_URL }}" \
+            --build-arg CONVEX_URL="${{ env.NEXT_PUBLIC_CONVEX_URL }}" \
+            -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.CONTAINER_NAME }}:${{ github.sha }} \
+            -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.CONTAINER_NAME }}:latest \
+            -f apps/web/Dockerfile.prod .
           docker push ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.CONTAINER_NAME }}:${{ github.sha }}
+          docker push ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.CONTAINER_NAME }}:latest
 
       - name: Deploy to Azure Container App
         uses: azure/container-apps-deploy-action@v1

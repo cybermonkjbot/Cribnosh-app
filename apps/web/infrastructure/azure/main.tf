@@ -170,7 +170,7 @@ resource "azurerm_security_center_subscription_pricing" "defender_registry" {
 resource "azurerm_purview_account" "governance" {
   name                        = "${var.purview_account_name}-v4"
   resource_group_name         = azurerm_resource_group.app_rg.name
-  location                    = "ukwest"
+  location                    = "uksouth"
   
   identity {
     type = "SystemAssigned"
@@ -199,6 +199,11 @@ resource "azurerm_container_app" "web_app" {
   identity {
     type         = "UserAssigned"
     identity_ids = [azurerm_user_assigned_identity.app_identity.id]
+  }
+
+  registry {
+    server   = azurerm_container_registry.acr.login_server
+    identity = azurerm_user_assigned_identity.app_identity.id
   }
 
   template {
@@ -271,30 +276,15 @@ resource "azurerm_monitor_diagnostic_setting" "app_diagnostics" {
 
   enabled_log {
     category = "ContainerAppConsoleLogs"
-
-    retention_policy {
-      enabled = false
-      days    = 0
-    }
   }
 
   enabled_log {
     category = "ContainerAppSystemLogs"
-
-    retention_policy {
-      enabled = false
-      days    = 0
-    }
   }
 
   metric {
     category = "AllMetrics"
     enabled  = true
-
-    retention_policy {
-      enabled = false
-      days    = 0
-    }
   }
 }
 
