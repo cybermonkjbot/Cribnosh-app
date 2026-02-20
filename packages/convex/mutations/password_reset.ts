@@ -9,6 +9,8 @@ export const createResetToken = mutation({
         expiresAt: v.number(),
     },
     handler: async (ctx, args) => {
+        console.log(`[createResetToken] START — email: ${args.email}, expiresAt: ${new Date(args.expiresAt).toISOString()}`);
+
         // Invalidate any existing tokens for this email
         const existingTokens = await ctx.db
             .query("passwordResetTokens")
@@ -16,17 +18,22 @@ export const createResetToken = mutation({
             .filter((q) => q.eq(q.field("used"), false))
             .collect();
 
+        if (existingTokens.length > 0) {
+            console.log(`[createResetToken] Invalidating ${existingTokens.length} existing token(s) for ${args.email}`);
+        }
         for (const token of existingTokens) {
             await ctx.db.patch(token._id, { used: true });
         }
 
         // Insert new token
-        return await ctx.db.insert("passwordResetTokens", {
+        const newId = await ctx.db.insert("passwordResetTokens", {
             email: args.email,
             token: args.token,
             expiresAt: args.expiresAt,
             used: false,
         });
+        console.log(`[createResetToken] SUCCESS — token inserted with id: ${newId} for ${args.email}`);
+        return newId;
     },
 });
 

@@ -30,21 +30,26 @@ export default function ResetPasswordForm({ role }: ResetPasswordFormProps) {
     // Token validity (expired / already used) is validated server-side on submit.
     useEffect(() => {
         if (!token) {
+            console.warn('[ResetPasswordForm] No token found in URL params');
             setError('Invalid or missing reset token. Please request a new link.');
+        } else {
+            console.log(`[ResetPasswordForm] Token present in URL (prefix: ${token.slice(0, 8)}…), role: ${role}`);
         }
-    }, [token]);
+    }, [token, role]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("Submitting reset with token:", token);
+        console.log(`[ResetPasswordForm] Submit triggered — token prefix: ${token?.slice(0, 8)}…, role: ${role}`);
         if (!token) return;
 
         if (password.length < 8) {
+            console.warn('[ResetPasswordForm] Validation failed: password too short');
             setError('Password must be at least 8 characters.');
             return;
         }
 
         if (password !== confirmPassword) {
+            console.warn('[ResetPasswordForm] Validation failed: passwords do not match');
             setError('Passwords do not match.');
             return;
         }
@@ -53,10 +58,13 @@ export default function ResetPasswordForm({ role }: ResetPasswordFormProps) {
         setError(null);
 
         try {
+            console.log(`[ResetPasswordForm] Calling resetPasswordWithToken action…`);
             const result = await resetPassword({
                 token,
                 newPassword: password,
             });
+
+            console.log('[ResetPasswordForm] Action result:', result);
 
             if (result.success) {
                 setSuccess(true);
@@ -64,9 +72,11 @@ export default function ResetPasswordForm({ role }: ResetPasswordFormProps) {
                     router.push(`/${role}/login`);
                 }, 3000);
             } else {
+                console.error('[ResetPasswordForm] Reset failed:', result.error);
                 setError(result.error || 'Reset failed. Your token may have expired.');
             }
         } catch (err: any) {
+            console.error('[ResetPasswordForm] Unexpected error:', err);
             setError(err.message || 'Network error. Please try again.');
         } finally {
             setLoading(false);
