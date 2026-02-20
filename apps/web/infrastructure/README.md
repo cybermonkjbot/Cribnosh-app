@@ -236,6 +236,84 @@ For infrastructure issues:
 3. Check AWS service health
 4. Review GitHub Actions workflow logs
 
+---
+
+## Azure Infrastructure
+
+CribNosh also runs an Azure deployment managed in `apps/web/infrastructure/azure/`. It includes:
+
+- **Azure Container Apps** — Containerized Next.js hosting (`cribnosh-production-web-v4`)
+- **Azure Container Registry (ACR)** — Docker image storage (`cribnoshregistry.azurecr.io`)
+- **Coolify VM** — Self-hosted deployment and management VM (`Ubuntu 22.04`, `Standard_DS2_v2`)
+- **Azure Front Door** — CDN / global load balancing
+- **Log Analytics + Application Insights** — Observability
+
+### Azure Directory Structure
+
+```
+infrastructure/azure/
+├── main.tf              # Core infrastructure resources
+├── variables.tf         # Variable definitions
+├── terraform.tfstate    # Remote state (gitignored)
+├── cribnosh_vm          # SSH private key (gitignored)
+└── cribnosh_vm.pub      # SSH public key (gitignored)
+```
+
+### Coolify VM SSH Access
+
+The Coolify VM is an Azure Linux VM used for self-hosted deployments.
+
+| Detail | Value |
+|---|---|
+| **VM Name** | `cribnosh-coolify` |
+| **Public IP** | `51.142.139.95` |
+| **Username** | `azureuser` |
+| **Region** | `ukwest` |
+| **Auth** | SSH key only (password auth disabled) |
+| **SSH private key** | `apps/web/infrastructure/azure/cribnosh_vm` |
+
+**Connect:**
+```bash
+ssh -i apps/web/infrastructure/azure/cribnosh_vm azureuser@51.142.139.95
+```
+
+> ⚠️ The SSH keys are gitignored and **must not be committed**. Store a backup of `cribnosh_vm` (private key) securely (e.g. 1Password, Azure Key Vault).
+
+#### Recovering SSH Access
+
+If the key is lost, inject a new one via the Azure CLI:
+
+```bash
+# 1. Generate a new key pair
+ssh-keygen -t ed25519 -f ~/.ssh/cribnosh_vm -C "your@email.com"
+
+# 2. Inject it into the VM
+az vm user update \
+  --resource-group cribnosh-production-rg \
+  --name cribnosh-coolify \
+  --username azureuser \
+  --ssh-key-value "$(cat ~/.ssh/cribnosh_vm.pub)"
+
+# 3. Copy keys into project (they are gitignored)
+cp ~/.ssh/cribnosh_vm apps/web/infrastructure/azure/cribnosh_vm
+cp ~/.ssh/cribnosh_vm.pub apps/web/infrastructure/azure/cribnosh_vm.pub
+```
+
+### Azure Terraform
+
+```bash
+cd apps/web/infrastructure/azure
+terraform init
+terraform plan
+terraform apply
+```
+
+**Required env vars / credentials:**
+- Azure CLI logged in: `az login`
+- Or set: `ARM_SUBSCRIPTION_ID`, `ARM_TENANT_ID`, `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`
+
+---
+
 ## Related Documentation
 
 - [AWS App Runner Documentation](https://docs.aws.amazon.com/apprunner/)

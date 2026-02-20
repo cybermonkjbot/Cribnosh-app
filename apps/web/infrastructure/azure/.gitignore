@@ -1,0 +1,9 @@
+# SSH keys - never commit private keys
+cribnosh_vm
+cribnosh_vm.pub
+
+# Terraform sensitive files
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
