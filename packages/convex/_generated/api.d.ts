@@ -279,6 +279,9 @@ import type * as queries_workSessions from "../queries/workSessions.js";
 import type * as schemaDrip from "../schemaDrip.js";
 import type * as services_resend from "../services/resend.js";
 import type * as stuart_integration from "../stuart_integration.js";
+import type * as testE2E from "../testE2E.js";
+import type * as testVerifyToken from "../testVerifyToken.js";
+import type * as triggerReset from "../triggerReset.js";
 import type * as types_convexContexts from "../types/convexContexts.js";
 import type * as types_email from "../types/email.js";
 import type * as types_livestream from "../types/livestream.js";
@@ -293,6 +296,7 @@ import type * as utils_stripe from "../utils/stripe.js";
 import type * as utils_time from "../utils/time.js";
 import type * as utils_timeCalculations from "../utils/timeCalculations.js";
 import type * as utils_userPreferencesFilter from "../utils/userPreferencesFilter.js";
+import type * as viewActiveTokens from "../viewActiveTokens.js";
 import type * as waitlist_utils from "../waitlist_utils.js";
 
 import type {
@@ -573,6 +577,9 @@ declare const fullApi: ApiFromModules<{
   schemaDrip: typeof schemaDrip;
   "services/resend": typeof services_resend;
   stuart_integration: typeof stuart_integration;
+  testE2E: typeof testE2E;
+  testVerifyToken: typeof testVerifyToken;
+  triggerReset: typeof triggerReset;
   "types/convexContexts": typeof types_convexContexts;
   "types/email": typeof types_email;
   "types/livestream": typeof types_livestream;
@@ -587,6 +594,7 @@ declare const fullApi: ApiFromModules<{
   "utils/time": typeof utils_time;
   "utils/timeCalculations": typeof utils_timeCalculations;
   "utils/userPreferencesFilter": typeof utils_userPreferencesFilter;
+  viewActiveTokens: typeof viewActiveTokens;
   waitlist_utils: typeof waitlist_utils;
 }>;
 

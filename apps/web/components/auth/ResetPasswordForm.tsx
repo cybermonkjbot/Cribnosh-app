@@ -27,6 +27,7 @@ export default function ResetPasswordForm({ role }: ResetPasswordFormProps) {
     const [success, setSuccess] = useState(false);
 
     useEffect(() => {
+        console.log("ResetPasswordForm mounted. Token from URL:", token);
         if (!token) {
             setError('Invalid or missing reset token. Please request a new link.');
         }
@@ -34,6 +35,7 @@ export default function ResetPasswordForm({ role }: ResetPasswordFormProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log("Submitting reset with token:", token);
         if (!token) return;
 
         if (password.length < 8) {

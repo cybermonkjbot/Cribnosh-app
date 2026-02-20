@@ -2,6 +2,7 @@
 'use node';
 import { v } from 'convex/values';
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
+import { Buffer } from 'node:buffer';
 import { action } from '../_generated/server';
 
 export const hashPasswordAction = action({
@@ -22,11 +23,24 @@ export const verifyPasswordAction = action({
     try {
       const [salt, storedHash] = args.hashedPassword.split(':');
       if (!salt || !storedHash) {
+        console.error('Password verification failed: malformed hashedPassword');
         return false;
       }
 
       const hash = scryptSync(args.password, salt, 64).toString('hex');
-      return timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(storedHash, 'hex'));
+      const hashBuf = Buffer.from(hash, 'hex');
+      const storedBuf = Buffer.from(storedHash, 'hex');
+
+      if (hashBuf.length !== storedBuf.length) {
+        console.error(`Password verification failed: length mismatch (hashBuf: ${hashBuf.length}, storedBuf: ${storedBuf.length})`);
+        return false;
+      }
+
+      const isValid = timingSafeEqual(hashBuf, storedBuf);
+      if (!isValid) {
+        console.error('Password verification failed: hash does not match storedHash');
+      }
+      return isValid;
     } catch (error) {
       console.error('Error during password verification:', error);
       return false;

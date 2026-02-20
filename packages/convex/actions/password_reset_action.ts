@@ -61,7 +61,7 @@ export const sendPasswordResetEmail = (action as any)({
         });
 
         // 5. Send Email
-        const defaultBaseUrl = "https://app.cribnosh.co.uk";
+        const defaultBaseUrl = "https://cribnosh.co.uk";
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || defaultBaseUrl;
         const resetUrl = `${baseUrl}/${args.role}/reset-password?token=${token}`;
 

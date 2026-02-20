@@ -35,25 +35,30 @@ export const verifyAndUseToken = mutation({
         token: v.string(),
     },
     handler: async (ctx, args) => {
+        console.log("verifyAndUseToken CALLED with token:", args.token);
         const tokenDoc = await ctx.db
             .query("passwordResetTokens")
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .unique();
 
         if (!tokenDoc) {
+            console.error("verifyAndUseToken FAILED: Invalid token - not found in DB");
             return { success: false, error: "Invalid token" };
         }
 
         if (tokenDoc.used) {
+            console.error("verifyAndUseToken FAILED: Token already used");
             return { success: false, error: "Token already used" };
         }
 
         if (Date.now() > tokenDoc.expiresAt) {
+            console.error("verifyAndUseToken FAILED: Token expired");
             return { success: false, error: "Token expired" };
         }
 
         // Mark as used
         await ctx.db.patch(tokenDoc._id, { used: true });
+        console.log("verifyAndUseToken SUCCESS: Token marked as used for email", tokenDoc.email);
 
         return { success: true, email: tokenDoc.email };
     },

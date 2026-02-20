@@ -190,11 +190,14 @@ export const sendTemplateEmail = action({
     });
 
     // 5. Send via Resend (using helper function to avoid recursion)
+    console.log("SENDING EMAIL TO:", args.to, "SUBJECT:", subject);
+    console.log("HTML CONTENT:", html);
+
     await sendEmailInternal({
       to: args.to,
       subject: subject,
       html: html,
-      from: "CribNosh <noreply@cribnosh.com>",
+      from: "CribNosh <noreply@emails.cribnosh.com>",
       text: "",
     });
 

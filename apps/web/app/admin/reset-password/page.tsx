@@ -1,6 +1,9 @@
 import ResetPasswordForm from '@/components/auth/ResetPasswordForm';
 import { Suspense } from 'react';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function AdminResetPasswordPage() {
     return (
         <div className="min-h-screen flex items-center justify-center relative bg-white overflow-hidden p-4">
