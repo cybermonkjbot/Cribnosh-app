@@ -263,30 +263,7 @@ resource "azurerm_monitor_diagnostic_setting" "env_diagnostics" {
   }
 }
 
-# Diagnostic Settings for Container App
-resource "azurerm_monitor_diagnostic_setting" "app_diagnostics" {
-  name                       = "${var.app_name}-app-diagnostics-ukw"
-  target_resource_id         = azurerm_container_app.web_app.id
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
 
-  # Container Apps usually have specific log categories like "ContainerAppConsoleLogs", "ContainerAppSystemLogs"
-  # But Terraform provider validation for `log` block categories can be tricky without exact names.
-  # For now, we will enable all logs if possible, or list specific ones known.
-  # Checking documentation, valid categories usually are: "ContainerAppConsoleLogs", "ContainerAppSystemLogs"
-
-  enabled_log {
-    category = "ContainerAppConsoleLogs"
-  }
-
-  enabled_log {
-    category = "ContainerAppSystemLogs"
-  }
-
-  metric {
-    category = "AllMetrics"
-    enabled  = true
-  }
-}
 
 resource "azurerm_storage_account" "app_storage" {
   name                     = "${replace(var.app_name, "-", "")}${substr(var.environment, 0, 3)}store"
