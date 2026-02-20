@@ -31,6 +31,7 @@ variable "public_subnet_cidr" {
 variable "container_registry" {
   description = "Azure Container Registry URL"
   type        = string
+  default     = "" # Placeholder if not found
 }
 
 variable "image_name" {
@@ -60,7 +61,7 @@ variable "enable_purview_public_access" {
 variable "vm_size" {
   description = "Size of the virtual machine for Coolify"
   type        = string
-  default     = "Standard_B2s"
+  default     = "Standard_DS2_v2"
 }
 
 variable "admin_username" {
@@ -72,6 +73,7 @@ variable "admin_username" {
 variable "ssh_public_key" {
   description = "SSH public key for VM access"
   type        = string
+  default     = "" # Will be passed via tfvars or ENV
 }
 
 variable "enable_load_balancer" {

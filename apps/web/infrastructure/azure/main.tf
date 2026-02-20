@@ -12,7 +12,12 @@ terraform {
 }
 
 provider "azurerm" {
-  features {}
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
+  skip_provider_registration = true
 }
 
 resource "azurerm_resource_group" "app_rg" {
@@ -20,16 +25,24 @@ resource "azurerm_resource_group" "app_rg" {
   location = var.location
 }
 
+resource "azurerm_container_registry" "acr" {
+  name                = "cribnoshregistry"
+  resource_group_name = azurerm_resource_group.app_rg.name
+  location            = azurerm_resource_group.app_rg.location
+  sku                 = "Basic"
+  admin_enabled       = true
+}
+
 # Networking
 resource "azurerm_virtual_network" "vnet" {
-  name                = "${var.app_name}-${var.environment}-vnet"
+  name                = "${var.app_name}-${var.environment}-vnet-ukw"
   address_space       = [var.vnet_cidr]
-  location            = azurerm_resource_group.app_rg.location
+  location            = "ukwest"
   resource_group_name = azurerm_resource_group.app_rg.name
 }
 
 resource "azurerm_subnet" "public" {
-  name                 = "public-subnet"
+  name                 = "public-subnet-ukw"
   resource_group_name  = azurerm_resource_group.app_rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = [var.public_subnet_cidr]
@@ -37,7 +50,7 @@ resource "azurerm_subnet" "public" {
 
 resource "azurerm_network_security_group" "nsg" {
   name                = "${var.app_name}-${var.environment}-nsg"
-  location            = azurerm_resource_group.app_rg.location
+  location            = "ukwest"
   resource_group_name = azurerm_resource_group.app_rg.name
 
   security_rule {
@@ -96,7 +109,7 @@ resource "azurerm_subnet_network_security_group_association" "nsg_assoc" {
 
 resource "azurerm_log_analytics_workspace" "logs" {
   name                = "${var.app_name}-${var.environment}-logs"
-  location            = azurerm_resource_group.app_rg.location
+  location            = "ukwest"
   resource_group_name = azurerm_resource_group.app_rg.name
   sku                 = "PerGB2018"
   retention_in_days   = 30
@@ -105,7 +118,7 @@ resource "azurerm_log_analytics_workspace" "logs" {
 # Application Insights
 resource "azurerm_application_insights" "app_insights" {
   name                = "${var.app_name}-${var.environment}-insights"
-  location            = azurerm_resource_group.app_rg.location
+  location            = "ukwest"
   resource_group_name = azurerm_resource_group.app_rg.name
   workspace_id        = azurerm_log_analytics_workspace.logs.id
   application_type    = "web"
@@ -155,11 +168,9 @@ resource "azurerm_security_center_subscription_pricing" "defender_registry" {
 
 # Microsoft Purview Account
 resource "azurerm_purview_account" "governance" {
-  name                        = var.purview_account_name
+  name                        = "${var.purview_account_name}-v4"
   resource_group_name         = azurerm_resource_group.app_rg.name
-  location                    = azurerm_resource_group.app_rg.location
-  sku_name                    = "Standard_4" # Minimum capacity
-  public_network_access_enabled = var.enable_purview_public_access
+  location                    = "ukwest"
   
   identity {
     type = "SystemAssigned"
@@ -168,7 +179,7 @@ resource "azurerm_purview_account" "governance" {
 
 resource "azurerm_container_app_environment" "app_env" {
   name                       = "${var.app_name}-${var.environment}-env"
-  location                   = azurerm_resource_group.app_rg.location
+  location                   = "ukwest"
   resource_group_name        = azurerm_resource_group.app_rg.name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
 }
@@ -180,7 +191,7 @@ resource "azurerm_user_assigned_identity" "app_identity" {
 }
 
 resource "azurerm_container_app" "web_app" {
-  name                         = "${var.app_name}-${var.environment}-web"
+  name                         = "${var.app_name}-${var.environment}-web-v4"
   container_app_environment_id = azurerm_container_app_environment.app_env.id
   resource_group_name          = azurerm_resource_group.app_rg.name
   revision_mode                = "Single"
@@ -212,6 +223,8 @@ resource "azurerm_container_app" "web_app" {
     }
   }
 
+  depends_on = [time_sleep.wait_for_acr_permissions]
+
   ingress {
     allow_insecure_connections = false
     external_enabled           = true
@@ -223,9 +236,31 @@ resource "azurerm_container_app" "web_app" {
   }
 }
 
+# Diagnostic Settings for Container App Environment
+# This captures network and system-level events for the entire environment
+resource "azurerm_monitor_diagnostic_setting" "env_diagnostics" {
+  name                       = "${var.app_name}-env-diagnostics-ukw"
+  target_resource_id         = azurerm_container_app_environment.app_env.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
+
+  enabled_log {
+    category = "ContainerAppConsoleLogs"
+    # Note: Transitioning to category_group = "allLogs" is often preferred in newer provider versions
+  }
+
+  enabled_log {
+    category = "ContainerAppSystemLogs"
+  }
+
+  metric {
+    category = "AllMetrics"
+    enabled  = true
+  }
+}
+
 # Diagnostic Settings for Container App
 resource "azurerm_monitor_diagnostic_setting" "app_diagnostics" {
-  name                       = "${var.app_name}-app-diagnostics"
+  name                       = "${var.app_name}-app-diagnostics-ukw"
   target_resource_id         = azurerm_container_app.web_app.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
 
@@ -264,7 +299,7 @@ resource "azurerm_monitor_diagnostic_setting" "app_diagnostics" {
 }
 
 resource "azurerm_storage_account" "app_storage" {
-  name                     = "${replace(var.app_name, "-", "")}${var.environment}storage"
+  name                     = "${replace(var.app_name, "-", "")}${substr(var.environment, 0, 3)}store"
   resource_group_name      = azurerm_resource_group.app_rg.name
   location                 = azurerm_resource_group.app_rg.location
   account_tier             = "Standard"
@@ -275,6 +310,19 @@ resource "azurerm_role_assignment" "storage_blob_contributor" {
   scope                = azurerm_storage_account.app_storage.id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azurerm_user_assigned_identity.app_identity.principal_id
+}
+
+resource "azurerm_role_assignment" "acr_pull" {
+  scope                = azurerm_container_registry.acr.id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_user_assigned_identity.app_identity.principal_id
+}
+
+# Add a delay to allow ACR permissions to propagate
+resource "time_sleep" "wait_for_acr_permissions" {
+  create_duration = "30s"
+
+  depends_on = [azurerm_role_assignment.acr_pull]
 }
 
 resource "azurerm_storage_container" "documents" {
@@ -293,7 +341,7 @@ resource "azurerm_cdn_frontdoor_profile" "fd" {
 # Coolify VM
 resource "azurerm_public_ip" "vm_pip" {
   name                = "${var.app_name}-coolify-pip"
-  location            = azurerm_resource_group.app_rg.location
+  location            = "ukwest" # Must match VM location
   resource_group_name = azurerm_resource_group.app_rg.name
   allocation_method   = "Static"
   sku                 = "Standard"
@@ -301,7 +349,7 @@ resource "azurerm_public_ip" "vm_pip" {
 
 resource "azurerm_network_interface" "vm_nic" {
   name                = "${var.app_name}-coolify-nic"
-  location            = azurerm_resource_group.app_rg.location
+  location            = "ukwest" # Must match VM location
   resource_group_name = azurerm_resource_group.app_rg.name
 
   ip_configuration {
@@ -315,7 +363,7 @@ resource "azurerm_network_interface" "vm_nic" {
 resource "azurerm_linux_virtual_machine" "coolify_vm" {
   name                = "${var.app_name}-coolify"
   resource_group_name = azurerm_resource_group.app_rg.name
-  location            = azurerm_resource_group.app_rg.location
+  location            = "ukwest" # Using ukwest because uksouth is out of B/D/F series stock
   size                = var.vm_size
   admin_username      = var.admin_username
   network_interface_ids = [
@@ -344,7 +392,7 @@ resource "azurerm_linux_virtual_machine" "coolify_vm" {
 resource "azurerm_public_ip" "lb_pip" {
   count               = var.enable_load_balancer ? 1 : 0
   name                = "${var.app_name}-lb-pip"
-  location            = azurerm_resource_group.app_rg.location
+  location            = "ukwest"
   resource_group_name = azurerm_resource_group.app_rg.name
   allocation_method   = "Static"
   sku                 = "Standard"
@@ -353,7 +401,7 @@ resource "azurerm_public_ip" "lb_pip" {
 resource "azurerm_lb" "app_lb" {
   count               = var.enable_load_balancer ? 1 : 0
   name                = "${var.app_name}-lb"
-  location            = azurerm_resource_group.app_rg.location
+  location            = "ukwest"
   resource_group_name = azurerm_resource_group.app_rg.name
   sku                 = "Standard"
 
