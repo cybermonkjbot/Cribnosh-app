@@ -193,7 +193,7 @@ export default function EmailTemplatesPage() {
                                         </TableCell>
                                         <TableCell>{template.emailType || "Custom"}</TableCell>
                                         <TableCell>
-                                            {formatDistanceToNow(template.updatedAt, { addSuffix: true })}
+                                            {formatDistanceToNow(template.updatedAt ?? Date.now(), { addSuffix: true })}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">
