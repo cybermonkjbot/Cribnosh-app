@@ -8,6 +8,7 @@ const __dirname = dirname(__filename);
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Basic configuration
+  optimizeFonts: false,
   typescript: {
     // Only ignore TypeScript errors in development
     // In production, all TypeScript errors must be fixed
@@ -22,8 +23,6 @@ const nextConfig = {
 
   // Image optimization
   images: {
-    optimizeFonts: false,
-    // Enable image optimization
     // Configure image domains if using external images
     remotePatterns: [
       {
