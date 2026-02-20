@@ -6,7 +6,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useAddToCart } from "@/hooks/use-cart";
 import { useSession } from "@/lib/auth/use-session";
 import { useQuery } from "convex/react";
-import { ArrowLeft, ChefHat, Clock, MapPin, ShoppingCart, Star } from "lucide-react";
+import { ArrowLeft, ChefHat, Clock, MapPin, Play, ShoppingCart, Star, Users, Video } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -29,8 +29,20 @@ export default function FoodCreatorProfileClient({ foodCreator }: FoodCreatorPro
         chefId: foodCreator._id,
         query: "",
         userId,
-        limit: 50 // Show reasonable amount of meals
+        limit: 50
     });
+
+    // Fetch follower stats for the creator's user ID
+    const followStats = useQuery(
+        api.queries.userFollows.getUserFollowStats,
+        foodCreator.userId ? { userId: foodCreator.userId as Id<'users'> } : "skip"
+    );
+
+    // Fetch published videos by this creator
+    const creatorVideos = useQuery(
+        api.queries.videoPosts.getVideosByCreator,
+        foodCreator.userId ? { creatorId: foodCreator.userId as Id<'users'>, limit: 6 } : "skip"
+    );
 
     const isLoadingMeals = meals === undefined;
 
@@ -132,6 +144,31 @@ export default function FoodCreatorProfileClient({ foodCreator }: FoodCreatorPro
                                     ))}
                                 </div>
                             )}
+
+                            {/* Social Proof Stats */}
+                            <div className="mt-6 flex flex-wrap justify-center md:justify-start gap-6 text-sm">
+                                {followStats?.followersCount !== undefined && (
+                                    <div className="flex items-center gap-1.5 text-slate-700">
+                                        <Users size={15} className="text-slate-400" />
+                                        <span className="font-semibold">{followStats.followersCount >= 1000 ? `${(followStats.followersCount / 1000).toFixed(1)}k` : followStats.followersCount}</span>
+                                        <span className="text-slate-500">followers</span>
+                                    </div>
+                                )}
+                                {followStats?.videoCount !== undefined && followStats.videoCount > 0 && (
+                                    <div className="flex items-center gap-1.5 text-slate-700">
+                                        <Video size={15} className="text-slate-400" />
+                                        <span className="font-semibold">{followStats.videoCount}</span>
+                                        <span className="text-slate-500">videos</span>
+                                    </div>
+                                )}
+                                {foodCreator.performance?.totalOrders !== undefined && foodCreator.performance.totalOrders > 0 && (
+                                    <div className="flex items-center gap-1.5 text-slate-700">
+                                        <ShoppingCart size={15} className="text-slate-400" />
+                                        <span className="font-semibold">{foodCreator.performance.totalOrders}</span>
+                                        <span className="text-slate-500">orders completed</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -216,6 +253,44 @@ export default function FoodCreatorProfileClient({ foodCreator }: FoodCreatorPro
                     </div>
                 )}
             </div>
+
+            {/* Video Content Grid */}
+            {creatorVideos?.videos && creatorVideos.videos.length > 0 && (
+                <div className="container mx-auto px-4 pb-12">
+                    <h2 className="font-asgard text-2xl mb-8">Videos</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {creatorVideos.videos.map((video: any) => (
+                            <motion.div
+                                key={video._id}
+                                initial={{ opacity: 0, scale: 0.97 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.25 }}
+                                className="relative aspect-[9/16] rounded-xl overflow-hidden bg-slate-100 group cursor-pointer shadow-sm hover:shadow-md transition-shadow"
+                            >
+                                {video.thumbnailUrl ? (
+                                    <Image
+                                        src={video.thumbnailUrl}
+                                        alt={video.title}
+                                        fill
+                                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                    />
+                                ) : (
+                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
+                                        <Play size={32} className="text-slate-400" />
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                                <div className="absolute bottom-3 left-3 right-3">
+                                    <p className="text-white text-sm font-semibold line-clamp-2">{video.title}</p>
+                                    {video.likesCount > 0 && (
+                                        <p className="text-white/70 text-xs mt-1">{video.likesCount} ♥</p>
+                                    )}
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

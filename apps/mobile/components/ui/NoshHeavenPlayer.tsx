@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CribNoshLogo } from './CribNoshLogo';
 import { MealVideoCard } from './MealVideoCard';
 import { MealVideoCardSkeleton } from './MealVideoCardSkeleton';
+import { VideoCommentsSheet } from './VideoCommentsSheet';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -49,6 +50,7 @@ interface NoshHeavenPlayerProps {
   onMealShare?: (mealId: string) => void;
   onAddToCart?: (mealId: string) => void;
   onKitchenPress?: (kitchenName: string) => void;
+  onCommentPress?: (videoId: string) => void;
 }
 
 export function NoshHeavenPlayer({
@@ -63,6 +65,7 @@ export function NoshHeavenPlayer({
   onMealShare,
   onAddToCart,
   onKitchenPress,
+  onCommentPress,
 }: NoshHeavenPlayerProps) {
   const insets = useSafeAreaInsets();
   const topPosition = useTopPosition(16);
@@ -70,6 +73,7 @@ export function NoshHeavenPlayer({
   const [preloadedVideos, setPreloadedVideos] = useState<Set<string>>(new Set());
   const flatListRef = useRef<FlatList>(null);
   const isMountedRef = useRef(true);
+  const [activeCommentVideoId, setActiveCommentVideoId] = useState<string | null>(null);
 
   // Convert kitchen intro video to MealData format
   const kitchenIntroMeal: MealData | null = useMemo(() => {
@@ -298,6 +302,11 @@ export function NoshHeavenPlayer({
     onKitchenPress?.(kitchenName);
   }, [onKitchenPress]);
 
+  const handleCommentPress = useCallback((videoId: string) => {
+    setActiveCommentVideoId(videoId);
+    onCommentPress?.(videoId);
+  }, [onCommentPress]);
+
   // Optimized render function with minimal dependencies
   const renderMealItem = useCallback(({ item, index }: { item: MealData; index: number }) => {
     try {
@@ -325,6 +334,7 @@ export function NoshHeavenPlayer({
           onShare={() => handleMealShare(item.id)}
           onAddToCart={() => handleMealAddToCart(item.id)}
           onKitchenPress={() => handleKitchenPress(item.kitchenName)}
+          onCommentPress={() => handleCommentPress(item.id)}
         />
       );
     } catch (error) {
@@ -484,6 +494,12 @@ export function NoshHeavenPlayer({
           </Text>
         </Animated.View>
       )}
+
+      {/* Video Comments Sheet */}
+      <VideoCommentsSheet
+        videoId={activeCommentVideoId}
+        onClose={() => setActiveCommentVideoId(null)}
+      />
     </View>
   );
 } 

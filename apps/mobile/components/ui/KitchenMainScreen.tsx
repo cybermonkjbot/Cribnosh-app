@@ -1,8 +1,9 @@
+import { useFollowCreator } from '@/hooks/useFollowCreator';
 import { useFoodCreators } from '@/hooks/useFoodCreators';
 import { useTopPosition } from '@/utils/positioning';
 import { BlurView } from 'expo-blur';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -61,6 +62,10 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
   const [cartItems, setCartItems] = useState(initialCartItems);
   const [isChatVisible, setIsChatVisible] = useState(false);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+
+  // Derive the creator's user ID from kitchen details (for follow/unfollow)
+  const creatorUserId = kitchenDetails?.data?.userId as string | undefined;
+  const { isFollowing, followerCount, loading: followLoading, toggle: toggleFollow } = useFollowCreator({ creatorUserId });
 
   const handleOpenAIChat = () => {
     setIsGeneratingSuggestions(true);
@@ -122,7 +127,7 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
   // If kitchenId is provided, always prioritize API data over prop
   // Never use "Amara's Kitchen" prop when we have a kitchenId
   const isDemoName = propKitchenName === "Amara's Kitchen";
-  const kitchenName = kitchenId 
+  const kitchenName = kitchenId
     ? (apiKitchenName || (!isDemoName && propKitchenName) || (isLoadingKitchenDetails ? undefined : "Kitchen"))
     : (propKitchenName || "Amara's Kitchen");
 
@@ -181,25 +186,51 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
       {/* Background with blur */}
       <View style={styles.background}>
         <BackgroundElements />
-        
+
         {/* Blur overlay */}
         <BlurView intensity={82.5} tint="light" style={styles.blurOverlay} />
       </View>
 
-      {/* Header Container with Kitchen Info Card and Close Button */}
+      {/* Header Container with Kitchen Info Card, Follow Button, and Close Button */}
       <View style={[styles.headerContainer, { top: topPosition }]}>
         {/* Kitchen Intro Card */}
         <View style={styles.introCardWrapper}>
-          <KitchenIntroCard 
+          <KitchenIntroCard
             kitchenName={kitchenName}
             cuisine={cuisine}
           />
         </View>
 
-        {/* Close button - aligned with KitchenIntroCard */}
-        <TouchableOpacity 
-          style={styles.closeButton} 
-          onPress={onClose} 
+        {/* Follow Button — only shown when creator userId is known */}
+        {creatorUserId ? (
+          <TouchableOpacity
+            style={[
+              styles.followButton,
+              isFollowing ? styles.followButtonActive : styles.followButtonInactive,
+            ]}
+            onPress={toggleFollow}
+            activeOpacity={0.8}
+            disabled={followLoading}
+          >
+            {followLoading ? (
+              <ActivityIndicator size="small" color={isFollowing ? '#fff' : '#4C3F59'} />
+            ) : (
+              <Text style={[styles.followButtonText, isFollowing ? styles.followButtonTextActive : styles.followButtonTextInactive]}>
+                {isFollowing ? 'Following' : 'Follow'}
+              </Text>
+            )}
+            {followerCount > 0 && (
+              <Text style={[styles.followerCount, isFollowing ? styles.followerCountActive : styles.followerCountInactive]}>
+                {followerCount >= 1000 ? `${(followerCount / 1000).toFixed(1)}k` : followerCount}
+              </Text>
+            )}
+          </TouchableOpacity>
+        ) : null}
+
+        {/* Close button */}
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={onClose}
           activeOpacity={0.8}
         >
           <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
@@ -215,14 +246,14 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
       </View>
 
       {/* Floating Play Button - Render before bottom sheet to ensure proper z-index */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.floatingPlayButton}
-        onPress={handlePlayPress} 
+        onPress={handlePlayPress}
         activeOpacity={0.8}
         disabled={
-          isLoadingVideo || 
-          !kitchenId || 
-          !foodcreatorId || 
+          isLoadingVideo ||
+          !kitchenId ||
+          !foodcreatorId ||
           !(featuredVideoData?.data?.data?._id || featuredVideoData?.data?._id)
         }
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -346,7 +377,50 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    alignSelf: 'center', // Align with KitchenIntroCard center
+    alignSelf: 'center',
+  },
+  followButton: {
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    alignSelf: 'center',
+    minWidth: 76,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  followButtonActive: {
+    backgroundColor: '#094327',
+  },
+  followButtonInactive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderWidth: 1,
+    borderColor: '#4C3F59',
+  },
+  followButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  followButtonTextActive: {
+    color: '#fff',
+  },
+  followButtonTextInactive: {
+    color: '#4C3F59',
+  },
+  followerCount: {
+    fontSize: 11,
+    marginTop: 1,
+  },
+  followerCountActive: {
+    color: 'rgba(255,255,255,0.75)',
+  },
+  followerCountInactive: {
+    color: '#7A6B8A',
   },
   floatingPlayButton: {
     position: 'absolute',

@@ -28,6 +28,7 @@ interface MealVideoCardProps {
   onShare?: () => void;
   onAddToCart?: () => void;
   onKitchenPress?: () => void;
+  onCommentPress?: () => void;
   likes?: number;
   comments?: number;
 }
@@ -45,6 +46,7 @@ function MealVideoCardComponent({
   onShare,
   onAddToCart,
   onKitchenPress,
+  onCommentPress,
   likes = 0,
   comments = 0,
 }: MealVideoCardProps) {
@@ -61,13 +63,13 @@ function MealVideoCardComponent({
 
   // Log component mount
   useEffect(() => {
-    logger.info('MealVideoCard mounted', { 
-      videoSource, 
-      title, 
+    logger.info('MealVideoCard mounted', {
+      videoSource,
+      title,
       isPreloaded,
-      isVisible 
+      isVisible
     });
-    
+
     return () => {
       logger.info('MealVideoCard unmounting', { title });
     };
@@ -99,16 +101,16 @@ function MealVideoCardComponent({
 
   // Reset states when video source changes
   useEffect(() => {
-    logger.info('Video source changed', { 
-      videoSource, 
-      title, 
-      isPreloaded 
+    logger.info('Video source changed', {
+      videoSource,
+      title,
+      isPreloaded
     });
-    
+
     setIsLoading(!isPreloaded);
     setHasError(false);
     setIsVideoReady(isPreloaded);
-    
+
     // Use runOnJS to update shared values safely
     if (isPreloaded) {
       loadingOpacity.value = 0;
@@ -141,11 +143,11 @@ function MealVideoCardComponent({
   const handleVideoLoad = () => {
     const loadTime = Date.now() - loadStartTimeRef.current;
     logger.info('Video loaded successfully', { title, loadTime });
-    
+
     setIsLoading(false);
     setIsVideoReady(true);
     loadingOpacity.value = withTiming(0, { duration: 300 });
-    
+
     // Log performance issues
     if (loadTime > 3000) {
       logger.warn('Slow video load', { title, loadTime });
@@ -155,7 +157,7 @@ function MealVideoCardComponent({
   const handleVideoError = () => {
     const loadTime = Date.now() - loadStartTimeRef.current;
     logger.error('Video load error', { title, loadTime });
-    
+
     setIsLoading(false);
     setHasError(true);
     loadingOpacity.value = withTiming(0, { duration: 300 });
@@ -184,7 +186,7 @@ function MealVideoCardComponent({
     setIsVideoReady(false);
     loadingOpacity.value = withTiming(1, { duration: 300 });
     errorOpacity.value = withTiming(0, { duration: 300 });
-    
+
     // Reset video
     videoRef.current?.loadAsync({ uri: videoSource }, {}, false);
   };
@@ -209,17 +211,17 @@ function MealVideoCardComponent({
     logger.error('Invalid props provided', { videoSource, title, kitchenName, price });
     return null;
   }
-  
+
   // Keep price as-is (empty string means no meal linked, will hide price and button)
   const displayPrice = price;
   const hasPrice = displayPrice && displayPrice.trim() !== '';
 
-  logger.debug('MealVideoCard rendering', { 
-    title, 
-    isVisible, 
-    isLoading, 
-    hasError, 
-    isVideoReady 
+  logger.debug('MealVideoCard rendering', {
+    title,
+    isVisible,
+    isLoading,
+    hasError,
+    isVideoReady
   });
 
   return (
@@ -381,7 +383,7 @@ function MealVideoCardComponent({
             borderColor: 'rgba(255, 255, 255, 0.2)',
             backdropFilter: 'blur(10px)',
           }}>
-            <HearEmoteIcon 
+            <HearEmoteIcon
               width={28}
               height={28}
               liked={false} // This component manages its own liked state
@@ -482,12 +484,12 @@ function MealVideoCardComponent({
 
         {/* Price and Order Button - Only show if meal is linked */}
         {hasPrice && (
-          <View style={{ 
-            flexDirection: 'row', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            marginBottom: 16, 
-            paddingHorizontal: 16 
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 16,
+            paddingHorizontal: 16
           }}>
             <Text style={{
               fontSize: 20,
@@ -502,78 +504,78 @@ function MealVideoCardComponent({
 
             <Pressable
               onPress={onAddToCart}
-            style={{
-              backgroundColor: 'rgba(255, 59, 48, 0.4)',
-              paddingHorizontal: 20,
-              paddingVertical: 10,
-              borderRadius: 25,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 8,
-              borderWidth: 1,
-              borderColor: 'rgba(255, 255, 255, 0.3)',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.2,
-              shadowRadius: 16,
-              elevation: 12,
-              // Additional glassmorphism effects
-              overflow: 'hidden',
-            }}
-          >
-            {/* Multiple glass border layers for light reactivity */}
-            <View style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              borderRadius: 25,
-              borderWidth: 1,
-              borderColor: 'rgba(255, 255, 255, 0.2)',
-            }} />
-            <View style={{
-              position: 'absolute',
-              top: 1,
-              left: 1,
-              right: 1,
-              bottom: 1,
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: 'rgba(255, 255, 255, 0.1)',
-            }} />
-            {/* Inner glass highlight */}
-            <View style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: '50%',
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              borderTopLeftRadius: 25,
-              borderTopRightRadius: 25,
-            }} />
-            {/* Subtle bottom shadow for depth */}
-            <View style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: '30%',
-              backgroundColor: 'rgba(0, 0, 0, 0.1)',
-              borderBottomLeftRadius: 25,
-              borderBottomRightRadius: 25,
-            }} />
-            <ShoppingCart size={16} color="#FFFFFF" />
-            <Text style={{
-              color: '#FFFFFF',
-              fontWeight: '600',
-              fontSize: 14,
-            }}>
-              Add to order
-            </Text>
-          </Pressable>
-        </View>
+              style={{
+                backgroundColor: 'rgba(255, 59, 48, 0.4)',
+                paddingHorizontal: 20,
+                paddingVertical: 10,
+                borderRadius: 25,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.3)',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.2,
+                shadowRadius: 16,
+                elevation: 12,
+                // Additional glassmorphism effects
+                overflow: 'hidden',
+              }}
+            >
+              {/* Multiple glass border layers for light reactivity */}
+              <View style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderRadius: 25,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+              }} />
+              <View style={{
+                position: 'absolute',
+                top: 1,
+                left: 1,
+                right: 1,
+                bottom: 1,
+                borderRadius: 24,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+              }} />
+              {/* Inner glass highlight */}
+              <View style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                borderTopLeftRadius: 25,
+                borderTopRightRadius: 25,
+              }} />
+              {/* Subtle bottom shadow for depth */}
+              <View style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: '30%',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                borderBottomLeftRadius: 25,
+                borderBottomRightRadius: 25,
+              }} />
+              <ShoppingCart size={16} color="#FFFFFF" />
+              <Text style={{
+                color: '#FFFFFF',
+                fontWeight: '600',
+                fontSize: 14,
+              }}>
+                Add to order
+              </Text>
+            </Pressable>
+          </View>
         )}
       </View>
     </View>

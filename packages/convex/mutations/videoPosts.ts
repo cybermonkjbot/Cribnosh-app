@@ -429,6 +429,19 @@ export const likeVideo = mutation({
       updatedAt: Date.now(),
     });
 
+    // Notify video creator (skip if liker is the creator)
+    if (video.userId && video.userId !== user._id) {
+      await ctx.db.insert('notifications', {
+        userId: video.userId,
+        type: 'social_like',
+        title: 'New like',
+        message: `${user.name} liked your video "${video.title}"`,
+        data: { videoId: args.videoId, videoTitle: video.title, likerId: user._id, likerName: user.name },
+        createdAt: Date.now(),
+        read: false,
+      });
+    }
+
     return null;
   },
 });

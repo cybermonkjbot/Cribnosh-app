@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { mutation } from "../_generated/server";
 import { v } from "convex/values";
+import { mutation } from "../_generated/server";
 
 // Add comment to video
 export const addComment = mutation({
@@ -22,7 +22,6 @@ export const addComment = mutation({
       .query('users')
       .withIndex('by_email', q => q.eq('email', email))
       .first();
-
     if (!user) {
       throw new Error("User not found");
     }
@@ -58,6 +57,19 @@ export const addComment = mutation({
       commentsCount: video.commentsCount + 1,
       updatedAt: Date.now(),
     });
+
+    // Notify video creator (skip if commenter is the creator)
+    if (video.userId && video.userId !== user._id) {
+      await ctx.db.insert('notifications', {
+        userId: video.userId,
+        type: 'social_comment',
+        title: 'New comment',
+        message: `${user.name} commented on your video "${video.title}"`,
+        data: { videoId: args.videoId, videoTitle: video.title, commentId, commenterName: user.name, commentPreview: args.content.slice(0, 80) },
+        createdAt: Date.now(),
+        read: false,
+      });
+    }
 
     return commentId;
   },
@@ -96,7 +108,7 @@ export const updateComment = mutation({
     // Check if user is the author or admin
     const isAuthor = comment.userId === user._id;
     const isAdmin = user.roles?.includes('admin');
-    
+
     if (!isAuthor && !isAdmin) {
       throw new Error("Not authorized to update this comment");
     }
@@ -143,7 +155,7 @@ export const deleteComment = mutation({
     // Check if user is the author or admin
     const isAuthor = comment.userId === user._id;
     const isAdmin = user.roles?.includes('admin');
-    
+
     if (!isAuthor && !isAdmin) {
       throw new Error("Not authorized to delete this comment");
     }
@@ -201,9 +213,9 @@ export const likeComment = mutation({
       .query('commentLikes')
       .withIndex('by_comment_user', q => q.eq('commentId', args.commentId).eq('userId', user._id))
       .first();
-    
+
     let newLikesCount = comment.likesCount;
-    
+
     if (existingLike) {
       // User already liked, so unlike (remove the like)
       await ctx.db.delete(existingLike._id);
@@ -217,7 +229,7 @@ export const likeComment = mutation({
       });
       newLikesCount = newLikesCount + 1;
     }
-    
+
     await ctx.db.patch(args.commentId, {
       likesCount: newLikesCount,
       updatedAt: Date.now(),

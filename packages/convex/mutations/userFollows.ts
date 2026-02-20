@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { mutation } from "../_generated/server";
 import { v } from "convex/values";
+import { mutation } from "../_generated/server";
 
 // Follow a user
 export const followUser = mutation({
@@ -51,6 +51,17 @@ export const followUser = mutation({
       followerId: user._id,
       followingId: args.followingId,
       createdAt: Date.now(),
+    });
+
+    // Notify the creator they have a new follower
+    await ctx.db.insert('notifications', {
+      userId: args.followingId,
+      type: 'social_follow',
+      title: 'New follower',
+      message: `${user.name} started following you`,
+      data: { followerId: user._id, followerName: user.name, followerAvatar: user.avatar },
+      createdAt: Date.now(),
+      read: false,
     });
 
     return null;
@@ -204,7 +215,7 @@ export const unblockUser = mutation({
     // Remove from blocked users
     const currentPreferences = user.preferences || {};
     const blockedUsers = currentPreferences.blockedUsers || [];
-    
+
     if (blockedUsers.includes(args.blockedUserId)) {
       await ctx.db.patch(user._id, {
         preferences: {

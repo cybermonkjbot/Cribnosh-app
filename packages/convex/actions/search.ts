@@ -107,7 +107,7 @@ export const customerSearchWithEmotions = action({
 
           // Call emotions engine API
           // Try to get API URL from environment, fallback to default
-          const emotionsEngineUrl = process.env.EMOTIONS_ENGINE_URL || 
+          const emotionsEngineUrl = process.env.EMOTIONS_ENGINE_URL ||
             process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/emotions-engine` :
             'http://localhost:3000/api/emotions-engine';
 
@@ -166,32 +166,32 @@ export const customerSearchWithEmotions = action({
       if (emotionBasedRecommendations.length > 0 && emotionBasedRecommendations[0].dish_id) {
         // Map emotion-based recommendations to actual meals
         const emotionDishIds = new Set(emotionBasedRecommendations.map((r: any) => r.dish_id));
-        const emotionMatchedMeals = meals.filter((meal: any) => 
+        const emotionMatchedMeals = meals.filter((meal: any) =>
           emotionDishIds.has(meal._id) || emotionDishIds.has(meal.id)
         );
-        const otherMeals = meals.filter((meal: any) => 
+        const otherMeals = meals.filter((meal: any) =>
           !emotionDishIds.has(meal._id) && !emotionDishIds.has(meal.id)
         );
         // Prioritize emotion-matched meals
         meals = [...emotionMatchedMeals, ...otherMeals].slice(0, limit);
       } else if (emotionBasedRecommendations.length > 0) {
         // If we have recommendations with item names, try to match them to meals
-        const recommendationNames = emotionBasedRecommendations.map((r: any) => 
+        const recommendationNames = emotionBasedRecommendations.map((r: any) =>
           r.item_name?.toLowerCase() || r.name?.toLowerCase()
         ).filter(Boolean);
-        
+
         if (recommendationNames.length > 0) {
           const emotionMatchedMeals = meals.filter((meal: any) => {
             const mealName = (meal.name || '').toLowerCase();
             const mealDesc = (meal.description || '').toLowerCase();
-            return recommendationNames.some((name: string) => 
+            return recommendationNames.some((name: string) =>
               mealName.includes(name) || name.includes(mealName) || mealDesc.includes(name)
             );
           });
           const otherMeals = meals.filter((meal: any) => {
             const mealName = (meal.name || '').toLowerCase();
             const mealDesc = (meal.description || '').toLowerCase();
-            return !recommendationNames.some((name: string) => 
+            return !recommendationNames.some((name: string) =>
               mealName.includes(name) || name.includes(mealName) || mealDesc.includes(name)
             );
           });
@@ -218,6 +218,7 @@ export const customerSearchWithEmotions = action({
 
 /**
  * Customer Get Video Feed - for mobile app direct Convex communication
+ * Returns a mixed feed: video posts + active live sessions
  */
 export const customerGetVideoFeed = action({
   args: {
@@ -243,14 +244,43 @@ export const customerGetVideoFeed = action({
         return { success: false as const, error: 'Authentication required' };
       }
 
+      const limit = args.limit || 20;
+
+      // Fetch video posts feed
       const result = await ctx.runQuery(api.queries.videoPosts.getVideoFeed, {
-        limit: args.limit || 20,
+        limit,
         cursor: args.cursor,
       });
 
+      // Fetch active live sessions (only on first page — no cursor)
+      let liveFeedItems: any[] = [];
+      if (!args.cursor) {
+        const liveSessions = await ctx.runQuery(api.queries.presence.getActiveSessions, {});
+        liveFeedItems = (liveSessions || []).map((session: any) => ({
+          contentType: 'live' as const,
+          _id: session._id,
+          sessionId: session.session_id,
+          chefId: session.chef_id,
+          title: session.title,
+          description: session.description,
+          thumbnailUrl: session.thumbnailUrl,
+          viewerCount: session.currentViewers ?? session.viewerCount ?? 0,
+          status: session.status,
+          startedAt: session.actual_start_time,
+        }));
+      }
+
+      // Tag video posts with contentType and merge live sessions at the front
+      const videoFeedItems = (result.videos || []).map((v: any) => ({
+        contentType: 'video' as const,
+        ...v,
+      }));
+
+      const mergedFeed = [...liveFeedItems, ...videoFeedItems];
+
       return {
         success: true as const,
-        videos: result.videos || [],
+        videos: mergedFeed,
         nextCursor: result.nextCursor,
       };
     } catch (error: any) {
