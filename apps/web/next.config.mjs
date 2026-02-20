@@ -48,6 +48,7 @@ const nextConfig = {
       '@/convex/_generated/api': './convex/_generated/api',
       '@/convex/_generated/dataModel': './convex/_generated/dataModel',
       '@/convex/_generated/server': './convex/_generated/server',
+      'tailwindcss': './node_modules/tailwindcss',
     },
   },
 
@@ -204,6 +205,7 @@ const nextConfig = {
           '@/convex/_generated/api': path.join(safeGenPath, 'api'),
           '@/convex/_generated/dataModel': path.join(safeGenPath, 'dataModel'),
           '@/convex/_generated/server': path.join(safeGenPath, 'server'),
+          'tailwindcss': resolve(__dirname, 'node_modules/tailwindcss'),
         };
 
         // Try to find emailTemplates specifically if it's missing from realParent

@@ -27,7 +27,9 @@
     "postinstall": "echo 'Skipping postinstall to prevent infinite loop'"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "tailwindcss": "^4.1.18",
+    "@tailwindcss/postcss": "^4.1.18"
   },
   "dependencies": {
     "next": "^16.1.6"

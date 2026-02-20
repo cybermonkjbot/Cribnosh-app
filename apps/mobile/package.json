@@ -86,7 +86,7 @@
     "eslint-config-expo": "~10.0.0",
     "postinstall-postinstall": "^2.1.0",
     "prettier-plugin-tailwindcss": "^0.5.11",
-    "tailwindcss": "^3.4.0",
+    "tailwindcss": "^4.1.18",
     "typescript": "~5.9.2"
   },
   "overrides": {
