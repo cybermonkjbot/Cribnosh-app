@@ -19,7 +19,7 @@ interface Ingredient {
 }
 
 export default function CreateRecipeScreen() {
-  const { foodCreator: chef, user, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, user, sessionToken } = useFoodCreatorAuth();
   const router = useRouter();
   const { showSuccess, showError } = useToast();
 
@@ -140,7 +140,7 @@ export default function CreateRecipeScreen() {
   };
 
   const handleSubmit = async (publish: boolean) => {
-    if (!chef?.name || !sessionToken) {
+    if (!foodCreator?.name || !sessionToken) {
       showError('Error', 'Chef information not available');
       return;
     }
@@ -200,7 +200,7 @@ export default function CreateRecipeScreen() {
         difficulty: formData.difficulty,
         cuisine: formData.cuisine.trim() || 'Other',
         dietary: formData.dietary,
-        author: chef.name,
+        author: foodCreator.name,
         featuredImage: formData.featuredImage || undefined,
         status: publish ? 'published' : 'draft',
       });

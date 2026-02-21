@@ -24,23 +24,23 @@ export function ContentLinkSelector({
   selectedVideoIds = [],
   allowMultiple = false,
 }: ContentLinkSelectorProps) {
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'recipes' | 'videos'>('recipes');
 
   // Get recipes
   const recipes = useQuery(
     api.queries.recipes.getByAuthor,
-    chef?.name && sessionToken
-      ? { author: chef.name, sessionToken }
+    foodCreator?.name && sessionToken
+      ? { author: foodCreator.name, sessionToken }
       : 'skip'
   ) as any[] | undefined;
 
   // Get videos
   const videosData = useQuery(
     api.queries.videoPosts.getVideosByCreator,
-    chef?.userId
-      ? { creatorId: chef.userId, limit: 50 }
+    foodCreator?.userId
+      ? { creatorId: foodCreator.userId, limit: 50 }
       : 'skip'
   ) as { videos: any[] } | undefined;
   

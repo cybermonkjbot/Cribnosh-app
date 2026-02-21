@@ -20,7 +20,7 @@ interface Ingredient {
 }
 
 export default function EditRecipeScreen() {
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
   const { showSuccess, showError } = useToast();

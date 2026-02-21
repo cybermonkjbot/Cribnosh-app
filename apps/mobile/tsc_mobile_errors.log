@@ -1,0 +1,66 @@
+app/(tabs)/orders/cart/payment-method.tsx(2,30): error TS2307: Cannot find module '@/components/ui/AddCardSheet' or its corresponding type declarations.
+app/(tabs)/orders/cart/payment-method.tsx(3,35): error TS2307: Cannot find module '@/components/ui/TopUpBalanceSheet' or its corresponding type declarations.
+app/(tabs)/orders/cart/payment.tsx(1,27): error TS2307: Cannot find module '@/components/ui/PaymentScreen' or its corresponding type declarations.
+app/(tabs)/orders/cart/sides.tsx(14,30): error TS2307: Cannot find module '@/components/ui/AddCardSheet' or its corresponding type declarations.
+app/(tabs)/orders/group/create.tsx(192,9): error TS2353: Object literal may only specify known properties, and 'chef_id' does not exist in type '{ foodCreatorId: string; restaurant_name: string; initial_budget: number; title?: string | undefined; delivery_address?: { street: string; city: string; postcode: string; country: string; } | undefined; delivery_time?: string | undefined; expires_in_hours?: number | undefined; }'.
+app/_layout.tsx(22,33): error TS2307: Cannot find module '@/components/StripeContainer' or its corresponding type declarations.
+app/login-security.tsx(234,47): error TS7006: Parameter 'session' implicitly has an 'any' type.
+app/orders/group/index.tsx(197,52): error TS2345: Argument of type '`/orders/group/selection?id=${string}`' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/account-details" | `/account-details?${string}` | `/account-details#${string}` | "/camera-modal" | `/camera-modal?${string}` | `/camera-modal#${string}` | "/change-password" | ... 320 more ... | { ...; }'.
+app/pay/[token].tsx(1,31): error TS2307: Cannot find module '@/components/PayForOrderScreen' or its corresponding type declarations.
+app/payment-settings.tsx(1,30): error TS2307: Cannot find module '@/components/ui/AddCardSheet' or its corresponding type declarations.
+app/payment-settings.tsx(5,35): error TS2307: Cannot find module '@/components/ui/TopUpBalanceSheet' or its corresponding type declarations.
+app/play-to-win/result.tsx(12,24): error TS2345: Argument of type '"/(tabs)/"' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/account-details" | `/account-details?${string}` | `/account-details#${string}` | "/camera-modal" | `/camera-modal?${string}` | `/camera-modal#${string}` | "/change-password" | ... 320 more ... | { ...; }'.
+app/play-to-win/result.tsx(22,28): error TS2345: Argument of type '"/(tabs)/"' is not assignable to parameter of type 'RelativePathString | ExternalPathString | "/account-details" | `/account-details?${string}` | `/account-details#${string}` | "/camera-modal" | `/camera-modal?${string}` | `/camera-modal#${string}` | "/change-password" | ... 320 more ... | { ...; }'.
+app/select-address.tsx(56,9): error TS2322: Type '{ street: string; city: string; } | undefined' is not assignable to type 'CustomerAddress | undefined'.
+  Type '{ street: string; city: string; }' is missing the following properties from type 'CustomerAddress': state, postal_code, country
+components/AnimatedSplashScreen.tsx(37,7): error TS2353: Object literal may only specify known properties, and 'tension' does not exist in type 'SpringConfig'.
+components/BottomSheetExample.tsx(3,10): error TS2614: Module '"../constants/Colors"' has no exported member 'Colors'. Did you mean to use 'import Colors from "../constants/Colors"' instead?
+components/StripeContainer/index.native.tsx(34,13): error TS2322: Type 'ReactNode' is not assignable to type 'ReactElement<unknown, string | JSXElementConstructor<any>> | ReactElement<unknown, string | JSXElementConstructor<any>>[]'.
+  Type 'undefined' is not assignable to type 'ReactElement<unknown, string | JSXElementConstructor<any>> | ReactElement<unknown, string | JSXElementConstructor<any>>[]'.
+components/ui/AddCardSheet.native.tsx(29,31): error TS2339: Property 'isApplePaySupported' does not exist on type '{ retrievePaymentIntent: (clientSecret: string) => Promise<RetrievePaymentIntentResult>; retrieveSetupIntent: (clientSecret: string) => Promise<...>; ... 26 more ...; openPlatformPaySetup: () => Promise<...>; }'.
+components/ui/AddCardSheet.native.tsx(29,52): error TS2339: Property 'isGooglePaySupported' does not exist on type '{ retrievePaymentIntent: (clientSecret: string) => Promise<RetrievePaymentIntentResult>; retrieveSetupIntent: (clientSecret: string) => Promise<...>; ... 26 more ...; openPlatformPaySetup: () => Promise<...>; }'.
+components/ui/AddCardSheet.native.tsx(110,51): error TS2339: Property 'error' does not exist on type '{ clientSecret: any; setupIntentId: any; }'.
+components/ui/AIChatDrawer.tsx(686,58): error TS7006: Parameter 'r' implicitly has an 'any' type.
+components/ui/Alert.tsx(42,11): error TS2322: Type 'RegisteredStyle<AbsoluteFillStyle>' is not assignable to type 'ViewStyle | ViewStyle[] | undefined'.
+  Type 'Number & { __registeredStyleBrand: AbsoluteFillStyle; }' is missing the following properties from type 'ViewStyle[]': length, pop, push, concat, and 35 more.
+components/ui/BottomSearchDrawer.tsx(533,58): error TS7006: Parameter 'r' implicitly has an 'any' type.
+components/ui/BottomSearchDrawer.tsx(792,13): error TS2322: Type '("chefs" | "recipes" | "stories" | "dishes" | "videos" | "livestreams")[] | undefined' is not assignable to type '("recipes" | "stories" | "foodCreators" | "dishes" | "videos" | "livestreams")[] | undefined'.
+  Type '("chefs" | "recipes" | "stories" | "dishes" | "videos" | "livestreams")[]' is not assignable to type '("recipes" | "stories" | "foodCreators" | "dishes" | "videos" | "livestreams")[]'.
+    Type '"chefs" | "recipes" | "stories" | "dishes" | "videos" | "livestreams"' is not assignable to type '"recipes" | "stories" | "foodCreators" | "dishes" | "videos" | "livestreams"'.
+      Type '"chefs"' is not assignable to type '"recipes" | "stories" | "foodCreators" | "dishes" | "videos" | "livestreams"'.
+components/ui/BottomSearchDrawer.tsx(886,13): error TS2322: Type '("chefs" | "recipes" | "stories" | "dishes" | "videos" | "livestreams")[]' is not assignable to type '("recipes" | "stories" | "foodCreators" | "dishes" | "videos" | "livestreams")[]'.
+  Type '"chefs" | "recipes" | "stories" | "dishes" | "videos" | "livestreams"' is not assignable to type '"recipes" | "stories" | "foodCreators" | "dishes" | "videos" | "livestreams"'.
+    Type '"chefs"' is not assignable to type '"recipes" | "stories" | "foodCreators" | "dishes" | "videos" | "livestreams"'.
+components/ui/BottomSearchDrawer.tsx(2396,15): error TS1117: An object literal cannot have multiple properties with the same name.
+components/ui/Checkbox.tsx(15,7): error TS2322: Type 'StyleProp<ViewStyle> | ((state: PressableStateCallbackType) => StyleProp<ViewStyle>)' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+  Type '(state: PressableStateCallbackType) => StyleProp<ViewStyle>' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+components/ui/ChooseFriend.tsx(102,49): error TS7006: Parameter 'f' implicitly has an 'any' type.
+components/ui/ChooseFriend.tsx(109,51): error TS7006: Parameter 'f' implicitly has an 'any' type.
+components/ui/ChooseFriend.tsx(151,51): error TS7006: Parameter 'friend' implicitly has an 'any' type.
+components/ui/ChooseFriend.tsx(225,48): error TS7006: Parameter 'f' implicitly has an 'any' type.
+components/ui/ChooseFriend.tsx(348,39): error TS7006: Parameter 'friend' implicitly has an 'any' type.
+components/ui/ChooseFriend.tsx(407,40): error TS7006: Parameter 'friend' implicitly has an 'any' type.
+components/ui/CuisineCategoriesSection.tsx(39,11): error TS2339: Property 'getCuisineCategories' does not exist on type '{ isLoading: boolean; getCuisines: (page?: number | undefined, limit?: number | undefined) => Promise<{ success: boolean; data: any; }>; }'.
+components/ui/CuisineCategoriesSection.tsx(102,18): error TS7006: Parameter 'cuisine' implicitly has an 'any' type.
+components/ui/CuisinesSection.tsx(89,18): error TS7006: Parameter 'cuisine' implicitly has an 'any' type.
+components/ui/DeliveryMapScreen.tsx(167,15): error TS2322: Type '{ id: string; foodCreator_name: string; cuisine: string; delivery_time: string; location: any; rating: number; distance: number; }[]' is not assignable to type 'FoodCreatorMarker[]'.
+  Type '{ id: string; foodCreator_name: string; cuisine: string; delivery_time: string; location: any; rating: number; distance: number; }' is missing the following properties from type 'FoodCreatorMarker': name, review_count, sentiment, created_at
+components/ui/FamilyOrdersSheet.tsx(39,53): error TS2339: Property 'orders' does not exist on type '{ success: boolean; data: { orders: any; }; }'.
+components/ui/FeaturedFoodCreatorsSection.tsx(117,18): error TS7006: Parameter 'foodCreator' implicitly has an 'any' type.
+components/ui/Input.tsx(44,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'StyleProp<TextStyle>' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'StyleProp<TextStyle>' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/ui/PullToNoshHeavenTrigger.tsx(101,10): error TS2304: Cannot find name 'FoodCreatorHat'.
+components/ui/TopUpBalanceSheet.native.tsx(7,30): error TS2307: Cannot find module './AddCardSheet' or its corresponding type declarations.

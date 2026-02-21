@@ -17,7 +17,7 @@ type SupportPriority = 'low' | 'medium' | 'high';
 type SupportStatus = 'open' | 'closed' | 'resolved';
 
 export default function SupportScreen() {
-  const { foodCreator: chef, user, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, user, sessionToken } = useFoodCreatorAuth();
   const router = useRouter();
   const { showSuccess, showError } = useToast();
   const [showCreateForm, setShowCreateForm] = useState(false);

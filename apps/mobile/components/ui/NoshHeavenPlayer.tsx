@@ -42,7 +42,6 @@ interface NoshHeavenPlayerProps {
     videoSource: string;
     title: string;
     description?: string;
-    description?: string;
     foodCreatorName: string;
     foodCreator?: string;
     chef?: string;

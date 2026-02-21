@@ -1,31 +1,25 @@
-import React from 'react';
-import { emailUrls } from '../utils/urls';
 import {
   Html as EmailHtml,
   Head,
   Preview,
-  Container,
-  Section,
-  Row,
-  Column,
+  Section
 } from '@react-email/components';
+import React from 'react';
 import {
-  EmailWrapper,
-  ProfessionalHeader,
-  ContentText,
-  EmailButton,
-  FooterSection,
-  FeatureCard,
+  Alert,
   CallToActionSection,
+  ContentText,
+  EmailWrapper,
+  FeatureCard,
+  FooterSection,
+  ProfessionalHeader,
+  ProgressBar,
   SocialLinks,
+  StatsHighlight,
+  Timeline,
   colors,
   spacing,
-  typography,
-  ProgressBar,
-  Timeline,
-  RatingStars,
-  StatsHighlight,
-  Alert,
+  typography
 } from './components';
 
 interface OrderUpdateEmailProps {
@@ -141,17 +135,17 @@ export const OrderUpdateEmail: React.FC<OrderUpdateEmailProps> = ({
 
   const getUpdateMessage = () => {
     switch (updateType) {
-      case 'status_change': 
+      case 'status_change':
         return `Your order status has been updated from "${previousStatus}" to "${currentStatus}".`;
-      case 'delivery_update': 
+      case 'delivery_update':
         return 'We have an update about your delivery.';
-      case 'delay_notification': 
+      case 'delay_notification':
         return 'We apologize for the delay in your order. Here\'s what\'s happening:';
-      case 'ready_for_pickup': 
+      case 'ready_for_pickup':
         return 'Great news! Your order is ready and waiting for you.';
-      case 'delivered': 
+      case 'delivered':
         return 'Your order has been successfully delivered! We hope you enjoy your meal.';
-      default: 
+      default:
         return 'We have an update about your order.';
     }
   };
@@ -268,8 +262,8 @@ export const OrderUpdateEmail: React.FC<OrderUpdateEmailProps> = ({
                     <span style={{ fontSize: '12px' }}>
                       {getStatusIcon(item.status)}
                     </span>
-                    <ContentText style={{ 
-                      ...typography.body.xs, 
+                    <ContentText style={{
+                      ...typography.body.xs,
                       color: getStatusColor(item.status),
                       margin: '0',
                       textTransform: 'capitalize'
@@ -282,7 +276,7 @@ export const OrderUpdateEmail: React.FC<OrderUpdateEmailProps> = ({
             </div>
           </FeatureCard>
 
-          {/* Chef Information */}
+          {/* Food Creator Information */}
           <FeatureCard
             icon={chef.image}
             title={`Prepared by ${chef.name}`}
@@ -403,7 +397,7 @@ export const OrderUpdateEmail: React.FC<OrderUpdateEmailProps> = ({
         </Section>
 
         <SocialLinks links={socialLinks} />
-        
+
         <FooterSection
           unsubscribeUrl={unsubscribeUrl}
           address={companyAddress}

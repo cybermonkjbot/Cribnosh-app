@@ -53,11 +53,11 @@ export function FoodCreatorAuthProvider({ children }: FoodCreatorAuthProviderPro
   const user = userQueryResult;
 
   // Get food creator profile if user has food creator role
-  // Only query if user exists, has chef role, and we have a valid session token
+  // Only query if user exists, has foodCreator role, and we have a valid session token
   // This prevents calling the query with invalid tokens which would cause errors
   const foodCreatorQueryResult = useQuery(
     api.queries.foodCreators.getByUserId,
-    // Only call if we have a valid user with chef role and session token
+    // Only call if we have a valid user with foodCreator role and session token
     // This prevents errors from requireAuth when session token is invalid
     user &&
       user !== null &&

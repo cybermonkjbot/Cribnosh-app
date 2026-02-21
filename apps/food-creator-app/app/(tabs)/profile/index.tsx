@@ -41,7 +41,7 @@ export default function FoodCreatorProfileScreen() {
       : 'skip'
   );
 
-  // Get reviews count for chef (from meals reviews)
+  // Get reviews count for foodCreator (from meals reviews)
   const reviewsCount = useMemo(() => {
     // For now, we'll use a placeholder - in a real implementation,
     // you'd query reviews filtered by chef_id

@@ -32,7 +32,7 @@ const checkIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none
 export default function BankAccountsScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { foodCreator: chef, sessionToken: authSessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken: authSessionToken } = useFoodCreatorAuth();
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isAddingAccount, setIsAddingAccount] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,7 +60,7 @@ export default function BankAccountsScreen() {
   // Get bank accounts
   const bankAccounts = useQuery(
     api.queries.chefBankAccounts.getByChefId,
-    chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : 'skip'
+    foodCreator?._id && sessionToken ? { chefId: foodCreator._id, sessionToken } : 'skip'
   );
 
   // Mutations
@@ -110,12 +110,12 @@ export default function BankAccountsScreen() {
 
     setIsSubmitting(true);
     try {
-      if (!chef?._id || !sessionToken) {
+      if (!foodCreator?._id || !sessionToken) {
         throw new Error('Not authenticated');
       }
 
       const result = await createAccount({
-        chefId: chef._id,
+        chefId: foodCreator._id,
         accountHolderName: accountHolderName.trim(),
         accountNumber: accountNumber.trim(),
         sortCode: sortCode.trim(),
@@ -149,13 +149,13 @@ export default function BankAccountsScreen() {
   };
 
   const handleSetPrimary = async (accountId: string) => {
-    if (!chef?._id || !sessionToken) {
+    if (!foodCreator?._id || !sessionToken) {
       return;
     }
 
     try {
       const result = await setPrimaryAccount({
-        chefId: chef._id,
+        chefId: foodCreator._id,
         accountId,
         sessionToken,
       });

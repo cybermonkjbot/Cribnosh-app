@@ -17,7 +17,7 @@ type StatusFilter = 'all' | 'draft' | 'published' | 'archived';
 type SortOption = 'date' | 'title' | 'popularity';
 
 export default function ContentLibraryScreen() {
-  const { foodCreator: chef, user, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, user, sessionToken } = useFoodCreatorAuth();
   const router = useRouter();
   const { showSuccess, showError } = useToast();
   const [contentType, setContentType] = useState<ContentType>('all');
@@ -41,19 +41,19 @@ export default function ContentLibraryScreen() {
   // @ts-ignore - Complex Convex type inference
   const deleteVideoPost = useMutation(api.mutations.videoPosts.deleteVideoPost);
 
-  // Get recipes by author (chef name) - returns all statuses
+  // Get recipes by author (foodCreator name) - returns all statuses
   const recipes = useQuery(
     api.queries.recipes.getByAuthor,
-    chef?.name && sessionToken
-      ? { author: chef.name, sessionToken }
+    foodCreator?.name && sessionToken
+      ? { author: foodCreator.name, sessionToken }
       : 'skip'
   ) as any[] | undefined;
 
-  // Get stories by author (chef name) - returns all statuses
+  // Get stories by author (foodCreator name) - returns all statuses
   const stories = useQuery(
     api.queries.stories.getByAuthor,
-    chef?.name && sessionToken
-      ? { author: chef.name, sessionToken }
+    foodCreator?.name && sessionToken
+      ? { author: foodCreator.name, sessionToken }
       : 'skip'
   ) as any[] | undefined;
 
@@ -326,7 +326,7 @@ export default function ContentLibraryScreen() {
     );
   };
 
-  if (!chef) {
+  if (!foodCreator) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -600,7 +600,7 @@ export default function ContentLibraryScreen() {
                 } else if (contentType === 'stories') {
                   setIsStoryModalVisible(true);
                 } else if (contentType === 'videos') {
-                  router.push('/(tabs)/food-creator/content/videos/upload');
+                  router.push('/(tabs)/food-creator/content/videos/upload' as any);
                 }
               }
             } : undefined}

@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 type StatusFilter = 'all' | 'available' | 'unavailable';
 
 export default function MealsManagementScreen() {
-  const { foodCreator: chef, sessionToken, isAuthenticated } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken, isAuthenticated } = useFoodCreatorAuth();
   const router = useRouter();
   const { showSuccess, showError } = useToast();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -30,8 +30,8 @@ export default function MealsManagementScreen() {
   // Get all meals for management (includes all statuses)
   const meals = useQuery(
     api.queries.meals.getAllByChefIdForManagement,
-    chef?._id && sessionToken
-      ? { chefId: chef._id, sessionToken, limit: 100 }
+    foodCreator?._id && sessionToken
+      ? { chefId: foodCreator._id, sessionToken, limit: 100 }
       : 'skip'
   ) as any[] | undefined;
 
@@ -157,7 +157,7 @@ export default function MealsManagementScreen() {
     return meals.find(meal => meal._id === selectedMealId);
   };
 
-  if (!chef) {
+  if (!foodCreator) {
     return (
       <GradientBackground>
         <SafeAreaView style={styles.container}>

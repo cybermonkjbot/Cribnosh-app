@@ -85,7 +85,7 @@ export default function OrdersScreen() {
   const [activeTab, setActiveTab] = useState<"ongoing" | "past">("ongoing");
   const router = useRouter();
   const scrollY = useSharedValue(0);
-  const { foodCreator: chef, sessionToken, isAuthenticated } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken, isAuthenticated } = useFoodCreatorAuth();
   const insets = useSafeAreaInsets();
   const { showSuccess, showError } = useToast();
   const updateStatus = useMutation(api.mutations.orders.updateStatus);
@@ -95,11 +95,11 @@ export default function OrdersScreen() {
   const [isMealModalVisible, setIsMealModalVisible] = useState(false);
   const [isStoryModalVisible, setIsStoryModalVisible] = useState(false);
 
-  // Get orders (reactive query) - chef-specific
+  // Get orders (reactive query) - foodCreator-specific
   const ordersDataRaw = useQuery(
     api.queries.orders.listByChef,
-    chef?._id && sessionToken ? {
-      chef_id: chef._id.toString(),
+    foodCreator?._id && sessionToken ? {
+      chef_id: foodCreator._id.toString(),
       sessionToken,
     } : "skip"
   );
@@ -115,7 +115,7 @@ export default function OrdersScreen() {
     };
   }, [ordersDataRaw]);
 
-  const ordersLoading = chef === undefined || (chef && ordersDataRaw === undefined);
+  const ordersLoading = foodCreator === undefined || (foodCreator && ordersDataRaw === undefined);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -486,7 +486,7 @@ export default function OrdersScreen() {
     );
   };
 
-  if (!chef) {
+  if (!foodCreator) {
     return (
       <GradientBackground>
         <EmptyState

@@ -21,7 +21,7 @@ const DIETARY_OPTIONS = [
 ];
 
 export default function CreateMealPage() {
-  const { foodCreator: chef, sessionToken, isAuthenticated } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken, isAuthenticated } = useFoodCreatorAuth();
   const router = useRouter();
   const { showSuccess, showError } = useToast();
 
@@ -138,7 +138,7 @@ export default function CreateMealPage() {
   };
 
   const handleSubmit = async () => {
-    if (!chef?._id || !sessionToken) {
+    if (!foodCreator?._id || !sessionToken) {
       showError('Error', 'Chef information not available');
       return;
     }
@@ -164,7 +164,7 @@ export default function CreateMealPage() {
 
     try {
       await createMeal({
-        chefId: chef._id.toString(),
+        chefId: foodCreator._id.toString(),
         name: formData.name.trim(),
         description: formData.description.trim(),
         price: price * 100, // Convert to pence/cents

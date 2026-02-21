@@ -206,7 +206,7 @@ export const OrderConfirmationEmail = ({
           />
         </div>
 
-        {/* Chef Information */}
+        {/* Food Creator Information */}
         <div style={{ margin: `${spacing.xl} 0`, padding: spacing.lg, backgroundColor: colors.backgroundSecondary, borderRadius: '8px' }}>
           <Row>
             <Column style={{ width: '80px' }}>

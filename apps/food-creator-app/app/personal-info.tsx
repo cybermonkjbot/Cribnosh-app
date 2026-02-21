@@ -41,7 +41,7 @@ type TabType = 'foodCreator' | 'kitchen' | 'availability';
 export default function PersonalInfoScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { foodCreator: chef, user, sessionToken: authSessionToken, isAuthenticated } = useFoodCreatorAuth();
+  const { foodCreator, user, sessionToken: authSessionToken, isAuthenticated } = useFoodCreatorAuth();
   const [activeTab, setActiveTab] = useState<TabType>('foodCreator');
 
   const [isSaving, setIsSaving] = useState(false);
@@ -112,7 +112,7 @@ export default function PersonalInfoScreen() {
   // Get kitchen ID and details
   const kitchenId = useQuery(
     api.queries.kitchens.getKitchenByChefId,
-    chef?._id ? { chefId: chef._id } : 'skip'
+    foodCreator?._id ? { chefId: foodCreator._id } : 'skip'
   );
 
   const kitchenDetails = useQuery(
@@ -147,7 +147,7 @@ export default function PersonalInfoScreen() {
     isLoading: profileLoading,
   } = useProfile();
 
-  // Load chef and user data
+  // Load foodCreator and user data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -171,21 +171,21 @@ export default function PersonalInfoScreen() {
           setSelectedProfileImage(absoluteImageUrl);
         }
 
-        // Get chef data
-        if (chef) {
-          setBio(chef.bio || '');
-          setSpecialties(chef.specialties || []);
-          setCity(chef.location?.city || '');
-          setCoordinates(chef.location?.coordinates as [number, number] || [0, 0]);
-          setIsAvailable(chef.isAvailable || false);
-          setAvailableDays(chef.availableDays || []);
-          setAvailableHours((chef.availableHours as any) || {});
-          setUnavailableDates((chef.unavailableDates as any) || []);
-          setMaxOrdersPerDay(chef.maxOrdersPerDay || 10);
-          setAdvanceBookingDays(chef.advanceBookingDays || 7);
-          setSpecialInstructions(chef.specialInstructions || '');
-          if (chef.profileImage) {
-            const chefImageUrl = getAbsoluteImageUrl(chef.profileImage);
+        // Get foodCreator data
+        if (foodCreator) {
+          setBio(foodCreator.bio || '');
+          setSpecialties(foodCreator.specialties || []);
+          setCity(foodCreator.location?.city || '');
+          setCoordinates(foodCreator.location?.coordinates as [number, number] || [0, 0]);
+          setIsAvailable(foodCreator.isAvailable || false);
+          setAvailableDays(foodCreator.availableDays || []);
+          setAvailableHours((foodCreator.availableHours as any) || {});
+          setUnavailableDates((foodCreator.unavailableDates as any) || []);
+          setMaxOrdersPerDay(foodCreator.maxOrdersPerDay || 10);
+          setAdvanceBookingDays(foodCreator.advanceBookingDays || 7);
+          setSpecialInstructions(foodCreator.specialInstructions || '');
+          if (foodCreator.profileImage) {
+            const chefImageUrl = getAbsoluteImageUrl(foodCreator.profileImage);
             if (!selectedProfileImage) {
               setSelectedProfileImage(chefImageUrl);
             }
@@ -212,10 +212,10 @@ export default function PersonalInfoScreen() {
           if (kitchenDoc.featuredVideoId) {
             setFeaturedVideoId(kitchenDoc.featuredVideoId);
           }
-        } else if (chef?.onboardingDraft?.kitchenName) {
-          setKitchenName(chef.onboardingDraft.kitchenName);
-          setKitchenAddress(chef.onboardingDraft.kitchenAddress || '');
-          setKitchenType(chef.onboardingDraft.kitchenType || '');
+        } else if (foodCreator?.onboardingDraft?.kitchenName) {
+          setKitchenName(foodCreator.onboardingDraft.kitchenName);
+          setKitchenAddress(foodCreator.onboardingDraft.kitchenAddress || '');
+          setKitchenType(foodCreator.onboardingDraft.kitchenType || '');
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -227,7 +227,7 @@ export default function PersonalInfoScreen() {
     if (isAuthenticated) {
       fetchData();
     }
-  }, [chef, kitchenDetails, kitchenDoc, isAuthenticated, getCustomerProfile]);
+  }, [foodCreator, kitchenDetails, kitchenDoc, isAuthenticated, getCustomerProfile]);
 
   const getImageUrl = async (imageIdOrUrl: string): Promise<string> => {
     if (imageIdOrUrl.startsWith('http://') || imageIdOrUrl.startsWith('https://')) {
@@ -311,7 +311,7 @@ export default function PersonalInfoScreen() {
   };
 
   const performSaveChefSettings = async () => {
-    if (!chef?._id || !sessionToken) {
+    if (!foodCreator?._id || !sessionToken) {
       showToast({
         type: 'error',
         title: 'Error',
@@ -326,7 +326,7 @@ export default function PersonalInfoScreen() {
       let imageUrl = selectedProfileImage;
 
       // Check if selectedProfileImage is a local URI that needs to be uploaded
-      const currentPicture = profileData?.data?.user?.picture || profileData?.data?.user?.avatar || chef.profileImage;
+      const currentPicture = profileData?.data?.user?.picture || profileData?.data?.user?.avatar || foodCreator.profileImage;
       const isLocalUri = selectedProfileImage &&
         selectedProfileImage !== currentPicture &&
         (selectedProfileImage.startsWith('file://') ||
@@ -382,13 +382,13 @@ export default function PersonalInfoScreen() {
 
       await updateCustomerProfile(updateData);
 
-      // Update chef profile (bio, specialties, profileImage, location)
+      // Update foodCreator profile (bio, specialties, profileImage, location)
       const chefUpdates: any = {
         bio: bio.trim(),
         specialties: specialties,
       };
 
-      if (imageUrl && imageUrl !== chef.profileImage) {
+      if (imageUrl && imageUrl !== foodCreator.profileImage) {
         chefUpdates.profileImage = imageUrl;
       }
 
@@ -401,7 +401,7 @@ export default function PersonalInfoScreen() {
       }
 
       await updateChef({
-        chefId: chef._id,
+        chefId: foodCreator._id,
         updates: chefUpdates,
         sessionToken,
       });
@@ -467,12 +467,12 @@ export default function PersonalInfoScreen() {
       }
 
       // Save kitchen name to onboarding draft
-      if (chef?._id && sessionToken && kitchenName.trim()) {
+      if (foodCreator?._id && sessionToken && kitchenName.trim()) {
         try {
           await saveOnboardingDraft({
-            chefId: chef._id,
+            chefId: foodCreator._id,
             draft: {
-              ...(chef.onboardingDraft || {}),
+              ...(foodCreator.onboardingDraft || {}),
               kitchenName: kitchenName.trim(),
               kitchenAddress: kitchenAddress.trim(),
             },
@@ -659,7 +659,7 @@ export default function PersonalInfoScreen() {
   }
 
   const handleSaveAvailabilitySettings = async () => {
-    if (!chef?._id || !sessionToken) {
+    if (!foodCreator?._id || !sessionToken) {
       showToast({
         type: 'error',
         title: 'Error',
@@ -672,7 +672,7 @@ export default function PersonalInfoScreen() {
     setIsSaving(true);
     try {
       await updateAvailability({
-        chefId: chef._id,
+        chefId: foodCreator._id,
         updates: {
           isAvailable,
           availableDays,
@@ -926,43 +926,43 @@ export default function PersonalInfoScreen() {
           {activeTab === 'foodCreator' && (
             <>
               {/* Food Creator Account Status */}
-              {chef && (
+              {foodCreator && (
                 <View style={styles.statusCard}>
                   <Text style={styles.statusLabel}>Account Status</Text>
                   <View style={styles.statusRow}>
                     <Text style={[
                       styles.statusText,
-                      chef.status === 'active' && styles.statusTextActive,
-                      chef.status === 'suspended' && styles.statusTextSuspended,
-                      chef.status === 'pending_verification' && styles.statusTextPending,
+                      foodCreator.status === 'active' && styles.statusTextActive,
+                      foodCreator.status === 'suspended' && styles.statusTextSuspended,
+                      foodCreator.status === 'pending_verification' && styles.statusTextPending,
                     ]}>
-                      {chef.status === 'active' ? 'Active' :
-                        chef.status === 'inactive' ? 'Inactive' :
-                          chef.status === 'suspended' ? 'Suspended' :
-                            chef.status === 'pending_verification' ? 'Pending Verification' :
+                      {foodCreator.status === 'active' ? 'Active' :
+                        foodCreator.status === 'inactive' ? 'Inactive' :
+                          foodCreator.status === 'suspended' ? 'Suspended' :
+                            foodCreator.status === 'pending_verification' ? 'Pending Verification' :
                               'Unknown'}
                     </Text>
-                    {chef.status === 'active' && (
+                    {foodCreator.status === 'active' && (
                       <Ionicons name="checkmark-circle" size={20} color="#0B9E58" />
                     )}
-                    {chef.status === 'suspended' && (
+                    {foodCreator.status === 'suspended' && (
                       <Ionicons name="close-circle" size={20} color="#EF4444" />
                     )}
-                    {chef.status === 'pending_verification' && (
+                    {foodCreator.status === 'pending_verification' && (
                       <Ionicons name="time" size={20} color="#F59E0B" />
                     )}
                   </View>
-                  {chef.status === 'suspended' && (
+                  {foodCreator.status === 'suspended' && (
                     <Text style={styles.statusWarningText}>
                       Your account has been suspended. Please contact support for assistance.
                     </Text>
                   )}
-                  {chef.status === 'pending_verification' && (
+                  {foodCreator.status === 'pending_verification' && (
                     <Text style={styles.statusInfoText}>
                       Your account is pending verification. You'll be able to go online once verified.
                     </Text>
                   )}
-                  {chef.status === 'inactive' && (
+                  {foodCreator.status === 'inactive' && (
                     <Text style={styles.statusInfoText}>
                       Your account is inactive. Complete your profile to activate your account.
                     </Text>
@@ -1108,7 +1108,7 @@ export default function PersonalInfoScreen() {
                       <Ionicons name="checkmark-circle" size={20} color="#0B9E58" />
                     )}
                   </View>
-                  {chef?.verificationStatus === 'verified' && (
+                  {foodCreator?.verificationStatus === 'verified' && (
                     <View style={styles.verificationBadge}>
                       <Ionicons name="shield-checkmark" size={16} color="#0B9E58" />
                       <Text style={styles.verificationText}>Verified Kitchen</Text>

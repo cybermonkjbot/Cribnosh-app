@@ -38,7 +38,7 @@ const bankIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
 export default function PayoutSettingsScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { foodCreator: chef } = useFoodCreatorAuth();
+  const { foodCreator } = useFoodCreatorAuth();
   
   const [availableBalance, setAvailableBalance] = useState<number>(0);
   const [pendingPayouts, setPendingPayouts] = useState<number>(0);
@@ -56,10 +56,10 @@ export default function PayoutSettingsScreen() {
     loadToken();
   }, []);
 
-  // Get chef earnings summary
+  // Get foodCreator earnings summary
   const earningsSummary = useQuery(
     api.queries.chefEarnings.getSummary,
-    chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : 'skip'
+    foodCreator?._id && sessionToken ? { chefId: foodCreator._id, sessionToken } : 'skip'
   );
 
   useEffect(() => {

@@ -29,7 +29,7 @@ interface QuizData {
 }
 
 export default function ModuleQuizScreen() {
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string; moduleId: string }>();
   const { showSuccess, showError } = useToast();
@@ -66,7 +66,7 @@ export default function ModuleQuizScreen() {
   const moduleContent = useQuery(
     // @ts-ignore
     api.queries.courseModules.getModuleContent,
-    chef?._id && courseId && moduleId && sessionToken
+    foodCreator?._id && courseId && moduleId && sessionToken
       ? { courseId, moduleId, sessionToken }
       : 'skip'
   ) as any;
@@ -74,8 +74,8 @@ export default function ModuleQuizScreen() {
   // Get course enrollment
   const enrollment = useQuery(
     api.queries.chefCourses.getByChefAndCourse,
-    chef?._id && courseId && sessionToken
-      ? { chefId: chef._id, courseId, sessionToken }
+    foodCreator?._id && courseId && sessionToken
+      ? { chefId: foodCreator._id, courseId, sessionToken }
       : 'skip'
   ) as any;
 
@@ -101,7 +101,7 @@ export default function ModuleQuizScreen() {
 
   // Save quiz progress as answers change
   const saveQuizProgress = React.useCallback(async (newAnswers: Record<string, any>, questionIndex: number) => {
-    if (!chef?._id || !courseId || !moduleId || !sessionToken || !currentModule || !moduleContent || submitted) return;
+    if (!foodCreator?._id || !courseId || !moduleId || !sessionToken || !currentModule || !moduleContent || submitted) return;
 
     // Clear existing timeout
     if (saveQuizProgressTimeoutRef.current) {
@@ -112,7 +112,7 @@ export default function ModuleQuizScreen() {
     saveQuizProgressTimeoutRef.current = setTimeout(async () => {
       try {
         await updateProgress({
-          chefId: chef._id,
+          chefId: foodCreator._id,
           courseId,
           moduleId,
           moduleName: currentModule.moduleName || moduleContent.moduleName || 'Module',
@@ -126,7 +126,7 @@ export default function ModuleQuizScreen() {
         console.error('Error saving quiz progress:', error);
       }
     }, 500);
-  }, [chef, courseId, moduleId, sessionToken, currentModule, moduleContent, updateProgress, submitted]);
+  }, [foodCreator, courseId, moduleId, sessionToken, currentModule, moduleContent, updateProgress, submitted]);
 
   // Get all modules sorted to find next module
   const sortedModules = React.useMemo(() => {
@@ -267,7 +267,7 @@ export default function ModuleQuizScreen() {
   }, [quiz?.passingScore]);
 
   const handleSubmit = useCallback(async () => {
-    if (!quiz || !chef?._id || !courseId || !moduleId || !sessionToken || !currentModule) {
+    if (!quiz || !foodCreator?._id || !courseId || !moduleId || !sessionToken || !currentModule) {
       return;
     }
 
@@ -299,7 +299,7 @@ export default function ModuleQuizScreen() {
     try {
       // Update module progress with quiz results
       await updateProgress({
-        chefId: chef._id,
+        chefId: foodCreator._id,
         courseId,
         moduleId,
         moduleName: currentModule.moduleName || moduleContent?.moduleName || 'Module',
@@ -326,14 +326,14 @@ export default function ModuleQuizScreen() {
           router.replace(`/(tabs)/food-creator/onboarding/course/${courseId}/module/${nextModule.moduleId}`);
         } else {
           // All modules completed - go back to onboarding screen which will show completion
-          router.replace('/(tabs)/food-creator/onboarding');
+          router.replace('/(tabs)/food-creator/onboarding' as any);
         }
       }, 1500);
     } catch (error: any) {
       showError('Error', error.message || 'Failed to submit quiz');
       setSubmitted(false);
     }
-  }, [quiz, answers, chef, courseId, moduleId, sessionToken, currentModule, moduleContent, updateProgress, calculateScore, showSuccess, showError, nextModule, router]);
+  }, [quiz, answers, foodCreator, courseId, moduleId, sessionToken, currentModule, moduleContent, updateProgress, calculateScore, showSuccess, showError, nextModule, router]);
 
   const handleRetake = useCallback(async () => {
     setAnswers({});
@@ -342,10 +342,10 @@ export default function ModuleQuizScreen() {
     setCurrentQuestionIndex(0);
 
     // Clear saved progress
-    if (chef?._id && courseId && moduleId && sessionToken && currentModule && moduleContent) {
+    if (foodCreator?._id && courseId && moduleId && sessionToken && currentModule && moduleContent) {
       try {
         await updateProgress({
-          chefId: chef._id,
+          chefId: foodCreator._id,
           courseId,
           moduleId,
           moduleName: currentModule.moduleName || moduleContent.moduleName || 'Module',
@@ -363,7 +363,7 @@ export default function ModuleQuizScreen() {
     if (quiz?.timeLimit) {
       setTimeRemaining(quiz.timeLimit);
     }
-  }, [quiz?.timeLimit, chef, courseId, moduleId, sessionToken, currentModule, moduleContent, updateProgress]);
+  }, [quiz?.timeLimit, foodCreator, courseId, moduleId, sessionToken, currentModule, moduleContent, updateProgress]);
 
   if (!moduleContent) {
     return (
@@ -549,7 +549,7 @@ export default function ModuleQuizScreen() {
               if (nextModule) {
                 router.replace(`/(tabs)/food-creator/onboarding/course/${courseId}/module/${nextModule.moduleId}`);
               } else {
-                router.replace('/(tabs)/food-creator/onboarding');
+                router.replace('/(tabs)/food-creator/onboarding' as any);
               }
             }}
             style={styles.continueButton}

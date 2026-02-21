@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type TransactionType = 'all' | 'earning' | 'payout' | 'fee' | 'refund';
 
 export default function TransactionsScreen() {
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [typeFilter, setTypeFilter] = useState<TransactionType>('all');
@@ -27,9 +27,9 @@ export default function TransactionsScreen() {
 
   const transactionsData = useQuery(
     api.queries.chefTransactions.getByChefId,
-    chef?._id && sessionToken
+    foodCreator?._id && sessionToken
       ? {
-        chefId: chef._id,
+        chefId: foodCreator._id,
         sessionToken,
         type: typeFilter === 'all' ? undefined : typeFilter,
         startDate: startDate ? startDate.getTime() : undefined,
@@ -42,8 +42,8 @@ export default function TransactionsScreen() {
 
   const typeCounts = useQuery(
     api.queries.chefTransactions.getCountByType,
-    chef?._id && sessionToken
-      ? { chefId: chef._id, sessionToken }
+    foodCreator?._id && sessionToken
+      ? { chefId: foodCreator._id, sessionToken }
       : 'skip'
   );
 
@@ -181,7 +181,7 @@ export default function TransactionsScreen() {
     setEndDate(null);
   };
 
-  if (!chef) {
+  if (!foodCreator) {
     return (
       <View style={styles.mainContainer}>
         <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>

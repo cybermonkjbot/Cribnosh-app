@@ -10,7 +10,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CourseModuleViewer() {
-  const { foodCreator: chef, sessionToken, isBasicOnboardingComplete, isLoading } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken, isBasicOnboardingComplete, isLoading } = useFoodCreatorAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
   
@@ -29,13 +29,13 @@ export default function CourseModuleViewer() {
   }
 
   // If basic onboarding not complete, show message (layout should redirect, but show fallback)
-  if (chef && !isBasicOnboardingComplete) {
+  if (foodCreator && !isBasicOnboardingComplete) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Profile Setup Required</Text>
           <Text style={styles.loadingText}>
-            Please complete your chef profile setup before starting compliance training.
+            Please complete your foodCreator profile setup before starting compliance training.
           </Text>
           <Button onPress={() => router.replace('/(tabs)/profile')}>
             Complete Profile
@@ -46,8 +46,8 @@ export default function CourseModuleViewer() {
   }
 
   // Get course enrollment
-  const enrollmentQueryArgs: any = chef?._id && courseId && sessionToken
-    ? { chefId: chef._id, courseId, sessionToken }
+  const enrollmentQueryArgs: any = foodCreator?._id && courseId && sessionToken
+    ? { chefId: foodCreator._id, courseId, sessionToken }
     : 'skip';
   
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
@@ -67,12 +67,12 @@ export default function CourseModuleViewer() {
   const syncModules = useMutation(api.mutations.chefCourses.syncCourseModules);
   
   React.useEffect(() => {
-    if (chef?._id && courseId && sessionToken && enrollment === undefined) {
+    if (foodCreator?._id && courseId && sessionToken && enrollment === undefined) {
       // Wait for enrollment query to resolve
       return;
     }
     
-    if (chef?._id && courseId && sessionToken) {
+    if (foodCreator?._id && courseId && sessionToken) {
       // If not enrolled, enroll first
       if (!enrollment) {
         // Default course name - could be improved by fetching course details
@@ -81,48 +81,48 @@ export default function CourseModuleViewer() {
           : `Course ${courseId}`;
         
         enrollInCourse({ 
-          chefId: chef._id, 
+          chefId: foodCreator._id, 
           courseId, 
           courseName,
           sessionToken 
         })
           .then(() => {
             // After enrollment, sync modules and mark as accessed
-            syncModules({ chefId: chef._id, courseId, sessionToken }).catch(console.error);
-            markAccessed({ chefId: chef._id, courseId, sessionToken }).catch(console.error);
+            syncModules({ chefId: foodCreator._id, courseId, sessionToken }).catch(console.error);
+            markAccessed({ chefId: foodCreator._id, courseId, sessionToken }).catch(console.error);
           })
           .catch((error) => {
             // If already enrolled, try to sync and mark as accessed anyway
             if (error.message?.includes('Already enrolled')) {
-              syncModules({ chefId: chef._id, courseId, sessionToken }).catch(console.error);
-              markAccessed({ chefId: chef._id, courseId, sessionToken }).catch(console.error);
+              syncModules({ chefId: foodCreator._id, courseId, sessionToken }).catch(console.error);
+              markAccessed({ chefId: foodCreator._id, courseId, sessionToken }).catch(console.error);
             } else {
               console.error('Error enrolling in course:', error);
             }
           });
       } else {
         // Already enrolled, sync modules and mark as accessed
-        syncModules({ chefId: chef._id, courseId, sessionToken }).catch(console.error);
-        markAccessed({ chefId: chef._id, courseId, sessionToken }).catch(console.error);
+        syncModules({ chefId: foodCreator._id, courseId, sessionToken }).catch(console.error);
+        markAccessed({ chefId: foodCreator._id, courseId, sessionToken }).catch(console.error);
       }
     }
-  }, [chef?._id, courseId, sessionToken, enrollment]);
+  }, [foodCreator?._id, courseId, sessionToken, enrollment]);
 
   const handleModulePress = async (moduleId: string, moduleName: string, moduleNumber: number) => {
-    if (!chef?._id || !courseId || !sessionToken) return;
+    if (!foodCreator?._id || !courseId || !sessionToken) return;
 
     // Navigate to module detail screen
     router.push(`/(tabs)/food-creator/onboarding/course/${courseId}/module/${moduleId}`);
   };
 
   // Show message if basic onboarding is not complete
-  if (chef && !isBasicOnboardingComplete) {
+  if (foodCreator && !isBasicOnboardingComplete) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Profile Setup Required</Text>
           <Text style={[styles.loadingText, { marginTop: 8, fontSize: 14 }]}>
-            Please complete your chef profile setup before accessing compliance training.
+            Please complete your foodCreator profile setup before accessing compliance training.
           </Text>
           <Button 
             onPress={() => router.replace('/(tabs)/profile')}

@@ -207,7 +207,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const isOngoingOrder = status && status !== 'cancelled' && status !== 'completed';
   const isGroupOrder = orderType === 'group' && groupOrder;
 
-  // Calculate chef earnings (85% of total, 15% platform fee)
+  // Calculate foodCreator earnings (85% of total, 15% platform fee)
   const calculateFoodCreatorEarnings = (total: number): number => {
     const platformFee = Math.round(total * 0.15);
     return total - platformFee;

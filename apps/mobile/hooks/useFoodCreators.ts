@@ -435,39 +435,6 @@ export const useFoodCreators = () => {
     []
   );
 
-  /**
-   * Get foodCreator details
-   */
-  const getFoodCreatorDetails = useCallback(
-    async (foodCreatorId: string) => {
-      try {
-        setIsLoading(true);
-        const convex = getConvexClient();
-        const sessionToken = await getSessionToken();
-
-        if (!sessionToken) {
-          throw new Error('Please log in to view foodCreator details');
-        }
-
-        const result = await convex.action(api.actions.foodCreators.customerGetFoodCreatorDetails, {
-          sessionToken,
-          foodCreatorId,
-        });
-
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to get foodCreator details');
-        }
-
-        return result.foodCreator;
-      } catch (error: any) {
-        // Let components handle errors - no toast in hooks
-        throw error;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
 
   /**
    * Get foodCreator featured video
@@ -694,7 +661,6 @@ export const useFoodCreators = () => {
     getFoodCreatorFavoriteStatus,
     addFoodCreatorFavorite,
     removeFoodCreatorFavorite,
-    getFoodCreatorDetails,
     getFoodCreatorFeaturedVideo,
     getFoodCreatorCategories,
     getFoodCreatorTags,

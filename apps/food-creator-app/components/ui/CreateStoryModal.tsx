@@ -32,7 +32,7 @@ const STEPS = [
 ];
 
 export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) {
-  const { foodCreator: chef, sessionToken, isAuthenticated } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken, isAuthenticated } = useFoodCreatorAuth();
   const { showSuccess, showError } = useToast();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -170,7 +170,7 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
   };
 
   const handleSubmit = async (publish: boolean) => {
-    if (!chef?.name || !sessionToken) {
+    if (!foodCreator?.name || !sessionToken) {
       showError('Error', 'Food Creator information not available');
       return;
     }

@@ -69,7 +69,7 @@ export const FoodCreatorRecommendationsEmail = ({
 
         <Section style={{ padding: '24px 0' }}>
           <ContentText style={{ fontWeight: 'bold', fontSize: '20px', marginBottom: '16px' }}>
-            Featured Chefs
+            Featured Food Creators
           </ContentText>
 
           {foodCreators.map((chef, index) => (

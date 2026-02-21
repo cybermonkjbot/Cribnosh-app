@@ -30,7 +30,7 @@ const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none
 </svg>`;
 
 export default function DocumentUploadByTypeScreen() {
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ type: string; returnPath?: string }>();
   const { showSuccess, showError } = useToast();
@@ -43,7 +43,7 @@ export default function DocumentUploadByTypeScreen() {
 
   const uploadDocument = useMutation(api.mutations.chefDocuments.uploadDocument);
 
-  if (!documentType || !chef?._id || !sessionToken) {
+  if (!documentType || !foodCreator?._id || !sessionToken) {
     return (
       <SafeAreaView style={styles.mainContainer}>
         <View style={styles.loadingContainer}>
@@ -94,7 +94,7 @@ export default function DocumentUploadByTypeScreen() {
   };
 
   const handleUpload = async () => {
-    if (!selectedImage || !chef?._id || !sessionToken) {
+    if (!selectedImage || !foodCreator?._id || !sessionToken) {
       return;
     }
 
@@ -145,7 +145,7 @@ export default function DocumentUploadByTypeScreen() {
 
       // Step 6: Create document record
       await uploadDocument({
-        chefId: chef._id,
+        chefId: foodCreator._id,
         documentType: documentType as any,
         documentName,
         fileName,

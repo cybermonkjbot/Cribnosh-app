@@ -244,7 +244,6 @@ export interface Dish {
   is_safe_for_you?: boolean;
   prep_time?: string;
   delivery_time?: string;
-  foodCreator_name?: string;
   chef_name?: string;
   foodCreator_story?: string;
   chef_story?: string;

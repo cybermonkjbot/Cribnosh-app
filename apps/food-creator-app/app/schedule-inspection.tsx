@@ -27,7 +27,7 @@ const clockIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none
 export default function ScheduleInspectionScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { foodCreator: chef, sessionToken: authSessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken: authSessionToken } = useFoodCreatorAuth();
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [preferredDate, setPreferredDate] = useState('');
@@ -50,7 +50,7 @@ export default function ScheduleInspectionScreen() {
   // Get kitchen ID
   const kitchenId = useQuery(
     api.queries.kitchens.getKitchenByChefId,
-    chef?._id ? { chefId: chef._id } : 'skip'
+    foodCreator?._id ? { chefId: foodCreator._id } : 'skip'
   );
 
   // Get kitchen details

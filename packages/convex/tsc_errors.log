@@ -1,0 +1,793 @@
+../../apps/web/lib/api/response-factory.ts(405,40): error TS2304: Cannot find name 'BodyInit'.
+../../apps/web/lib/sms/sms-providers.ts(129,24): error TS18046: 'data' is of type 'unknown'.
+../../apps/web/lib/sms/sms-providers.ts(132,20): error TS18046: 'data' is of type 'unknown'.
+../../apps/web/lib/sms/sms-providers.ts(132,39): error TS18046: 'data' is of type 'unknown'.
+../../apps/web/lib/sms/sms-providers.ts(139,14): error TS18046: 'data' is of type 'unknown'.
+../../apps/web/lib/utils/logger.ts(80,14): error TS2304: Cannot find name 'window'.
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/getNativeImplementation.d.ts(8,31): error TS2339: Property 'setTimeout' does not exist on type '{ navigator?: { userAgent?: string | undefined; maxTouchPoints?: number | undefined; } | undefined; console: Console; PerformanceObserver?: any; Sentry?: any; onerror?: { (event: string | object, source?: string | undefined, lineno?: number | undefined, colno?: number | undefined, error?: Error | undefined): any; __...'.
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/getNativeImplementation.d.ts(9,26): error TS2339: Property 'fetch' does not exist on type '{ navigator?: { userAgent?: string | undefined; maxTouchPoints?: number | undefined; } | undefined; console: Console; PerformanceObserver?: any; Sentry?: any; onerror?: { (event: string | object, source?: string | undefined, lineno?: number | undefined, colno?: number | undefined, error?: Error | undefined): any; __...'.
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/getNativeImplementation.d.ts(61,65): error TS2339: Property 'fetch' does not exist on type '{ navigator?: { userAgent?: string | undefined; maxTouchPoints?: number | undefined; } | undefined; console: Console; PerformanceObserver?: any; Sentry?: any; onerror?: { (event: string | object, source?: string | undefined, lineno?: number | undefined, colno?: number | undefined, error?: Error | undefined): any; __...'.
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/getNativeImplementation.d.ts(61,99): error TS2339: Property 'fetch' does not exist on type '{ navigator?: { userAgent?: string | undefined; maxTouchPoints?: number | undefined; } | undefined; console: Console; PerformanceObserver?: any; Sentry?: any; onerror?: { (event: string | object, source?: string | undefined, lineno?: number | undefined, colno?: number | undefined, error?: Error | undefined): any; __...'.
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/getNativeImplementation.d.ts(67,70): error TS2339: Property 'setTimeout' does not exist on type '{ navigator?: { userAgent?: string | undefined; maxTouchPoints?: number | undefined; } | undefined; console: Console; PerformanceObserver?: any; Sentry?: any; onerror?: { (event: string | object, source?: string | undefined, lineno?: number | undefined, colno?: number | undefined, error?: Error | undefined): any; __...'.
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/getNativeImplementation.d.ts(67,109): error TS2339: Property 'setTimeout' does not exist on type '{ navigator?: { userAgent?: string | undefined; maxTouchPoints?: number | undefined; } | undefined; console: Console; PerformanceObserver?: any; Sentry?: any; onerror?: { (event: string | object, source?: string | undefined, lineno?: number | undefined, colno?: number | undefined, error?: Error | undefined): any; __...'.
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/metrics/browserMetrics.d.ts(65,61): error TS2749: 'PerformanceEntry' refers to a value, but is being used as a type here. Did you mean 'typeof PerformanceEntry'?
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/metrics/browserMetrics.d.ts(70,64): error TS2304: Cannot find name 'PerformanceNavigationTiming'.
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/metrics/browserMetrics.d.ts(75,62): error TS2749: 'PerformanceResourceTiming' refers to a value, but is being used as a type here. Did you mean 'typeof PerformanceResourceTiming'?
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/metrics/browserMetrics.d.ts(85,70): error TS2749: 'PerformanceResourceTiming' refers to a value, but is being used as a type here. Did you mean 'typeof PerformanceResourceTiming'?
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/metrics/browserMetrics.d.ts(85,216): error TS2749: 'PerformanceResourceTiming' refers to a value, but is being used as a type here. Did you mean 'typeof PerformanceResourceTiming'?
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/metrics/elementTiming.d.ts(9,14): error TS2749: 'PerformanceEntry' refers to a value, but is being used as a type here. Did you mean 'typeof PerformanceEntry'?
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/metrics/resourceTiming.d.ts(12,72): error TS2749: 'PerformanceResourceTiming' refers to a value, but is being used as a type here. Did you mean 'typeof PerformanceResourceTiming'?
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/metrics/utils.d.ts(37,53): error TS2304: Cannot find name 'Performance'.
+../../apps/web/node_modules/@sentry-internal/browser-utils/build/types/types.d.ts(3,98): error TS2344: Type '"document"' does not satisfy the constraint 'keyof Window'.
+../../apps/web/node_modules/@sentry-internal/feedback/build/npm/types/core/components/Actor.d.ts(4,13): error TS2304: Cannot find name 'ShadowRoot'.
+../../apps/web/node_modules/@sentry-internal/replay/build/npm/types/types/performance.d.ts(2,60): error TS2749: 'PerformanceResourceTiming' refers to a value, but is being used as a type here. Did you mean 'typeof PerformanceResourceTiming'?
+../../apps/web/node_modules/@sentry-internal/replay/build/npm/types/types/performance.d.ts(3,38): error TS2749: 'PerformanceEntry' refers to a value, but is being used as a type here. Did you mean 'typeof PerformanceEntry'?
+../../apps/web/node_modules/@sentry-internal/replay/build/npm/types/types/performance.d.ts(4,43): error TS2749: 'PerformanceEntry' refers to a value, but is being used as a type here. Did you mean 'typeof PerformanceEntry'?
+../../apps/web/node_modules/@sentry-internal/replay/build/npm/types/types/performance.d.ts(4,62): error TS2749: 'PerformanceResourceTiming' refers to a value, but is being used as a type here. Did you mean 'typeof PerformanceResourceTiming'?
+../../apps/web/node_modules/@sentry-internal/replay/build/npm/types/types/performance.d.ts(43,53): error TS2749: 'PerformanceResourceTiming' refers to a value, but is being used as a type here. Did you mean 'typeof PerformanceResourceTiming'?
+../../apps/web/node_modules/@sentry-internal/replay/build/npm/types/types/performance.d.ts(58,33): error TS2749: 'PerformanceResourceTiming' refers to a value, but is being used as a type here. Did you mean 'typeof PerformanceResourceTiming'?
+../../apps/web/node_modules/@sentry-internal/replay/build/npm/types/types/rrweb.d.ts(45,31): error TS2304: Cannot find name 'ShadowRoot'.
+../../apps/web/node_modules/@sentry/browser/build/npm/types/transports/fetch.d.ts(7,106): error TS2339: Property 'fetch' does not exist on type '{ navigator?: { userAgent?: string | undefined; maxTouchPoints?: number | undefined; } | undefined; console: Console; PerformanceObserver?: any; Sentry?: any; onerror?: { (event: string | object, source?: string | undefined, lineno?: number | undefined, colno?: number | undefined, error?: Error | undefined): any; __...'.
+../../apps/web/node_modules/@sentry/browser/build/npm/types/transports/offline.d.ts(2,36): error TS2304: Cannot find name 'IDBObjectStore'.
+../../apps/web/node_modules/@sentry/react/build/types/types.d.ts(137,14): error TS2304: Cannot find name 'History'.
+../../apps/web/node_modules/@types/react/global.d.ts(155,11): error TS2300: Duplicate identifier 'FormData'.
+../../apps/web/node_modules/convex/dist/esm-types/server/database.d.ts(118,32): error TS2344: Type 'SystemDataModel' does not satisfy the constraint 'GenericDataModel'.
+  Index signature for type 'string' is missing in type 'SystemDataModel'.
+../../apps/web/node_modules/convex/dist/esm-types/server/database.d.ts(131,41): error TS2344: Type 'SystemDataModel' does not satisfy the constraint 'GenericDataModel'.
+  Index signature for type 'string' is missing in type 'SystemDataModel'.
+../../apps/web/node_modules/convex/dist/esm-types/server/schema.d.ts(545,54): error TS2344: Type 'SystemDataModel' does not satisfy the constraint 'GenericDataModel'.
+  Index signature for type 'string' is missing in type 'SystemDataModel'.
+../../node_modules/@ai-sdk/provider-utils/dist/index.d.ts(287,44): error TS2304: Cannot find name 'HeadersInit'.
+../../node_modules/@ai-sdk/provider-utils/dist/index.d.ts(857,47): error TS2304: Cannot find name 'HeadersInit'.
+../../node_modules/@types/d3-array/index.d.ts(857,38): error TS2304: Cannot find name 'ImageData'.
+../../node_modules/@types/d3-array/index.d.ts(857,75): error TS2304: Cannot find name 'ImageData'.
+../../node_modules/@types/node/url.d.ts(1032,19): error TS2430: Interface 'URL' incorrectly extends interface 'import("url").URL'.
+  The types returned by 'searchParams[Symbol.iterator]()' are incompatible between these types.
+    Property '[Symbol.dispose]' is missing in type 'IterableIterator<[string, string]>' but required in type 'URLSearchParamsIterator<[string, string]>'.
+../../node_modules/@types/node/url.d.ts(1038,19): error TS2430: Interface 'URLSearchParams' incorrectly extends interface 'import("url").URLSearchParams'.
+  The types returned by '[Symbol.iterator]()' are incompatible between these types.
+    Property '[Symbol.dispose]' is missing in type 'IterableIterator<[string, string]>' but required in type 'URLSearchParamsIterator<[string, string]>'.
+../../node_modules/@types/node/web-globals/abortcontroller.d.ts(18,15): error TS2300: Duplicate identifier 'AbortController'.
+../../node_modules/@types/node/web-globals/abortcontroller.d.ts(19,9): error TS2300: Duplicate identifier 'AbortController'.
+../../node_modules/@types/node/web-globals/abortcontroller.d.ts(25,15): error TS2300: Duplicate identifier 'AbortSignal'.
+../../node_modules/@types/node/web-globals/abortcontroller.d.ts(26,9): error TS2300: Duplicate identifier 'AbortSignal'.
+../../node_modules/@types/node/web-globals/fetch.d.ts(28,15): error TS2300: Duplicate identifier 'FormData'.
+../../node_modules/@types/node/web-globals/fetch.d.ts(29,9): error TS2300: Duplicate identifier 'FormData'.
+../../node_modules/@types/node/web-globals/fetch.d.ts(38,15): error TS2320: Interface 'Request' cannot simultaneously extend types 'Request' and 'Body'.
+  Named property 'arrayBuffer' of types 'Request' and 'Body' are not identical.
+../../node_modules/@types/node/web-globals/fetch.d.ts(43,15): error TS2320: Interface 'Response' cannot simultaneously extend types 'Response' and 'Body'.
+  Named property 'arrayBuffer' of types 'Response' and 'Body' are not identical.
+../../node_modules/@types/offscreencanvas/index.d.ts(9,9): error TS2304: Cannot find name 'CanvasState'.
+../../node_modules/@types/offscreencanvas/index.d.ts(10,9): error TS2304: Cannot find name 'CanvasTransform'.
+../../node_modules/@types/offscreencanvas/index.d.ts(11,9): error TS2304: Cannot find name 'CanvasCompositing'.
+../../node_modules/@types/offscreencanvas/index.d.ts(12,9): error TS2304: Cannot find name 'CanvasImageSmoothing'.
+../../node_modules/@types/offscreencanvas/index.d.ts(13,9): error TS2304: Cannot find name 'CanvasFillStrokeStyles'.
+../../node_modules/@types/offscreencanvas/index.d.ts(14,9): error TS2304: Cannot find name 'CanvasShadowStyles'.
+../../node_modules/@types/offscreencanvas/index.d.ts(15,9): error TS2304: Cannot find name 'CanvasFilters'.
+../../node_modules/@types/offscreencanvas/index.d.ts(16,9): error TS2304: Cannot find name 'CanvasRect'.
+../../node_modules/@types/offscreencanvas/index.d.ts(17,9): error TS2304: Cannot find name 'CanvasDrawPath'.
+../../node_modules/@types/offscreencanvas/index.d.ts(18,9): error TS2304: Cannot find name 'CanvasText'.
+../../node_modules/@types/offscreencanvas/index.d.ts(20,9): error TS2304: Cannot find name 'CanvasImageData'.
+../../node_modules/@types/offscreencanvas/index.d.ts(21,9): error TS2304: Cannot find name 'CanvasPathDrawingStyles'.
+../../node_modules/@types/offscreencanvas/index.d.ts(22,9): error TS2304: Cannot find name 'CanvasTextDrawingStyles'.
+../../node_modules/@types/offscreencanvas/index.d.ts(23,9): error TS2304: Cannot find name 'CanvasPath'.
+../../node_modules/@types/offscreencanvas/index.d.ts(42,29): error TS2304: Cannot find name 'CanvasRenderingContext2DSettings'.
+../../node_modules/@types/offscreencanvas/index.d.ts(48,8): error TS2304: Cannot find name 'ImageBitmapRenderingContext'.
+../../node_modules/@types/offscreencanvas/index.d.ts(56,30): error TS2304: Cannot find name 'ImageBitmap'.
+../../node_modules/@types/offscreencanvas/index.d.ts(61,22): error TS2304: Cannot find name 'CanvasImageSource'.
+../../node_modules/@types/offscreencanvas/index.d.ts(63,22): error TS2304: Cannot find name 'CanvasImageSource'.
+../../node_modules/@types/offscreencanvas/index.d.ts(66,16): error TS2304: Cannot find name 'CanvasImageSource'.
+../../node_modules/@types/offscreencanvas/index.d.ts(79,43): error TS2304: Cannot find name 'ImageBitmapSource'.
+../../node_modules/@types/offscreencanvas/index.d.ts(79,89): error TS2304: Cannot find name 'ImageBitmap'.
+../../node_modules/@types/offscreencanvas/index.d.ts(81,12): error TS2304: Cannot find name 'ImageBitmapSource'.
+../../node_modules/@types/offscreencanvas/index.d.ts(86,12): error TS2304: Cannot find name 'ImageBitmap'.
+../../node_modules/@types/offscreencanvas/index.d.ts(90,48): error TS2304: Cannot find name 'Transferable'.
+../../node_modules/@types/offscreencanvas/index.d.ts(94,48): error TS2304: Cannot find name 'Transferable'.
+../../node_modules/@types/offscreencanvas/index.d.ts(98,48): error TS2304: Cannot find name 'Transferable'.
+../../node_modules/@types/offscreencanvas/index.d.ts(102,48): error TS2304: Cannot find name 'Transferable'.
+../../node_modules/@types/offscreencanvas/index.d.ts(106,70): error TS2304: Cannot find name 'Transferable'.
+../../node_modules/@types/offscreencanvas/index.d.ts(112,22): error TS2304: Cannot find name 'Transferable'.
+../../node_modules/@types/offscreencanvas/index.d.ts(122,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(123,16): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(124,25): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(125,16): error TS2304: Cannot find name 'GLsizei'.
+../../node_modules/@types/offscreencanvas/index.d.ts(126,17): error TS2304: Cannot find name 'GLsizei'.
+../../node_modules/@types/offscreencanvas/index.d.ts(127,16): error TS2304: Cannot find name 'GLsizei'.
+../../node_modules/@types/offscreencanvas/index.d.ts(128,17): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(129,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(130,15): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(131,17): error TS2304: Cannot find name 'TexImageSource'.
+../../node_modules/@types/offscreencanvas/index.d.ts(134,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(135,16): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(136,18): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(137,18): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(138,18): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(139,16): error TS2304: Cannot find name 'GLsizei'.
+../../node_modules/@types/offscreencanvas/index.d.ts(140,17): error TS2304: Cannot find name 'GLsizei'.
+../../node_modules/@types/offscreencanvas/index.d.ts(141,16): error TS2304: Cannot find name 'GLsizei'.
+../../node_modules/@types/offscreencanvas/index.d.ts(142,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(143,15): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(144,17): error TS2304: Cannot find name 'TexImageSource'.
+../../node_modules/@types/offscreencanvas/index.d.ts(150,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(151,16): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(152,25): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(153,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(154,15): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(155,17): error TS2304: Cannot find name 'TexImageSource'.
+../../node_modules/@types/offscreencanvas/index.d.ts(158,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(159,16): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(160,25): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(161,16): error TS2304: Cannot find name 'GLsizei'.
+../../node_modules/@types/offscreencanvas/index.d.ts(162,17): error TS2304: Cannot find name 'GLsizei'.
+../../node_modules/@types/offscreencanvas/index.d.ts(163,17): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(164,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(165,15): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(166,17): error TS2304: Cannot find name 'TexImageSource'.
+../../node_modules/@types/offscreencanvas/index.d.ts(169,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(170,16): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(171,18): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(172,18): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(173,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(174,15): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(175,17): error TS2304: Cannot find name 'TexImageSource'.
+../../node_modules/@types/offscreencanvas/index.d.ts(178,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(179,16): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(180,18): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(181,18): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(182,16): error TS2304: Cannot find name 'GLsizei'.
+../../node_modules/@types/offscreencanvas/index.d.ts(183,17): error TS2304: Cannot find name 'GLsizei'.
+../../node_modules/@types/offscreencanvas/index.d.ts(184,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(185,15): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(186,17): error TS2304: Cannot find name 'TexImageSource'.
+../../node_modules/@types/offscreencanvas/index.d.ts(192,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(193,16): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(194,25): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(195,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(196,15): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(197,17): error TS2304: Cannot find name 'TexImageSource'.
+../../node_modules/@types/offscreencanvas/index.d.ts(200,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(201,16): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(202,18): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(203,18): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/offscreencanvas/index.d.ts(204,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(205,15): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/offscreencanvas/index.d.ts(206,17): error TS2304: Cannot find name 'TexImageSource'.
+../../node_modules/@types/prismjs/index.d.ts(64,46): error TS2304: Cannot find name 'ParentNode'.
+../../node_modules/@types/ramda/index.d.ts(789,102): error TS2589: Type instantiation is excessively deep and possibly infinite.
+../../node_modules/@types/react-dom/canary.d.ts(38,51): error TS2304: Cannot find name 'Animatable'.
+../../node_modules/@types/react-dom/canary.d.ts(39,33): error TS2304: Cannot find name 'CSSStyleDeclaration'.
+../../node_modules/@types/react-dom/canary.d.ts(52,32): error TS2304: Cannot find name 'FocusOptions'.
+../../node_modules/@types/react-dom/canary.d.ts(53,36): error TS2304: Cannot find name 'FocusOptions'.
+../../node_modules/@types/react-dom/canary.d.ts(54,32): error TS2304: Cannot find name 'IntersectionObserver'.
+../../node_modules/@types/react-dom/canary.d.ts(54,55): error TS2304: Cannot find name 'ResizeObserver'.
+../../node_modules/@types/react-dom/canary.d.ts(55,34): error TS2304: Cannot find name 'IntersectionObserver'.
+../../node_modules/@types/react-dom/canary.d.ts(55,57): error TS2304: Cannot find name 'ResizeObserver'.
+../../node_modules/@types/react-dom/canary.d.ts(57,42): error TS2304: Cannot find name 'GetRootNodeOptions'.
+../../node_modules/@types/react-dom/canary.d.ts(57,86): error TS2304: Cannot find name 'ShadowRoot'.
+../../node_modules/@types/react-dom/canary.d.ts(60,23): error TS2304: Cannot find name 'EventListener'.
+../../node_modules/@types/react-dom/canary.d.ts(61,54): error TS2339: Property 'addEventListener' does not exist on type 'Element'.
+../../node_modules/@types/react-dom/canary.d.ts(65,23): error TS2304: Cannot find name 'EventListener'.
+../../node_modules/@types/react-dom/canary.d.ts(66,54): error TS2339: Property 'removeEventListener' does not exist on type 'Element'.
+../../node_modules/@types/react-dom/experimental.d.ts(43,39): error TS2304: Cannot find name 'AnimationTimeline'.
+../../node_modules/@types/react-dom/index.d.ts(91,22): error TS2304: Cannot find name 'ReferrerPolicy'.
+../../node_modules/@types/react-dom/index.d.ts(97,31): error TS2304: Cannot find name 'RequestDestination'.
+../../node_modules/@types/react-dom/server.d.ts(15,15): error TS2300: Duplicate identifier 'AbortSignal'.
+../../node_modules/@types/react-dom/static.d.ts(12,15): error TS2300: Duplicate identifier 'AbortSignal'.
+../../node_modules/@types/react/global.d.ts(155,11): error TS2300: Duplicate identifier 'FormData'.
+../../node_modules/@types/three/src/audio/Audio.d.ts(31,37): error TS2304: Cannot find name 'AudioNode'.
+../../node_modules/@types/three/src/audio/Audio.d.ts(31,49): error TS2304: Cannot find name 'GainNode'.
+../../node_modules/@types/three/src/audio/Audio.d.ts(53,14): error TS2709: Cannot use namespace 'AudioContext' as a type.
+../../node_modules/@types/three/src/audio/Audio.d.ts(59,11): error TS2304: Cannot find name 'GainNode'.
+../../node_modules/@types/three/src/audio/Audio.d.ts(67,13): error TS2304: Cannot find name 'AudioBuffer'.
+../../node_modules/@types/three/src/audio/Audio.d.ts(132,13): error TS2304: Cannot find name 'AudioScheduledSourceNode'.
+../../node_modules/@types/three/src/audio/Audio.d.ts(141,14): error TS2304: Cannot find name 'AudioNode'.
+../../node_modules/@types/three/src/audio/Audio.d.ts(152,30): error TS2304: Cannot find name 'AudioScheduledSourceNode'.
+../../node_modules/@types/three/src/audio/Audio.d.ts(158,41): error TS2304: Cannot find name 'HTMLMediaElement'.
+../../node_modules/@types/three/src/audio/Audio.d.ts(170,28): error TS2304: Cannot find name 'AudioBuffer'.
+../../node_modules/@types/three/src/audio/Audio.d.ts(217,18): error TS2304: Cannot find name 'AudioNode'.
+../../node_modules/@types/three/src/audio/Audio.d.ts(221,23): error TS2304: Cannot find name 'AudioNode'.
+../../node_modules/@types/three/src/audio/Audio.d.ts(226,19): error TS2304: Cannot find name 'AudioNode'.
+../../node_modules/@types/three/src/audio/Audio.d.ts(231,23): error TS2304: Cannot find name 'AudioNode'.
+../../node_modules/@types/three/src/audio/AudioAnalyser.d.ts(37,30): error TS2304: Cannot find name 'AudioNode'.
+../../node_modules/@types/three/src/audio/AudioAnalyser.d.ts(42,15): error TS2304: Cannot find name 'AnalyserNode'.
+../../node_modules/@types/three/src/audio/AudioContext.d.ts(12,28): error TS2709: Cannot use namespace 'AudioContext' as a type.
+../../node_modules/@types/three/src/audio/AudioContext.d.ts(18,34): error TS2709: Cannot use namespace 'AudioContext' as a type.
+../../node_modules/@types/three/src/audio/AudioListener.d.ts(48,14): error TS2709: Cannot use namespace 'AudioContext' as a type.
+../../node_modules/@types/three/src/audio/AudioListener.d.ts(54,11): error TS2304: Cannot find name 'GainNode'.
+../../node_modules/@types/three/src/audio/AudioListener.d.ts(59,13): error TS2304: Cannot find name 'AudioNode'.
+../../node_modules/@types/three/src/audio/AudioListener.d.ts(70,17): error TS2304: Cannot find name 'GainNode'.
+../../node_modules/@types/three/src/audio/AudioListener.d.ts(79,18): error TS2304: Cannot find name 'AudioNode'.
+../../node_modules/@types/three/src/audio/AudioListener.d.ts(84,22): error TS2304: Cannot find name 'AudioNode'.
+../../node_modules/@types/three/src/audio/PositionalAudio.d.ts(37,44): error TS2304: Cannot find name 'PannerNode'.
+../../node_modules/@types/three/src/audio/PositionalAudio.d.ts(47,13): error TS2304: Cannot find name 'PannerNode'.
+../../node_modules/@types/three/src/audio/PositionalAudio.d.ts(52,18): error TS2304: Cannot find name 'PannerNode'.
+../../node_modules/@types/three/src/core/GLBufferAttribute.d.ts(24,17): error TS2304: Cannot find name 'WebGLBuffer'.
+../../node_modules/@types/three/src/core/GLBufferAttribute.d.ts(25,15): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/three/src/core/GLBufferAttribute.d.ts(48,13): error TS2304: Cannot find name 'WebGLBuffer'.
+../../node_modules/@types/three/src/core/GLBufferAttribute.d.ts(64,11): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/three/src/core/GLBufferAttribute.d.ts(122,23): error TS2304: Cannot find name 'WebGLBuffer'.
+../../node_modules/@types/three/src/core/GLBufferAttribute.d.ts(127,19): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/three/src/extras/ImageUtils.d.ts(12,55): error TS2304: Cannot find name 'CanvasImageSource'.
+../../node_modules/@types/three/src/extras/ImageUtils.d.ts(12,75): error TS2304: Cannot find name 'ImageBitmap'.
+../../node_modules/@types/three/src/extras/ImageUtils.d.ts(12,89): error TS2304: Cannot find name 'ImageData'.
+../../node_modules/@types/three/src/extras/ImageUtils.d.ts(20,71): error TS2304: Cannot find name 'ImageBitmap'.
+../../node_modules/@types/three/src/extras/ImageUtils.d.ts(26,32): error TS2304: Cannot find name 'ImageData'.
+../../node_modules/@types/three/src/extras/ImageUtils.d.ts(27,15): error TS2304: Cannot find name 'ImageData'.
+../../node_modules/@types/three/src/extras/ImageUtils.d.ts(28,16): error TS2304: Cannot find name 'ImageData'.
+../../node_modules/@types/three/src/extras/ImageUtils.d.ts(29,17): error TS2304: Cannot find name 'ImageData'.
+../../node_modules/@types/three/src/loaders/AudioLoader.d.ts(4,41): error TS2304: Cannot find name 'AudioBuffer'.
+../../node_modules/@types/three/src/loaders/ImageBitmapLoader.d.ts(4,47): error TS2304: Cannot find name 'ImageBitmap'.
+../../node_modules/@types/three/src/loaders/ImageBitmapLoader.d.ts(10,14): error TS2304: Cannot find name 'ImageBitmapOptions'.
+../../node_modules/@types/three/src/loaders/ImageBitmapLoader.d.ts(14,25): error TS2304: Cannot find name 'ImageBitmapOptions'.
+../../node_modules/@types/three/src/loaders/ImageBitmapLoader.d.ts(18,25): error TS2304: Cannot find name 'ImageBitmap'.
+../../node_modules/@types/three/src/renderers/webgl/WebGLAttributes.d.ts(10,21): error TS2304: Cannot find name 'WebGLBuffer'.
+../../node_modules/@types/three/src/renderers/webgl/WebGLProgram.d.ts(16,19): error TS2304: Cannot find name 'WebGLShader'.
+../../node_modules/@types/three/src/renderers/webgl/WebGLProgram.d.ts(17,21): error TS2304: Cannot find name 'WebGLShader'.
+../../node_modules/@types/three/src/renderers/webgl/WebGLShader.d.ts(1,87): error TS2749: 'WebGLShader' refers to a value, but is being used as a type here. Did you mean 'typeof WebGLShader'?
+../../node_modules/@types/three/src/renderers/webgl/WebGLState.d.ts(57,50): error TS2304: Cannot find name 'WebGLFramebuffer'.
+../../node_modules/@types/three/src/renderers/webgl/WebGLState.d.ts(58,70): error TS2304: Cannot find name 'WebGLFramebuffer'.
+../../node_modules/@types/three/src/renderers/WebGLRenderer.d.ts(68,23): error TS2304: Cannot find name 'WebGLPowerPreference'.
+../../node_modules/@types/three/src/renderers/WebGLRenderer.d.ts(97,29): error TS2304: Cannot find name 'WebGLShader'.
+../../node_modules/@types/three/src/renderers/WebGLRenderer.d.ts(98,31): error TS2304: Cannot find name 'WebGLShader'.
+../../node_modules/@types/three/src/textures/ExternalTexture.d.ts(6,20): error TS2304: Cannot find name 'WebGLTexture'.
+../../node_modules/@types/three/src/textures/ExternalTexture.d.ts(10,33): error TS2304: Cannot find name 'WebGLTexture'.
+../../node_modules/@types/three/src/textures/VideoFrameTexture.d.ts(11,54): error TS2304: Cannot find name 'VideoFrame'.
+../../node_modules/@types/three/src/utils.d.ts(17,62): error TS2304: Cannot find name 'WebGLSync'.
+../../node_modules/@types/webxr/index.d.ts(68,38): error TS2304: Cannot find name 'DOMHighResTimeStamp'.
+../../node_modules/@types/webxr/index.d.ts(109,29): error TS2304: Cannot find name 'AddEventListenerOptions'.
+../../node_modules/@types/webxr/index.d.ts(113,19): error TS2304: Cannot find name 'EventListenerOrEventListenerObject'.
+../../node_modules/@types/webxr/index.d.ts(114,29): error TS2304: Cannot find name 'AddEventListenerOptions'.
+../../node_modules/@types/webxr/index.d.ts(123,19): error TS2304: Cannot find name 'EventListenerOrEventListenerObject'.
+../../node_modules/@types/webxr/index.d.ts(173,45): error TS2304: Cannot find name 'EventInit'.
+../../node_modules/@types/webxr/index.d.ts(215,29): error TS2304: Cannot find name 'AddEventListenerOptions'.
+../../node_modules/@types/webxr/index.d.ts(219,19): error TS2304: Cannot find name 'EventListenerOrEventListenerObject'.
+../../node_modules/@types/webxr/index.d.ts(220,29): error TS2304: Cannot find name 'AddEventListenerOptions'.
+../../node_modules/@types/webxr/index.d.ts(229,19): error TS2304: Cannot find name 'EventListenerOrEventListenerObject'.
+../../node_modules/@types/webxr/index.d.ts(243,30): error TS2304: Cannot find name 'DOMPointReadOnly'.
+../../node_modules/@types/webxr/index.d.ts(318,31): error TS2304: Cannot find name 'DOMPointReadOnly'.
+../../node_modules/@types/webxr/index.d.ts(319,32): error TS2304: Cannot find name 'DOMPointReadOnly'.
+../../node_modules/@types/webxr/index.d.ts(336,36): error TS2304: Cannot find name 'DOMHighResTimeStamp'.
+../../node_modules/@types/webxr/index.d.ts(363,42): error TS2304: Cannot find name 'EventInit'.
+../../node_modules/@types/webxr/index.d.ts(386,38): error TS2304: Cannot find name 'EventInit'.
+../../node_modules/@types/webxr/index.d.ts(499,29): error TS2304: Cannot find name 'AddEventListenerOptions'.
+../../node_modules/@types/webxr/index.d.ts(503,19): error TS2304: Cannot find name 'EventListenerOrEventListenerObject'.
+../../node_modules/@types/webxr/index.d.ts(504,29): error TS2304: Cannot find name 'AddEventListenerOptions'.
+../../node_modules/@types/webxr/index.d.ts(513,19): error TS2304: Cannot find name 'EventListenerOrEventListenerObject'.
+../../node_modules/@types/webxr/index.d.ts(544,24): error TS2304: Cannot find name 'DOMPointReadOnly'.
+../../node_modules/@types/webxr/index.d.ts(545,27): error TS2304: Cannot find name 'DOMPointReadOnly'.
+../../node_modules/@types/webxr/index.d.ts(549,28): error TS2304: Cannot find name 'DOMPointInit'.
+../../node_modules/@types/webxr/index.d.ts(549,54): error TS2304: Cannot find name 'DOMPointInit'.
+../../node_modules/@types/webxr/index.d.ts(671,22): error TS2304: Cannot find name 'DOMPointReadOnly'.
+../../node_modules/@types/webxr/index.d.ts(672,25): error TS2304: Cannot find name 'DOMPointReadOnly'.
+../../node_modules/@types/webxr/index.d.ts(675,56): error TS2304: Cannot find name 'DOMPointInit'.
+../../node_modules/@types/webxr/index.d.ts(675,82): error TS2304: Cannot find name 'DOMPointInit'.
+../../node_modules/@types/webxr/index.d.ts(747,14): error TS2304: Cannot find name 'DOMPointReadOnly'.
+../../node_modules/@types/webxr/index.d.ts(748,22): error TS2304: Cannot find name 'DOMHighResTimeStamp'.
+../../node_modules/@types/webxr/index.d.ts(775,22): error TS2304: Cannot find name 'DOMHighResTimeStamp'.
+../../node_modules/@types/webxr/index.d.ts(943,27): error TS2304: Cannot find name 'WebGLFramebuffer'.
+../../node_modules/@types/webxr/index.d.ts(987,29): error TS2304: Cannot find name 'AddEventListenerOptions'.
+../../node_modules/@types/webxr/index.d.ts(991,19): error TS2304: Cannot find name 'EventListenerOrEventListenerObject'.
+../../node_modules/@types/webxr/index.d.ts(992,29): error TS2304: Cannot find name 'AddEventListenerOptions'.
+../../node_modules/@types/webxr/index.d.ts(1002,19): error TS2304: Cannot find name 'EventListenerOrEventListenerObject'.
+../../node_modules/@types/webxr/index.d.ts(1018,19): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/webxr/index.d.ts(1019,19): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/webxr/index.d.ts(1037,19): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/webxr/index.d.ts(1038,19): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/webxr/index.d.ts(1122,19): error TS2304: Cannot find name 'DOMPointReadOnly'.
+../../node_modules/@types/webxr/index.d.ts(1126,18): error TS2304: Cannot find name 'DOMPointReadOnly'.
+../../node_modules/@types/webxr/index.d.ts(1138,28): error TS2304: Cannot find name 'WebGLTexture'.
+../../node_modules/@types/webxr/index.d.ts(1139,35): error TS2304: Cannot find name 'WebGLTexture'.
+../../node_modules/@types/webxr/index.d.ts(1209,17): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/webxr/index.d.ts(1210,21): error TS2304: Cannot find name 'GLenum'.
+../../node_modules/@types/webxr/index.d.ts(1211,18): error TS2304: Cannot find name 'WebGLTexture'.
+../../node_modules/@types/webxr/index.d.ts(1212,16): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/webxr/index.d.ts(1213,18): error TS2304: Cannot find name 'GLsizei'.
+../../node_modules/@types/webxr/index.d.ts(1214,24): error TS2304: Cannot find name 'GLint'.
+../../node_modules/@types/webxr/index.d.ts(1215,19): error TS2304: Cannot find name 'GLsizei'.
+../../node_modules/@types/webxr/index.d.ts(1317,23): error TS2304: Cannot find name 'WebGLTexture'.
+../../node_modules/@webgpu/types/dist/index.d.ts(80,9): error TS2304: Cannot find name 'AddEventListenerOptions'.
+../../node_modules/@webgpu/types/dist/index.d.ts(84,15): error TS2304: Cannot find name 'EventListenerOrEventListenerObject'.
+../../node_modules/@webgpu/types/dist/index.d.ts(87,9): error TS2304: Cannot find name 'AddEventListenerOptions'.
+../../node_modules/@webgpu/types/dist/index.d.ts(103,15): error TS2304: Cannot find name 'EventListenerOrEventListenerObject'.
+../../node_modules/@webgpu/types/dist/index.d.ts(168,7): error TS2304: Cannot find name 'ImageBitmap'.
+../../node_modules/@webgpu/types/dist/index.d.ts(169,7): error TS2304: Cannot find name 'ImageData'.
+../../node_modules/@webgpu/types/dist/index.d.ts(172,7): error TS2304: Cannot find name 'VideoFrame'.
+../../node_modules/@webgpu/types/dist/index.d.ts(755,16): error TS2304: Cannot find name 'PredefinedColorSpace'.
+../../node_modules/@webgpu/types/dist/index.d.ts(871,16): error TS2304: Cannot find name 'PredefinedColorSpace'.
+../../node_modules/@webgpu/types/dist/index.d.ts(1014,7): error TS2304: Cannot find name 'VideoFrame'.
+../../node_modules/@webgpu/types/dist/index.d.ts(1019,16): error TS2304: Cannot find name 'PredefinedColorSpace'.
+../../node_modules/@webgpu/types/dist/index.d.ts(1841,11): error TS2304: Cannot find name 'EventInit'.
+../../node_modules/ai/dist/index.d.ts(3876,18): error TS2304: Cannot find name 'RequestCredentials'.
+../../node_modules/ai/dist/index.d.ts(3877,14): error TS2304: Cannot find name 'HeadersInit'.
+../../node_modules/ai/dist/index.d.ts(4181,17): error TS2304: Cannot find name 'FileList'.
+../../node_modules/ai/dist/index.d.ts(4186,16): error TS2304: Cannot find name 'FileList'.
+../../node_modules/ai/dist/index.d.ts(4240,54): error TS2304: Cannot find name 'FileList'.
+../../node_modules/ai/dist/index.d.ts(4268,18): error TS2304: Cannot find name 'RequestCredentials'.
+../../node_modules/ai/dist/index.d.ts(4269,14): error TS2304: Cannot find name 'HeadersInit'.
+../../node_modules/ai/dist/index.d.ts(4276,15): error TS2304: Cannot find name 'HeadersInit'.
+../../node_modules/ai/dist/index.d.ts(4277,19): error TS2304: Cannot find name 'RequestCredentials'.
+../../node_modules/ai/dist/index.d.ts(4281,15): error TS2304: Cannot find name 'HeadersInit'.
+../../node_modules/ai/dist/index.d.ts(4282,19): error TS2304: Cannot find name 'RequestCredentials'.
+../../node_modules/ai/dist/index.d.ts(4289,18): error TS2304: Cannot find name 'RequestCredentials'.
+../../node_modules/ai/dist/index.d.ts(4290,14): error TS2304: Cannot find name 'HeadersInit'.
+../../node_modules/ai/dist/index.d.ts(4293,15): error TS2304: Cannot find name 'HeadersInit'.
+../../node_modules/ai/dist/index.d.ts(4294,19): error TS2304: Cannot find name 'RequestCredentials'.
+../../node_modules/ai/dist/index.d.ts(4297,15): error TS2304: Cannot find name 'HeadersInit'.
+../../node_modules/ai/dist/index.d.ts(4298,19): error TS2304: Cannot find name 'RequestCredentials'.
+../../node_modules/ai/dist/index.d.ts(4317,30): error TS2304: Cannot find name 'RequestCredentials'.
+../../node_modules/ai/dist/index.d.ts(4437,19): error TS2304: Cannot find name 'RequestCredentials'.
+../../node_modules/next/dist/client/components/router-reducer/fetch-server-response.d.ts(30,46): error TS2339: Property 'priority' does not exist on type 'RequestInit'.
+../../node_modules/next/dist/client/components/router-reducer/router-reducer-types.d.ts(87,21): error TS2304: Cannot find name 'Location'.
+../../node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(33,5): error TS2425: Class 'Headers' defines instance member property 'append', but extended class 'HeadersAdapter' defines it as instance member function.
+../../node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(34,5): error TS2425: Class 'Headers' defines instance member property 'delete', but extended class 'HeadersAdapter' defines it as instance member function.
+../../node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(35,5): error TS2425: Class 'Headers' defines instance member property 'get', but extended class 'HeadersAdapter' defines it as instance member function.
+../../node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(36,5): error TS2425: Class 'Headers' defines instance member property 'has', but extended class 'HeadersAdapter' defines it as instance member function.
+../../node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(37,5): error TS2425: Class 'Headers' defines instance member property 'set', but extended class 'HeadersAdapter' defines it as instance member function.
+../../node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(38,5): error TS2425: Class 'Headers' defines instance member property 'forEach', but extended class 'HeadersAdapter' defines it as instance member function.
+../../node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(39,5): error TS2425: Class 'Headers' defines instance member property 'entries', but extended class 'HeadersAdapter' defines it as instance member function.
+../../node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(39,16): error TS2304: Cannot find name 'HeadersIterator'.
+../../node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(40,5): error TS2425: Class 'Headers' defines instance member property 'keys', but extended class 'HeadersAdapter' defines it as instance member function.
+../../node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(40,13): error TS2304: Cannot find name 'HeadersIterator'.
+../../node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(41,5): error TS2425: Class 'Headers' defines instance member property 'values', but extended class 'HeadersAdapter' defines it as instance member function.
+../../node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(41,15): error TS2304: Cannot find name 'HeadersIterator'.
+../../node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(42,5): error TS2425: Class 'Headers' defines instance member property '[Symbol.iterator]', but extended class 'HeadersAdapter' defines it as instance member function.
+../../node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(42,26): error TS2304: Cannot find name 'HeadersIterator'.
+../../node_modules/next/dist/server/web/spec-extension/request.d.ts(26,9): error TS2611: 'url' is defined as a property in class 'Request', but is overridden here in 'NextRequest' as an accessor.
+../../node_modules/next/dist/server/web/spec-extension/request.d.ts(28,18): error TS2430: Interface 'import("/Users/joshua/Documents/Cribnosh-app/node_modules/next/dist/server/web/spec-extension/request").RequestInit' incorrectly extends interface 'RequestInit'.
+  Types of property 'signal' are incompatible.
+    Type 'AbortSignal | undefined' is not assignable to type 'global.AbortSignal | undefined'.
+      Type 'AbortSignal' is not assignable to type 'global.AbortSignal'.
+        Types of property 'onabort' are incompatible.
+          Type '((this: AbortSignal, ev: Event) => any) | null' is not assignable to type '(event: AbortEvent) => void'.
+            Type 'null' is not assignable to type '(event: AbortEvent) => void'.
+../../node_modules/next/dist/server/web/spec-extension/response.d.ts(16,24): error TS2304: Cannot find name 'BodyInit'.
+../../node_modules/next/dist/shared/lib/router/router.d.ts(149,21): error TS2304: Cannot find name 'PopStateEvent'.
+../../node_modules/next/dist/types.d.ts(212,26): error TS2749: 'SubtleCrypto' refers to a value, but is being used as a type here. Did you mean 'typeof SubtleCrypto'?
+../../node_modules/next/types/global.d.ts(85,11): error TS2430: Interface 'RequestInit' incorrectly extends interface 'import("/Users/joshua/Documents/Cribnosh-app/node_modules/undici-types/fetch").RequestInit'.
+  Types of property 'signal' are incompatible.
+    Type 'AbortSignal | undefined' is not assignable to type 'AbortSignal | null | undefined'.
+      Type 'AbortSignal' is missing the following properties from type 'AbortSignal': reason, throwIfAborted
+../../node_modules/path-scurry/node_modules/lru-cache/dist/esm/index.d.ts(973,5): error TS2416: Property 'entries' in type 'LRUCache<K, V, FC>' is not assignable to the same property in base type 'Map<K, V>'.
+  Type '() => Generator<[K, V], void, unknown>' is not assignable to type '() => MapIterator<[K, V]>'.
+    Call signature return types 'Generator<[K, V], void, unknown>' and 'MapIterator<[K, V]>' are incompatible.
+      The types returned by 'next(...)' are incompatible between these types.
+        Type 'IteratorResult<[K, V], void>' is not assignable to type 'IteratorResult<[K, V], undefined>'.
+          Type 'IteratorReturnResult<void>' is not assignable to type 'IteratorResult<[K, V], undefined>'.
+            Type 'IteratorReturnResult<void>' is not assignable to type 'IteratorReturnResult<undefined>'.
+              Type 'void' is not assignable to type 'undefined'.
+../../node_modules/path-scurry/node_modules/lru-cache/dist/esm/index.d.ts(985,5): error TS2416: Property 'keys' in type 'LRUCache<K, V, FC>' is not assignable to the same property in base type 'Map<K, V>'.
+  Type '() => Generator<K, void, unknown>' is not assignable to type '() => MapIterator<K>'.
+    Call signature return types 'Generator<K, void, unknown>' and 'MapIterator<K>' are incompatible.
+      The types returned by 'next(...)' are incompatible between these types.
+        Type 'IteratorResult<K, void>' is not assignable to type 'IteratorResult<K, undefined>'.
+          Type 'IteratorReturnResult<void>' is not assignable to type 'IteratorResult<K, undefined>'.
+            Type 'IteratorReturnResult<void>' is not assignable to type 'IteratorReturnResult<undefined>'.
+              Type 'void' is not assignable to type 'undefined'.
+../../node_modules/path-scurry/node_modules/lru-cache/dist/esm/index.d.ts(997,5): error TS2416: Property 'values' in type 'LRUCache<K, V, FC>' is not assignable to the same property in base type 'Map<K, V>'.
+  Type '() => Generator<V, void, unknown>' is not assignable to type '() => MapIterator<V>'.
+    Call signature return types 'Generator<V, void, unknown>' and 'MapIterator<V>' are incompatible.
+      The types returned by 'next(...)' are incompatible between these types.
+        Type 'IteratorResult<V, void>' is not assignable to type 'IteratorResult<V, undefined>'.
+          Type 'IteratorReturnResult<void>' is not assignable to type 'IteratorResult<V, undefined>'.
+            Type 'IteratorReturnResult<void>' is not assignable to type 'IteratorReturnResult<undefined>'.
+              Type 'void' is not assignable to type 'undefined'.
+../../node_modules/path-scurry/node_modules/lru-cache/dist/esm/index.d.ts(1009,5): error TS2416: Property '[Symbol.iterator]' in type 'LRUCache<K, V, FC>' is not assignable to the same property in base type 'Map<K, V>'.
+  Type '() => Generator<[K, V], void, unknown>' is not assignable to type '() => MapIterator<[K, V]>'.
+    Call signature return types 'Generator<[K, V], void, unknown>' and 'MapIterator<[K, V]>' are incompatible.
+      The types returned by 'next(...)' are incompatible between these types.
+        Type 'IteratorResult<[K, V], void>' is not assignable to type 'IteratorResult<[K, V], undefined>'.
+          Type 'IteratorReturnResult<void>' is not assignable to type 'IteratorResult<[K, V], undefined>'.
+            Type 'IteratorReturnResult<void>' is not assignable to type 'IteratorReturnResult<undefined>'.
+              Type 'void' is not assignable to type 'undefined'.
+../../node_modules/path-scurry/node_modules/lru-cache/dist/esm/index.d.ts(1032,5): error TS2416: Property 'forEach' in type 'LRUCache<K, V, FC>' is not assignable to the same property in base type 'Map<K, V>'.
+  Type '(fn: (v: V, k: K, self: LRUCache<K, V, FC>) => any, thisp?: any) => void' is not assignable to type '(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: any) => void'.
+    Types of parameters 'fn' and 'callbackfn' are incompatible.
+      Types of parameters 'map' and 'self' are incompatible.
+        Type 'LRUCache<K, V, FC>' is not assignable to type 'Map<K, V>'.
+          The types returned by 'entries().next(...)' are incompatible between these types.
+            Type 'IteratorResult<[K, V], void>' is not assignable to type 'IteratorResult<[K, V], undefined>'.
+              Type 'IteratorReturnResult<void>' is not assignable to type 'IteratorResult<[K, V], undefined>'.
+                Type 'IteratorReturnResult<void>' is not assignable to type 'IteratorReturnResult<undefined>'.
+                  Type 'void' is not assignable to type 'undefined'.
+../../node_modules/react-native/src/types/globals.d.ts(17,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'require' must be of type 'Require', but here has type 'NodeRequire'.
+../../node_modules/react-native/src/types/globals.d.ts(166,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'Blob' must be of type 'typeof Blob', but here has type '{ new (blobParts?: (string | Blob)[] | undefined, options?: BlobOptions | undefined): Blob; prototype: Blob; }'.
+../../node_modules/react-native/src/types/globals.d.ts(180,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'File' must be of type 'typeof File', but here has type '{ new (fileParts: BlobPart[], name: string, options?: FilePropertyBag | undefined): File; prototype: File; }'.
+../../node_modules/react-native/src/types/globals.d.ts(201,9): error TS2300: Duplicate identifier 'FormData'.
+../../node_modules/react-native/src/types/globals.d.ts(232,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'Headers' must be of type 'typeof Headers', but here has type '{ new (init?: HeadersInit_ | undefined): Headers; prototype: Headers; }'.
+../../node_modules/react-native/src/types/globals.d.ts(289,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'Request' must be of type 'typeof Request', but here has type '{ new (input: string | Request, init?: RequestInit | undefined): Request; prototype: Request; }'.
+../../node_modules/react-native/src/types/globals.d.ts(313,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'Response' must be of type 'typeof Response', but here has type '{ new (body?: BodyInit_ | undefined, init?: ResponseInit | undefined): Response; prototype: Response; error(): Response; json(data: any, init?: ResponseInit | undefined): Response; redirect: (url: string | URL, status?: number | undefined) => Response; }'.
+../../node_modules/react-native/src/types/globals.d.ts(431,13): error TS2430: Interface 'XMLHttpRequestUpload' incorrectly extends interface 'EventTarget'.
+  Types of property 'addEventListener' are incompatible.
+    Type '<K extends keyof XMLHttpRequestEventTargetEventMap>(type: K, listener: (this: XMLHttpRequestUpload, ev: XMLHttpRequestEventTargetEventMap[K]) => any) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+      Types of parameters 'listener' and 'listener' are incompatible.
+        Type 'EventListener | EventListenerObject' is not assignable to type '(this: XMLHttpRequestUpload, ev: ProgressEvent<EventTarget>) => any'.
+          Type 'EventListenerObject' is not assignable to type '(this: XMLHttpRequestUpload, ev: ProgressEvent<EventTarget>) => any'.
+            Type 'EventListenerObject' provides no match for the signature '(this: XMLHttpRequestUpload, ev: ProgressEvent<EventTarget>): any'.
+../../node_modules/react-native/src/types/globals.d.ts(471,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'URL' must be of type 'typeof URL', but here has type '{ new (url: string | URL, base?: string | URL | undefined): URL; prototype: URL; createObjectURL(obj: Blob): string; revokeObjectURL(url: string): void; }'.
+../../node_modules/react-native/src/types/globals.d.ts(488,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'URLSearchParams' must be of type 'typeof URLSearchParams', but here has type '{ new (init?: string | Record<string, string> | string[][] | URLSearchParams | undefined): URLSearchParams; prototype: URLSearchParams; }'.
+../../node_modules/react-native/src/types/globals.d.ts(542,7): error TS2403: Subsequent variable declarations must have the same type.  Variable 'WebSocket' must be of type '{ new (url: string | URL, protocols?: string | string[] | WebSocketInit | undefined): WebSocket; prototype: WebSocket; readonly CLOSED: number; readonly CLOSING: number; readonly CONNECTING: number; readonly OPEN: number; }', but here has type '{ new (uri: string, protocols?: string | string[] | null | undefined, options?: { [optionName: string]: any; headers: { [headerName: string]: string; }; } | null | undefined): WebSocket; ... 4 more ...; readonly OPEN: number; }'.
+../../node_modules/react-native/src/types/globals.d.ts(565,9): error TS2300: Duplicate identifier 'AbortSignal'.
+../../node_modules/react-native/src/types/globals.d.ts(602,9): error TS2300: Duplicate identifier 'AbortController'.
+../../node_modules/react-native/src/types/globals.d.ts(618,26): error TS2344: Type 'FileReader' does not satisfy the constraint 'EventTarget'.
+  Types of property 'addEventListener' are incompatible.
+    Type '<K extends keyof FileReaderEventMap>(type: K, listener: (this: FileReader, ev: FileReaderEventMap[K]) => any, options?: boolean | undefined) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+      Types of parameters 'listener' and 'listener' are incompatible.
+        Type 'EventListener | EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+          Type 'EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+            Type 'EventListenerObject' provides no match for the signature '(this: FileReader, ev: ProgressEvent<FileReader>): any'.
+../../node_modules/react-native/src/types/globals.d.ts(619,26): error TS2344: Type 'FileReader' does not satisfy the constraint 'EventTarget'.
+  Types of property 'addEventListener' are incompatible.
+    Type '<K extends keyof FileReaderEventMap>(type: K, listener: (this: FileReader, ev: FileReaderEventMap[K]) => any, options?: boolean | undefined) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+      Types of parameters 'listener' and 'listener' are incompatible.
+        Type 'EventListener | EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+          Type 'EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+            Type 'EventListenerObject' provides no match for the signature '(this: FileReader, ev: ProgressEvent<FileReader>): any'.
+../../node_modules/react-native/src/types/globals.d.ts(620,25): error TS2344: Type 'FileReader' does not satisfy the constraint 'EventTarget'.
+  Types of property 'addEventListener' are incompatible.
+    Type '<K extends keyof FileReaderEventMap>(type: K, listener: (this: FileReader, ev: FileReaderEventMap[K]) => any, options?: boolean | undefined) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+      Types of parameters 'listener' and 'listener' are incompatible.
+        Type 'EventListener | EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+          Type 'EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+            Type 'EventListenerObject' provides no match for the signature '(this: FileReader, ev: ProgressEvent<FileReader>): any'.
+../../node_modules/react-native/src/types/globals.d.ts(621,28): error TS2344: Type 'FileReader' does not satisfy the constraint 'EventTarget'.
+  Types of property 'addEventListener' are incompatible.
+    Type '<K extends keyof FileReaderEventMap>(type: K, listener: (this: FileReader, ev: FileReaderEventMap[K]) => any, options?: boolean | undefined) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+      Types of parameters 'listener' and 'listener' are incompatible.
+        Type 'EventListener | EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+          Type 'EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+            Type 'EventListenerObject' provides no match for the signature '(this: FileReader, ev: ProgressEvent<FileReader>): any'.
+../../node_modules/react-native/src/types/globals.d.ts(622,30): error TS2344: Type 'FileReader' does not satisfy the constraint 'EventTarget'.
+  Types of property 'addEventListener' are incompatible.
+    Type '<K extends keyof FileReaderEventMap>(type: K, listener: (this: FileReader, ev: FileReaderEventMap[K]) => any, options?: boolean | undefined) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+      Types of parameters 'listener' and 'listener' are incompatible.
+        Type 'EventListener | EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+          Type 'EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+            Type 'EventListenerObject' provides no match for the signature '(this: FileReader, ev: ProgressEvent<FileReader>): any'.
+../../node_modules/react-native/src/types/globals.d.ts(623,29): error TS2344: Type 'FileReader' does not satisfy the constraint 'EventTarget'.
+  Types of property 'addEventListener' are incompatible.
+    Type '<K extends keyof FileReaderEventMap>(type: K, listener: (this: FileReader, ev: FileReaderEventMap[K]) => any, options?: boolean | undefined) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+      Types of parameters 'listener' and 'listener' are incompatible.
+        Type 'EventListener | EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+          Type 'EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+            Type 'EventListenerObject' provides no match for the signature '(this: FileReader, ev: ProgressEvent<FileReader>): any'.
+../../node_modules/react-native/src/types/globals.d.ts(626,13): error TS2430: Interface 'FileReader' incorrectly extends interface 'EventTarget'.
+  Types of property 'addEventListener' are incompatible.
+    Type '<K extends keyof FileReaderEventMap>(type: K, listener: (this: FileReader, ev: FileReaderEventMap[K]) => any, options?: boolean | undefined) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+      Types of parameters 'listener' and 'listener' are incompatible.
+        Type 'EventListener | EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+          Type 'EventListener' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+            Types of parameters 'evt' and 'ev' are incompatible.
+              Type 'ProgressEvent<FileReader>' is not assignable to type 'Event'.
+                Types of property 'target' are incompatible.
+                  Type 'FileReader | null' is not assignable to type 'EventTarget | null'.
+                    Type 'FileReader' is not assignable to type 'EventTarget'.
+                      Types of property 'addEventListener' are incompatible.
+                        Type '<K extends keyof FileReaderEventMap>(type: K, listener: (this: FileReader, ev: FileReaderEventMap[K]) => any, options?: boolean | undefined) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+                          Types of parameters 'listener' and 'listener' are incompatible.
+                            Type 'EventListener | EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+                              Type 'EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+                                Type 'EventListenerObject' provides no match for the signature '(this: FileReader, ev: ProgressEvent<FileReader>): any'.
+../../node_modules/react-native/src/types/globals.d.ts(628,52): error TS2344: Type 'FileReader' does not satisfy the constraint 'EventTarget'.
+  Types of property 'addEventListener' are incompatible.
+    Type '<K extends keyof FileReaderEventMap>(type: K, listener: (this: FileReader, ev: FileReaderEventMap[K]) => any, options?: boolean | undefined) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+      Types of parameters 'listener' and 'listener' are incompatible.
+        Type 'EventListener | EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+          Type 'EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+            Type 'EventListenerObject' provides no match for the signature '(this: FileReader, ev: ProgressEvent<FileReader>): any'.
+../../node_modules/react-native/src/types/globals.d.ts(629,52): error TS2344: Type 'FileReader' does not satisfy the constraint 'EventTarget'.
+  Types of property 'addEventListener' are incompatible.
+    Type '<K extends keyof FileReaderEventMap>(type: K, listener: (this: FileReader, ev: FileReaderEventMap[K]) => any, options?: boolean | undefined) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+      Types of parameters 'listener' and 'listener' are incompatible.
+        Type 'EventListener | EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+          Type 'EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+            Type 'EventListenerObject' provides no match for the signature '(this: FileReader, ev: ProgressEvent<FileReader>): any'.
+../../node_modules/react-native/src/types/globals.d.ts(630,51): error TS2344: Type 'FileReader' does not satisfy the constraint 'EventTarget'.
+  Types of property 'addEventListener' are incompatible.
+    Type '<K extends keyof FileReaderEventMap>(type: K, listener: (this: FileReader, ev: FileReaderEventMap[K]) => any, options?: boolean | undefined) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+      Types of parameters 'listener' and 'listener' are incompatible.
+        Type 'EventListener | EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+          Type 'EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+            Type 'EventListenerObject' provides no match for the signature '(this: FileReader, ev: ProgressEvent<FileReader>): any'.
+../../node_modules/react-native/src/types/globals.d.ts(632,47): error TS2344: Type 'FileReader' does not satisfy the constraint 'EventTarget'.
+  Types of property 'addEventListener' are incompatible.
+    Type '<K extends keyof FileReaderEventMap>(type: K, listener: (this: FileReader, ev: FileReaderEventMap[K]) => any, options?: boolean | undefined) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+      Types of parameters 'listener' and 'listener' are incompatible.
+        Type 'EventListener | EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+          Type 'EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+            Type 'EventListenerObject' provides no match for the signature '(this: FileReader, ev: ProgressEvent<FileReader>): any'.
+../../node_modules/react-native/src/types/globals.d.ts(635,47): error TS2344: Type 'FileReader' does not satisfy the constraint 'EventTarget'.
+  Types of property 'addEventListener' are incompatible.
+    Type '<K extends keyof FileReaderEventMap>(type: K, listener: (this: FileReader, ev: FileReaderEventMap[K]) => any, options?: boolean | undefined) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+      Types of parameters 'listener' and 'listener' are incompatible.
+        Type 'EventListener | EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+          Type 'EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+            Type 'EventListenerObject' provides no match for the signature '(this: FileReader, ev: ProgressEvent<FileReader>): any'.
+../../node_modules/react-native/src/types/globals.d.ts(638,47): error TS2344: Type 'FileReader' does not satisfy the constraint 'EventTarget'.
+  Types of property 'addEventListener' are incompatible.
+    Type '<K extends keyof FileReaderEventMap>(type: K, listener: (this: FileReader, ev: FileReaderEventMap[K]) => any, options?: boolean | undefined) => void' is not assignable to type '(type: string, listener: EventListener | EventListenerObject, options?: boolean | AddEventListenerOptions | undefined) => void'.
+      Types of parameters 'listener' and 'listener' are incompatible.
+        Type 'EventListener | EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+          Type 'EventListenerObject' is not assignable to type '(this: FileReader, ev: ProgressEvent<FileReader>) => any'.
+            Type 'EventListenerObject' provides no match for the signature '(this: FileReader, ev: ProgressEvent<FileReader>): any'.
+../../node_modules/recharts/types/state/selectors/axisSelectors.d.ts(146,74): error TS2694: Namespace '"/Users/joshua/Documents/Cribnosh-app/node_modules/redux/dist/redux"' has no exported member 'EmptyObject'.
+../../node_modules/recharts/types/state/selectors/axisSelectors.d.ts(214,74): error TS2694: Namespace '"/Users/joshua/Documents/Cribnosh-app/node_modules/redux/dist/redux"' has no exported member 'EmptyObject'.
+../../node_modules/recharts/types/state/selectors/axisSelectors.d.ts(310,72): error TS2694: Namespace '"/Users/joshua/Documents/Cribnosh-app/node_modules/redux/dist/redux"' has no exported member 'EmptyObject'.
+../../node_modules/recharts/types/state/selectors/axisSelectors.d.ts(385,100): error TS2694: Namespace '"/Users/joshua/Documents/Cribnosh-app/node_modules/redux/dist/redux"' has no exported member 'EmptyObject'.
+../../node_modules/recharts/types/state/selectors/axisSelectors.d.ts(459,69): error TS2694: Namespace '"/Users/joshua/Documents/Cribnosh-app/node_modules/redux/dist/redux"' has no exported member 'EmptyObject'.
+../../node_modules/recharts/types/state/store.d.ts(2,68): error TS2694: Namespace '"/Users/joshua/Documents/Cribnosh-app/node_modules/redux/dist/redux"' has no exported member 'CombinedState'.
+../../node_modules/recharts/types/util/types.d.ts(829,38): error TS2344: Type '"getBoundingClientRect" | "offsetWidth" | "offsetHeight"' does not satisfy the constraint '"innerText"'.
+  Type '"getBoundingClientRect"' is not assignable to type '"innerText"'.
+../../node_modules/rollup/dist/rollup.d.ts(233,12): error TS2300: Duplicate identifier 'AbortSignal'.
+../../node_modules/ts-toolbelt/out/index.d.ts(4440,12): error TS2589: Type instantiation is excessively deep and possibly infinite.
+../../node_modules/ts-toolbelt/out/index.d.ts(4440,21): error TS2321: Excessive stack depth comparing types 'Merge<Os[Pos<I>], O, depth, style, noMerge>' and 'object'.
+../../node_modules/ts-toolbelt/out/index.d.ts(5094,12): error TS2589: Type instantiation is excessively deep and possibly infinite.
+../../node_modules/ts-toolbelt/out/index.d.ts(5094,23): error TS2321: Excessive stack depth comparing types 'Merge<O, Os[Pos<I>], depth, style, noMerge>' and 'object'.
+../../node_modules/ts-toolbelt/out/index.d.ts(5286,12): error TS2589: Type instantiation is excessively deep and possibly infinite.
+../../node_modules/ts-toolbelt/out/index.d.ts(5286,23): error TS2321: Excessive stack depth comparing types 'Patch<O, Os[Pos<I>], depth, style, noMerge>' and 'object'.
+../../node_modules/unplugin/dist/index.d.ts(1,40): error TS2305: Module '"rollup"' has no exported member 'AcornNode'.
+_generated/api.d.ts(306,15): error TS2502: 'fullApi' is referenced directly or indirectly in its own type annotation.
+_generated/api.d.ts(605,22): error TS2502: 'api' is referenced directly or indirectly in its own type annotation.
+_generated/api.d.ts(606,10): error TS2589: Type instantiation is excessively deep and possibly infinite.
+_generated/api.d.ts(606,10): error TS2615: Type of property 'index' circularly references itself in mapped type '{ agora: { generateAgoraToken: FunctionReference<"action", "public", { channelName: string; role: "publisher" | "subscriber"; uid: number; }, string, string | undefined>; }; ... 37 more ...; webhooks: { ...; }; }'.
+_generated/api.d.ts(606,10): error TS2615: Type of property 'orders' circularly references itself in mapped type '{ delivery: { assignDelivery: FunctionReference<"mutation", "public", { metadata?: any; estimatedPickupTime?: number | undefined; estimatedDeliveryTime?: number | undefined; pickupInstructions?: string | undefined; deliveryInstructions?: string | undefined; orderId: Id<...>; driverId: Id<...>; assignedBy: Id<...>; }...'.
+_generated/api.d.ts(606,10): error TS2615: Type of property 'search' circularly references itself in mapped type '{ agora: { generateAgoraToken: FunctionReference<"action", "public", { channelName: string; role: "publisher" | "subscriber"; uid: number; }, string, string | undefined>; }; ... 37 more ...; webhooks: { ...; }; }'.
+convex/_generated/api.d.ts(11,37): error TS2307: Cannot find module '../actions/agora.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(12,37): error TS2307: Cannot find module '../actions/chefs.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(13,39): error TS2307: Cannot find module '../actions/coupons.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(14,45): error TS2307: Cannot find module '../actions/courseContent.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(15,48): error TS2307: Cannot find module '../actions/data_compilation.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(16,40): error TS2307: Cannot find module '../actions/delivery.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(17,45): error TS2307: Cannot find module '../actions/dripScheduler.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(18,46): error TS2307: Cannot find module '../actions/emotionsEngine.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(19,50): error TS2307: Cannot find module '../actions/generateEmbeddings.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(20,37): error TS2307: Cannot find module '../actions/index.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(21,44): error TS2307: Cannot find module '../actions/liveSessions.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(22,45): error TS2307: Cannot find module '../actions/liveStreaming.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(23,42): error TS2307: Cannot find module '../actions/noshHeaven.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(24,38): error TS2307: Cannot find module '../actions/orders.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(25,40): error TS2307: Cannot find module '../actions/password.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(26,40): error TS2307: Cannot find module '../actions/payments.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(27,51): error TS2307: Cannot find module '../actions/populateEmptyTables.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(28,47): error TS2307: Cannot find module '../actions/prelaunchEmails.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(29,38): error TS2307: Cannot find module '../actions/resend.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(30,38): error TS2307: Cannot find module '../actions/search.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(31,42): error TS2307: Cannot find module '../actions/seedCourse.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(32,40): error TS2307: Cannot find module '../actions/seedData.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(33,44): error TS2307: Cannot find module '../actions/seedTestUser.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(34,45): error TS2307: Cannot find module '../actions/specialOffers.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(35,37): error TS2307: Cannot find module '../actions/staff.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(36,38): error TS2307: Cannot find module '../actions/stuart.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(37,37): error TS2307: Cannot find module '../actions/users.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(38,40): error TS2307: Cannot find module '../actions/waitlist.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(39,39): error TS2307: Cannot find module '../actions/weather.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(40,47): error TS2307: Cannot find module '../config/complianceIssues.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(41,48): error TS2307: Cannot find module '../config/complianceScoring.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(42,45): error TS2307: Cannot find module '../convex/_generated/api.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(43,48): error TS2307: Cannot find module '../convex/_generated/server.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(44,29): error TS2307: Cannot find module '../crons.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(45,42): error TS2307: Cannot find module '../crons/autoRegister.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(46,48): error TS2307: Cannot find module '../crons/cleanupExpiredOTPs.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(47,43): error TS2307: Cannot find module '../crons/dripScheduler.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(48,41): error TS2307: Cannot find module '../crons/healthCheck.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(49,41): error TS2307: Cannot find module '../crons/maintenance.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(50,47): error TS2307: Cannot find module '../crons/refundEligibility.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(51,38): error TS2307: Cannot find module '../emailAnalytics.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(52,39): error TS2307: Cannot find module '../emailAutomation.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(53,38): error TS2307: Cannot find module '../emailTemplates.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(54,37): error TS2307: Cannot find module '../email_configs.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(55,36): error TS2307: Cannot find module '../featureFlags.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(56,28): error TS2307: Cannot find module '../http.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(57,51): error TS2307: Cannot find module '../internal/appleNotifications.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(58,45): error TS2307: Cannot find module '../internal/liveSessions.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(59,44): error TS2307: Cannot find module '../internal/maintenance.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(60,57): error TS2307: Cannot find module '../internal/registerMaintenanceCrons.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(61,39): error TS2307: Cannot find module '../internal/stuart.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(62,50): error TS2307: Cannot find module '../mutations/accountDeletions.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(63,39): error TS2307: Cannot find module '../mutations/admin.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(64,40): error TS2307: Cannot find module '../mutations/aiChat.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(65,43): error TS2307: Cannot find module '../mutations/allergies.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(66,43): error TS2307: Cannot find module '../mutations/analytics.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(67,38): error TS2307: Cannot find module '../mutations/blog.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(68,39): error TS2307: Cannot find module '../mutations/cache.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(69,41): error TS2307: Cannot find module '../mutations/careers.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(70,46): error TS2307: Cannot find module '../mutations/certificates.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(71,41): error TS2307: Cannot find module '../mutations/changes.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(72,39): error TS2307: Cannot find module '../mutations/chats.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(73,43): error TS2307: Cannot find module '../mutations/chefAdmin.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(74,50): error TS2307: Cannot find module '../mutations/chefBankAccounts.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(75,45): error TS2307: Cannot find module '../mutations/chefCourses.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(76,47): error TS2307: Cannot find module '../mutations/chefDocuments.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(77,45): error TS2307: Cannot find module '../mutations/chefPayouts.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(78,45): error TS2307: Cannot find module '../mutations/chefRatings.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(79,39): error TS2307: Cannot find module '../mutations/chefs.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(80,40): error TS2307: Cannot find module '../mutations/cities.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(81,47): error TS2307: Cannot find module '../mutations/claimedOffers.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(82,42): error TS2307: Cannot find module '../mutations/comments.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(83,44): error TS2307: Cannot find module '../mutations/compliance.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(84,42): error TS2307: Cannot find module '../mutations/contacts.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(85,41): error TS2307: Cannot find module '../mutations/content.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(86,41): error TS2307: Cannot find module '../mutations/coupons.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(87,47): error TS2307: Cannot find module '../mutations/courseModules.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(88,46): error TS2307: Cannot find module '../mutations/customOrders.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(89,49): error TS2307: Cannot find module '../mutations/customerBalance.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(90,47): error TS2307: Cannot find module '../mutations/dataDownloads.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(91,56): error TS2307: Cannot find module '../mutations/dataSharingPreferences.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(92,42): error TS2307: Cannot find module '../mutations/delivery.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(93,47): error TS2307: Cannot find module '../mutations/deliveryAdmin.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(94,52): error TS2307: Cannot find module '../mutations/dietaryPreferences.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(95,43): error TS2307: Cannot find module '../mutations/documents.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(96,44): error TS2307: Cannot find module '../mutations/dripEmails.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(97,41): error TS2307: Cannot find module '../mutations/drivers.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(98,39): error TS2307: Cannot find module '../mutations/email.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(99,48): error TS2307: Cannot find module '../mutations/emailAnalytics.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(100,45): error TS2307: Cannot find module '../mutations/emailAssets.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(101,48): error TS2307: Cannot find module '../mutations/emailTemplates.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(102,48): error TS2307: Cannot find module '../mutations/emotionsEngine.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(103,51): error TS2307: Cannot find module '../mutations/eventChefRequests.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(104,48): error TS2307: Cannot find module '../mutations/familyProfiles.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(105,39): error TS2307: Cannot find module '../mutations/files.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(106,52): error TS2307: Cannot find module '../mutations/foodSafetySettings.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(107,43): error TS2307: Cannot find module '../mutations/forkPrint.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(108,45): error TS2307: Cannot find module '../mutations/groupOrders.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(109,39): error TS2307: Cannot find module '../mutations/index.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(110,42): error TS2307: Cannot find module '../mutations/jobQueue.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(111,42): error TS2307: Cannot find module '../mutations/kitchens.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(112,46): error TS2307: Cannot find module '../mutations/liveSessions.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(113,42): error TS2307: Cannot find module '../mutations/mealLogs.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(114,39): error TS2307: Cannot find module '../mutations/meals.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(115,44): error TS2307: Cannot find module '../mutations/monitoring.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(116,44): error TS2307: Cannot find module '../mutations/noshPoints.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(117,47): error TS2307: Cannot find module '../mutations/notifications.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(118,43): error TS2307: Cannot find module '../mutations/nutrition.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(119,44): error TS2307: Cannot find module '../mutations/orderAdmin.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(120,46): error TS2307: Cannot find module '../mutations/orderReviews.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(121,40): error TS2307: Cannot find module '../mutations/orders.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(122,37): error TS2307: Cannot find module '../mutations/otp.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(123,50): error TS2307: Cannot find module '../mutations/paymentAnalytics.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(124,48): error TS2307: Cannot find module '../mutations/paymentMethods.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(125,41): error TS2307: Cannot find module '../mutations/payroll.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(126,42): error TS2307: Cannot find module '../mutations/presence.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(127,41): error TS2307: Cannot find module '../mutations/recipes.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(128,41): error TS2307: Cannot find module '../mutations/reviews.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(129,47): error TS2307: Cannot find module '../mutations/seedTemplates.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(130,42): error TS2307: Cannot find module '../mutations/sessions.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(131,39): error TS2307: Cannot find module '../mutations/sides.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(132,47): error TS2307: Cannot find module '../mutations/specialOffers.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(133,39): error TS2307: Cannot find module '../mutations/staff.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(134,41): error TS2307: Cannot find module '../mutations/stories.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(135,41): error TS2307: Cannot find module '../mutations/streaks.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(136,46): error TS2307: Cannot find module '../mutations/supportCases.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(137,46): error TS2307: Cannot find module '../mutations/timeTracking.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(138,42): error TS2307: Cannot find module '../mutations/timelogs.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(139,40): error TS2307: Cannot find module '../mutations/treats.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(140,49): error TS2307: Cannot find module '../mutations/updateTestUsers.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(141,49): error TS2307: Cannot find module '../mutations/userConnections.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(142,47): error TS2307: Cannot find module '../mutations/userFavorites.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(143,45): error TS2307: Cannot find module '../mutations/userFollows.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(144,48): error TS2307: Cannot find module '../mutations/userManagement.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(145,39): error TS2307: Cannot find module '../mutations/users.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(146,54): error TS2307: Cannot find module '../mutations/verificationSessions.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(147,50): error TS2307: Cannot find module '../mutations/videoCollections.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(148,47): error TS2307: Cannot find module '../mutations/videoComments.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(149,44): error TS2307: Cannot find module '../mutations/videoPosts.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(150,42): error TS2307: Cannot find module '../mutations/waitlist.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(151,46): error TS2307: Cannot find module '../mutations/workSessions.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(152,40): error TS2307: Cannot find module '../paymentAnalytics.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(153,37): error TS2307: Cannot find module '../payroll/admin.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(154,37): error TS2307: Cannot find module '../payroll/index.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(155,39): error TS2307: Cannot find module '../payroll/periods.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(156,39): error TS2307: Cannot find module '../payroll/reports.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(157,37): error TS2307: Cannot find module '../payroll/staff.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(158,37): error TS2307: Cannot find module '../payroll/types.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(159,48): error TS2307: Cannot find module '../queries/accountDeletions.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(160,44): error TS2307: Cannot find module '../queries/activityFeed.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(161,37): error TS2307: Cannot find module '../queries/admin.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(162,44): error TS2307: Cannot find module '../queries/adminActions.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(163,41): error TS2307: Cannot find module '../queries/adminLogs.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(164,38): error TS2307: Cannot find module '../queries/aiChat.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(165,41): error TS2307: Cannot find module '../queries/allergies.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(166,41): error TS2307: Cannot find module '../queries/analytics.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(167,37): error TS2307: Cannot find module '../queries/banks.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(168,36): error TS2307: Cannot find module '../queries/blog.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(169,40): error TS2307: Cannot find module '../queries/bookings.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(170,37): error TS2307: Cannot find module '../queries/cache.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(171,39): error TS2307: Cannot find module '../queries/careers.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(172,37): error TS2307: Cannot find module '../queries/carts.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(173,44): error TS2307: Cannot find module '../queries/certificates.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(174,37): error TS2307: Cannot find module '../queries/chats.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(175,48): error TS2307: Cannot find module '../queries/chefBankAccounts.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(176,43): error TS2307: Cannot find module '../queries/chefCourses.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(177,45): error TS2307: Cannot find module '../queries/chefDocuments.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(178,44): error TS2307: Cannot find module '../queries/chefEarnings.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(179,43): error TS2307: Cannot find module '../queries/chefPayouts.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(180,39): error TS2307: Cannot find module '../queries/chefTax.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(181,48): error TS2307: Cannot find module '../queries/chefTransactions.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(182,37): error TS2307: Cannot find module '../queries/chefs.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(183,38): error TS2307: Cannot find module '../queries/cities.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(184,45): error TS2307: Cannot find module '../queries/claimedOffers.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(185,40): error TS2307: Cannot find module '../queries/comments.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(186,42): error TS2307: Cannot find module '../queries/compliance.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(187,40): error TS2307: Cannot find module '../queries/contacts.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(188,39): error TS2307: Cannot find module '../queries/content.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(189,39): error TS2307: Cannot find module '../queries/coupons.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(190,45): error TS2307: Cannot find module '../queries/courseModules.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(191,45): error TS2307: Cannot find module '../queries/custom_orders.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(192,47): error TS2307: Cannot find module '../queries/customerBalance.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(193,59): error TS2307: Cannot find module '../queries/customerBalanceTransactions.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(194,46): error TS2307: Cannot find module '../queries/dashboardStats.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(195,45): error TS2307: Cannot find module '../queries/dataDownloads.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(196,54): error TS2307: Cannot find module '../queries/dataSharingPreferences.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(197,40): error TS2307: Cannot find module '../queries/delivery.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(198,50): error TS2307: Cannot find module '../queries/dietaryPreferences.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(199,41): error TS2307: Cannot find module '../queries/documents.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(200,42): error TS2307: Cannot find module '../queries/dripEmails.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(201,39): error TS2307: Cannot find module '../queries/drivers.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(202,37): error TS2307: Cannot find module '../queries/email.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(203,43): error TS2307: Cannot find module '../queries/emailAssets.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(204,43): error TS2307: Cannot find module '../queries/emailConfig.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(205,46): error TS2307: Cannot find module '../queries/emotionsEngine.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(206,46): error TS2307: Cannot find module '../queries/familyProfiles.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(207,50): error TS2307: Cannot find module '../queries/foodSafetySettings.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(208,41): error TS2307: Cannot find module '../queries/forkPrint.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(209,43): error TS2307: Cannot find module '../queries/groupOrders.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(210,37): error TS2307: Cannot find module '../queries/index.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(211,40): error TS2307: Cannot find module '../queries/kitchens.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(212,44): error TS2307: Cannot find module '../queries/liveSessions.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(213,40): error TS2307: Cannot find module '../queries/mealLogs.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(214,51): error TS2307: Cannot find module '../queries/mealRecommendations.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(215,37): error TS2307: Cannot find module '../queries/meals.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(216,42): error TS2307: Cannot find module '../queries/noshPoints.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(217,45): error TS2307: Cannot find module '../queries/notifications.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(218,41): error TS2307: Cannot find module '../queries/nutrition.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(219,38): error TS2307: Cannot find module '../queries/orders.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(220,35): error TS2307: Cannot find module '../queries/otp.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(221,48): error TS2307: Cannot find module '../queries/paymentAnalytics.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(222,46): error TS2307: Cannot find module '../queries/paymentMethods.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(223,39): error TS2307: Cannot find module '../queries/payroll.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(224,40): error TS2307: Cannot find module '../queries/presence.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(225,39): error TS2307: Cannot find module '../queries/recipes.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(226,39): error TS2307: Cannot find module '../queries/reviews.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(227,40): error TS2307: Cannot find module '../queries/sessions.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(228,37): error TS2307: Cannot find module '../queries/sides.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(229,45): error TS2307: Cannot find module '../queries/specialOffers.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(230,37): error TS2307: Cannot find module '../queries/staff.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(231,37): error TS2307: Cannot find module '../queries/stats.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(232,39): error TS2307: Cannot find module '../queries/stories.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(233,39): error TS2307: Cannot find module '../queries/streaks.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(234,38): error TS2307: Cannot find module '../queries/stuart.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(235,45): error TS2307: Cannot find module '../queries/supportAgents.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(236,44): error TS2307: Cannot find module '../queries/supportCases.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(237,44): error TS2307: Cannot find module '../queries/systemHealth.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(238,48): error TS2307: Cannot find module '../queries/testFriendsQuery.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(239,45): error TS2307: Cannot find module '../queries/testListUsers.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(240,44): error TS2307: Cannot find module '../queries/timeTracking.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(241,40): error TS2307: Cannot find module '../queries/timelogs.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(242,38): error TS2307: Cannot find module '../queries/treats.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(243,47): error TS2307: Cannot find module '../queries/userConnections.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(244,45): error TS2307: Cannot find module '../queries/userFavorites.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(245,43): error TS2307: Cannot find module '../queries/userFollows.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(246,46): error TS2307: Cannot find module '../queries/userManagement.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(247,37): error TS2307: Cannot find module '../queries/users.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(248,40): error TS2307: Cannot find module '../queries/vehicles.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(249,44): error TS2307: Cannot find module '../queries/verifyVideos.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(250,48): error TS2307: Cannot find module '../queries/videoCollections.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(251,45): error TS2307: Cannot find module '../queries/videoComments.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(252,42): error TS2307: Cannot find module '../queries/videoPosts.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(253,40): error TS2307: Cannot find module '../queries/waitlist.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(254,44): error TS2307: Cannot find module '../queries/workSessions.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(255,34): error TS2307: Cannot find module '../schemaDrip.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(256,39): error TS2307: Cannot find module '../services/resend.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(257,42): error TS2307: Cannot find module '../stuart_integration.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(258,44): error TS2307: Cannot find module '../types/convexContexts.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(259,35): error TS2307: Cannot find module '../types/email.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(260,40): error TS2307: Cannot find module '../types/livestream.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(261,34): error TS2307: Cannot find module '../utils/auth.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(262,39): error TS2307: Cannot find module '../utils/ecoImpact.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(263,49): error TS2307: Cannot find module '../utils/mealRecommendations.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(264,43): error TS2307: Cannot find module '../utils/offerDiscount.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(265,45): error TS2307: Cannot find module '../utils/priceEstimation.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(266,46): error TS2307: Cannot find module '../utils/regionValidation.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(267,46): error TS2307: Cannot find module '../utils/timeCalculations.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(268,51): error TS2307: Cannot find module '../utils/userPreferencesFilter.js' or its corresponding type declarations.
+convex/_generated/api.d.ts(269,38): error TS2307: Cannot find module '../waitlist_utils.js' or its corresponding type declarations.
+convex/_generated/dataModel.d.ts(18,20): error TS2307: Cannot find module '../schema.js' or its corresponding type declarations.

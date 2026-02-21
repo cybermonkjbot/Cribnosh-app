@@ -56,7 +56,7 @@ export default function SignInModal() {
       }
     } else if (needsOnboarding) {
       // Navigate to onboarding for new users
-      router.replace('/(tabs)/food-creator/onboarding');
+      router.replace('/(tabs)/food-creator/onboarding' as any);
     } else {
       router.replace('/(tabs)/food-creator' as any);
     }
@@ -75,7 +75,7 @@ export default function SignInModal() {
       return;
     }
 
-    // When user cancels from sign-in, navigate to chef dashboard
+    // When user cancels from sign-in, navigate to foodCreator dashboard
     if (router.canGoBack()) {
       router.back();
     } else {

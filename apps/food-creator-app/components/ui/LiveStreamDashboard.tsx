@@ -18,7 +18,7 @@ interface LiveStreamDashboardProps {
 }
 
 export function LiveStreamDashboard({ sessionId, onClose, onEndStream, onFlipCamera }: LiveStreamDashboardProps) {
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
   const insets = useSafeAreaInsets();
   const { showSuccess, showError } = useToast();
   const [showOrders, setShowOrders] = useState(false);
@@ -42,7 +42,7 @@ export function LiveStreamDashboard({ sessionId, onClose, onEndStream, onFlipCam
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const liveOrders = useQuery(
     api.queries.liveSessions.getLiveOrdersForChef,
-    chef?._id && sessionToken ? { sessionToken } : 'skip'
+    foodCreator?._id && sessionToken ? { sessionToken } : 'skip'
   ) as any[] | undefined;
 
   // Get live comments
@@ -230,7 +230,7 @@ export function LiveStreamDashboard({ sessionId, onClose, onEndStream, onFlipCam
         {/* Live Info Header */}
         <View style={styles.liveInfoContainer}>
           <View style={styles.liveHeaderContent}>
-            <Text style={styles.liveTitle}>{chef?.name || 'Live Stream'}</Text>
+            <Text style={styles.liveTitle}>{foodCreator?.name || 'Live Stream'}</Text>
             <View style={styles.statsRow}>
               <View style={styles.viewersBadge}>
                 <Text style={styles.viewersText}>{viewerCount} Viewers</Text>

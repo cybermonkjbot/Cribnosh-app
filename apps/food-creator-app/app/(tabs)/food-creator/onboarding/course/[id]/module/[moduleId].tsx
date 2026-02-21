@@ -56,7 +56,7 @@ interface ModuleContent {
 }
 
 export default function ModuleDetailScreen() {
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string; moduleId: string }>();
   const { showSuccess, showError } = useToast();
@@ -81,15 +81,15 @@ export default function ModuleDetailScreen() {
   const enrollment = useQuery(
     // @ts-ignore
     api.queries.chefCourses.getByChefAndCourse,
-    chef?._id && courseId && sessionToken
-      ? { chefId: chef._id, courseId, sessionToken }
+    foodCreator?._id && courseId && sessionToken
+      ? { chefId: foodCreator._id, courseId, sessionToken }
       : 'skip'
   );
 
   // Get module content
   const moduleContent = useQuery(
     api.queries.courseModules.getModuleContent,
-    chef?._id && courseId && moduleId && sessionToken
+    foodCreator?._id && courseId && moduleId && sessionToken
       ? { courseId, moduleId, sessionToken }
       : 'skip'
   ) as ModuleContent | null | undefined;
@@ -156,7 +156,7 @@ export default function ModuleDetailScreen() {
 
   // Save video progress when index changes
   const saveVideoProgress = useCallback(async (videoIndex: number) => {
-    if (!chef?._id || !courseId || !moduleId || !sessionToken || !currentModule || !moduleContent) return;
+    if (!foodCreator?._id || !courseId || !moduleId || !sessionToken || !currentModule || !moduleContent) return;
 
     // Clear existing timeout
     if (saveProgressTimeoutRef.current) {
@@ -167,7 +167,7 @@ export default function ModuleDetailScreen() {
     saveProgressTimeoutRef.current = setTimeout(async () => {
       try {
         await updateProgress({
-          chefId: chef._id,
+          chefId: foodCreator._id,
           courseId,
           moduleId,
           moduleName: currentModule.moduleName || moduleContent.moduleName || 'Module',
@@ -180,7 +180,7 @@ export default function ModuleDetailScreen() {
         console.error('Error saving video progress:', error);
       }
     }, 1000);
-  }, [chef, courseId, moduleId, sessionToken, currentModule, moduleContent, updateProgress]);
+  }, [foodCreator, courseId, moduleId, sessionToken, currentModule, moduleContent, updateProgress]);
 
   // Save video progress when currentIndex changes
   useEffect(() => {
@@ -292,13 +292,13 @@ export default function ModuleDetailScreen() {
 
   // Mark module as complete
   const handleCompleteModule = useCallback(async () => {
-    if (!chef?._id || !courseId || !moduleId || !sessionToken || !currentModule) return;
+    if (!foodCreator?._id || !courseId || !moduleId || !sessionToken || !currentModule) return;
 
     try {
       const timeSpent = totalTimeSpentRef.current;
 
       await updateProgress({
-        chefId: chef._id,
+        chefId: foodCreator._id,
         courseId,
         moduleId,
         moduleName: currentModule.moduleName || moduleContent?.moduleName || 'Module',
@@ -317,13 +317,13 @@ export default function ModuleDetailScreen() {
           router.replace(`/(tabs)/food-creator/onboarding/course/${courseId}/module/${nextModule.moduleId}`);
         } else {
           // All modules completed
-          router.replace('/(tabs)/food-creator/onboarding');
+          router.replace('/(tabs)/food-creator/onboarding' as any);
         }
       }
     } catch (error: any) {
       showError('Error', error.message || 'Failed to complete module');
     }
-  }, [chef, courseId, moduleId, sessionToken, currentModule, moduleContent, updateProgress, showSuccess, showError, router, nextModule]);
+  }, [foodCreator, courseId, moduleId, sessionToken, currentModule, moduleContent, updateProgress, showSuccess, showError, router, nextModule]);
 
   // Render video item
   const renderVideoItem = useCallback(({ item, index }: { item: ModuleVideo; index: number }) => {
@@ -499,7 +499,7 @@ export default function ModuleDetailScreen() {
           router.replace(`/(tabs)/food-creator/onboarding/course/${courseId}/module/${nextModule.moduleId}`);
         } else {
           // All modules completed
-          router.replace('/(tabs)/food-creator/onboarding');
+          router.replace('/(tabs)/food-creator/onboarding' as any);
         }
       }
     }

@@ -12,7 +12,7 @@ const { width, height } = Dimensions.get('window');
 export default function LiveStreamScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ sessionId: string }>();
-  const { foodCreator: chef } = useFoodCreatorAuth();
+  const { foodCreator } = useFoodCreatorAuth();
   const cameraRef = useRef<any>(null);
   const [cameraType, setCameraType] = useState<'front' | 'back'>('back');
   const [permission, requestPermission] = useCameraPermissions();

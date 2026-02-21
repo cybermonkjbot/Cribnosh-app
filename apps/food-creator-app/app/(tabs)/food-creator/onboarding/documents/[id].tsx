@@ -19,7 +19,7 @@ const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none
 </svg>`;
 
 export default function DocumentUploadScreen() {
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string; returnPath?: string }>();
   const { showSuccess, showError } = useToast();
@@ -33,8 +33,8 @@ export default function DocumentUploadScreen() {
   // Get document details
   const documents = useQuery(
     api.queries.chefDocuments.getByChefId,
-    chef?._id && sessionToken
-      ? { chefId: chef._id, sessionToken }
+    foodCreator?._id && sessionToken
+      ? { chefId: foodCreator._id, sessionToken }
       : 'skip'
   );
 
@@ -80,7 +80,7 @@ export default function DocumentUploadScreen() {
   };
 
   const handleUpload = async () => {
-    if (!selectedImage || !chef?._id || !document || !sessionToken) {
+    if (!selectedImage || !foodCreator?._id || !document || !sessionToken) {
       return;
     }
 
@@ -133,7 +133,7 @@ export default function DocumentUploadScreen() {
 
       // Step 6: Create document record
       await uploadDocument({
-        chefId: chef._id,
+        chefId: foodCreator._id,
         documentType: document.documentType,
         documentName: document.documentName || document.documentType,
         fileName,

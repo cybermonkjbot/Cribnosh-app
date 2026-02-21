@@ -35,7 +35,7 @@ type ViewType = 'payouts' | 'earnings';
 export default function PayoutHistoryScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { foodCreator: chef, sessionToken: authSessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken: authSessionToken } = useFoodCreatorAuth();
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [viewType, setViewType] = useState<ViewType>('payouts');
@@ -58,9 +58,9 @@ export default function PayoutHistoryScreen() {
   // @ts-ignore - Type instantiation depth issue with Convex conditional types
   const payoutHistory = useQuery(
     api.queries.chefPayouts.getHistory,
-    chef?._id && sessionToken && viewType === 'payouts'
+    foodCreator?._id && sessionToken && viewType === 'payouts'
       ? {
-          chefId: chef._id,
+          chefId: foodCreator._id,
           status: selectedStatus || undefined,
           limit: 50,
           sessionToken: sessionToken,
@@ -73,9 +73,9 @@ export default function PayoutHistoryScreen() {
   // @ts-ignore - Type instantiation depth issue with Convex conditional types
   const earningsTransactions = useQuery(
     api.queries.chefEarnings.getTransactions,
-    chef?._id && sessionToken && viewType === 'earnings'
+    foodCreator?._id && sessionToken && viewType === 'earnings'
       ? {
-          chefId: chef._id,
+          chefId: foodCreator._id,
           limit: 50,
           sessionToken: sessionToken,
         }

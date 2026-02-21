@@ -24,7 +24,7 @@ const certificateIconSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill
 export default function CertificationsScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { foodCreator: chef } = useFoodCreatorAuth();
+  const { foodCreator } = useFoodCreatorAuth();
 
   const [isLoading, setIsLoading] = useState(true);
   const [certifications, setCertifications] = useState<any[]>([]);
@@ -32,7 +32,7 @@ export default function CertificationsScreen() {
   // Get kitchen ID
   const kitchenId = useQuery(
     api.queries.kitchens.getKitchenByChefId,
-    chef?._id ? { chefId: chef._id } : 'skip'
+    foodCreator?._id ? { chefId: foodCreator._id } : 'skip'
   );
 
   // Get kitchen details
@@ -41,10 +41,10 @@ export default function CertificationsScreen() {
     kitchenId ? { kitchenId } : 'skip'
   );
 
-  // Get chef documents (certifications)
+  // Get foodCreator documents (certifications)
   const chefDocuments = useQuery(
     api.queries.chefDocuments.getByChefId,
-    chef?._id ? { chefId: chef._id } : 'skip'
+    foodCreator?._id ? { chefId: foodCreator._id } : 'skip'
   );
 
   useEffect(() => {

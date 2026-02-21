@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 
 export default function FoodCreatorOnboardingSetupPage() {
   const router = useRouter();
-  const { isAuthenticated, foodCreator: chef, user, sessionToken, isBasicOnboardingComplete, refreshFoodCreator: refreshChef } = useFoodCreatorAuth();
+  const { isAuthenticated, foodCreator, user, sessionToken, isBasicOnboardingComplete, refreshFoodCreator: refreshChef } = useFoodCreatorAuth();
   const { showSuccess, showError } = useToast();
   const createChef = useMutation(api.mutations.foodCreators.createChef);
   const updateChef = useMutation(api.mutations.foodCreators.update);
@@ -17,18 +17,18 @@ export default function FoodCreatorOnboardingSetupPage() {
   const clearDraft = useMutation(api.mutations.foodCreators.clearOnboardingDraft);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Load existing chef data including draft
+  // Load existing foodCreator data including draft
   const chefData = useQuery(
     api.queries.foodCreators.getChefById,
-    chef?._id ? { chefId: chef._id } : 'skip'
+    foodCreator?._id ? { chefId: foodCreator._id } : 'skip'
   );
 
   // Redirect if already completed basic onboarding
   useEffect(() => {
-    if (isAuthenticated && chef && isBasicOnboardingComplete) {
-      router.replace('/(tabs)/food-creator/onboarding');
+    if (isAuthenticated && foodCreator && isBasicOnboardingComplete) {
+      router.replace('/(tabs)/food-creator/onboarding' as any);
     }
-  }, [isAuthenticated, chef, isBasicOnboardingComplete, router]);
+  }, [isAuthenticated, foodCreator, isBasicOnboardingComplete, router]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -106,10 +106,10 @@ export default function FoodCreatorOnboardingSetupPage() {
         kitchenImageUrls = uploadedUrls.filter((url): url is string => url !== null);
       }
 
-      if (chef) {
-        // Update existing chef profile
+      if (foodCreator) {
+        // Update existing foodCreator profile
         await updateChef({
-          chefId: chef._id,
+          chefId: foodCreator._id,
           updates: {
             name: data.name,
             bio: data.bio,
@@ -122,9 +122,9 @@ export default function FoodCreatorOnboardingSetupPage() {
           },
           sessionToken,
         });
-        showSuccess('Profile Updated', 'Your chef profile has been set up successfully!');
+        showSuccess('Profile Updated', 'Your foodCreator profile has been set up successfully!');
       } else {
-        // Create new chef profile
+        // Create new foodCreator profile
         const chefId = await createChef({
           userId: user._id,
           name: data.name,
@@ -138,7 +138,7 @@ export default function FoodCreatorOnboardingSetupPage() {
           image: profileImageUrl,
           sessionToken,
         });
-        showSuccess('Profile Created', 'Your chef profile has been created successfully!');
+        showSuccess('Profile Created', 'Your foodCreator profile has been created successfully!');
 
         // Create kitchen if kitchen data is provided
         if (data.kitchenName && data.kitchenAddress && data.kitchenType) {
@@ -157,10 +157,10 @@ export default function FoodCreatorOnboardingSetupPage() {
       }
 
       // Clear draft after successful completion
-      if (chef?._id && sessionToken) {
+      if (foodCreator?._id && sessionToken) {
         try {
           await clearDraft({
-            chefId: chef._id,
+            chefId: foodCreator._id,
             sessionToken,
           });
         } catch (error) {
@@ -168,13 +168,13 @@ export default function FoodCreatorOnboardingSetupPage() {
         }
       }
 
-      // Refresh chef context to update onboarding status
+      // Refresh foodCreator context to update onboarding status
       await refreshChef();
 
       // Use requestAnimationFrame to ensure navigation happens after render
       requestAnimationFrame(() => {
         // Navigate to compliance training
-        router.replace('/(tabs)/food-creator/onboarding');
+        router.replace('/(tabs)/food-creator/onboarding' as any);
       });
     } catch (error: any) {
       console.error('Error saving onboarding data:', error);
@@ -187,24 +187,24 @@ export default function FoodCreatorOnboardingSetupPage() {
   const handleOnboardingSkip = () => {
     console.log('Chef onboarding skipped');
     // Navigate to compliance training (they can complete profile later)
-    router.replace('/(tabs)/food-creator/onboarding');
+    router.replace('/(tabs)/food-creator/onboarding' as any);
   };
 
   if (!isAuthenticated) {
     return null; // Will redirect
   }
 
-  // Prepare initial draft data from saved draft or existing chef profile
+  // Prepare initial draft data from saved draft or existing foodCreator profile
   const initialDraft = chefData?.onboardingDraft ? {
     ...chefData.onboardingDraft,
     coordinates: chefData.onboardingDraft.coordinates as [number, number] || [0, 0],
-  } : (chef ? {
-    name: chef.name || '',
-    bio: chef.bio || '',
-    specialties: chef.specialties || [],
-    city: chef.location?.city || '',
-    coordinates: (chef.location?.coordinates as [number, number]) || [0, 0],
-    profileImage: chef.profileImage || '',
+  } : (foodCreator ? {
+    name: foodCreator.name || '',
+    bio: foodCreator.bio || '',
+    specialties: foodCreator.specialties || [],
+    city: foodCreator.location?.city || '',
+    coordinates: (foodCreator.location?.coordinates as [number, number]) || [0, 0],
+    profileImage: foodCreator.profileImage || '',
     kitchenName: '',
     kitchenAddress: '',
     kitchenType: '',
@@ -219,7 +219,7 @@ export default function FoodCreatorOnboardingSetupPage() {
         onComplete={handleOnboardingComplete}
         onSkip={handleOnboardingSkip}
         backgroundImage={require('../../../assets/images/signin-background.jpg')}
-        chefId={chef?._id}
+        chefId={foodCreator?._id}
         sessionToken={sessionToken || undefined}
         initialDraft={initialDraft}
       />

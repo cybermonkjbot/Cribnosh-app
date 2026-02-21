@@ -1,13 +1,13 @@
-import React from 'react';
 import { render } from '@react-email/render';
-import { WelcomeEmail } from './templates/welcome';
+import React from 'react';
+import { AdminNotificationEmail } from './templates/admin-notification';
+import { FoodCreatorApplicationEmail } from './templates/food-creator-application';
+import { FormConfirmationEmail } from './templates/form-confirmation';
+import { GenericNotificationEmail } from './templates/generic-notification';
 import { OrderConfirmationEmail } from './templates/order-confirmation';
 import { OTPVerificationEmail } from './templates/otp-verification';
 import { PromotionalEmail } from './templates/promotional';
-import { FoodCreatorApplicationEmail } from './templates/food-creator-application';
-import { GenericNotificationEmail } from './templates/generic-notification';
-import { FormConfirmationEmail } from './templates/form-confirmation';
-import { AdminNotificationEmail } from './templates/admin-notification';
+import { WelcomeEmail } from './templates/welcome';
 
 // Type assertion helper for render function
 const renderEmail = render as (component: React.ReactElement) => Promise<string>;
@@ -136,60 +136,60 @@ export const EmailPreview = async () => {
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
       <h1>CribNosh Email Templates Preview</h1>
       <p>This page shows all available email templates with sample data for development and testing.</p>
-      
+
       <div style={{ marginBottom: '40px' }}>
         <h2>Welcome Email</h2>
-        <div dangerouslySetInnerHTML={{ 
-          __html: await render(WelcomeEmail(sampleData.welcome)) 
+        <div dangerouslySetInnerHTML={{
+          __html: await render(WelcomeEmail(sampleData.welcome))
         }} />
       </div>
 
       <div style={{ marginBottom: '40px' }}>
         <h2>Order Confirmation Email</h2>
-        <div dangerouslySetInnerHTML={{ 
-          __html: await render(OrderConfirmationEmail(sampleData.orderConfirmation)) 
+        <div dangerouslySetInnerHTML={{
+          __html: await render(OrderConfirmationEmail(sampleData.orderConfirmation))
         }} />
       </div>
 
       <div style={{ marginBottom: '40px' }}>
         <h2>OTP Verification Email</h2>
-        <div dangerouslySetInnerHTML={{ 
+        <div dangerouslySetInnerHTML={{
           __html: String(await renderEmail(OTPVerificationEmail(sampleData.otpVerification) as React.ReactElement))
         }} />
       </div>
 
       <div style={{ marginBottom: '40px' }}>
         <h2>Promotional Email</h2>
-        <div dangerouslySetInnerHTML={{ 
+        <div dangerouslySetInnerHTML={{
           __html: String(await renderEmail(PromotionalEmail(sampleData.promotional) as React.ReactElement))
         }} />
       </div>
 
       <div style={{ marginBottom: '40px' }}>
-        <h2>Chef Application Email</h2>
-        <div dangerouslySetInnerHTML={{ 
-          __html: await render(FoodCreatorApplicationEmail(sampleData.chefApplication)) 
+        <h2>Food Creator Application Email</h2>
+        <div dangerouslySetInnerHTML={{
+          __html: await render(FoodCreatorApplicationEmail(sampleData.chefApplication))
         }} />
       </div>
 
       <div style={{ marginBottom: '40px' }}>
         <h2>Generic Notification Email</h2>
-        <div dangerouslySetInnerHTML={{ 
-          __html: await render(GenericNotificationEmail(sampleData.genericNotification)) 
+        <div dangerouslySetInnerHTML={{
+          __html: await render(GenericNotificationEmail(sampleData.genericNotification))
         }} />
       </div>
 
       <div style={{ marginBottom: '40px' }}>
         <h2>Form Confirmation Email</h2>
-        <div dangerouslySetInnerHTML={{ 
-          __html: await render(FormConfirmationEmail(sampleData.formConfirmation)) 
+        <div dangerouslySetInnerHTML={{
+          __html: await render(FormConfirmationEmail(sampleData.formConfirmation))
         }} />
       </div>
 
       <div style={{ marginBottom: '40px' }}>
         <h2>Admin Notification Email</h2>
-        <div dangerouslySetInnerHTML={{ 
-          __html: await render(AdminNotificationEmail(sampleData.adminNotification)) 
+        <div dangerouslySetInnerHTML={{
+          __html: await render(AdminNotificationEmail(sampleData.adminNotification))
         }} />
       </div>
     </div>
@@ -221,7 +221,7 @@ export const renderEmailTemplate = async (templateName: string, data: any) => {
 export const validateEmailTemplate = async (templateName: string, data: any) => {
   try {
     const html = await renderEmailTemplate(templateName, data);
-    
+
     // Basic validation checks
     const checks = {
       hasTitle: html.includes('<title>'),

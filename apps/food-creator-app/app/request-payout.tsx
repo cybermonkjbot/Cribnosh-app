@@ -23,7 +23,7 @@ const bankIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
 export default function RequestPayoutScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { foodCreator: chef, sessionToken: authSessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken: authSessionToken } = useFoodCreatorAuth();
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
   const [selectedBankAccount, setSelectedBankAccount] = useState<string | null>(null);
@@ -45,13 +45,13 @@ export default function RequestPayoutScreen() {
   // Get earnings summary
   const earningsSummary = useQuery(
     api.queries.chefEarnings.getSummary,
-    chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : 'skip'
+    foodCreator?._id && sessionToken ? { chefId: foodCreator._id, sessionToken } : 'skip'
   );
 
   // Get bank accounts
   const bankAccounts = useQuery(
     api.queries.chefBankAccounts.getByChefId,
-    chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : 'skip'
+    foodCreator?._id && sessionToken ? { chefId: foodCreator._id, sessionToken } : 'skip'
   );
 
   // Request payout mutation
@@ -120,12 +120,12 @@ export default function RequestPayoutScreen() {
 
     setIsSubmitting(true);
     try {
-      if (!chef?._id || !sessionToken) {
+      if (!foodCreator?._id || !sessionToken) {
         throw new Error('Not authenticated');
       }
 
       const result = await requestPayout({
-        chefId: chef._id,
+        chefId: foodCreator._id,
         bankAccountId: selectedBankAccount,
         amount: amountInPence,
         sessionToken,

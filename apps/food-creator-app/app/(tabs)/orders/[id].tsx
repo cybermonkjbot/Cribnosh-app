@@ -21,7 +21,7 @@ const STATUS_OPTIONS: { value: OrderStatus; label: string }[] = [
 ];
 
 export default function OrderDetailScreen() {
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
   const { showSuccess, showError } = useToast();

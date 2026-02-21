@@ -12,7 +12,7 @@ import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Text, T
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function VideoUploadScreen() {
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
@@ -44,15 +44,15 @@ export default function VideoUploadScreen() {
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const recipes = useQuery(
     api.queries.recipes.getByAuthor,
-    chef?.name && sessionToken
-      ? { author: chef.name, sessionToken }
+    foodCreator?.name && sessionToken
+      ? { author: foodCreator.name, sessionToken }
       : 'skip'
   ) as any[] | undefined;
 
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const meals = useQuery(
     api.queries.meals.getByChefId,
-    chef?._id ? { chefId: chef._id } : 'skip'
+    foodCreator?._id ? { chefId: foodCreator._id } : 'skip'
   ) as any[] | undefined;
 
   const handlePickVideo = async () => {
@@ -152,7 +152,7 @@ export default function VideoUploadScreen() {
       return;
     }
 
-    if (!chef || !sessionToken || !videoMetadata) {
+    if (!foodCreator || !sessionToken || !videoMetadata) {
       Alert.alert('Error', 'Missing required information.');
       return;
     }
@@ -213,7 +213,7 @@ export default function VideoUploadScreen() {
       // Step 3: Create video post
       setUploadProgress(90);
       await createVideoPost({
-        userId: chef.userId,
+        userId: foodCreator.userId,
         title: title.trim(),
         description: description.trim() || undefined,
         videoStorageId: videoStorageId as any,

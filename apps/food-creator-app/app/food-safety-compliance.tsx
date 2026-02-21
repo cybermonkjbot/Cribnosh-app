@@ -43,7 +43,7 @@ const REQUIRED_DOCUMENTS = [
 export default function FoodSafetyComplianceScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
 
   const [isLoading, setIsLoading] = useState(true);
   const [complianceStatus, setComplianceStatus] = useState<'compliant' | 'pending' | 'non-compliant'>('pending');
@@ -52,10 +52,10 @@ export default function FoodSafetyComplianceScreen() {
   const [lastInspectionDate, setLastInspectionDate] = useState<string | null>(null);
   const [nextInspectionDue, setNextInspectionDue] = useState<string | null>(null);
 
-  // Get kitchen ID for the current chef
+  // Get kitchen ID for the current foodCreator
   const kitchenId = useQuery(
     api.queries.kitchens.getKitchenByChefId,
-    chef?._id ? { chefId: chef._id } : 'skip'
+    foodCreator?._id ? { chefId: foodCreator._id } : 'skip'
   );
 
   // Get kitchen details
@@ -64,10 +64,10 @@ export default function FoodSafetyComplianceScreen() {
     kitchenId ? { kitchenId } : 'skip'
   );
 
-  // Get chef documents
+  // Get foodCreator documents
   const documents = useQuery(
     api.queries.chefDocuments.getByChefId,
-    chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : 'skip'
+    foodCreator?._id && sessionToken ? { chefId: foodCreator._id, sessionToken } : 'skip'
   );
 
   // Map documents by type for easy lookup

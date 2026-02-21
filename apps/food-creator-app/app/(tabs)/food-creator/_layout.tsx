@@ -80,7 +80,7 @@ export default function FoodCreatorLayout() {
 
   // Authentication guard: Show loading or sign-in prompt if not authenticated
   // The root index.tsx handles initial navigation to sign-in
-  // This layout protects all chef routes by showing a prompt if user navigates here while unauthenticated
+  // This layout protects all foodCreator routes by showing a prompt if user navigates here while unauthenticated
 
   // Show loading or sign-in prompt while checking auth
   if (isLoading) {

@@ -125,8 +125,8 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
     }
   }, [isVisible, user, loadToken]);
 
-  // Get chef profile data (use chef from context, but query if needed for fresh data)
-  // We already have chef from useFoodCreatorAuth, so we can use that directly
+  // Get foodCreator profile data (use foodCreator from context, but query if needed for fresh data)
+  // We already have foodCreator from useFoodCreatorAuth, so we can use that directly
 
   // All queries run in parallel automatically - Convex handles this efficiently
   // Get kitchen ID
@@ -269,7 +269,7 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
 
   // Determine if we have enough data to show content (progressive loading)
   const hasMinimumData = useMemo(() => {
-    // We can show content as soon as we have chef and user data
+    // We can show content as soon as we have foodCreator and user data
     // Queries will update progressively
     return !!foodCreator && !!user;
   }, [foodCreator, user]);

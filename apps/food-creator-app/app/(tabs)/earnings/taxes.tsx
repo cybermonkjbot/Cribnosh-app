@@ -11,22 +11,22 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacit
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TaxesScreen() {
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [selectedTaxYear, setSelectedTaxYear] = useState<number | null>(null);
 
   const availableTaxYears = useQuery(
     api.queries.chefTax.getAvailableTaxYears,
-    chef?._id && sessionToken
-      ? { chefId: chef._id, sessionToken }
+    foodCreator?._id && sessionToken
+      ? { chefId: foodCreator._id, sessionToken }
       : 'skip'
   );
 
   const taxYearSummary = useQuery(
     api.queries.chefTax.getTaxYearSummary,
-    chef?._id && sessionToken && selectedTaxYear
-      ? { chefId: chef._id, taxYear: selectedTaxYear, sessionToken }
+    foodCreator?._id && sessionToken && selectedTaxYear
+      ? { chefId: foodCreator._id, taxYear: selectedTaxYear, sessionToken }
       : 'skip'
   );
 
@@ -99,7 +99,7 @@ export default function TaxesScreen() {
     }
   };
 
-  if (!chef) {
+  if (!foodCreator) {
     return (
       <GradientBackground>
         <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>

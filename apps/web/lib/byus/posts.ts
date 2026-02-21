@@ -29,7 +29,7 @@ export type ByUsPost = {
 
 export const POSTS: ByUsPost[] = [
 	{
-		title: "CribNosh vs Uber Eats: Why Home–Cooked Wins in 2025",
+		title: "CribNosh vs Uber Eats: Why Authentic Prepared Wins in 2025",
 		slug: "cribnosh-vs-uber-eats-2025",
 		coverImage: "/backgrounds/masonry-1.jpg",
 		date: "August 2025",
@@ -101,7 +101,7 @@ export const POSTS: ByUsPost[] = [
 		]
 	},
 	{
-		title: "Birmingham Food Delivery: Best Home–Cooked Dishes Near You",
+		title: "Birmingham Food Delivery: Best Authentic Dishes Near You",
 		slug: "birmingham-best-dishes",
 		coverImage: "/images/cities/optimized/birmingham-new.jpg",
 		date: "August 2025",
@@ -113,7 +113,7 @@ export const POSTS: ByUsPost[] = [
 			"Order early for popular weekend slots. Family–style portions keep cost per person low.",
 			"Pair mains with veg sides or breads for a balanced, cozy night in.",
 			"Neighborhood tips: deliveries around Edgbaston and City Centre move quickly during off–peak; plan extra time on match days.",
-			"Chef notes often include reheat tips for next day, perfect for working lunches or Sunday leftovers.",
+			"Food Creator notes often include reheat tips for next day, perfect for working lunches or Sunday leftovers.",
 			"Local favorites trend hearty but nuanced, expect slow–cooked spices, creamy sauces, and soft starches that hold heat and comfort.",
 			"If you're feeding a crowd, mix one mild tray with one bolder dish. Add a bright salad to cut richness and keep palates refreshed.",
 			"Reheat plan: keep a splash of stock or water on hand to loosen sauces gently, avoid microwaving uncovered to preserve moisture.",
@@ -147,7 +147,7 @@ export const POSTS: ByUsPost[] = [
 		]
 	},
 	{
-		title: "Leicester Food Delivery: Home–Cooked Options You'll Love",
+		title: "Leicester Food Delivery: Authentic Options You'll Love",
 		slug: "leicester-home-cooked-delivery",
 		coverImage: "/images/cities/optimized/leicester.jpg",
 		date: "August 2025",
@@ -222,7 +222,7 @@ export const POSTS: ByUsPost[] = [
 		]
 	},
 	{
-		title: "Support Local Chefs: Why Community Kitchens Matter",
+		title: "Support Local Food Creators: Why Community Kitchens Matter",
 		slug: "support-local-chefs",
 		coverImage: "/backgrounds/masonry-2.jpg",
 		date: "July 2025",
@@ -393,7 +393,7 @@ export const POSTS: ByUsPost[] = [
 		description: "Classic roast–style plates, stews, and shareables that make dinner easy in Derby.",
 		body: [
 			"Go for trays that portion easily across the family.",
-			"Chef notes often include kid–friendly suggestions and reheats.",
+			"Food Creator notes often include kid–friendly suggestions and reheats.",
 			"Leave a review so your favorite chef can plan bigger batches.",
 			"Pro tip: request sauce on the side for picky eaters; mix in at the table.",
 			"Family routine: keep a neutral starch ready so you can adjust spice at the table without making a second meal.",
@@ -436,7 +436,7 @@ export const POSTS: ByUsPost[] = [
 		]
 	},
 	{
-		title: "Halal Home–Cooked Delivery: A Quick Ordering Guide",
+		title: "Halal Authentic Delivery: A Quick Ordering Guide",
 		slug: "halal-home-cooked-guide",
 		coverImage: "/backgrounds/masonry-1.jpg",
 		date: "August 2025",
@@ -488,7 +488,7 @@ export const POSTS: ByUsPost[] = [
 		]
 	},
 	{
-		title: "What Is CribNosh? How Our Home–Cooked Delivery Works",
+		title: "What Is CribNosh? How Our Authentic Delivery Works",
 		slug: "what-is-cribnosh",
 		coverImage: "/backgrounds/masonry-2.jpg",
 		date: "August 2025",
@@ -506,7 +506,7 @@ export const POSTS: ByUsPost[] = [
 		]
 	},
 	{
-		title: "Healthy Meal Delivery at Home: Tips from CribNosh Chefs",
+		title: "Healthy Meal Delivery at Home: Tips from CribNosh Food Creators",
 		slug: "healthy-meal-delivery-tips",
 		coverImage: "/backgrounds/driver-background.png",
 		date: "August 2025",
@@ -576,7 +576,7 @@ export const POSTS: ByUsPost[] = [
 		date: "August 2025",
 		author: { name: "CribNosh Editorial", avatar: "/card-images/c846b65e-1de1-4595-9079-b2cfe134f414.jpeg" },
 		categories: ["Kitchen Stories"],
-		description: "Chef–approved reheating tips for curries, stews, bakes, and rice dishes.",
+		description: "Food Creator–approved reheating tips for curries, stews, bakes, and rice dishes.",
 		body: [
 			"Low and slow: oven 160–175°C for bakes; stovetop with a splash of stock for stews.",
 			"Rice: add a teaspoon of water, cover, and reheat thoroughly; avoid drying out.",

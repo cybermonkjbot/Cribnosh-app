@@ -37,7 +37,7 @@ const ALLERGEN_OPTIONS = [
 ];
 
 export function EditMealModal({ isVisible, onClose, mealId }: EditMealModalProps) {
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
   const { showSuccess, showError } = useToast();
   const insets = useSafeAreaInsets();
 

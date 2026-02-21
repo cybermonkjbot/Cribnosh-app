@@ -19,15 +19,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type TimeRange = '7d' | '30d' | '90d';
 
 export default function EarningsScreen() {
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [timeRange, setTimeRange] = useState<TimeRange>('7d');
 
   const analytics = useQuery(
     api.queries.analytics.getChefAnalytics,
-    chef?._id && sessionToken
-      ? { chefId: chef._id, timeRange, sessionToken }
+    foodCreator?._id && sessionToken
+      ? { chefId: foodCreator._id, timeRange, sessionToken }
       : 'skip'
   ) as any;
 
@@ -74,7 +74,7 @@ export default function EarningsScreen() {
     }
   };
 
-  if (!chef) {
+  if (!foodCreator) {
     return (
       <GradientBackground>
         <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>

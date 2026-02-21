@@ -22,6 +22,7 @@ interface MealVideoCardProps {
   foodCreatorName: string;
   price: string;
   foodCreator?: string;
+  chef?: string;
   isVisible: boolean;
   isPreloaded?: boolean;
   onLike?: () => void;

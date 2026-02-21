@@ -179,7 +179,7 @@ export const PromotionalEmail: React.FC<PromotionalEmailProps> = ({
             </div>
           </div>
 
-          {/* Featured Chefs */}
+          {/* Featured Food Creators */}
           <ContentText style={{ ...typography.heading.h3, textAlign: 'center', margin: `${spacing.xl} 0 ${spacing.lg} 0` }}>
             Meet Our Featured Food Creators
           </ContentText>

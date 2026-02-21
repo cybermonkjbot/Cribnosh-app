@@ -62,7 +62,6 @@ interface MealItemDetailsProps {
     // New fields for additional sections
     prepTime?: string;
     deliveryTime?: string;
-    foodCreatorName?: string;
     foodCreatorStory?: string;
     foodCreatorTips?: string[];
     similarMeals?: {
@@ -498,7 +497,7 @@ export function MealItemDetails({
             <MealDescription
               description={finalMealData.description}
               foodCreatorName={finalMealData.foodCreatorName}
-              onFoodCreatorNamePress={() => onFoodCreatorNamePress?.(finalMealData.foodCreatorName, finalMealData.foodCreatorId, finalMealData.foodcreatorId)}
+              onFoodCreatorNamePress={() => onFoodCreatorNamePress?.(finalMealData.foodCreatorName, finalMealData.foodCreatorId, finalMealData.foodCreatorId)}
             />
           ) : (
             <MealDescriptionSkeleton />

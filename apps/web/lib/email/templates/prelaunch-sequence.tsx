@@ -71,7 +71,7 @@ export const PrelaunchWelcome = ({ user, unsubscribeUrl, companyAddress }: Prela
       alt="Welcome to CribNosh"
       style={{ width: '100%', borderRadius: '12px', margin: '24px 0' }}
     />
-    <PrimaryButton href="emailUrls.chefs()">Meet the Chefs</PrimaryButton>
+    <PrimaryButton href="emailUrls.chefs()">Meet the Food Creators</PrimaryButton>
     <Divider />
     <SocialLinks links={socialLinks} />
     <FooterSection
@@ -123,9 +123,9 @@ export const PrelaunchSneakPeek = ({ user, days_since_signup, unsubscribeUrl, co
 export const PrelaunchChefFeature = ({ user, featured_chef, unsubscribeUrl, companyAddress }: PrelaunchEmailProps) => (
   <EmailWrapper
     previewText={`Meet your new favorite chef, ${user.name}!`}
-    title="Chef Spotlight: Local Flavor, Global Soul"
+    title="Food Creator Spotlight: Local Flavor, Global Soul"
   >
-    <HeaderSection title="Chef spotlight: Local flavor, global soul" showLogo />
+    <HeaderSection title="Food Creator spotlight: Local flavor, global soul" showLogo />
     <ContentText variant="large">Hi {user.name},</ContentText>
     <ContentText>
       At CribNosh, we believe every chef has a story. This week, meet {featured_chef?.name || 'one of our chefs'}, whos bringing {featured_chef?.cuisine || 'amazing cuisine'} to {user.city || 'your city'}. Expect bold flavors, secret family recipes, and a dash of magic.
@@ -137,7 +137,7 @@ export const PrelaunchChefFeature = ({ user, featured_chef, unsubscribeUrl, comp
     </CardSection>
     <img
       src="https://images.unsplash.com/photo-1526178613658-3f1622045557?auto=format&fit=crop&w=600&q=80"
-      alt="Chef Feature"
+      alt="Food Creator Feature"
       style={{ width: '100%', borderRadius: '12px', margin: '24px 0' }}
     />
     <PrimaryButton href="emailUrls.app()">Preview the App</PrimaryButton>
@@ -378,7 +378,7 @@ export const PrelaunchLocalGuide = ({ user, unsubscribeUrl, companyAddress }: Pr
 export const PrelaunchFirstLook = ({ user, unsubscribeUrl, companyAddress }: PrelaunchEmailProps) => (
   <EmailWrapper
     previewText={`First look: Something new is coming to CribNosh!`}
-    title="First Look: New Features & Chefs"
+    title="First Look: New Features & Food Creators"
   >
     <HeaderSection title="First look: New features & chefs" showLogo />
     <ContentText variant="large">Hi {user.name},</ContentText>
@@ -569,7 +569,7 @@ const prelaunchEmailTemplates = [
   },
   {
     key: 'chef_feature',
-    subject: 'Chef Spotlight: Local Flavor, Global Soul',
+    subject: 'Food Creator Spotlight: Local Flavor, Global Soul',
     component: PrelaunchChefFeature,
   },
   {
@@ -609,7 +609,7 @@ const prelaunchEmailTemplates = [
   },
   {
     key: 'first_look',
-    subject: 'First Look: New Features & Chefs',
+    subject: 'First Look: New Features & Food Creators',
     component: PrelaunchFirstLook,
   },
   {

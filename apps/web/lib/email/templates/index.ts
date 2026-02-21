@@ -333,7 +333,7 @@ export const validateTemplateProps = (templateName: string, props: any): {
     case 'orderConfirmation':
       if (!props.orderNumber) errors.push('Order number is required');
       if (!props.items || props.items.length === 0) errors.push('Order items are required');
-      if (!props.chef) errors.push('Chef information is required');
+      if (!props.chef) errors.push('Food Creator information is required');
       if (!props.total) errors.push('Total amount is required');
       break;
 
