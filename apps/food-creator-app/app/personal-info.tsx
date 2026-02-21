@@ -48,7 +48,7 @@ export default function PersonalInfoScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
 
-  // Chef Settings state
+  // Food Creator Settings state
   const [selectedProfileImage, setSelectedProfileImage] = useState<string | undefined>();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -112,7 +112,7 @@ export default function PersonalInfoScreen() {
   // Get kitchen ID and details
   const kitchenId = useQuery(
     api.queries.kitchens.getKitchenByChefId,
-    foodCreator?._id ? { chefId: foodCreator._id } : 'skip'
+    foodCreator?._id ? { foodCreatorId: foodCreator._id } : 'skip'
   );
 
   const kitchenDetails = useQuery(
@@ -125,7 +125,7 @@ export default function PersonalInfoScreen() {
     kitchenId ? { kitchenId } : 'skip'
   );
 
-  // Get chef's videos for featured video selection
+  // Get food creator's videos for featured video selection
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const chefVideos = useQuery(
     api.queries.videoPosts.getVideosByCreator,
@@ -133,7 +133,7 @@ export default function PersonalInfoScreen() {
   ) as any;
 
   // Mutations
-  const updateChef = useMutation(api.mutations.foodCreators.update);
+  const updateFood Creator = useMutation(api.mutations.foodCreators.update);
   const updateAvailability = useMutation(api.mutations.foodCreators.updateAvailability);
   const saveOnboardingDraft = useMutation(api.mutations.foodCreators.saveOnboardingDraft);
   const createKitchen = useMutation(api.mutations.kitchens.createKitchen);
@@ -315,7 +315,7 @@ export default function PersonalInfoScreen() {
       showToast({
         type: 'error',
         title: 'Error',
-        message: 'Chef profile not found',
+        message: 'Food Creator profile not found',
         duration: 3000,
       });
       return;
@@ -400,8 +400,8 @@ export default function PersonalInfoScreen() {
         };
       }
 
-      await updateChef({
-        chefId: foodCreator._id,
+      await updateFood Creator({
+        foodCreatorId: foodCreator._id,
         updates: chefUpdates,
         sessionToken,
       });
@@ -409,7 +409,7 @@ export default function PersonalInfoScreen() {
       showToast({
         type: 'success',
         title: 'Success',
-        message: 'Chef settings updated successfully',
+        message: 'Food Creator settings updated successfully',
         duration: 3000,
       });
 
@@ -470,7 +470,7 @@ export default function PersonalInfoScreen() {
       if (foodCreator?._id && sessionToken && kitchenName.trim()) {
         try {
           await saveOnboardingDraft({
-            chefId: foodCreator._id,
+            foodCreatorId: foodCreator._id,
             draft: {
               ...(foodCreator.onboardingDraft || {}),
               kitchenName: kitchenName.trim(),
@@ -663,7 +663,7 @@ export default function PersonalInfoScreen() {
       showToast({
         type: 'error',
         title: 'Error',
-        message: 'Chef profile not found',
+        message: 'Food Creator profile not found',
         duration: 3000,
       });
       return;
@@ -672,7 +672,7 @@ export default function PersonalInfoScreen() {
     setIsSaving(true);
     try {
       await updateAvailability({
-        chefId: foodCreator._id,
+        foodCreatorId: foodCreator._id,
         updates: {
           isAvailable,
           availableDays,
@@ -1028,7 +1028,7 @@ export default function PersonalInfoScreen() {
                   style={[styles.input, styles.textArea]}
                   value={bio}
                   onChangeText={setBio}
-                  placeholder="Tell us about your cooking experience and style..."
+                  placeholder="Tell us about your culinary experience and style..."
                   placeholderTextColor="#9CA3AF"
                   multiline
                   numberOfLines={4}

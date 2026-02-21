@@ -67,7 +67,7 @@ export function GlassNavbar({ onMenuClick, notifications = 0, onNotificationClic
   const adminNavItems = [
     { label: 'Dashboard', href: '/admin' },
     { label: 'Users', href: '/admin/users' },
-    { label: 'Food Creators', href: '/admin/careers' },
+    { label: 'foodCreators', href: '/admin/careers' },
     { label: 'Waitlist', href: '/admin/waitlist' },
     { label: 'Analytics', href: '/admin/analytics' },
     { label: 'Content', href: '/admin/content' },

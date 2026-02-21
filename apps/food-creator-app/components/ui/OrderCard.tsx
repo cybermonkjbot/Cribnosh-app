@@ -367,7 +367,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           )}
         </View>
 
-        {/* Quick Actions for Chef */}
+        {/* Quick Actions for Food Creator */}
         {hasActions && (
           <View style={styles.quickActionsContainer} pointerEvents="box-none">
             {availableActions.includes('accept') && (

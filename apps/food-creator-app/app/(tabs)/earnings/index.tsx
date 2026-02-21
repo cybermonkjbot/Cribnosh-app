@@ -27,7 +27,7 @@ export default function EarningsScreen() {
   const analytics = useQuery(
     api.queries.analytics.getChefAnalytics,
     foodCreator?._id && sessionToken
-      ? { chefId: foodCreator._id, timeRange, sessionToken }
+      ? { foodCreatorId: foodCreator._id, timeRange, sessionToken }
       : 'skip'
   ) as any;
 

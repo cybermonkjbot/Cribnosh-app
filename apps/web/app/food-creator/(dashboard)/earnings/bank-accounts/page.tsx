@@ -13,16 +13,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useMutation, useQuery } from "convex/react";
 import { Banknote, CheckCircle, Plus, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export default function BankAccountsPage() {
-    const { chef, sessionToken } = useChefAuth();
+    const { foodCreator, sessionToken } = useFoodCreatorAuth();
     const accounts = useQuery(api.queries.chefBankAccounts.getByChefId,
-        chef ? { chefId: chef._id, sessionToken } : "skip"
+        foodCreator ? { chefId: foodCreator._id, sessionToken } : "skip"
     );
 
     const createAccount = useMutation(api.mutations.chefBankAccounts.create);
@@ -39,7 +39,7 @@ export default function BankAccountsPage() {
     });
 
     const handleCreate = async () => {
-        if (!chef || !sessionToken) return;
+        if (!foodCreator || !sessionToken) return;
 
         // Basic validation
         if (!formData.accountHolderName || !formData.bankName || !formData.accountNumber || !formData.sortCode) {
@@ -50,7 +50,7 @@ export default function BankAccountsPage() {
         try {
             setIsSubmitting(true);
             await createAccount({
-                chefId: chef._id,
+                chefId: foodCreator._id,
                 sessionToken,
                 accountHolderName: formData.accountHolderName,
                 bankName: formData.bankName,
@@ -86,10 +86,10 @@ export default function BankAccountsPage() {
     };
 
     const handleSetPrimary = async (accountId: any) => {
-        if (!chef || !sessionToken) return;
+        if (!foodCreator || !sessionToken) return;
 
         try {
-            await setPrimaryAccount({ chefId: chef._id, accountId, sessionToken });
+            await setPrimaryAccount({ chefId: foodCreator._id, accountId, sessionToken });
             toast.success("Primary account updated");
         } catch (error) {
             toast.error("Failed to update primary account");

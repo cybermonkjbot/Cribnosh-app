@@ -82,7 +82,7 @@ export default function ModuleDetailScreen() {
     // @ts-ignore
     api.queries.chefCourses.getByChefAndCourse,
     foodCreator?._id && courseId && sessionToken
-      ? { chefId: foodCreator._id, courseId, sessionToken }
+      ? { foodCreatorId: foodCreator._id, courseId, sessionToken }
       : 'skip'
   );
 
@@ -167,7 +167,7 @@ export default function ModuleDetailScreen() {
     saveProgressTimeoutRef.current = setTimeout(async () => {
       try {
         await updateProgress({
-          chefId: foodCreator._id,
+          foodCreatorId: foodCreator._id,
           courseId,
           moduleId,
           moduleName: currentModule.moduleName || moduleContent.moduleName || 'Module',
@@ -298,7 +298,7 @@ export default function ModuleDetailScreen() {
       const timeSpent = totalTimeSpentRef.current;
 
       await updateProgress({
-        chefId: foodCreator._id,
+        foodCreatorId: foodCreator._id,
         courseId,
         moduleId,
         moduleName: currentModule.moduleName || moduleContent?.moduleName || 'Module',

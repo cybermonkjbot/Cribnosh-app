@@ -36,7 +36,7 @@ export interface OrderItem {
   order_status?: string;
   total_amount?: number;
   cuisine_id?: string;
-  chefId?: Id<"chefs">;
+  foodCreatorId?: Id<"chefs">;
   order_items?: Array<{
     menuId?: string;
     name?: string;
@@ -48,12 +48,12 @@ export interface OrderItem {
 }
 
 /**
- * Chef Document Structure
+ * Food Creator Document Structure
  */
-export interface ChefDoc {
+export interface FoodCreatorDoc {
   _id: Id<"chefs">;
   userId: Id<"users">;
-  chefId: Id<"chefs">;
+  foodCreatorId: Id<"chefs">;
   [key: string]: unknown;
 }
 

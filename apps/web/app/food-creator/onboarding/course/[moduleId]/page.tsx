@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowLeft, ArrowRight, BookOpen, CheckCircle, HelpCircle } from "lucide-react";
 import Link from "next/link";
@@ -12,13 +12,13 @@ export default function ModulePage() {
     const params = useParams();
     const router = useRouter();
     const moduleNumber = Number(params.moduleId);
-    const { chef, sessionToken } = useChefAuth();
+    const { foodCreator, sessionToken } = useFoodCreatorAuth();
 
     // Fetch course enrollment
     const enrollment = useQuery(
         api.queries.chefCourses.getByChefAndCourse,
-        chef && sessionToken ? {
-            chefId: chef._id,
+        foodCreator && sessionToken ? {
+            chefId: foodCreator._id,
             courseId: "compliance-course-v1",
             sessionToken
         } : "skip"
@@ -45,7 +45,7 @@ export default function ModulePage() {
     const isCompleted = moduleSummary?.completed;
 
     const handleQuizSubmit = async () => {
-        if (!moduleSummary || !moduleContent || !chef || !sessionToken || !moduleContent.quiz) return;
+        if (!moduleSummary || !moduleContent || !foodCreator || !sessionToken || !moduleContent.quiz) return;
 
         setIsSubmitting(true);
         try {
@@ -62,7 +62,7 @@ export default function ModulePage() {
             const passed = percentage >= (moduleContent.quiz.passingScore || 80);
 
             await updateProgress({
-                chefId: chef._id,
+                chefId: foodCreator._id,
                 courseId: "compliance-course-v1",
                 moduleId: moduleSummary.moduleId,
                 moduleName: moduleSummary.moduleName,
@@ -89,7 +89,7 @@ export default function ModulePage() {
         }
     };
 
-    if ((!enrollment || !moduleContent) && chef) {
+    if ((!enrollment || !moduleContent) && foodCreator) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-[#02120A]">
                 <div className="text-center">

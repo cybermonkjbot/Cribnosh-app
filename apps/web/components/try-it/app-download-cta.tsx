@@ -22,7 +22,7 @@ export function AppDownloadCTA() {
             Get the Complete CribNosh Experience
           </h3>
           <p className="text-sm md:text-base text-white/90 font-satoshi mb-4">
-            Download the CribNosh app to discover authentic home-cooked meals, connect with talented chefs, and experience dining like never before.
+            Download the CribNosh app to discover authentic home-cooked meals, connect with talented foodCreators, and experience dining like never before.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-3">

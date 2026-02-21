@@ -1,6 +1,6 @@
 # Cribnosh Food Creator App
 
-Chef platform mobile application for managing meals, orders, earnings, and content.
+Food Creator platform mobile application for managing meals, orders, earnings, and content.
 
 ## Overview
 
@@ -36,7 +36,7 @@ This is the mobile app for chefs using the Cribnosh platform. It allows chefs to
 Dependencies are already installed. If you need to reinstall:
 
 ```bash
-cd apps/chef-app
+cd apps/food creator-app
 bun install
 ```
 
@@ -51,28 +51,28 @@ EXPO_PUBLIC_CONVEX_URL=https://wandering-finch-293.convex.cloud
 
 ```bash
 # From root directory
-npm run chef:dev
+npm run food creator:dev
 
 # Or from app directory
-cd apps/chef-app
+cd apps/food creator-app
 bun run start
 ```
 
 ### Running on Devices
 
-- **iOS**: `bun run ios` or `npm run chef:ios`
-- **Android**: `bun run android` or `npm run chef:android`
-- **Web**: `bun run web` or `npm run chef:web`
+- **iOS**: `bun run ios` or `npm run food creator:ios`
+- **Android**: `bun run android` or `npm run food creator:android`
+- **Web**: `bun run web` or `npm run food creator:web`
 
 ## Project Structure
 
 ```
-chef-app/
+food creator-app/
 ├── app/                    # Expo Router app directory
 │   ├── _layout.tsx        # Root layout
 │   ├── index.tsx          # Entry screen
 │   └── (tabs)/            # Tab navigation (to be created)
-│       └── chef/          # Chef platform screens
+│       └── food creator/          # Food Creator platform screens
 ├── components/            # Reusable components
 │   ├── ui/               # UI components (40+ copied)
 │   └── ...               # Other components
@@ -102,7 +102,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 
 // Reactive query
-const chef = useQuery(api.queries.foodCreators.getByUserId, { userId });
+const food creator = useQuery(api.queries.foodCreators.getByUserId, { userId });
 
 // Mutation
 const updateProfile = useMutation(api.mutations.foodCreators.updateProfile);
@@ -139,11 +139,11 @@ const updateProfile = useMutation(api.mutations.foodCreators.updateProfile);
 
 ## Next Steps
 
-1. Create chef authentication context
-2. Build chef dashboard screen
+1. Create food creator authentication context
+2. Build food creator dashboard screen
 3. Implement onboarding flow
 4. Add navigation structure
-5. Create chef-specific hooks
+5. Create food creator-specific hooks
 6. Build profile management
 7. Implement content creation
 8. Add order management
@@ -161,13 +161,13 @@ const updateProfile = useMutation(api.mutations.foodCreators.updateProfile);
 ## Related Documentation
 
 All planning documentation is in `apps/web/docs/`:
-- [PRD](../web/docs/CHEF_PLATFORM_PRD.md)
-- [User Stories](../web/docs/CHEF_PLATFORM_USER_STORIES.md)
-- [User Journeys](../web/docs/CHEF_PLATFORM_USER_JOURNEYS.md)
-- [UI/UX Plan](../web/docs/CHEF_PLATFORM_UI_UX_PLAN.md)
-- [API Design](../web/docs/CHEF_PLATFORM_API_DESIGN.md)
-- [Schema Design](../web/docs/CHEF_PLATFORM_SCHEMA_DESIGN.md)
-- [Implementation Phases](../web/docs/CHEF_PLATFORM_IMPLEMENTATION_PHASES.md)
+- [PRD](../web/docs/FOOD_CREATOR_PLATFORM_PRD.md)
+- [User Stories](../web/docs/FOOD_CREATOR_PLATFORM_USER_STORIES.md)
+- [User Journeys](../web/docs/FOOD_CREATOR_PLATFORM_USER_JOURNEYS.md)
+- [UI/UX Plan](../web/docs/FOOD_CREATOR_PLATFORM_UI_UX_PLAN.md)
+- [API Design](../web/docs/FOOD_CREATOR_PLATFORM_API_DESIGN.md)
+- [Schema Design](../web/docs/FOOD_CREATOR_PLATFORM_SCHEMA_DESIGN.md)
+- [Implementation Phases](../web/docs/FOOD_CREATOR_PLATFORM_IMPLEMENTATION_PHASES.md)
 
 ## License
 

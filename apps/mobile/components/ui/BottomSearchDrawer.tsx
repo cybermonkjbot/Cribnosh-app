@@ -745,15 +745,15 @@ export function BottomSearchDrawer({
   // Load unified search results (all content types)
   useEffect(() => {
     // Determine which content types to search based on active filter
-    let contentTypes: ("dishes" | "chefs" | "videos" | "recipes" | "stories" | "livestreams")[] | undefined;
+    let contentTypes: ("dishes" | "foodCreators" | "videos" | "recipes" | "stories" | "livestreams")[] | undefined;
 
     if (activeSearchFilter === "all") {
       // Search all content types
       contentTypes = undefined;
     } else if (activeSearchFilter === "meals") {
       contentTypes = ["dishes"];
-    } else if (activeSearchFilter === "chefs" || activeSearchFilter === "foodCreators") {
-      contentTypes = ["chefs"];
+    } else if (activeSearchFilter === "foodCreators" || activeSearchFilter === "foodCreators") {
+      contentTypes = ["foodCreators"];
     } else if (activeSearchFilter === "videos") {
       contentTypes = ["videos"];
     } else if (activeSearchFilter === "recipes") {
@@ -839,7 +839,7 @@ export function BottomSearchDrawer({
       const loadFilteredContent = async () => {
         try {
           // Determine content type based on active filter
-          let contentTypes: ("dishes" | "chefs" | "videos" | "recipes" | "stories" | "livestreams")[] = ["dishes"];
+          let contentTypes: ("dishes" | "foodCreators" | "videos" | "recipes" | "stories" | "livestreams")[] = ["dishes"];
 
           if (activeFilter === "videos") {
             contentTypes = ["videos"];
@@ -849,8 +849,8 @@ export function BottomSearchDrawer({
             contentTypes = ["stories"];
           } else if (activeFilter === "livestreams") {
             contentTypes = ["livestreams"];
-          } else if (activeFilter === "chefs" || activeFilter === "foodCreators") {
-            contentTypes = ["chefs"];
+          } else if (activeFilter === "foodCreators" || activeFilter === "foodCreators") {
+            contentTypes = ["foodCreators"];
           }
           // For dietary, price, cuisine, and other filters, default to dishes
 
@@ -896,8 +896,8 @@ export function BottomSearchDrawer({
               content = result.data?.stories || [];
             } else if (contentTypes.includes("livestreams")) {
               content = result.data?.livestreams || [];
-            } else if (contentTypes.includes("chefs")) {
-              content = result.data?.chefs || [];
+            } else if (contentTypes.includes("foodCreators")) {
+              content = result.data?.foodCreators || [];
             } else {
               // Default to dishes/meals
               content = result.data?.dishes || [];
@@ -958,7 +958,7 @@ export function BottomSearchDrawer({
   const [foodCreatorSearchError, setFoodCreatorSearchError] = useState<any>(null);
 
   // Food Creator search is now handled by unified search, but keeping this for backward compatibility
-  // when food creator-specific search is needed separately
+  // when foodCreator-specific search is needed separately
 
   // Search suggestions hook
   const { getSearchSuggestions } = useSearch();
@@ -1056,7 +1056,7 @@ export function BottomSearchDrawer({
   // Removed unused bottomSheetRef
   const handleNavigate = (): void => {
     // Navigate to create group order screen
-    // User will need to select a food creator/restaurant if not already selected
+    // User will need to select a foodCreator/restaurant if not already selected
     router.push("/orders/group/create");
   };
 
@@ -1950,11 +1950,11 @@ export function BottomSearchDrawer({
   }, [isLoadingSearch, isSearchFocused]);
 
   // Transform API search results to component format
-  // Handles unified search response: { dishes: [], chefs: [], videos: [], recipes: [], stories: [], livestreams: [], total: number }
+  // Handles unified search response: { dishes: [], foodCreators: [], videos: [], recipes: [], stories: [], livestreams: [], total: number }
   const transformSearchResults = useCallback((apiResults: any) => {
     console.log('[BottomSearchDrawer] Transforming unified search results:', apiResults);
 
-    // Handle unified API format: { dishes: [], chefs: [], videos: [], recipes: [], stories: [], livestreams: [], total: number }
+    // Handle unified API format: { dishes: [], foodCreators: [], videos: [], recipes: [], stories: [], livestreams: [], total: number }
     if (apiResults && typeof apiResults === 'object' && !Array.isArray(apiResults)) {
       const results: any[] = [];
 
@@ -1966,7 +1966,7 @@ export function BottomSearchDrawer({
             id: dish._id || dish.id || `dish-${Math.random()}`,
             text: dish.name || dish.title || "Unknown Meal",
             category: dish.cuisine || dish.category || "Meal",
-            foodCreator: dish.chef?.name || dish.foodCreator_name || dish.foodCreator || "Various FoodCreators",
+            foodCreator: dish.foodCreator?.name || dish.foodCreator_name || dish.foodCreator || "Various FoodCreators",
             time: dish.delivery_time || dish.prep_time || "25 min",
             distance: dish.distance || "Nearby",
             type: "meals",
@@ -1978,12 +1978,12 @@ export function BottomSearchDrawer({
         });
       }
 
-      // Transform chefs
-      if (Array.isArray(apiResults.chefs)) {
-        console.log('[BottomSearchDrawer] Found', apiResults.chefs.length, 'chefs');
-        apiResults.chefs.forEach((foodCreator: any) => {
+      // Transform foodCreators
+      if (Array.isArray(apiResults.foodCreators)) {
+        console.log('[BottomSearchDrawer] Found', apiResults.foodCreators.length, 'foodCreators');
+        apiResults.foodCreators.forEach((foodCreator: any) => {
           results.push({
-            id: foodCreator._id || foodCreator.id || `chef-${Math.random()}`,
+            id: foodCreator._id || foodCreator.id || `foodCreator-${Math.random()}`,
             text: foodCreator.name || "Unknown FoodCreator",
             category: foodCreator.cuisines?.join(", ") || foodCreator.cuisine || "FoodCreator",
             foodCreator: foodCreator.name || "Unknown FoodCreator",
@@ -2069,7 +2069,7 @@ export function BottomSearchDrawer({
             id: stream.id || stream._id || `livestream-${Math.random()}`,
             text: stream.title || stream.foodCreator_name || "Live Stream",
             category: "Live",
-            foodCreator: stream.chefName || stream.foodCreator_name || "Food Creator",
+            foodCreator: stream.foodCreatorName || stream.foodCreator_name || "Food Creator",
             time: stream.isLive ? "LIVE NOW" : "Ended",
             distance: "Live Streaming",
             type: "livestreams",
@@ -2092,16 +2092,16 @@ export function BottomSearchDrawer({
         id: result.id || result._id,
         text: result.title || result.name,
         category:
-          result.type === "chef"
+          result.type === "foodCreator"
             ? "FoodCreator"
             : result.type === "dish"
               ? "Meal"
               : "Cuisine",
-        foodCreator: result.type === "chef" ? (result.title || result.name) : (result.foodCreator || "Various FoodCreators"),
+        foodCreator: result.type === "foodCreator" ? (result.title || result.name) : (result.foodCreator || "Various FoodCreators"),
         time: result.delivery_time || "25 min",
         distance: result.distance || "1.0 mi",
         type:
-          result.type === "chef"
+          result.type === "foodCreator"
             ? "foodCreators"
             : result.type === "dish"
               ? "meals"
@@ -2115,10 +2115,10 @@ export function BottomSearchDrawer({
     return [];
   }, []);
 
-  // Transform food creator search results to component format (kept for backward compatibility, but unified search handles this now)
+  // Transform foodCreator search results to component format (kept for backward compatibility, but unified search handles this now)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const transformFoodCreatorResults = useCallback((chefs: SearchFoodCreator[]) => {
-    return chefs.map((foodCreator) => ({
+  const transformFoodCreatorResults = useCallback((foodCreators: SearchFoodCreator[]) => {
+    return foodCreators.map((foodCreator) => ({
       id: foodCreator._id,
       text: foodCreator.name,
       category: foodCreator.cuisines.join(", "),
@@ -2143,11 +2143,11 @@ export function BottomSearchDrawer({
         id: suggestion.text,
         text: suggestion.text,
         category: suggestion.category || "General",
-        foodCreator: suggestion.chef_name || "Various FoodCreators",
+        foodCreator: suggestion.foodCreatorName || "Various FoodCreators",
         time: "25 min",
         distance: "Nearby",
         type:
-          suggestion.type === "chef"
+          suggestion.type === "foodCreator"
             ? "foodCreators"
             : suggestion.type === "dish"
               ? "meals"
@@ -2167,11 +2167,11 @@ export function BottomSearchDrawer({
       id: item.id,
       text: item.name,
       category: item.cuisine || "Popular",
-      foodCreator: item.chef_name || "Various FoodCreators",
+      foodCreator: item.foodCreatorName || "Various FoodCreators",
       time: "25 min",
       distance: "Nearby",
       type:
-        item.type === "chef"
+        item.type === "foodCreator"
           ? "foodCreators"
           : item.type === "dish"
             ? "meals"
@@ -2184,14 +2184,14 @@ export function BottomSearchDrawer({
   }, []);
 
   // Transform natural language search results (emotions) to component format
-  const transformEmotionsSearchResults = useCallback((chefs: any[], dishes: any[]) => {
+  const transformEmotionsSearchResults = useCallback((foodCreators: any[], dishes: any[]) => {
     const results: any[] = [];
 
-    // Transform food creators
-    if (Array.isArray(chefs)) {
-      chefs.forEach((foodCreator) => {
+    // Transform foodCreators
+    if (Array.isArray(foodCreators)) {
+      foodCreators.forEach((foodCreator) => {
         results.push({
-          id: foodCreator._id || foodCreator.id || `chef-${Math.random()}`,
+          id: foodCreator._id || foodCreator.id || `foodCreator-${Math.random()}`,
           text: foodCreator.name || foodCreator.foodCreator_name || "Unknown FoodCreator",
           category: foodCreator.cuisines?.join(", ") || foodCreator.cuisine || "Various",
           foodCreator: foodCreator.name || foodCreator.foodCreator_name || "Unknown FoodCreator",
@@ -2212,7 +2212,7 @@ export function BottomSearchDrawer({
           id: dish._id || dish.id || `dish-${Math.random()}`,
           text: dish.name || dish.title || "Unknown Meal",
           category: dish.cuisine || dish.category || "Meal",
-          foodCreator: dish.chef?.name || dish.foodCreator_name || dish.foodCreator || "Various FoodCreators",
+          foodCreator: dish.foodCreator?.name || dish.foodCreator_name || dish.foodCreator || "Various FoodCreators",
           time: dish.delivery_time || "25 min",
           distance: dish.distance || "Nearby",
           type: "meals",
@@ -2253,14 +2253,14 @@ export function BottomSearchDrawer({
       searchQuery.trim() &&
       isNaturalLanguageQuery(searchQuery)
     ) {
-      const { chefs = [], dishes = [] } = emotionsSearchData.data;
-      apiResults = transformEmotionsSearchResults(chefs, dishes);
+      const { foodCreators = [], dishes = [] } = emotionsSearchData.data;
+      apiResults = transformEmotionsSearchResults(foodCreators, dishes);
     }
     // Priority 2: Use unified search results (handles all content types)
     else if (searchQuery.trim()) {
-      // Use unified search results (handles all content types including chefs)
+      // Use unified search results (handles all content types including foodCreators)
       if (searchData?.success && searchData.data) {
-        // searchData.data is now { dishes: [], chefs: [], videos: [], recipes: [], stories: [], livestreams: [], total: number }
+        // searchData.data is now { dishes: [], foodCreators: [], videos: [], recipes: [], stories: [], livestreams: [], total: number }
         apiResults = transformSearchResults(searchData.data);
       }
       // Fallback to search suggestions API if unified search not available
@@ -2303,7 +2303,7 @@ export function BottomSearchDrawer({
         const filterTypeMap: Record<string, string> = {
           "meals": "meals",
           "foodCreators": "foodCreators",
-          "chefs": "foodCreators",
+          "foodCreators": "foodCreators",
           "videos": "videos",
           "recipes": "recipes",
           "stories": "stories",
@@ -2326,7 +2326,7 @@ export function BottomSearchDrawer({
   const groupedSearchResults = useMemo(() => {
     const emptyGroups = {
       dishes: [],
-      chefs: [],
+      foodCreators: [],
       videos: [],
       recipes: [],
       stories: [],
@@ -2338,7 +2338,7 @@ export function BottomSearchDrawer({
       const data = searchData.data;
       const groups: any = {
         dishes: Array.isArray(data.dishes) ? data.dishes : [],
-        chefs: Array.isArray(data.chefs) ? data.chefs : [],
+        foodCreators: Array.isArray(data.foodCreators) ? data.foodCreators : [],
         videos: Array.isArray(data.videos) ? data.videos : [],
         recipes: Array.isArray(data.recipes) ? data.recipes : [],
         stories: Array.isArray(data.stories) ? data.stories : [],
@@ -2349,8 +2349,8 @@ export function BottomSearchDrawer({
       if (activeSearchFilter !== "all") {
         const filterTypeMap: Record<string, keyof typeof groups> = {
           "meals": "dishes",
-          "foodCreators": "chefs",
-          "chefs": "chefs",
+          "foodCreators": "foodCreators",
+          "foodCreators": "foodCreators",
           "videos": "videos",
           "recipes": "recipes",
           "stories": "stories",
@@ -2392,18 +2392,18 @@ export function BottomSearchDrawer({
               id: item.id,
               name: item.name,
               cuisine: item.cuisine,
-              foodCreator: item.chef_name ? { name: item.chef_name } : null,
-              foodCreator: item.chef_name,
+              foodCreator: item.foodCreatorName ? { name: item.foodCreatorName } : null,
+              foodCreator: item.foodCreatorName,
               price: item.price || 0,
               image_url: item.image,
               rating: item.rating,
               delivery_time: "25 min",
             });
-          } else if (item.type === "chef" || item.type === "foodCreator") {
-            groups.chefs.push({
+          } else if (item.type === "foodCreator" || item.type === "foodCreator") {
+            groups.foodCreators.push({
               _id: item.id,
               id: item.id,
-              name: item.name || item.chef_name,
+              name: item.name || item.foodCreatorName,
               cuisines: item.cuisine ? [item.cuisine] : [],
               cuisine: item.cuisine,
               rating: item.rating,
@@ -2416,8 +2416,8 @@ export function BottomSearchDrawer({
       if (activeSearchFilter !== "all") {
         const filterTypeMap: Record<string, keyof typeof groups> = {
           "meals": "dishes",
-          "foodCreators": "chefs",
-          "chefs": "chefs",
+          "foodCreators": "foodCreators",
+          "foodCreators": "foodCreators",
           "videos": "videos",
           "recipes": "recipes",
           "stories": "stories",
@@ -2494,7 +2494,7 @@ export function BottomSearchDrawer({
             setEmotionsSearchData({
               success: true,
               data: {
-                chefs: result.chefs || [],
+                foodCreators: result.foodCreators || [],
                 dishes: result.dishes || [],
               },
             });
@@ -2755,7 +2755,7 @@ export function BottomSearchDrawer({
           },
           videos: {
             title: "Video Content Tip",
-            description: "Watch cooking videos and discover new recipes from our food creators",
+            description: "Watch cooking videos and discover new recipes from our foodCreators",
           },
           recipes: {
             title: "Recipe Tip",
@@ -2817,7 +2817,7 @@ export function BottomSearchDrawer({
       },
       videos: {
         title: "Videos",
-        description: "Watch cooking videos and discover new recipes from our food creators",
+        description: "Watch cooking videos and discover new recipes from our foodCreators",
       },
       recipes: {
         title: "Recipes",
@@ -2924,7 +2924,7 @@ export function BottomSearchDrawer({
           router.push(`/live/${suggestion.id}` as any);
           return;
         } else if (suggestion.type === "foodCreators" && suggestion.originalResult) {
-          // Navigate to foodCreator/chef detail
+          // Navigate to foodCreator/foodCreator detail
           router.push(`/foodCreators/${suggestion.id}` as any);
           return;
         } else if ((suggestion.type === "meals" || suggestion.type === "dishes" || !suggestion.type) && onMealPress && suggestion.originalResult) {
@@ -2934,7 +2934,7 @@ export function BottomSearchDrawer({
             id: result.id || result._id || suggestion.id,
             name: result.name || result.title || suggestion.text || "Meal",
             price: result.price || 0,
-            foodCreator: result.chef?.name || result.foodCreator || suggestion.foodCreator || "Various FoodCreators",
+            foodCreator: result.foodCreator?.name || result.foodCreator || suggestion.foodCreator || "Various FoodCreators",
             image: result.image_url ? { uri: result.image_url } : result.image ? result.image : undefined,
             _id: result.id || result._id || suggestion.id,
           });
@@ -3595,7 +3595,7 @@ export function BottomSearchDrawer({
                                             id: meal._id || meal.id,
                                             name: meal.name || "Meal",
                                             price: meal.price || 0,
-                                            foodCreator: meal.chef?.name || meal.foodCreator || "FoodCreator",
+                                            foodCreator: meal.foodCreator?.name || meal.foodCreator || "FoodCreator",
                                             image: meal.image_url ? { uri: meal.image_url } : meal.image ? meal.image : undefined,
                                             _id: meal._id || meal.id,
                                           });
@@ -3641,7 +3641,7 @@ export function BottomSearchDrawer({
                                           }}
                                           numberOfLines={1}
                                         >
-                                          {meal.chef?.name || meal.foodCreator || "FoodCreator"}
+                                          {meal.foodCreator?.name || meal.foodCreator || "FoodCreator"}
                                         </Text>
                                         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                                           <Text style={{
@@ -4754,14 +4754,14 @@ export function BottomSearchDrawer({
                                     : itemData.image
                                       ? itemData.image
                                       : require("../../assets/images/cribnoshpackaging.png");
-                                  creatorName = itemData.chef?.name || itemData.foodCreator || "Various FoodCreators";
+                                  creatorName = itemData.foodCreator?.name || itemData.foodCreator || "Various FoodCreators";
                                 }
 
                                 const mealId = itemId;
                                 const mealName = itemName;
                                 const mealPrice = itemPrice;
                                 const mealImage = itemImage;
-                                const chefName = creatorName;
+                                const foodCreatorName = creatorName;
 
                                 return (
                                   <TouchableOpacity
@@ -4804,7 +4804,7 @@ export function BottomSearchDrawer({
                                           type: "livestreams",
                                           originalResult: itemData,
                                         });
-                                      } else if (activeFilter === "chefs" || activeFilter === "foodCreators") {
+                                      } else if (activeFilter === "foodCreators" || activeFilter === "foodCreators") {
                                         handleSuggestionSelect({
                                           id: mealId,
                                           text: mealName,
@@ -4817,7 +4817,7 @@ export function BottomSearchDrawer({
                                           id: mealId,
                                           name: mealName,
                                           price: itemData.price || 0,
-                                          foodCreator: chefName,
+                                          foodCreator: foodCreatorName,
                                           image: mealImage,
                                           _id: mealId,
                                         });
@@ -4874,7 +4874,7 @@ export function BottomSearchDrawer({
                                         }}
                                         numberOfLines={1}
                                       >
-                                        {chefName}
+                                        {foodCreatorName}
                                       </Text>
                                       {mealPrice && (
                                         <Text
@@ -4915,7 +4915,7 @@ export function BottomSearchDrawer({
                               No {filterCategories.find(f => f.id === activeFilter)?.label.toLowerCase() || "filtered"} options yet
                             </Text>
                             <Text style={{ color: "#6a6a6a", fontSize: 14, textAlign: "center", lineHeight: 20 }}>
-                              As more food creators join us, there will be more options for everyone
+                              As more foodCreators join us, there will be more options for everyone
                             </Text>
                           </View>
                         );

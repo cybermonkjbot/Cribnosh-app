@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowLeft, MapPin, Phone } from "lucide-react";
 import Link from "next/link";
@@ -19,7 +19,7 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 
 export default function OrderDetailPage() {
     const params = useParams();
-    const { sessionToken } = useChefAuth();
+    const { sessionToken } = useFoodCreatorAuth();
     const orderId = params.id as string;
 
     const order = useQuery(

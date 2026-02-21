@@ -910,7 +910,7 @@ export const foodCreatorLogin = action({
                 deviceName: args.deviceName,
             });
         } catch (err: any) {
-            console.error("Error creating session token for food creator:", args.email, err);
+            console.error("Error creating session token for foodCreator:", args.email, err);
             // Return a proper error instead of crashing
             return { success: false, error: `Session creation failed: ${err?.message || "Unknown error"}` };
         }

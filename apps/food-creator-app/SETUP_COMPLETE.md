@@ -1,4 +1,4 @@
-# Chef App Setup Complete
+# Food Creator App Setup Complete
 
 ## ✅ What's Been Created
 
@@ -74,7 +74,7 @@ Copy or create:
 ### 4. Start Development
 ```bash
 # From root
-npm run chef:dev
+npm run food creator:dev
 
 # Or from app directory
 cd apps/food-creator-app
@@ -90,10 +90,10 @@ bun run start
 - [ ] Test app starts successfully
 
 ### Development
-- [ ] Create chef authentication context
-- [ ] Implement chef dashboard screen
+- [ ] Create food creator authentication context
+- [ ] Implement food creator dashboard screen
 - [ ] Set up navigation structure
-- [ ] Create chef-specific hooks
+- [ ] Create food creator-specific hooks
 - [ ] Implement onboarding flow
 - [ ] Build profile management screens
 - [ ] Create content management screens
@@ -102,7 +102,7 @@ bun run start
 - [ ] Add live streaming features
 
 ### Components Needed
-- [ ] ChefStatusToggle component
+- [ ] Food CreatorStatusToggle component
 - [ ] OnboardingProgressCard component
 - [ ] CourseModuleCard component
 - [ ] DocumentUploadCard component
@@ -126,8 +126,8 @@ apps/food-creator-app/
 │   └── ThemedView.tsx       ✅
 ├── lib/
 │   └── convexClient.ts      ✅ Convex client
-├── hooks/                   📁 Ready for chef hooks
-├── contexts/                📁 Ready for chef contexts
+├── hooks/                   📁 Ready for food creator hooks
+├── contexts/                📁 Ready for food creator contexts
 ├── utils/                   ✅ Utility functions (copied)
 ├── types/                   📁 Ready for types
 ├── constants/               ✅ Constants (copied)
@@ -146,13 +146,13 @@ apps/food-creator-app/
 ## 🔗 Related Documentation
 
 All documentation is in `apps/web/docs/`:
-- `CHEF_PLATFORM_PRD.md` - Product Requirements
-- `CHEF_PLATFORM_USER_STORIES.md` - User Stories
-- `CHEF_PLATFORM_USER_JOURNEYS.md` - User Journeys
-- `CHEF_PLATFORM_UI_UX_PLAN.md` - UI/UX Plan
-- `CHEF_PLATFORM_API_DESIGN.md` - API Design
-- `CHEF_PLATFORM_SCHEMA_DESIGN.md` - Database Schema
-- `CHEF_PLATFORM_IMPLEMENTATION_PHASES.md` - Implementation Plan
+- `FOOD_CREATOR_PLATFORM_PRD.md` - Product Requirements
+- `FOOD_CREATOR_PLATFORM_USER_STORIES.md` - User Stories
+- `FOOD_CREATOR_PLATFORM_USER_JOURNEYS.md` - User Journeys
+- `FOOD_CREATOR_PLATFORM_UI_UX_PLAN.md` - UI/UX Plan
+- `FOOD_CREATOR_PLATFORM_API_DESIGN.md` - API Design
+- `FOOD_CREATOR_PLATFORM_SCHEMA_DESIGN.md` - Database Schema
+- `FOOD_CREATOR_PLATFORM_IMPLEMENTATION_PHASES.md` - Implementation Plan
 
 ## 🎯 Quick Start
 
@@ -183,5 +183,5 @@ All documentation is in `apps/web/docs/`:
 - All data operations use Convex queries, mutations, and actions
 - Session tokens are managed via SecureStore
 - The app follows the same patterns as the main mobile app
-- Components are copied but may need adjustments for chef-specific use cases
+- Components are copied but may need adjustments for food creator-specific use cases
 

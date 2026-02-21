@@ -77,7 +77,7 @@ interface MealResult {
   dietary: string[];
   rating?: number;
   images: string[];
-  chefId: string;
+  foodCreatorId: string;
   status: string;
 }
 
@@ -211,7 +211,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
   const results = searchResults.map((meal: any, index: number) => ({
     id: index + 1,
     title: meal.name,
-    chef: meal.chef?.name || `Food Creator ${meal.chefId}`,
+    foodCreator: meal.foodCreator?.name || `Food Creator ${meal.foodCreatorId}`,
     image: meal.images[0] || "/kitchenillus.png",
     rating: meal.averageRating || meal.rating || 4.5,
     reviews: meal.reviewCount || 0,
@@ -226,7 +226,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
     "Analyzing your preferences...",
     "Checking meal options...",
     "Considering dietary factors...",
-    "Evaluating chef availability...",
+    "Evaluating food Creator availability...",
     "Finalizing selection..."
   ];
 
@@ -238,7 +238,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
   // AI reasoning points for the decision
   const aiReasoningPoints = [
     "Based on your past orders of spicy dishes",
-    "Chef Nattaya has a 98% satisfaction rating",
+    "Food Creator Nattaya has a 98% satisfaction rating",
     "Ingredients sourced from local organic farms",
     "Matches your preference for authentic flavors",
     "Nutritionally balanced with protein and vegetables"
@@ -460,7 +460,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                         className="flex items-center mb-2"
                       >
                         <ChefHat size={18} className="text-white mr-2" />
-                        <span className="text-white font-medium">{results[decidedResult].chef}</span>
+                        <span className="text-white font-medium">{results[decidedResult].foodCreator}</span>
                       </motion.div>
                       <motion.h4
                         initial={{ y: 20, opacity: 0 }}
@@ -652,7 +652,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                         <div className="absolute bottom-0 left-0 right-0 p-4">
                           <div className="flex items-center mb-2">
                             <ChefHat size={16} className="text-white mr-2" />
-                            <span className="text-white font-medium">{result.chef}</span>
+                            <span className="text-white font-medium">{result.foodCreator}</span>
                           </div>
                           <h4 className="text-xl font-display font-bold text-white mb-2">{result.title}</h4>
                           <div className="flex items-center">
@@ -753,17 +753,17 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                         <div>
                           <h4 className="text-lg font-semibold mb-2 line-clamp-1">{meal.name}</h4>
                           <p className="text-slate-600 text-sm mb-3 line-clamp-2">
-                            {meal.description || meal.chef?.name || `Food Creator ${meal.chefId}`}
+                            {meal.description || meal.foodCreator?.name || `Food Creator ${meal.foodCreatorId}`}
                           </p>
                           <div className="flex items-center justify-between mb-4">
                             <span className="text-xl font-bold text-[#ff3b30]">
                               £{(meal.price || 0).toFixed(2)}
                             </span>
                             <div className="flex items-center gap-4 text-sm text-slate-500">
-                              {meal.chef?.name && (
+                              {meal.foodCreator?.name && (
                                 <div className="flex items-center gap-1">
                                   <ChefHat className="w-4 h-4" />
-                                  <span>{meal.chef.name}</span>
+                                  <span>{meal.foodCreator.name}</span>
                                 </div>
                               )}
                             </div>
@@ -793,7 +793,7 @@ export function SearchResults({ query, onClearSearch }: SearchResultsProps) {
                   <div className="col-span-1 md:col-span-3 p-8 bg-linear-to-r from-[#ff3b30]/10 to-[#ff7b72]/10 rounded-xl border border-[#ff3b30]/20 shadow-sm">
                     <h4 className="text-xl font-semibold mb-3">No recommendations yet</h4>
                     <p className="text-slate-600 mb-6">
-                      Start liking meals and following food creators to get personalized recommendations!
+                      Start liking meals and following foodCreators to get personalized recommendations!
                     </p>
                   </div>
                 ) : (

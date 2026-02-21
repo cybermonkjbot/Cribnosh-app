@@ -94,7 +94,7 @@ export default function CameraModalScreen() {
       // Start a live session via the action
       const result = await convex.action(api.actions.liveSessions.startLiveSession, {
         sessionToken,
-        title: 'Live Cooking Session',
+        title: 'Live culinary session',
         description: '',
         scheduledStartTime: Date.now(),
       });

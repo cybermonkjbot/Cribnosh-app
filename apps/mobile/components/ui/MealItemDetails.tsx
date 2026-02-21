@@ -42,7 +42,7 @@ interface MealItemDetailsProps {
     description: string;
     price: number;
     imageUrl?: string;
-    foodCreatorName: string;
+    foodCreator_name: string;
     foodCreatorAvatar?: string;
     foodCreatorId?: string;
     calories: number;
@@ -63,7 +63,7 @@ interface MealItemDetailsProps {
     prepTime?: string;
     deliveryTime?: string;
     foodCreatorStory?: string;
-    foodCreatorTips?: string[];
+    foodCreator_tips?: string[];
     similarMeals?: {
       id: string;
       name: string;
@@ -75,7 +75,7 @@ interface MealItemDetailsProps {
   };
   onAddToCart?: (mealId: string, quantity: number) => void;
   onSimilarMealPress?: (mealId: string) => void;
-  onFoodCreatorNamePress?: (foodCreatorName: string, foodCreatorId?: string, foodcreatorId?: string) => void;
+  onFoodCreatorNamePress?: (foodCreator_name: string, foodCreatorId?: string, foodcreatorId?: string) => void;
 }
 
 export function MealItemDetails({
@@ -141,7 +141,7 @@ export function MealItemDetails({
     // Check for essential fields that would make API call unnecessary
     return !!(
       mealData.title &&
-      mealData.foodCreatorName &&
+      mealData.foodCreator_name &&
       mealData.price !== undefined &&
       mealData.description
     );
@@ -271,9 +271,9 @@ export function MealItemDetails({
         ? parseFloat((dish.price as string).replace(/[£$]/g, '')) * 100
         : (dish.price || 0),
       imageUrl: dish.image_url || (dish as any).images?.[0],
-      foodCreatorName: dish.foodCreator_name || (dish as any).foodCreator?.name || (dish as any).chef?.name || '',
-      foodCreatorAvatar: (dish as any).foodCreator?.profile_image || (dish as any).chef?.profile_image || (dish as any).foodCreator_image,
-      foodCreatorId: dish.foodCreator_id || (dish as any).foodCreator?.id || (dish as any).chef?.id,
+      foodCreator_name: dish.foodCreator_name || (dish as any).foodCreator?.name || (dish as any).foodCreator?.name || '',
+      foodCreatorAvatar: (dish as any).foodCreator?.profile_image || (dish as any).foodCreator?.profile_image || (dish as any).foodCreator_image,
+      foodCreatorId: dish.foodCreator_id || (dish as any).foodCreator?.id || (dish as any).foodCreator?.id,
       calories: dish.calories || 0,
       fat: dish.fat || '0g',
       protein: dish.protein || '0g',
@@ -290,8 +290,8 @@ export function MealItemDetails({
       isSafeForYou: dish.is_safe_for_you !== undefined ? dish.is_safe_for_you : true,
       prepTime: dish.prep_time || (dish as any).preparation_time,
       deliveryTime: dish.delivery_time,
-      foodCreatorStory: (dish as any).foodCreator?.story || (dish as any).foodCreator?.bio || (dish as any).chef?.story || (dish as any).chef?.bio,
-      foodCreatorTips: (dish as any).foodCreator_tips || (dish as any).chef_tips || (dish as any).tips || [],
+      foodCreatorStory: (dish as any).foodCreator?.story || (dish as any).foodCreator?.bio || (dish as any).foodCreator?.story || (dish as any).foodCreator?.bio,
+      foodCreator_tips: (dish as any).foodCreator_tips || (dish as any).foodCreator_tips || (dish as any).tips || [],
       // Extract reviews and sentiment for sentiment bar
       reviews: dish.reviews || [],
       sentiment: dish.sentiment || undefined,
@@ -425,8 +425,8 @@ export function MealItemDetails({
   }, [isAuthenticated, mealId, isFavorite, removeDishFavorite, addDishFavorite]);
 
   // Determine which sections have data
-  const hasBasicInfo = !isLoading && finalMealData?.title && finalMealData?.foodCreatorName;
-  const hasFoodCreatorInfo = hasBasicInfo && finalMealData.foodCreatorName;
+  const hasBasicInfo = !isLoading && finalMealData?.title && finalMealData?.foodCreator_name;
+  const hasFoodCreatorInfo = hasBasicInfo && finalMealData.foodCreator_name;
   const hasMealImage = hasBasicInfo && (finalMealData.imageUrl !== undefined || finalMealData.title);
   const hasMealTitle = hasBasicInfo && finalMealData.title;
   const hasMealBadges = hasBasicInfo && (finalMealData.isVegetarian !== undefined || finalMealData.isSafeForYou !== undefined);
@@ -435,7 +435,7 @@ export function MealItemDetails({
   const hasDietCompatibility = hasBasicInfo && finalMealData.dietCompatibility !== undefined;
   const hasNutritionalInfo = hasBasicInfo && finalMealData.calories !== undefined;
   const hasIngredients = hasBasicInfo && finalMealData.ingredients && finalMealData.ingredients.length > 0;
-  const hasFoodCreatorNotes = hasBasicInfo && (finalMealData.foodCreatorStory || (finalMealData.foodCreatorTips && finalMealData.foodCreatorTips.length > 0));
+  const hasFoodCreatorNotes = hasBasicInfo && (finalMealData.foodCreatorStory || (finalMealData.foodCreator_tips && finalMealData.foodCreator_tips.length > 0));
   const hasSimilarMeals = !isLoadingSimilarMeals && similarMeals && similarMeals.length > 0;
 
   return (
@@ -460,9 +460,9 @@ export function MealItemDetails({
           {/* FoodCreator Info Component - positioned at top */}
           {hasFoodCreatorInfo ? (
             <FoodCreatorInfo
-              foodCreatorName={finalMealData.foodCreatorName}
+              foodCreator_name={finalMealData.foodCreator_name}
               foodCreatorAvatar={finalMealData.foodCreatorAvatar}
-              onPress={() => onFoodCreatorNamePress?.(finalMealData.foodCreatorName, finalMealData.foodCreatorId, finalMealData.foodCreatorId)}
+              onPress={() => onFoodCreatorNamePress?.(finalMealData.foodCreator_name, finalMealData.foodCreatorId, finalMealData.foodCreatorId)}
             />
           ) : (
             <FoodCreatorInfoSkeleton />
@@ -496,8 +496,8 @@ export function MealItemDetails({
           {hasMealDescription ? (
             <MealDescription
               description={finalMealData.description}
-              foodCreatorName={finalMealData.foodCreatorName}
-              onFoodCreatorNamePress={() => onFoodCreatorNamePress?.(finalMealData.foodCreatorName, finalMealData.foodCreatorId, finalMealData.foodCreatorId)}
+              foodCreator_name={finalMealData.foodCreator_name}
+              onFoodCreatorNamePress={() => onFoodCreatorNamePress?.(finalMealData.foodCreator_name, finalMealData.foodCreatorId, finalMealData.foodCreatorId)}
             />
           ) : (
             <MealDescriptionSkeleton />
@@ -548,8 +548,8 @@ export function MealItemDetails({
           {hasFoodCreatorNotes ? (
             <FoodCreatorNotes
               story={finalMealData.foodCreatorStory}
-              tips={finalMealData.foodCreatorTips}
-              foodCreatorName={finalMealData.foodCreatorName}
+              tips={finalMealData.foodCreator_tips}
+              foodCreator_name={finalMealData.foodCreator_name}
               foodCreatorAvatar={finalMealData.foodCreatorAvatar}
             />
           ) : (

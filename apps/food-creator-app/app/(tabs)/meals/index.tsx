@@ -31,7 +31,7 @@ export default function MealsManagementScreen() {
   const meals = useQuery(
     api.queries.meals.getAllByChefIdForManagement,
     foodCreator?._id && sessionToken
-      ? { chefId: foodCreator._id, sessionToken, limit: 100 }
+      ? { foodCreatorId: foodCreator._id, sessionToken, limit: 100 }
       : 'skip'
   ) as any[] | undefined;
 

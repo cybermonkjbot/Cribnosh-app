@@ -14,13 +14,13 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.cribnosh.chef",
       "associatedDomains": [
-        "applinks:chef.cribnosh.com"
+        "applinks:foodcreator.cribnosh.com"
       ],
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select images for recipes and meals.",
         "NSCameraUsageDescription": "This app needs access to your camera to take photos of your meals and kitchen.",
-        "NSLocationWhenInUseUsageDescription": "CribNosh Chef needs your location to show your kitchen location to customers",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "CribNosh Chef needs your location to show your kitchen location to customers",
+        "NSLocationWhenInUseUsageDescription": "CribNosh Food Creator needs your location to show your kitchen location to customers",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "CribNosh Food Creator needs your location to show your kitchen location to customers",
         "ITSAppUsesNonExemptEncryption": false
       },
       "deploymentTarget": "16.2"

@@ -16,7 +16,7 @@ interface CartItemProps {
     name?: string;
     dish_name?: string;
     image_url?: string;
-    chef_name?: string;
+    foodCreatorName?: string;
   };
 }
 
@@ -88,8 +88,8 @@ export function CartItem({ item }: CartItemProps) {
       {/* Item Details */}
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold text-gray-900 truncate">{itemName}</h3>
-        {item.chef_name && (
-          <p className="text-sm text-gray-500 truncate">{item.chef_name}</p>
+        {item.foodCreatorName && (
+          <p className="text-sm text-gray-500 truncate">{item.foodCreatorName}</p>
         )}
         <p className="text-lg font-bold text-gray-900 mt-1">
           £{itemPrice.toFixed(2)}

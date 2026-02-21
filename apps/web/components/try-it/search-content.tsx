@@ -4,7 +4,7 @@ import { SignInScreen } from "@/components/auth/sign-in-screen";
 import {
   AppDownloadCTA,
   DietFilters,
-  FavoriteChefs,
+  FavoriteFoodCreators,
   PreviousMeals,
   SearchResults,
   SearchSuggestions,
@@ -187,7 +187,7 @@ export default function SearchContent() {
             <SearchSuggestions query={searchQuery} onSelectSuggestion={handleSearch} />
           )}
 
-          {/* Previous Meals and Favorite Chefs */}
+          {/* Previous Meals and Favorite FoodCreators */}
           {!isSearching && !searchQuery && (
             <>
               <div className="mt-12">
@@ -204,7 +204,7 @@ export default function SearchContent() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.5 }}
                 >
-                  <FavoriteChefs />
+                  <FavoriteFoodCreators />
                 </motion.div>
 
                 <motion.div

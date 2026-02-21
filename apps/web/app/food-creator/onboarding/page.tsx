@@ -1,24 +1,24 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useQuery } from "convex/react";
 import { ArrowRight, Banknote, CheckCircle2, Circle, FileText, GraduationCap } from "lucide-react";
 import Link from "next/link";
 
 export default function OnboardingPage() {
-    const { chef, sessionToken, isBasicOnboardingComplete, isOnboardingComplete } = useChefAuth();
+    const { foodCreator, sessionToken, isBasicOnboardingComplete, isOnboardingComplete } = useFoodCreatorAuth();
 
     // Fetch document summary
     const docSummary = useQuery(
         api.queries.chefDocuments.getSummary,
-        chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : "skip"
+        foodCreator?._id && sessionToken ? { chefId: foodCreator._id, sessionToken } : "skip"
     );
 
     // Fetch bank accounts
     const bankAccounts = useQuery(
         api.queries.chefBankAccounts.getByChefId,
-        chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : "skip"
+        foodCreator?._id && sessionToken ? { chefId: foodCreator._id, sessionToken } : "skip"
     );
 
     const steps = [

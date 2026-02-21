@@ -75,7 +75,7 @@ export default function ModuleQuizScreen() {
   const enrollment = useQuery(
     api.queries.chefCourses.getByChefAndCourse,
     foodCreator?._id && courseId && sessionToken
-      ? { chefId: foodCreator._id, courseId, sessionToken }
+      ? { foodCreatorId: foodCreator._id, courseId, sessionToken }
       : 'skip'
   ) as any;
 
@@ -112,7 +112,7 @@ export default function ModuleQuizScreen() {
     saveQuizProgressTimeoutRef.current = setTimeout(async () => {
       try {
         await updateProgress({
-          chefId: foodCreator._id,
+          foodCreatorId: foodCreator._id,
           courseId,
           moduleId,
           moduleName: currentModule.moduleName || moduleContent.moduleName || 'Module',
@@ -299,7 +299,7 @@ export default function ModuleQuizScreen() {
     try {
       // Update module progress with quiz results
       await updateProgress({
-        chefId: foodCreator._id,
+        foodCreatorId: foodCreator._id,
         courseId,
         moduleId,
         moduleName: currentModule.moduleName || moduleContent?.moduleName || 'Module',
@@ -345,7 +345,7 @@ export default function ModuleQuizScreen() {
     if (foodCreator?._id && courseId && moduleId && sessionToken && currentModule && moduleContent) {
       try {
         await updateProgress({
-          chefId: foodCreator._id,
+          foodCreatorId: foodCreator._id,
           courseId,
           moduleId,
           moduleName: currentModule.moduleName || moduleContent.moduleName || 'Module',

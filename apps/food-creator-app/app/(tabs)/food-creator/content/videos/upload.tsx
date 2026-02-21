@@ -52,7 +52,7 @@ export default function VideoUploadScreen() {
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const meals = useQuery(
     api.queries.meals.getByChefId,
-    foodCreator?._id ? { chefId: foodCreator._id } : 'skip'
+    foodCreator?._id ? { foodCreatorId: foodCreator._id } : 'skip'
   ) as any[] | undefined;
 
   const handlePickVideo = async () => {

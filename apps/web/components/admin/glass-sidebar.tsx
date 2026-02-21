@@ -87,7 +87,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
   const waitlistQueryArgs = sessionToken ? { sessionToken } : "skip";
   const totalUsers = useQuery(api.queries.users.getTotalUserCount, totalUsersQueryArgs);
   const waitlistCount = useQuery(api.queries.waitlist.getWaitlistCount, waitlistQueryArgs);
-  const newChefApplications = useQuery(api.queries.careers.getNewChefApplicationsCount);
+  const newFoodCreatorApplications = useQuery(api.queries.careers.getNewChefApplicationsCount);
 
   // Don't render if not in admin section or on login page
   if (!pathname.startsWith('/admin') || pathname === '/admin/login') {
@@ -129,10 +129,10 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       ]
     },
     {
-      name: 'Food Creators',
+      name: 'foodCreators',
       href: '/admin/food-creators',
       icon: ChefHat,
-      description: 'Food Creator management'
+      description: 'foodCreator management'
     },
     {
       name: 'Orders',
@@ -168,7 +168,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
           name: 'Reviews',
           href: '/admin/reviews',
           icon: MessageSquare,
-          description: 'Food Creator & Meal reviews',
+          description: 'foodCreator & Meal reviews',
         },
       ]
     },
@@ -177,7 +177,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       href: '/admin/careers',
       icon: Briefcase,
       description: 'Job postings and applications',
-      badge: newChefApplications && newChefApplications > 0 ? newChefApplications.toString() : undefined,
+      badge: newFoodCreatorApplications && newFoodCreatorApplications > 0 ? newFoodCreatorApplications.toString() : undefined,
       subItems: [
         {
           name: 'All Postings',

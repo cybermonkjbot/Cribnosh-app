@@ -50,7 +50,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
     title: '',
     description: '',
     prepTime: '',
-    cookTime: '',
+    cookingTime: '',
     servings: '',
     difficulty: 'medium' as 'easy' | 'medium' | 'hard',
     cuisine: '',
@@ -90,7 +90,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
       title: '',
       description: '',
       prepTime: '',
-      cookTime: '',
+      cookingTime: '',
       servings: '',
       difficulty: 'medium',
       cuisine: '',
@@ -305,7 +305,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
         })),
         instructions: validInstructions.map(inst => inst.trim()),
         prepTime: parseInt(formData.prepTime) || 0,
-        cookTime: parseInt(formData.cookTime) || 0,
+        cookingTime: parseInt(formData.cookingTime) || 0,
         servings: parseInt(formData.servings) || 1,
         difficulty: formData.difficulty,
         cuisine: formData.cuisine.trim() || 'Other',
@@ -395,8 +395,8 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
                 <TextInput
                   style={styles.inputCardText}
                   placeholder="Cook (min)"
-                  value={formData.cookTime}
-                  onChangeText={(text) => setFormData({ ...formData, cookTime: text })}
+                  value={formData.cookingTime}
+                  onChangeText={(text) => setFormData({ ...formData, cookingTime: text })}
                   keyboardType="numeric"
                   placeholderTextColor="#9CA3AF"
                 />
@@ -610,7 +610,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
             {formData.instructions.length === 0 && (
               <Text style={styles.emptyText}>No instructions added yet. Tap &quot;Add Step&quot; to get started.</Text>
             )}
-            <Text style={styles.hintText}>Break down the cooking process into clear steps</Text>
+            <Text style={styles.hintText}>Break down the culinary process into clear steps</Text>
           </View>
         );
 

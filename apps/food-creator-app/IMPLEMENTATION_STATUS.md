@@ -26,7 +26,7 @@
 - [x] Status card (online/offline)
 - [x] Quick stats cards
 - [x] Earnings summary (using analytics query)
-- [x] Recent orders (using `listByChef` query)
+- [x] Recent orders (using `listByFood Creator` query)
 - [x] Quick actions grid
 
 ### Onboarding

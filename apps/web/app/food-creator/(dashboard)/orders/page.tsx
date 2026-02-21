@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useQuery } from "convex/react";
 import { Search, ShoppingBag } from "lucide-react";
 import Link from "next/link";
@@ -17,14 +17,14 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 };
 
 export default function OrdersPage() {
-    const { chef, sessionToken } = useChefAuth();
+    const { foodCreator, sessionToken } = useFoodCreatorAuth();
     const [filter, setFilter] = useState<"all" | "active" | "today">("active");
     const [searchQuery, setSearchQuery] = useState("");
 
     const orders = useQuery(
         api.queries.orders.listByChef,
-        chef?._id && sessionToken
-            ? { chef_id: chef._id.toString(), limit: 50, sessionToken }
+        foodCreator?._id && sessionToken
+            ? { foodCreator_id: foodCreator._id.toString(), limit: 50, sessionToken }
             : "skip"
     );
 

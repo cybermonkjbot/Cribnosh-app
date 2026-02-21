@@ -270,7 +270,7 @@ export default function ApplicationPage() {
         html: `
                   <h1>Thanks for Applying to CribNosh!</h1>
                   <p>Hi ${formData.personalInfo.firstName},</p>
-                  <p>We've received your application to become a CribNosh food creator. Our team will review your information and get back to you within 2-3 business days.</p>
+                  <p>We've received your application to become a CribNosh foodCreator. Our team will review your information and get back to you within 2-3 business days.</p>
                   <p>Next steps:</p>
                   <ul>
                     <li>Application review by our team</li>

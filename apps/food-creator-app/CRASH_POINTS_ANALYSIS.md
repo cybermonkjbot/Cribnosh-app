@@ -1,4 +1,4 @@
-# Crash Points Analysis - Chef App
+# Crash Points Analysis - Food Creator App
 
 ## Critical Crash Points Found
 
@@ -12,13 +12,13 @@
 - **Locations**: Multiple files accessing `result.assets[0]` without proper checks
 - **Files**:
   - `components/ui/CreateRecipeModal.tsx` (line 175, 182)
-  - `app/(tabs)/chef/content/recipes/[id].tsx` (line 141, 148)
-  - `app/(tabs)/chef/content/videos/upload.tsx` (line 73)
+  - `app/(tabs)/food creator/content/recipes/[id].tsx` (line 141, 148)
+  - `app/(tabs)/food creator/content/videos/upload.tsx` (line 73)
   - `components/ui/CreateStoryModal.tsx` (line 114)
   - `components/ui/CameraModalScreen.tsx` (line 389)
   - `components/ProfileAvatar.tsx` (line 72)
-  - `app/(tabs)/chef/onboarding/documents/upload.tsx` (line 87)
-  - `app/(tabs)/chef/onboarding/documents/[id].tsx` (line 73)
+  - `app/(tabs)/food creator/onboarding/documents/upload.tsx` (line 87)
+  - `app/(tabs)/food creator/onboarding/documents/[id].tsx` (line 73)
   - `components/DocumentUploadSheet.tsx` (line 299)
   - `components/ChefOnboardingImageScreen.tsx` (line 46)
 - **Issue**: Accessing `assets[0]` without checking if array exists or has items
@@ -27,7 +27,7 @@
 ### 3. **Native Module Dynamic Imports** ⚠️ MEDIUM PRIORITY
 - **Locations**:
   - `components/ui/CameraModalScreen.tsx` (line 233): `await import('expo-camera')`
-  - `app/(tabs)/chef/live/index.tsx` (line 84): `await import('expo-camera')`
+  - `app/(tabs)/food creator/live/index.tsx` (line 84): `await import('expo-camera')`
   - `hooks/useAgoraStream.ts` (line 58): `require('react-native-agora')`
 - **Issue**: Dynamic imports/requires could fail if native modules aren't available
 - **Impact**: Crash if native module fails to load (e.g., in Expo Go or simulator)
@@ -75,18 +75,18 @@
 1. **ErrorBoundary Added** - Root layout now has ErrorBoundary to catch React errors
 2. **Array Access Fixed** - Fixed in:
    - `components/ui/CreateRecipeModal.tsx`
-   - `app/(tabs)/chef/content/recipes/[id].tsx`
-   - `app/(tabs)/chef/content/videos/upload.tsx`
+   - `app/(tabs)/food creator/content/recipes/[id].tsx`
+   - `app/(tabs)/food creator/content/videos/upload.tsx`
 3. **Native Module Imports** - Wrapped in try-catch:
    - `components/ui/CameraModalScreen.tsx`
-   - `app/(tabs)/chef/live/index.tsx`
+   - `app/(tabs)/food creator/live/index.tsx`
 4. **Agora Cleanup** - Improved error handling in cleanup function
 5. **Stripe Initialization** - Added null checks in:
    - `components/ui/TopUpBalanceSheet.tsx`
    - `components/ui/AddCardSheet.tsx` (already had checks)
 6. **Image Error Handling** - Added onError handlers to:
    - `components/ui/CreateRecipeModal.tsx`
-   - `app/(tabs)/chef/content/recipes/[id].tsx`
+   - `app/(tabs)/food creator/content/recipes/[id].tsx`
    - `components/ContentGrid.tsx`
 
 ### ⚠️ Remaining Issues (Lower Priority)

@@ -83,7 +83,7 @@ export const FoodCreatorOnboardingProfileScreen: React.FC<FoodCreatorOnboardingP
 
             {/* Description */}
             <Text style={styles.description}>
-              Tell us about yourself and your cooking style.
+              Tell us about yourself and your culinary style.
             </Text>
 
             {/* Name Section */}
@@ -105,7 +105,7 @@ export const FoodCreatorOnboardingProfileScreen: React.FC<FoodCreatorOnboardingP
                 style={[styles.textInput, styles.textArea]}
                 value={bio}
                 onChangeText={setBio}
-                placeholder="Tell us about your cooking experience and style..."
+                placeholder="Tell us about your culinary experience and style..."
                 placeholderTextColor="#9CA3AF"
                 multiline
                 numberOfLines={4}

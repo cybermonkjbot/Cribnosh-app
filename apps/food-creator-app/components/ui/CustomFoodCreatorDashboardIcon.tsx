@@ -16,7 +16,7 @@ export function CustomFoodCreatorDashboardIcon({ size = 36, color = '#0B9E58' }:
         />
         <Path 
           d="M18 2C18.586 2 19.2271 2.1541 20.2236 2.63867C21.2612 3.14325 22.5147 3.9178 24.3545 5.05957L27.9541 7.29395C29.6942 8.37392 30.8765 9.11054 31.751 9.78027C32.5893 10.4223 33.023 10.9143 33.3115 11.4414C33.6018 11.9718 33.7894 12.6195 33.8916 13.707C33.9976 14.8352 34 16.2708 34 18.3672V21.1055C34 24.6706 33.9959 27.1505 33.7529 29.0195C33.5166 30.8376 33.0861 31.774 32.4531 32.4287C31.8293 33.074 30.9508 33.506 29.2246 33.7461C27.4337 33.9951 25.052 34 21.5996 34H14.4004C10.948 34 8.5663 33.9951 6.77539 33.7461C5.04929 33.506 4.17079 33.074 3.54688 32.4287C2.9139 31.774 2.48343 30.8376 2.24707 29.0195C2.00414 27.1505 2 24.6706 2 21.1055V18.3672C2 16.2708 2.00241 14.8352 2.1084 13.707C2.21059 12.6195 2.39825 11.9718 2.68848 11.4414C2.97699 10.9143 3.41072 10.4223 4.24902 9.78027C5.12355 9.11054 6.30577 8.37392 8.0459 7.29395L11.6455 5.05957C13.4852 3.9178 14.7388 3.14325 15.7764 2.63867C16.7729 2.15411 17.414 2 18 2Z" 
-          stroke="url(#paint0_linear_chef_dashboard)" 
+          stroke="url(#paint0_linear_food creator_dashboard)" 
           strokeOpacity="0.9" 
           strokeWidth="4"
         />
@@ -36,7 +36,7 @@ export function CustomFoodCreatorDashboardIcon({ size = 36, color = '#0B9E58' }:
         fill={color}
       />
       <Defs>
-        <LinearGradient id="paint0_linear_chef_dashboard" x1="18" y1="0" x2="18" y2="36" gradientUnits="userSpaceOnUse">
+        <LinearGradient id="paint0_linear_food creator_dashboard" x1="18" y1="0" x2="18" y2="36" gradientUnits="userSpaceOnUse">
           <Stop stopColor="#FAFFFA"/>
           <Stop offset="1" stopColor="#FF3B30"/>
         </LinearGradient>

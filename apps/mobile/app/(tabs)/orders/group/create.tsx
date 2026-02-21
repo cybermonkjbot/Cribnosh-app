@@ -34,20 +34,20 @@ const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none
 export default function CreateGroupOrderScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
-    chef_id?: string;
+    foodCreatorId?: string;
     restaurant_name?: string;
   }>();
   const { } = useAuthState();
   const { location: userLocation } = useUserLocation();
 
   // Food Creator selection state
-  const [selectedFoodCreator, setSelectedFoodCreator] = useState<{ chef_id: string; restaurant_name: string } | null>(
-    params.chef_id && params.restaurant_name
-      ? { chef_id: params.chef_id, restaurant_name: params.restaurant_name }
+  const [selectedFoodCreator, setSelectedFoodCreator] = useState<{ foodCreatorId: string; restaurant_name: string } | null>(
+    params.foodCreatorId && params.restaurant_name
+      ? { foodCreatorId: params.foodCreatorId, restaurant_name: params.restaurant_name }
       : null
   );
   const [searchQuery, setSearchQuery] = useState('');
-  const [showFoodCreatorSelection, setShowFoodCreatorSelection] = useState(!params.chef_id || !params.restaurant_name);
+  const [showFoodCreatorSelection, setShowFoodCreatorSelection] = useState(!params.foodCreatorId || !params.restaurant_name);
 
   const [initialBudget, setInitialBudget] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export default function CreateGroupOrderScreen() {
           let foodCreators: any[] = [];
 
           if (searchQuery && searchQuery.length >= 2) {
-            // Search foodCreators/chefs by query
+            // Search foodCreators/foodCreators by query
             const searchResult = await convex.query(api.queries.foodCreators.searchFoodCreatorsByQuery, {
               query: searchQuery,
               latitude: userLocation.latitude,
@@ -80,9 +80,9 @@ export default function CreateGroupOrderScreen() {
               radiusKm: 10,
               limit: 20,
             });
-            foodCreators = searchResult.chefs || [];
+            foodCreators = searchResult.foodCreators || [];
           } else {
-            // Get nearby foodCreators/food creators
+            // Get nearby foodCreators/foodCreators
             const nearbyResult = await convex.query(api.queries.foodCreators.findNearbyFoodCreators, {
               latitude: userLocation.latitude,
               longitude: userLocation.longitude,
@@ -91,7 +91,7 @@ export default function CreateGroupOrderScreen() {
             foodCreators = nearbyResult || [];
           }
 
-          console.log('Loaded food creators:', foodCreators.length);
+          console.log('Loaded foodCreators:', foodCreators.length);
 
           // Transform to expected format
           const transformedFoodCreators = foodCreators.map((foodCreator: any) => ({
@@ -105,10 +105,10 @@ export default function CreateGroupOrderScreen() {
             rating: foodCreator.rating || null,
           }));
 
-          setFoodCreatorsData({ success: true, data: { chefs: transformedFoodCreators } });
+          setFoodCreatorsData({ success: true, data: { foodCreators: transformedFoodCreators } });
         } catch (error) {
-          console.error('Failed to load food creators:', error);
-          setFoodCreatorsData({ success: false, data: { chefs: [] } });
+          console.error('Failed to load foodCreators:', error);
+          setFoodCreatorsData({ success: false, data: { foodCreators: [] } });
         } finally {
           setIsLoadingFoodCreatorsData(false);
         }
@@ -119,13 +119,13 @@ export default function CreateGroupOrderScreen() {
     }
   }, [showFoodCreatorSelection, userLocation, searchQuery]);
 
-  const foodCreatorId = selectedFoodCreator?.chef_id || '';
+  const foodCreatorId = selectedFoodCreator?.foodCreatorId || '';
   const restaurantName = selectedFoodCreator?.restaurant_name || '';
 
-  // Get food creators list (from search results)
+  // Get foodCreators list (from search results)
   const availableFoodCreators = useMemo(() => {
-    if (foodCreatorsData?.data?.chefs) {
-      return foodCreatorsData.data.chefs;
+    if (foodCreatorsData?.data?.foodCreators) {
+      return foodCreatorsData.data.foodCreators;
     }
     return [];
   }, [foodCreatorsData]);
@@ -189,7 +189,7 @@ export default function CreateGroupOrderScreen() {
 
     try {
       const result = await createGroupOrder({
-        chef_id: foodCreatorId,
+        foodCreatorId: foodCreatorId,
         restaurant_name: restaurantName,
         initial_budget: budgetNum,
         title: title || defaultTitle,
@@ -253,7 +253,7 @@ export default function CreateGroupOrderScreen() {
 
   const handleFoodCreatorSelect = (foodCreator: FoodCreator) => {
     setSelectedFoodCreator({
-      chef_id: foodCreator.id,
+      foodCreatorId: foodCreator.id,
       restaurant_name: foodCreator.foodCreator_name || foodCreator.name,
     });
     setShowFoodCreatorSelection(false);
@@ -264,7 +264,7 @@ export default function CreateGroupOrderScreen() {
     setSelectedFoodCreator(null);
   };
 
-  // Show chef selection if no chef selected
+  // Show foodCreator selection if no foodCreator selected
   if (showFoodCreatorSelection || !foodCreatorId || !restaurantName) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -283,7 +283,7 @@ export default function CreateGroupOrderScreen() {
             <SearchIcon size={20} color="#9CA3AF" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search for food creators..."
+              placeholder="Search for foodCreators..."
               placeholderTextColor="#9CA3AF"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -301,20 +301,20 @@ export default function CreateGroupOrderScreen() {
         </View>
 
         {/* Food Creators List */}
-        <View style={styles.chefsListContainer}>
+        <View style={styles.foodCreatorsListContainer}>
           {isLoadingFoodCreators ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#E6FFE8" />
-              <Text style={styles.loadingText}>Loading food creators...</Text>
+              <Text style={styles.loadingText}>Loading foodCreators...</Text>
             </View>
           ) : availableFoodCreators.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
-                {searchQuery ? 'No food creators found' : 'No food creators nearby'}
+                {searchQuery ? 'No foodCreators found' : 'No foodCreators nearby'}
               </Text>
               {!searchQuery && (
                 <Text style={styles.emptySubtext}>
-                  Try searching for a food creator name
+                  Try searching for a foodCreator name
                 </Text>
               )}
             </View>
@@ -324,7 +324,7 @@ export default function CreateGroupOrderScreen() {
               keyExtractor={(item) => item.id}
               renderItem={({ item: foodCreator }) => (
                 <TouchableOpacity
-                  style={styles.chefCard}
+                  style={styles.foodCreatorCard}
                   onPress={() => handleFoodCreatorSelect(foodCreator)}
                   activeOpacity={0.7}
                 >
@@ -332,15 +332,15 @@ export default function CreateGroupOrderScreen() {
                     source={{
                       uri: foodCreator.image_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face'
                     }}
-                    style={styles.chefImage}
+                    style={styles.foodCreatorImage}
                   />
-                  <View style={styles.chefInfo}>
-                    <Text style={styles.chefName}>
+                  <View style={styles.foodCreatorInfo}>
+                    <Text style={styles.foodCreatorName}>
                       {foodCreator.foodCreator_name || foodCreator.name}
                     </Text>
-                    <Text style={styles.chefCuisine}>{foodCreator.cuisine}</Text>
+                    <Text style={styles.foodCreatorCuisine}>{foodCreator.cuisine}</Text>
                     {foodCreator.delivery_time && (
-                      <Text style={styles.chefDeliveryTime}>
+                      <Text style={styles.foodCreatorDeliveryTime}>
                         Delivers in {foodCreator.delivery_time}
                       </Text>
                     )}
@@ -350,7 +350,7 @@ export default function CreateGroupOrderScreen() {
 </svg>`} width={20} height={20} />
                 </TouchableOpacity>
               )}
-              contentContainerStyle={styles.chefsListContent}
+              contentContainerStyle={styles.foodCreatorsListContent}
               showsVerticalScrollIndicator={false}
             />
           )}
@@ -674,10 +674,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  chefsListContainer: {
+  foodCreatorsListContainer: {
     flex: 1,
   },
-  chefsListContent: {
+  foodCreatorsListContent: {
     padding: 20,
     paddingTop: 8,
     paddingBottom: 40,
@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  chefCard: {
+  foodCreatorCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -725,27 +725,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5E5',
   },
-  chefImage: {
+  foodCreatorImage: {
     width: 60,
     height: 60,
     borderRadius: 30,
     marginRight: 16,
   },
-  chefInfo: {
+  foodCreatorInfo: {
     flex: 1,
   },
-  chefName: {
+  foodCreatorName: {
     color: '#1a1a1a',
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 4,
   },
-  chefCuisine: {
+  foodCreatorCuisine: {
     color: '#6B7280',
     fontSize: 14,
     marginBottom: 4,
   },
-  chefDeliveryTime: {
+  foodCreatorDeliveryTime: {
     color: '#9CA3AF',
     fontSize: 12,
   },

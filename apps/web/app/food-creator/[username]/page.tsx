@@ -21,7 +21,7 @@ async function getFoodCreator(username: string) {
         const foodCreator = await convex.query(api.queries.chefs.getFoodCreatorByUsername, { username });
         return foodCreator;
     } catch (e) {
-        console.error("Error fetching food creator:", e);
+        console.error("Error fetching foodCreator:", e);
         return null;
     }
 }
@@ -62,7 +62,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
         },
         keywords: [
             foodCreator.name,
-            "food creator",
+            "food-creator",
             "home cooked meals",
             "food delivery",
             foodCreator.location?.city || "",

@@ -18,23 +18,23 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useQuery } from "convex/react";
 import { ArrowLeft, DollarSign, Download, FileText, TrendingDown, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 export default function TaxPage() {
-    const { chef, sessionToken } = useChefAuth();
+    const { foodCreator, sessionToken } = useFoodCreatorAuth();
     const [selectedYear, setSelectedYear] = useState<string>("");
 
     const availableYears = useQuery(api.queries.chefTax.getAvailableTaxYears,
-        chef ? { chefId: chef._id, sessionToken } : "skip"
+        foodCreator ? { chefId: foodCreator._id, sessionToken } : "skip"
     );
 
     const taxSummary = useQuery(api.queries.chefTax.getTaxYearSummary,
-        chef && selectedYear ? {
-            chefId: chef._id,
+        foodCreator && selectedYear ? {
+            chefId: foodCreator._id,
             sessionToken,
             taxYear: parseInt(selectedYear)
         } : "skip"

@@ -40,7 +40,7 @@ interface OrderAnalyticsDashboardProps {
   chefId?: string;
   customerId?: string;
   status?: string;
-  groupBy?: 'day' | 'week' | 'month' | 'chef' | 'status';
+  groupBy?: 'day' | 'week' | 'month' | 'foodCreator' | 'status';
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
@@ -194,7 +194,7 @@ export default function OrderAnalyticsDashboard({
               <option value="day">Day</option>
               <option value="week">Week</option>
               <option value="month">Month</option>
-              <option value="chef">Food Creator</option>
+              <option value="foodCreator">foodCreator</option>
               <option value="status">Status</option>
             </select>
           </div>
@@ -330,7 +330,7 @@ export default function OrderAnalyticsDashboard({
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {filters.groupBy === 'day' ? 'Date' :
-                    filters.groupBy === 'chef' ? 'Food Creator ID' :
+                    filters.groupBy === 'foodCreator' ? 'foodCreator ID' :
                       filters.groupBy === 'status' ? 'Status' : 'Period'}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">

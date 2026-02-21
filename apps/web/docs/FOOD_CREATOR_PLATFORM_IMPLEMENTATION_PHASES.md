@@ -40,7 +40,7 @@ This document defines the implementation phases and priorities for rolling out f
 #### 1.1 Food Creator Registration
 - [ ] Food Creator registration endpoint
 - [ ] Email verification
-- [ ] Role assignment (chef)
+- [ ] Role assignment (food creator)
 - [ ] Basic profile creation
 - [ ] Onboarding state initialization
 
@@ -212,7 +212,7 @@ This document defines the implementation phases and priorities for rolling out f
 - Update `kitchens` table (if needed)
 - Build kitchen profile editor
 - Implement multi-image upload
-- Link kitchen to chef
+- Link kitchen to food creator
 
 ---
 

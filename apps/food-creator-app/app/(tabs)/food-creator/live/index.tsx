@@ -34,7 +34,7 @@ export default function LiveStreamScreen() {
   const [showMealPicker, setShowMealPicker] = useState(false);
   const [showContinueOption, setShowContinueOption] = useState(false);
 
-  // Get chef's meals
+  // Get food creator's meals
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const meals = useQuery(
     api.queries.meals.getByFoodCreatorId,
@@ -149,7 +149,7 @@ export default function LiveStreamScreen() {
         channelName,
         foodCreatorId: foodCreator._id,
         title: title.trim(),
-        description: description.trim() || 'Live cooking session',
+        description: description.trim() || 'Live Culinary session',
         mealId: selectedMealId as any,
         tags: tags,
         sessionToken,
@@ -337,7 +337,7 @@ export default function LiveStreamScreen() {
               <Text style={styles.inputLabel}>Live Stream Title *</Text>
               <TextInput
                 style={styles.titleInput}
-                placeholder="What are you cooking today?"
+                placeholder="What are you preparing today?"
                 placeholderTextColor="#999"
                 value={title}
                 onChangeText={setTitle}

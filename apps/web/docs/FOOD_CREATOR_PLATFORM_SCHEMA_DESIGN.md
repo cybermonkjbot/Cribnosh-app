@@ -53,17 +53,17 @@ chefCourses: defineTable({
   createdAt: v.number(),
   updatedAt: v.number()
 })
-  .index("by_chef", ["chefId"])
+  .index("by_food creator", ["chefId"])
   .index("by_course", ["courseId"])
   .index("by_status", ["status"])
-  .index("by_chef_course", ["chefId", "courseId"])
+  .index("by_food creator_course", ["chefId", "courseId"])
 ```
 
 **Indexes**:
-- `by_chef`: Get all courses for a chef
+- `by_food creator`: Get all courses for a food creator
 - `by_course`: Get all enrollments for a course
 - `by_status`: Filter by completion status
-- `by_chef_course`: Get specific course enrollment
+- `by_food creator_course`: Get specific course enrollment
 
 ---
 
@@ -89,13 +89,13 @@ certificates: defineTable({
   ),
   createdAt: v.number()
 })
-  .index("by_chef", ["chefId"])
+  .index("by_food creator", ["chefId"])
   .index("by_course", ["courseId"])
   .index("by_certificate_number", ["certificateNumber"])
 ```
 
 **Indexes**:
-- `by_chef`: Get all certificates for a chef
+- `by_food creator`: Get all certificates for a food creator
 - `by_course`: Get all certificates for a course
 - `by_certificate_number`: Verify certificate by number
 
@@ -145,18 +145,18 @@ chefDocuments: defineTable({
   createdAt: v.number(),
   updatedAt: v.number()
 })
-  .index("by_chef", ["chefId"])
+  .index("by_food creator", ["chefId"])
   .index("by_type", ["documentType"])
   .index("by_status", ["status"])
-  .index("by_chef_type", ["chefId", "documentType"])
+  .index("by_food creator_type", ["chefId", "documentType"])
   .index("by_verification", ["status", "verifiedAt"])
 ```
 
 **Indexes**:
-- `by_chef`: Get all documents for a chef
+- `by_food creator`: Get all documents for a food creator
 - `by_type`: Filter by document type
 - `by_status`: Filter by verification status
-- `by_chef_type`: Get specific document type for chef
+- `by_food creator_type`: Get specific document type for food creator
 - `by_verification`: Get documents pending verification
 
 ---
@@ -225,20 +225,20 @@ chefRecipes: defineTable({
   createdAt: v.number(),
   updatedAt: v.number()
 })
-  .index("by_chef", ["chefId"])
+  .index("by_food creator", ["chefId"])
   .index("by_status", ["status"])
   .index("by_cuisine", ["cuisine"])
-  .index("by_chef_status", ["chefId", "status"])
+  .index("by_food creator_status", ["chefId", "status"])
   .index("by_published", ["publishedAt"])
   .index("by_views", ["views"])
   .index("by_meal", ["linkedMealId"])
 ```
 
 **Indexes**:
-- `by_chef`: Get all recipes for a chef
+- `by_food creator`: Get all recipes for a food creator
 - `by_status`: Filter by publication status
 - `by_cuisine`: Filter by cuisine type
-- `by_chef_status`: Get recipes by food creator and status
+- `by_food creator_status`: Get recipes by food creator and status
 - `by_published`: Get published recipes sorted by date
 - `by_views`: Get popular recipes
 - `by_meal`: Get recipe linked to a meal
@@ -279,18 +279,18 @@ chefStories: defineTable({
   createdAt: v.number(),
   updatedAt: v.number()
 })
-  .index("by_chef", ["chefId"])
+  .index("by_food creator", ["chefId"])
   .index("by_status", ["status"])
-  .index("by_chef_status", ["chefId", "status"])
+  .index("by_food creator_status", ["chefId", "status"])
   .index("by_published", ["publishedAt"])
   .index("by_category", ["category"])
   .index("by_views", ["views"])
 ```
 
 **Indexes**:
-- `by_chef`: Get all stories for a chef
+- `by_food creator`: Get all stories for a food creator
 - `by_status`: Filter by publication status
-- `by_chef_status`: Get stories by food creator and status
+- `by_food creator_status`: Get stories by food creator and status
 - `by_published`: Get published stories sorted by date
 - `by_category`: Filter by category
 - `by_views`: Get popular stories
@@ -325,14 +325,14 @@ chefBankAccounts: defineTable({
   createdAt: v.number(),
   updatedAt: v.number()
 })
-  .index("by_chef", ["chefId"])
+  .index("by_food creator", ["chefId"])
   .index("by_primary", ["chefId", "isPrimary"])
   .index("by_verified", ["verified"])
 ```
 
 **Indexes**:
-- `by_chef`: Get all bank accounts for a chef
-- `by_primary`: Get primary bank account for a chef
+- `by_food creator`: Get all bank accounts for a food creator
+- `by_primary`: Get primary bank account for a food creator
 - `by_verified`: Filter by verification status
 
 ---
@@ -371,17 +371,17 @@ chefPayouts: defineTable({
   createdAt: v.number(),
   updatedAt: v.number()
 })
-  .index("by_chef", ["chefId"])
+  .index("by_food creator", ["chefId"])
   .index("by_status", ["status"])
-  .index("by_chef_status", ["chefId", "status"])
+  .index("by_food creator_status", ["chefId", "status"])
   .index("by_requested", ["requestedAt"])
   .index("by_stripe_payout", ["stripePayoutId"])
 ```
 
 **Indexes**:
-- `by_chef`: Get all payouts for a chef
+- `by_food creator`: Get all payouts for a food creator
 - `by_status`: Filter by payout status
-- `by_chef_status`: Get payouts by food creator and status
+- `by_food creator_status`: Get payouts by food creator and status
 - `by_requested`: Sort by request date
 - `by_stripe_payout`: Look up by Stripe payout ID
 
@@ -420,15 +420,15 @@ chefTaxRecords: defineTable({
   createdAt: v.number(),
   updatedAt: v.number()
 })
-  .index("by_chef", ["chefId"])
+  .index("by_food creator", ["chefId"])
   .index("by_tax_year", ["taxYear"])
-  .index("by_chef_year", ["chefId", "taxYear"])
+  .index("by_food creator_year", ["chefId", "taxYear"])
 ```
 
 **Indexes**:
-- `by_chef`: Get all tax records for a chef
+- `by_food creator`: Get all tax records for a food creator
 - `by_tax_year`: Filter by tax year
-- `by_chef_year`: Get specific tax year for chef
+- `by_food creator_year`: Get specific tax year for food creator
 
 ---
 
@@ -458,17 +458,17 @@ chefEarnings: defineTable({
   createdAt: v.number(),
   updatedAt: v.number()
 })
-  .index("by_chef", ["chefId"])
+  .index("by_food creator", ["chefId"])
   .index("by_order", ["orderId"])
-  .index("by_chef_date", ["chefId", "orderDate"])
+  .index("by_food creator_date", ["chefId", "orderDate"])
   .index("by_payment_status", ["paymentStatus"])
   .index("by_payout", ["payoutId"])
 ```
 
 **Indexes**:
-- `by_chef`: Get all earnings for a chef
+- `by_food creator`: Get all earnings for a food creator
 - `by_order`: Get earnings for an order
-- `by_chef_date`: Get earnings by food creator and date range
+- `by_food creator_date`: Get earnings by food creator and date range
 - `by_payment_status`: Filter by payment status
 - `by_payout`: Get earnings included in a payout
 
@@ -506,7 +506,7 @@ pendingPayouts: v.optional(v.number()), // in pence, in pending payouts
 The existing `users` table already has support for food creator role. No additional fields needed for basic food creator functionality, but consider:
 
 ```typescript
-// Optional: Add chef-specific preferences to users table
+// Optional: Add food creator-specific preferences to users table
 chefPreferences: v.optional(v.object({
   notificationSettings: v.optional(v.object({
     newOrder: v.boolean(),
@@ -583,7 +583,7 @@ food creators (1) ──< (many) orders (existing)
 ### chefBankAccounts
 - `accountNumber` must be exactly 8 digits
 - `sortCode` must be exactly 6 digits (format: "XX-XX-XX")
-- Only one primary account per chef
+- Only one primary account per food creator
 
 ---
 

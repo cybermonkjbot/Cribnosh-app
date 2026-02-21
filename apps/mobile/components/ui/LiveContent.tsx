@@ -107,7 +107,7 @@ const FoodCreatorCard = React.memo(({
     </View>
 
     <View style={styles.foodCreatorInfo}>
-      <Text style={styles.foodCreatorName}>{foodCreator.name}</Text>
+      <Text style={styles.foodCreator_name}>{foodCreator.name}</Text>
       <Text style={styles.foodCreatorCuisine}>
         {foodCreator.cuisine}
       </Text>
@@ -461,10 +461,10 @@ export default function LiveContent({
       image:
         stream.thumbnail_url ||
         stream.foodCreator_profile_image ||
-        stream.chef_profile_image ||
+        stream.foodCreator_profile_image ||
         "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop",
-      description: stream.description || "Live cooking session",
-      foodCreator: stream.foodCreator_name || stream.chef_name || "Food Creator",
+      description: stream.description || "Live culinary session",
+      foodCreator: stream.foodCreator_name || stream.foodCreator_name || "Food Creator",
     }));
   }, []);
 
@@ -573,7 +573,7 @@ export default function LiveContent({
       videoSource: video.videoUrl || '',
       title: video.title,
       description: video.description || '',
-      foodCreatorName: video.creator?.name || 'Unknown Food Creator',
+      foodCreator_name: video.creator?.name || 'Unknown Food Creator',
       price,
       foodCreator: video.creator?.name,
       likes: video.likesCount || 0,
@@ -902,7 +902,7 @@ export default function LiveContent({
           return (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateSubtitle}>
-                Discover recipes, stories, videos, and live cooking sessions
+                Discover recipes, stories, videos, and live culinary sessions
               </Text>
             </View>
           );
@@ -936,7 +936,7 @@ export default function LiveContent({
           return (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateSubtitle}>
-                Discover amazing recipes from our community food creators
+                Discover amazing recipes from our community foodCreators
               </Text>
             </View>
           );
@@ -1535,7 +1535,7 @@ const styles = StyleSheet.create({
   foodCreatorInfo: {
     padding: 12,
   },
-  foodCreatorName: {
+  foodCreator_name: {
     fontSize: 14,
     fontWeight: "600",
     color: "#111827",

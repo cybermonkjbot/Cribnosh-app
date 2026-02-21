@@ -1,14 +1,14 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useMutation } from "convex/react";
 import { AlertCircle, ArrowLeft, CheckCircle2, FileText, UploadCloud, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 export default function DocumentsPage() {
-    const { sessionToken, chef } = useChefAuth();
+    const { sessionToken, foodCreator } = useFoodCreatorAuth();
     const generateUploadUrl = useMutation(api.mutations.documents.generateUploadUrl);
     const uploadDocument = useMutation(api.mutations.chefDocuments.uploadDocument);
 
@@ -21,7 +21,7 @@ export default function DocumentsPage() {
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
         const file = e.target.files?.[0];
-        if (!file || !chef || !sessionToken) return;
+        if (!file || !foodCreator || !sessionToken) return;
 
         try {
             // 1. Get upload URL
@@ -37,7 +37,7 @@ export default function DocumentsPage() {
 
             // 3. Save document record
             await uploadDocument({
-                chefId: chef._id,
+                chefId: foodCreator._id,
                 documentType: "other", // Simplification: in real app, map docType to enum
                 documentName: file.name,
                 fileName: file.name,

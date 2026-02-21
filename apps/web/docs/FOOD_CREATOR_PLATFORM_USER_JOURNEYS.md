@@ -20,7 +20,7 @@ This document maps out complete user journeys for food creators using the platfo
 **User Actions**:
 1. Food Creator discovers platform through marketing, referral, or search
 2. Clicks "Cook on Cribnosh" or "Apply to Cook" button
-3. Views information about becoming a chef
+3. Views information about becoming a food creator
 4. Decides to register
 
 **System Actions**:
@@ -39,7 +39,7 @@ This document maps out complete user journeys for food creators using the platfo
 
 **System Actions**:
 - Create user account
-- Assign 'chef' role
+- Assign 'food creator' role
 - Send email verification
 - Create food creator profile record
 - Initialize onboarding state
@@ -316,7 +316,7 @@ This document maps out complete user journeys for food creators using the platfo
 **Success Criteria**:
 - First order received and fulfilled
 - Payment processed correctly
-- Positive experience for chef
+- Positive experience for food creator
 
 **Pain Points to Address**:
 - Anxiety about first order
@@ -801,7 +801,7 @@ This document maps out complete user journeys for food creators using the platfo
 - **Content Creation Rate**: 5+ items per food creator per month
 
 ### Financial Management Metrics
-- **Payout Request Frequency**: 2+ per month per chef
+- **Payout Request Frequency**: 2+ per month per food creator
 - **Payout Processing Time**: < 3 business days
 - **Tax Document Generation**: 100% for active chefs
 - **Payment Processing Success**: 99%+

@@ -36,7 +36,7 @@ This app uses Agora SDK for live video streaming functionality. Follow these ste
 ## How It Works
 
 1. **Starting a Stream**:
-   - When a chef starts a live stream, the app:
+   - When a food creator starts a live stream, the app:
      - Creates a live session in Convex
      - Generates a unique channel name
      - Gets an Agora broadcaster token from the backend

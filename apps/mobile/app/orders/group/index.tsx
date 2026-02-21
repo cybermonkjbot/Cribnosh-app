@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 
-const chefIconSVG = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+const foodCreatorIconSVG = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z" stroke="#094327" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M8.5 12.5C8.5 12.5 9.5 11 12 11C14.5 11 15.5 12.5 15.5 12.5" stroke="#094327" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M12 11V7" stroke="#094327" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -109,7 +109,7 @@ export default function GroupOrderLobby() {
             {/* Main Content */}
             <View style={styles.content}>
                 <View style={styles.orderInfoCard}>
-                    <SvgXml xml={chefIconSVG} width={40} height={40} />
+                    <SvgXml xml={foodCreatorIconSVG} width={40} height={40} />
                     <View style={{ marginLeft: 12 }}>
                         <Text style={styles.restaurantName}>{groupOrder.restaurant_name}</Text>
                         <Text style={styles.orderStatus}>

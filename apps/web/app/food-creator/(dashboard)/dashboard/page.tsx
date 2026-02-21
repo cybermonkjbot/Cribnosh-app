@@ -1,27 +1,27 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowRight, Bell, Package, ShoppingBag, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 export default function ChefDashboard() {
-    const { chef, user, sessionToken, isBasicOnboardingComplete, isOnboardingComplete } = useChefAuth();
-    const [isOnline, setIsOnline] = useState(chef?.isAvailable || false);
-    const toggleAvailability = useMutation(api.mutations.chefs.toggleAvailability);
+    const { foodCreator, user, sessionToken, isBasicOnboardingComplete, isOnboardingComplete } = useFoodCreatorAuth();
+    const [isOnline, setIsOnline] = useState(foodCreator?.isAvailable || false);
+    const toggleAvailability = useMutation(api.mutations.foodCreators.toggleAvailability);
 
     // Get recent orders
     const recentOrders = useQuery(
         api.queries.orders.listByChef,
-        chef?._id && sessionToken ? { chef_id: chef._id.toString(), limit: 5, sessionToken } : "skip"
+        foodCreator?._id && sessionToken ? { foodCreator_id: foodCreator._id.toString(), limit: 5, sessionToken } : "skip"
     );
 
-    // Get chef analytics for earnings
+    // Get foodCreator analytics for earnings
     const analytics = useQuery(
         api.queries.analytics.getChefAnalytics,
-        chef?._id && sessionToken ? { chefId: chef._id, timeRange: "30d", sessionToken } : "skip"
+        foodCreator?._id && sessionToken ? { chefId: foodCreator._id, timeRange: "30d", sessionToken } : "skip"
     );
 
     const stats = [
@@ -52,7 +52,7 @@ export default function ChefDashboard() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Food Creator Dashboard</h1>
-                        <p className="mt-1 text-gray-600">Welcome back, {chef?.name || user?.name}</p>
+                        <p className="mt-1 text-gray-600">Welcome back, {foodCreator?.name || user?.name}</p>
                     </div>
                     <button className="flex items-center gap-2 rounded-lg bg-white/80 backdrop-blur-sm px-4 py-2 shadow-md hover:shadow-lg transition-all border border-gray-200">
                         <Bell className="h-5 w-5 text-gray-600" />
@@ -90,12 +90,12 @@ export default function ChefDashboard() {
                     </div>
                     <button
                         onClick={async () => {
-                            if (!chef?._id) return;
+                            if (!foodCreator?._id) return;
                             const newState = !isOnline;
                             setIsOnline(newState); // Optimistic update
                             try {
                                 await toggleAvailability({
-                                    chefId: chef._id,
+                                    chefId: foodCreator._id,
                                     isAvailable: newState,
                                     sessionToken
                                 });

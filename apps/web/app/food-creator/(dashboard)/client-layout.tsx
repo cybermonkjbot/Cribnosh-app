@@ -1,12 +1,12 @@
 "use client";
 
-import { FoodCreatorSidebar } from "@/components/chef/FoodCreatorSidebar";
-import { useChefAuth } from "@/lib/chef-auth";
+import { FoodCreatorSidebar } from "@/components/food-creator/FoodCreatorSidebar";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect } from "react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const { isAuthenticated, isLoading } = useChefAuth();
+    const { isAuthenticated, isLoading } = useFoodCreatorAuth();
     const router = useRouter();
 
     useEffect(() => {

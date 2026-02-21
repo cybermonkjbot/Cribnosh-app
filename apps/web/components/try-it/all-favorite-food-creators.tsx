@@ -10,11 +10,11 @@ import { api } from "@/convex/_generated/api";
 import { useConvex } from "convex/react";
 import { useSession } from "@/lib/auth/use-session";
 
-interface AllFavoriteChefsProps {
+interface AllFavoriteFoodCreatorsProps {
   onClose: () => void;
 }
 
-interface FavoriteChef {
+interface FavoriteFoodCreator {
   _id: string;
   name: string;
   image?: string;
@@ -29,8 +29,8 @@ interface FavoriteChef {
   status: string;
 }
 
-export function AllFavoriteChefs({ onClose }: AllFavoriteChefsProps) {
-  const [selectedChef, setSelectedChef] = useState<FavoriteChef | null>(null);
+export function AllFavoriteFoodCreators({ onClose }: AllFavoriteFoodCreatorsProps) {
+  const [selectedFoodCreator, setSelectedFoodCreator] = useState<FavoriteFoodCreator | null>(null);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const convex = useConvex();
@@ -38,45 +38,45 @@ export function AllFavoriteChefs({ onClose }: AllFavoriteChefsProps) {
   
   // Prevent body scrolling when modal is open
   useEffect(() => {
-    if (selectedChef) {
+    if (selectedFoodCreator) {
       document.body.style.overflow = 'hidden';
     }
     return () => {
       document.body.style.overflow = '';
     };
-  }, [selectedChef]);
+  }, [selectedFoodCreator]);
 
-  // Real data fetching for favorite chefs
-  const { data: favoriteChefs = [], isLoading, error } = useQuery({
-    queryKey: ['favorite-chefs'],
-    queryFn: () => convex.query(api.queries.chefs.getTopRatedChefs, { limit: 6 }),
+  // Real data fetching for favorite foodCreators
+  const { data: favoriteFoodCreators = [], isLoading, error } = useQuery({
+    queryKey: ['favorite-foodCreators'],
+    queryFn: () => convex.query(api.queries.foodCreators.getTopRatedFoodCreators, { limit: 6 }),
     enabled: isAuthenticated,
   });
 
-  // Fallback to top-rated chefs if no favorites
-  const { data: topChefs = [] } = useQuery({
-    queryKey: ['top-chefs'],
-    queryFn: () => convex.query(api.queries.chefs.getTopRatedChefs, { limit: 6 }),
+  // Fallback to top-rated foodCreators if no favorites
+  const { data: topFoodCreators = [] } = useQuery({
+    queryKey: ['top-foodCreators'],
+    queryFn: () => convex.query(api.queries.foodCreators.getTopRatedFoodCreators, { limit: 6 }),
     enabled: !isAuthenticated,
   });
 
   // Use real data or fallback
-  const chefsToDisplay = favoriteChefs.length > 0 ? favoriteChefs : topChefs;
+  const foodCreatorsToDisplay = favoriteFoodCreators.length > 0 ? favoriteFoodCreators : topFoodCreators;
 
-  // Transform chef data to match FavoriteChef interface
-  const transformedChefs = chefsToDisplay.map((chef: any) => ({
-    _id: chef._id,
-    name: chef.bio?.split(' ').slice(0, 2).join(' ') || 'Chef',
-    image: chef.image || undefined,
-    specialties: chef.specialties || [],
-    rating: chef.rating || 4.5,
+  // Transform food Creator data to match FavoriteFoodCreator interface
+  const transformedFoodCreators = foodCreatorsToDisplay.map((foodCreator: any) => ({
+    _id: foodCreator._id,
+    name: foodCreator.bio?.split(' ').slice(0, 2).join(' ') || 'FoodCreator',
+    image: foodCreator.image || undefined,
+    specialties: foodCreator.specialties || [],
+    rating: foodCreator.rating || 4.5,
     location: {
-      city: chef.location?.city || 'Unknown',
-      coordinates: chef.location?.coordinates || [0, 0],
+      city: foodCreator.location?.city || 'Unknown',
+      coordinates: foodCreator.location?.coordinates || [0, 0],
     },
     experience: 'Professional',
-    bio: chef.bio || 'Experienced chef with passion for great food.',
-    status: chef.status || 'active',
+    bio: foodCreator.bio || 'Experienced food Creator with passion for great food.',
+    status: foodCreator.status || 'active',
   }));
 
   const filterButtons = ["All Cuisines", "Thai", "Italian", "Mexican", "Japanese"];
@@ -104,7 +104,7 @@ export function AllFavoriteChefs({ onClose }: AllFavoriteChefsProps) {
             >
               <ArrowLeft size={isDesktop ? 20 : 18} className="text-slate-600 " />
             </button>
-            <h2 className="text-lg md:text-xl font-semibold">Your Favorite Chefs</h2>
+            <h2 className="text-lg md:text-xl font-semibold">Your Favorite FoodCreators</h2>
           </div>
           
           <div className="flex items-center gap-1 md:gap-2">
@@ -141,7 +141,7 @@ export function AllFavoriteChefs({ onClose }: AllFavoriteChefsProps) {
           </div>
         </div>
         
-        {/* Chef Grid - responsive layout */}
+        {/* Food Creator Grid - responsive layout */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
           {isLoading ? (
             // Loading state
@@ -158,23 +158,23 @@ export function AllFavoriteChefs({ onClose }: AllFavoriteChefsProps) {
           ) : error ? (
             // Error state
             <div className="col-span-full text-center py-8">
-              <p className="text-slate-600">Failed to load chefs. Please try again.</p>
+              <p className="text-slate-600">Failed to load foodCreators. Please try again.</p>
             </div>
           ) : (
-            transformedChefs.map((chef: FavoriteChef) => (
+            transformedFoodCreators.map((foodCreator: FavoriteFoodCreator) => (
               <motion.div
-                key={chef._id}
+                key={foodCreator._id}
               className="bg-white  rounded-xl overflow-hidden shadow-md border border-slate-200 "
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
               whileHover={isDesktop ? { y: -5, transition: { duration: 0.2 } } : {}}
-              onClick={() => setSelectedChef(chef)}
+              onClick={() => setSelectedFoodCreator(foodCreator)}
             >
               <div className="relative h-40 md:h-48 w-full">
                 <Image
-                  src={chef.image || "/kitchenillus.png"}
-                  alt={chef.name}
+                  src={foodCreator.image || "/kitchenillus.png"}
+                  alt={foodCreator.name}
                   fill
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   style={{ objectFit: "cover" }}
@@ -183,35 +183,35 @@ export function AllFavoriteChefs({ onClose }: AllFavoriteChefsProps) {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
                   <div className="flex items-center bg-white/90  rounded-full px-2.5 py-1">
                     <ChefHat size={14} className="text-[#ff3b30] mr-1.5" />
-                    <span className="text-sm font-medium">Chef</span>
+                    <span className="text-sm font-medium">Food Creator</span>
                   </div>
                 </div>
               </div>
               
               <div className="p-3 md:p-4">
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-base md:text-lg font-semibold">{chef.name}</h3>
+                  <h3 className="text-base md:text-lg font-semibold">{foodCreator.name}</h3>
                   <div className="flex items-center bg-yellow-50  px-2 py-0.5 rounded-full">
                     <Star size={12} className="text-yellow-500 mr-1" fill="currentColor" />
-                    <span className="text-sm font-medium">{chef.rating}</span>
+                    <span className="text-sm font-medium">{foodCreator.rating}</span>
                   </div>
                 </div>
                 
-                <p className="text-slate-600  text-sm mb-2 md:mb-3">{chef.specialties.join(', ')}</p>
+                <p className="text-slate-600  text-sm mb-2 md:mb-3">{foodCreator.specialties.join(', ')}</p>
                 
                 <div className="flex items-center text-slate-500  mb-1.5 md:mb-2">
                   <MapPin size={12} className="mr-1" />
-                  <span className="text-xs">{chef.location.city}</span>
+                  <span className="text-xs">{foodCreator.location.city}</span>
                 </div>
                 
                 <div className="flex items-center text-slate-500 ">
                   <Clock size={12} className="mr-1" />
-                  <span className="text-xs">{chef.experience || 'Professional'} experience</span>
+                  <span className="text-xs">{foodCreator.experience || 'Professional'} experience</span>
                 </div>
                 
                 <div className="mt-3 md:mt-4 pt-3 border-t border-slate-100  flex justify-between items-center">
                   <span className="text-xs bg-slate-100  px-2 py-0.5 rounded-full">
-                    {chef.specialties[0] || 'Chef'}
+                    {foodCreator.specialties[0] || 'FoodCreator'}
                   </span>
                   <button className="text-sm text-[#ff3b30] font-medium active:scale-95">
                     View Menu
@@ -224,15 +224,15 @@ export function AllFavoriteChefs({ onClose }: AllFavoriteChefsProps) {
         </div>
       </div>
       
-      {/* Chef Detail Modal - mobile optimized */}
+      {/* Food Creator Detail Modal - mobile optimized */}
       <AnimatePresence>
-        {selectedChef && (
+        {selectedFoodCreator && (
           <motion.div 
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4 overscroll-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setSelectedChef(null)}
+            onClick={() => setSelectedFoodCreator(null)}
           >
             <motion.div 
               className="bg-white  rounded-t-2xl md:rounded-2xl overflow-hidden w-full md:max-w-md shadow-xl"
@@ -244,24 +244,24 @@ export function AllFavoriteChefs({ onClose }: AllFavoriteChefsProps) {
             >
               <div className="relative h-40 md:h-48 w-full">
                 <Image
-                  src={selectedChef.image || "/kitchenillus.png"}
-                  alt={selectedChef.name}
+                  src={selectedFoodCreator.image || "/kitchenillus.png"}
+                  alt={selectedFoodCreator.name}
                   fill
                   sizes="(max-width: 768px) 100vw, 400px"
                   style={{ objectFit: "cover" }}
                   priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-4 md:p-6">
-                  <h3 className="text-xl md:text-2xl font-bold text-white mb-1">{selectedChef.name}</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-white mb-1">{selectedFoodCreator.name}</h3>
                   <div className="flex items-center">
                     <Star size={14} className="text-yellow-400 mr-1" fill="currentColor" />
-                    <span className="text-white font-medium mr-2">{selectedChef.rating}</span>
-                    <span className="text-white/80">{selectedChef.specialties.join(', ')}</span>
+                    <span className="text-white font-medium mr-2">{selectedFoodCreator.rating}</span>
+                    <span className="text-white/80">{selectedFoodCreator.specialties.join(', ')}</span>
                   </div>
                 </div>
                 <button 
                   className="absolute top-4 right-4 bg-black/30 rounded-full p-1.5 md:p-2 text-white active:scale-95"
-                  onClick={() => setSelectedChef(null)}
+                  onClick={() => setSelectedFoodCreator(null)}
                 >
                   <ArrowLeft size={18} />
                 </button>
@@ -271,21 +271,21 @@ export function AllFavoriteChefs({ onClose }: AllFavoriteChefsProps) {
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center">
                     <MapPin size={14} className="text-slate-500 mr-1.5" />
-                    <span className="text-slate-600  text-sm">{selectedChef.location.city}</span>
+                    <span className="text-slate-600  text-sm">{selectedFoodCreator.location.city}</span>
                   </div>
                   <div className="flex items-center">
                     <Clock size={14} className="text-slate-500 mr-1.5" />
-                    <span className="text-slate-600  text-sm">{selectedChef.experience || 'Professional'}</span>
+                    <span className="text-slate-600  text-sm">{selectedFoodCreator.experience || 'Professional'}</span>
                   </div>
                 </div>
                 
                 <h4 className="text-base md:text-lg font-semibold mb-2">About</h4>
-                <p className="text-slate-600  text-sm mb-4 md:mb-6">{selectedChef.bio}</p>
+                <p className="text-slate-600  text-sm mb-4 md:mb-6">{selectedFoodCreator.bio}</p>
                 
                 <h4 className="text-base md:text-lg font-semibold mb-2">Specialties</h4>
                 <div className="bg-slate-50  rounded-lg p-3 mb-4 md:mb-6 flex items-center">
                   <ChefHat size={16} className="text-[#ff3b30] mr-2" />
-                  <span className="font-medium text-sm">{selectedChef.specialties.join(', ')}</span>
+                  <span className="font-medium text-sm">{selectedFoodCreator.specialties.join(', ')}</span>
                 </div>
                 
                 <div className="flex gap-3 sticky bottom-0 left-0 right-0 bg-white  pt-2">
@@ -293,7 +293,7 @@ export function AllFavoriteChefs({ onClose }: AllFavoriteChefsProps) {
                     View Menu
                   </button>
                   <button className="flex-1 border border-slate-200  py-2.5 md:py-3 rounded-lg font-medium hover:bg-slate-50  transition-colors active:scale-95">
-                    Book Chef
+                    Book FoodCreator
                   </button>
                 </div>
               </div>

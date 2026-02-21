@@ -29,7 +29,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowUpRight, History, Landmark } from "lucide-react";
 import { useState } from "react";
@@ -64,18 +64,18 @@ const getStatusBadge = (status: string) => {
 };
 
 export default function PayoutsPage() {
-    const { chef, sessionToken } = useChefAuth();
+    const { foodCreator, sessionToken } = useFoodCreatorAuth();
 
     const earningsSummary = useQuery(api.queries.chefEarnings.getSummary,
-        chef ? { chefId: chef._id, sessionToken } : "skip"
+        foodCreator ? { chefId: foodCreator._id, sessionToken } : "skip"
     );
 
     const payoutHistory = useQuery(api.queries.chefPayouts.getHistory,
-        chef ? { chefId: chef._id, sessionToken, limit: 20 } : "skip"
+        foodCreator ? { chefId: foodCreator._id, sessionToken, limit: 20 } : "skip"
     );
 
     const bankAccounts = useQuery(api.queries.chefBankAccounts.getByChefId,
-        chef ? { chefId: chef._id, sessionToken } : "skip"
+        foodCreator ? { chefId: foodCreator._id, sessionToken } : "skip"
     );
 
     const requestPayout = useMutation(api.mutations.chefPayouts.requestPayout);
@@ -101,7 +101,7 @@ export default function PayoutsPage() {
     };
 
     const handleRequestPayout = async () => {
-        if (!chef || !sessionToken || !selectedAccountId) return;
+        if (!foodCreator || !sessionToken || !selectedAccountId) return;
 
         // Amount validation
         const pAmount = parseFloat(amount) * 100; // to pence
@@ -118,7 +118,7 @@ export default function PayoutsPage() {
         try {
             setIsSubmitting(true);
             const result = await requestPayout({
-                chefId: chef._id,
+                chefId: foodCreator._id,
                 sessionToken,
                 bankAccountId: selectedAccountId as any,
                 amount: Math.floor(pAmount),

@@ -87,7 +87,7 @@ function AddStaffModal() {
         // But for `createUser` usage in `register` route, it hashes it.
         // I'll send it as is and if it fails or stores plaintext, that's a separate issue to fix in a robust auth flow.
         // Actually, let's just send it.
-        roles: ['staff', formData.role], // 'staff' + specific role like 'chef', 'admin', etc.
+        roles: ['staff', formData.role], // 'staff' + specific role like 'foodCreator', 'admin', etc.
         status: 'active'
       });
 
@@ -171,7 +171,7 @@ function AddStaffModal() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="employee">Employee</SelectItem>
-                <SelectItem value="chef">Chef</SelectItem>
+                <SelectItem value="Food Creator">Food Creator</SelectItem>
                 <SelectItem value="moderator">Moderator</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
@@ -279,7 +279,7 @@ export default function AdminStaffPage() {
     const variants = {
       admin: 'bg-destructive/10 text-destructive border-destructive/20',
       moderator: 'bg-primary-100 text-primary-800 border-primary-200',
-      chef: 'bg-primary-100 text-primary-800 border-primary-200',
+      FoodCreator: 'bg-primary-100 text-primary-800 border-primary-200',
       employee: 'bg-primary-100 text-primary-800 border-primary-200'
     };
     return variants[role as keyof typeof variants] || variants.employee;
@@ -346,7 +346,7 @@ export default function AdminStaffPage() {
             { value: 'all', label: 'All Roles' },
             { value: 'admin', label: 'Admin' },
             { value: 'moderator', label: 'Moderator' },
-            { value: 'chef', label: 'Chef' },
+            { value: 'foodCreator', label: 'foodCreator' },
             { value: 'employee', label: 'Employee' },
           ]}
         />

@@ -1,4 +1,4 @@
-# Chef App Implementation Progress
+# Food Creator App Implementation Progress
 
 ## ✅ Completed Features
 
@@ -13,14 +13,14 @@
 ### Phase 2: Authentication & Navigation
 - [x] `ChefAuthContext` with session token support
 - [x] Integration with Convex authentication
-- [x] Chef profile fetching
+- [x] Food Creator profile fetching
 - [x] Root layout with providers
 - [x] Tab navigation structure
-- [x] Stack navigation for chef screens
+- [x] Stack navigation for food creator screens
 - [x] Index screen with splash and auth routing
 
 ### Phase 3: Dashboard
-- [x] Chef dashboard screen
+- [x] Food Creator dashboard screen
 - [x] Status card (online/offline toggle)
 - [x] Quick stats cards
 - [x] Earnings summary
@@ -87,24 +87,24 @@
 ## 🎨 UI Components Created
 
 ### Screens
-1. **Chef Dashboard** (`/chef/index.tsx`)
+1. **Food Creator Dashboard** (`/food creator/index.tsx`)
    - Status toggle
    - Quick stats
    - Earnings summary
    - Recent orders
    - Quick actions
 
-2. **Onboarding Overview** (`/chef/onboarding/index.tsx`)
+2. **Onboarding Overview** (`/food creator/onboarding/index.tsx`)
    - Overall progress
    - Courses list
    - Documents list
 
-3. **Course Module Viewer** (`/chef/onboarding/course/[id].tsx`)
+3. **Course Module Viewer** (`/food creator/onboarding/course/[id].tsx`)
    - Course progress
    - Modules list with completion status
    - Module locking logic
 
-4. **Module Detail Screen** (`/chef/onboarding/course/[id]/module/[moduleId].tsx`)
+4. **Module Detail Screen** (`/food creator/onboarding/course/[id]/module/[moduleId].tsx`)
    - **Vertical video player (TikTok-style)**
    - Full-screen video playback
    - Swipe navigation
@@ -113,7 +113,7 @@
    - Module completion
    - **Quiz button** (if quiz exists)
 
-5. **Quiz Screen** (`/chef/onboarding/course/[id]/module/[moduleId]/quiz.tsx`) (NEW)
+5. **Quiz Screen** (`/food creator/onboarding/course/[id]/module/[moduleId]/quiz.tsx`) (NEW)
    - Multiple choice questions
    - True/false questions
    - Text questions
@@ -123,7 +123,7 @@
    - Results display
    - Retake functionality
 
-6. **Document Upload** (`/chef/onboarding/documents/[id].tsx`)
+6. **Document Upload** (`/food creator/onboarding/documents/[id].tsx`)
    - Camera integration
    - Gallery picker
    - File upload to Convex
@@ -165,7 +165,7 @@
 - ✅ Auto-generation when course completed
 - ✅ Unique certificate numbers
 - ✅ Certificate storage
-- ✅ Certificate queries (by chef, by course, by number)
+- ✅ Certificate queries (by food creator, by course, by number)
 - ✅ Public verification by certificate number
 - ✅ Revocation support (admin/staff)
 
@@ -202,7 +202,7 @@
 
 ### Short-term (Phase 2)
 4. **Profile Management**
-   - Chef profile screen
+   - Food Creator profile screen
    - Kitchen profile screen
    - Edit forms
    - Image upload

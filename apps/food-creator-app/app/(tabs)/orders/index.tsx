@@ -97,9 +97,9 @@ export default function OrdersScreen() {
 
   // Get orders (reactive query) - foodCreator-specific
   const ordersDataRaw = useQuery(
-    api.queries.orders.listByChef,
+    api.queries.orders.listByFood Creator,
     foodCreator?._id && sessionToken ? {
-      chef_id: foodCreator._id.toString(),
+      food creator_id: foodCreator._id.toString(),
       sessionToken,
     } : "skip"
   );

@@ -59,7 +59,7 @@ export default function PayoutSettingsScreen() {
   // Get foodCreator earnings summary
   const earningsSummary = useQuery(
     api.queries.chefEarnings.getSummary,
-    foodCreator?._id && sessionToken ? { chefId: foodCreator._id, sessionToken } : 'skip'
+    foodCreator?._id && sessionToken ? { foodCreatorId: foodCreator._id, sessionToken } : 'skip'
   );
 
   useEffect(() => {

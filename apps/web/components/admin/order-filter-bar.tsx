@@ -66,7 +66,7 @@ export function OrderFilterBar({
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
-              placeholder="Search by customer, food creator, city, or order ID..."
+              placeholder="Search by customer, foodCreator, city, or order ID..."
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
               className="pl-10 h-10 bg-white border-gray-200 focus:border-gray-400 focus:ring-gray-400"

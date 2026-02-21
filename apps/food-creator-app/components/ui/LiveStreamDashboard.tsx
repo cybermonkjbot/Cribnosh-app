@@ -41,7 +41,7 @@ export function LiveStreamDashboard({ sessionId, onClose, onEndStream, onFlipCam
   // Get live orders
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const liveOrders = useQuery(
-    api.queries.liveSessions.getLiveOrdersForChef,
+    api.queries.liveSessions.getLiveOrdersForFood Creator,
     foodCreator?._id && sessionToken ? { sessionToken } : 'skip'
   ) as any[] | undefined;
 
@@ -162,7 +162,7 @@ export function LiveStreamDashboard({ sessionId, onClose, onEndStream, onFlipCam
     try {
       await endLiveSession({
         sessionId,
-        reason: 'ended_by_chef',
+        reason: 'ended_by_food creator',
         sessionToken,
         saveAsVideo,
       });

@@ -76,7 +76,7 @@ const RecommendedMealsSectionComponent: React.FC<RecommendedMealsSectionProps> =
     if (!apiMeal) return null;
 
     const meal = apiMeal;
-    const foodCreator = meal.foodCreator || meal.chef;
+    const foodCreator = meal.foodCreator || meal.foodCreator;
 
     return {
       id: meal._id || meal.id || '',

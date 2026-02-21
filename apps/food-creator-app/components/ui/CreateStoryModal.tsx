@@ -356,7 +356,7 @@ export function CreateStoryModal({ isVisible, onClose }: CreateStoryModalProps) 
             <View style={styles.inputCard}>
               <TextInput
                 style={styles.inputCardText}
-                placeholder="Tags (comma-separated, e.g. cooking, recipe, italian)"
+                placeholder="Tags (comma-separated, e.g. culinary, recipe, italian)"
                 onChangeText={handleTagInput}
                 placeholderTextColor="#9CA3AF"
               />

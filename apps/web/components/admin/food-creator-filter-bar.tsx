@@ -7,7 +7,7 @@ import { ChefHat, ChevronDown, ChevronUp, Filter, Search, X } from "lucide-react
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
-interface ChefFilterBarProps {
+interface FoodCreatorFilterBarProps {
   searchValue: string;
   onSearchChange: (value: string) => void;
   statusFilter: string;
@@ -21,7 +21,7 @@ interface ChefFilterBarProps {
   className?: string;
 }
 
-export function ChefFilterBar({
+export function FoodCreatorFilterBar({
   searchValue,
   onSearchChange,
   statusFilter,
@@ -33,12 +33,12 @@ export function ChefFilterBar({
   totalCount = 0,
   filteredCount,
   className = "",
-}: ChefFilterBarProps) {
+}: FoodCreatorFilterBarProps) {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  const hasActiveFilters = 
-    searchValue !== "" || 
-    statusFilter !== "all" || 
+  const hasActiveFilters =
+    searchValue !== "" ||
+    statusFilter !== "all" ||
     verificationFilter !== "all" ||
     sortBy !== "recent";
 
@@ -111,7 +111,7 @@ export function ChefFilterBar({
               <ChefHat className="w-4 h-4 text-gray-500" />
               <div className="flex flex-col">
                 <span className="text-sm font-semibold text-gray-900">{displayCount}</span>
-                <span className="text-xs text-gray-500">Chefs</span>
+                <span className="text-xs text-gray-500">foodCreators</span>
               </div>
             </div>
 
@@ -243,7 +243,7 @@ export function ChefFilterBar({
           className="flex flex-wrap items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
         >
           <span className="text-xs font-medium text-gray-600">Active filters:</span>
-          
+
           {searchValue && (
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-white text-gray-700 text-xs rounded-md border border-gray-200">
               Search: "{searchValue}"

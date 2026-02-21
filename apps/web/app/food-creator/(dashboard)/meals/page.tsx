@@ -1,19 +1,19 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useQuery } from "convex/react";
 import { Package, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 export default function MealsPage() {
-    const { chef, sessionToken } = useChefAuth();
+    const { foodCreator, sessionToken } = useFoodCreatorAuth();
     const [searchQuery, setSearchQuery] = useState("");
 
     const meals = useQuery(
         api.queries.meals.listByChef,
-        chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : "skip"
+        foodCreator?._id && sessionToken ? { chefId: foodCreator._id, sessionToken } : "skip"
     );
 
     const filteredMeals = meals?.filter((meal: any) => {

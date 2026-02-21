@@ -24,7 +24,7 @@ import { useState } from 'react';
 interface Review {
     _id: Id<"reviews">;
     user_id: Id<"users">;
-    chef_id?: Id<"chefs">;
+    foodCreator_id?: Id<"chefs">;
     meal_id?: Id<"meals">;
     order_id?: Id<"orders">;
     rating: number;
@@ -115,7 +115,7 @@ export default function AdminReviews() {
                     Review Moderation
                 </h1>
                 <p className="text-gray-700 font-satoshi text-lg">
-                    Moderate chef and meal reviews across the platform
+                    Moderate foodCreator and meal reviews across the platform
                 </p>
             </motion.div>
 
@@ -178,10 +178,10 @@ export default function AdminReviews() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="space-y-1">
-                                                {review.chef_id && (
+                                                {review.foodCreator_id && (
                                                     <div className="flex items-center gap-1 text-xs font-medium text-gray-700">
                                                         <ChefHat className="w-3 h-3" />
-                                                        <span>Chef: {review.chef_id.slice(-6)}</span>
+                                                        <span>FoodCreator: {review.foodCreator_id.slice(-6)}</span>
                                                     </div>
                                                 )}
                                                 {review.meal_id && (

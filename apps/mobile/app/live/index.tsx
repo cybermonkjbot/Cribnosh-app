@@ -17,7 +17,7 @@ const LiveScreen = () => {
         <View style={styles.content}>
           <Text style={styles.title}>Live Sessions Unavailable</Text>
           <Text style={styles.message}>
-            Live cooking sessions are currently disabled. Please check back later.
+            Live culinary sessions are currently disabled. Please check back later.
           </Text>
           <TouchableOpacity
             style={styles.button}

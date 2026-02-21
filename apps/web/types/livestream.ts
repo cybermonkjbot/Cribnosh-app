@@ -4,7 +4,7 @@ export interface LiveSession {
   _id: Id<"liveSessions">;
   _creationTime: number;
   channelName: string;
-  chefId: Id<"chefs">;
+  foodCreatorId: Id<"chefs">;
   title: string;
   description: string;
   mealId: Id<"meals">;

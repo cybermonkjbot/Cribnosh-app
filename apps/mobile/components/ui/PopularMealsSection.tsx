@@ -69,7 +69,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
               data: {
                 popular: result.data.meals.map((meal: any) => ({
                   meal,
-                  foodCreator: meal.foodCreator || meal.chef || null,
+                  foodCreator: meal.foodCreator || meal.foodCreator || null,
                 }))
               }
             });
@@ -91,7 +91,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
     if (!apiMeal?.meal) return null;
 
     const meal = apiMeal.meal;
-    const foodCreator = apiMeal.foodCreator || apiMeal.chef;
+    const foodCreator = apiMeal.foodCreator || apiMeal.foodCreator;
 
     return {
       id: meal._id || meal.id || '',

@@ -432,7 +432,7 @@ export default function RecipeManagementPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Cook Time (min)</label>
+                <label className="text-sm font-medium text-gray-700">Cooking Time (min)</label>
                 <Input
                   type="number"
                   value={newRecipe.cookTime}

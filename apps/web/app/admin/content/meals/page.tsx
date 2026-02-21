@@ -65,7 +65,7 @@ interface Meal {
     isAllergen?: boolean;
     allergenType?: string;
   }>;
-  chef?: {
+  foodCreator?: {
     _id: Id<"chefs">;
     name?: string;
     bio?: string;
@@ -151,7 +151,7 @@ export default function MealsManagementPage() {
         meal.name.toLowerCase().includes(searchLower) ||
         meal.description?.toLowerCase().includes(searchLower) ||
         meal.cuisine?.some(c => c.toLowerCase().includes(searchLower)) ||
-        meal.chef?.name?.toLowerCase().includes(searchLower)
+        meal.foodCreator?.name?.toLowerCase().includes(searchLower)
       );
     }
 
@@ -294,7 +294,7 @@ export default function MealsManagementPage() {
         // For creating, we'd need chefId - this is a placeholder
         toast({
           title: "Info",
-          description: "Meal creation requires chef selection. Use the create interface.",
+          description: "Meal creation requires foodCreator selection. Use the create interface.",
           variant: "default",
         });
       }
@@ -391,7 +391,7 @@ export default function MealsManagementPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-asgard text-gray-900">Meals & Dishes</h1>
-          <p className="text-gray-600 font-satoshi mt-2">Manage meals and dishes from all chefs</p>
+          <p className="text-gray-600 font-satoshi mt-2">Manage meals and dishes from all food creators</p>
         </div>
         <Button
           onClick={handleCreateNew}
@@ -475,7 +475,7 @@ export default function MealsManagementPage() {
 
       {/* Filters */}
       <AdminFilterBar
-        searchPlaceholder="Search meals by name, description, cuisine, or chef..."
+        searchPlaceholder="Search meals by name, description, cuisine, or foodCreator..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         filters={filterOptions}
@@ -550,10 +550,10 @@ export default function MealsManagementPage() {
                 </div>
 
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
-                  {meal.chef?.name && (
+                  {meal.foodCreator?.name && (
                     <Badge variant="outline" className="text-xs">
                       <ChefHat className="w-3 h-3 mr-1" />
-                      {meal.chef.name}
+                      {meal.foodCreator.name}
                     </Badge>
                   )}
                   {meal.cuisine && meal.cuisine.length > 0 && (

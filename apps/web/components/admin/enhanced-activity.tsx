@@ -26,11 +26,11 @@ const activityIcons = {
   system_event: Settings,
   security_alert: Shield,
   new_user: User,
-  new_chef: User,
+  new_foodCreator: User,
   system_update: Settings,
   content_created: Settings,
   order_created: Clock,
-  chef_joined: User,
+  foodCreator_joined: User,
   payment_processed: Settings,
 };
 
@@ -40,11 +40,11 @@ const activityColors = {
   system_event: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', icon: 'text-gray-500' },
   security_alert: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', icon: 'text-red-600' },
   new_user: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', icon: 'text-gray-500' },
-  new_chef: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', icon: 'text-gray-500' },
+  new_foodCreator: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', icon: 'text-gray-500' },
   system_update: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', icon: 'text-gray-500' },
   content_created: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', icon: 'text-gray-500' },
   order_created: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', icon: 'text-gray-500' },
-  chef_joined: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', icon: 'text-gray-500' },
+  foodCreator_joined: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', icon: 'text-gray-500' },
   payment_processed: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', icon: 'text-gray-500' },
 };
 
@@ -93,11 +93,11 @@ export function EnhancedActivity() {
       system_event: 'System',
       security_alert: 'Security',
       new_user: 'Users',
-      new_chef: 'Food Creators',
+      new_foodCreator: 'foodCreators',
       system_update: 'System',
       content_created: 'Content',
       order_created: 'Orders',
-      chef_joined: 'Food Creators',
+      foodCreator_joined: 'foodCreators',
       payment_processed: 'Payments'
     };
     return labels[type] || type;
@@ -106,7 +106,7 @@ export function EnhancedActivity() {
   const filterOptions = [
     { key: 'all', label: 'All Activities' },
     { key: 'new_user', label: 'User Registrations' },
-    { key: 'new_chef', label: 'Food Creator Onboarding' },
+    { key: 'new_foodCreator', label: 'foodCreator Onboarding' },
     { key: 'system_event', label: 'System Events' },
     { key: 'security_alert', label: 'Security Alerts' },
     { key: 'content_created', label: 'Content Creation' },

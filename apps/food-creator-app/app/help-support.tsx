@@ -204,7 +204,7 @@ export default function HelpSupportScreen() {
       content: 'We take food safety seriously. All our chefs are certified and follow strict hygiene standards. Here\'s what you need to know about food safety on Cribnosh.',
       sections: [
         {
-          title: 'Chef Certification',
+          title: 'Food Creator Certification',
           content: 'All chefs on Cribnosh are required to have valid food safety certifications. We verify these certifications before allowing chefs to join our platform.',
         },
         {
@@ -238,7 +238,7 @@ export default function HelpSupportScreen() {
         },
         {
           title: 'Live Sessions',
-          content: 'Watch chefs prepare meals live. Place orders directly from live cooking sessions and interact with chefs.',
+          content: 'Watch chefs prepare meals live. Place orders directly from live Culinary sessions and interact with chefs.',
         },
         {
           title: 'Personalization',

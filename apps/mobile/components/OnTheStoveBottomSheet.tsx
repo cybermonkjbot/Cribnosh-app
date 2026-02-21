@@ -66,7 +66,7 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
     foodCreatorName: 'Food Creator Minnie',
     ingredients: ['Premium Basmati Rice', 'Fresh Tomatoes', 'Bell Peppers', 'Red Onions', 'Secret Spice Blend'],
     cookingTime: '25 minutes',
-    foodCreatorBio: 'Minnie brings 15+ years of authentic Nigerian cooking experience. Every dish tells a story of tradition and love.', // Changed from chefBio and updated content
+    foodCreatorBio: 'Minnie brings 15+ years of authentic Nigerian cooking experience. Every dish tells a story of tradition and love.', // Changed from foodCreatorBio and updated content
     liveViewers: 127,
   },
 }) => {

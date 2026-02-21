@@ -2,7 +2,7 @@ import { useModalSheet } from '@/context/ModalSheetContext';
 import { useCartCount } from '@/hooks/useCartCount';
 import { BlurEffect } from '@/utils/blurEffects';
 import { useRouter } from 'expo-router';
-import { Camera, ChefHat as FoodCreatorHat, Plus, ShoppingCart } from 'lucide-react-native';
+import { Camera, ChefHat as ChefHat, Plus, ShoppingCart } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
@@ -132,7 +132,7 @@ export function FloatingActionButton({
       return <Camera size={20} color="#FFFFFF" />;
     }
     if (lastUsedFunction === 'recipe') {
-      return <FoodCreatorHat size={20} color="#FFFFFF" />;
+      return <ChefHat size={20} color="#FFFFFF" />;
     }
     if (lastUsedFunction === 'cart') {
       return <ShoppingCart size={20} color="#FFFFFF" />;
@@ -377,7 +377,7 @@ export function FloatingActionButton({
           accessibilityLabel="Recipe Share"
           accessibilityRole="button"
         >
-          <FoodCreatorHat size={24} color="#0B9E58" />
+          <ChefHat size={24} color="#0B9E58" />
         </TouchableOpacity>
       </Animated.View>
 

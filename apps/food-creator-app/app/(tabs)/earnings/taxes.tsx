@@ -19,14 +19,14 @@ export default function TaxesScreen() {
   const availableTaxYears = useQuery(
     api.queries.chefTax.getAvailableTaxYears,
     foodCreator?._id && sessionToken
-      ? { chefId: foodCreator._id, sessionToken }
+      ? { foodCreatorId: foodCreator._id, sessionToken }
       : 'skip'
   );
 
   const taxYearSummary = useQuery(
     api.queries.chefTax.getTaxYearSummary,
     foodCreator?._id && sessionToken && selectedTaxYear
-      ? { chefId: foodCreator._id, taxYear: selectedTaxYear, sessionToken }
+      ? { foodCreatorId: foodCreator._id, taxYear: selectedTaxYear, sessionToken }
       : 'skip'
   );
 

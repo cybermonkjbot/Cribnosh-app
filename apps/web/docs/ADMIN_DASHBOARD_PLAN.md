@@ -79,7 +79,7 @@ This document outlines the plan for creating a comprehensive admin dashboard to 
 
 **Convex Functions**:
 - `queries.reviews.getAll`
-- `queries.reviews.getByChef`
+- `queries.reviews.getByFood Creator`
 - `queries.reviews.getByMealId`
 - `mutations.reviews.updateReview`
 - `mutations.reviews.deleteReview`

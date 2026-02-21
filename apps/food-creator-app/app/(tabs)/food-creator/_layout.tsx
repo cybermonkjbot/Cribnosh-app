@@ -87,7 +87,7 @@ export default function FoodCreatorLayout() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.title}>Chef Platform</Text>
+          <Text style={styles.title}>Food Creator Platform</Text>
           <Text style={styles.subtitle}>Loading...</Text>
         </View>
       </SafeAreaView>
@@ -99,7 +99,7 @@ export default function FoodCreatorLayout() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.title}>Chef Platform</Text>
+          <Text style={styles.title}>Food Creator Platform</Text>
           <Text style={styles.subtitle}>Redirecting to sign in...</Text>
         </View>
       </SafeAreaView>

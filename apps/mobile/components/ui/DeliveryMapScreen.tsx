@@ -84,7 +84,7 @@ export default function DeliveryMapScreen({ onClose, orderId }: DeliveryMapScree
   // Check if we have required location data
   const hasLocationData = deliveryLocation && destinationLocation;
   
-  // Prepare chefs array for MapView (only if locations are available)
+  // Prepare food creators array for MapView (only if locations are available)
   const mapMarkers = hasLocationData ? [
     {
       id: 'delivery-person',

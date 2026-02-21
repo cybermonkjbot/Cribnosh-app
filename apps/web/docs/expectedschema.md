@@ -201,7 +201,7 @@
           "title": "Customer Id",
           "description": "Customer profile ID"
         },
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id",
           "description": "Food Creator profile ID"
@@ -210,7 +210,7 @@
       "type": "object",
       "required": [
         "customer_id",
-        "chef_id"
+        "food creator_id"
       ],
       "title": "ChatCreate"
     },
@@ -236,7 +236,7 @@
           "title": "Active Food Creators",
           "description": "Number of active food creators"
         },
-        "chef_distribution_by_cuisine": {
+        "food creator_distribution_by_cuisine": {
           "additionalProperties": {
             "type": "integer"
           },
@@ -256,7 +256,7 @@
         "approved_chefs",
         "pending_chefs",
         "active_chefs",
-        "chef_distribution_by_cuisine",
+        "food creator_distribution_by_cuisine",
         "period"
       ],
       "title": "ChefAnalyticsResponse"
@@ -276,7 +276,7 @@
     },
     "ChefCuisineResponse": {
       "properties": {
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -308,7 +308,7 @@
       },
       "type": "object",
       "required": [
-        "chef_id",
+        "food creator_id",
         "cuisine_id",
         "id"
       ],
@@ -329,7 +329,7 @@
     },
     "ChefCuisineWithProfileResponse": {
       "properties": {
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -358,7 +358,7 @@
           ],
           "title": "Approval Date"
         },
-        "chef_profile": {
+        "food creator_profile": {
           "anyOf": [
             {
               "$ref": "#/components/schemas/ChefProfileResponse"
@@ -371,16 +371,16 @@
       },
       "type": "object",
       "required": [
-        "chef_id",
+        "food creator_id",
         "cuisine_id",
         "id"
       ],
       "title": "ChefCuisineWithProfileResponse",
-      "description": "Chef cuisine response with food creator profile data included"
+      "description": "Food Creator cuisine response with food creator profile data included"
     },
     "ChefDishesResponse": {
       "properties": {
-        "chef_profile": {
+        "food creator_profile": {
           "$ref": "#/components/schemas/ChefProfileResponse"
         },
         "dishes": {
@@ -393,7 +393,7 @@
       },
       "type": "object",
       "required": [
-        "chef_profile",
+        "food creator_profile",
         "dishes"
       ],
       "title": "ChefDishesResponse"
@@ -435,7 +435,7 @@
           "type": "string",
           "title": "Document Id"
         },
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -538,7 +538,7 @@
         "name",
         "document_type",
         "document_id",
-        "chef_id",
+        "food creator_id",
         "status",
         "file_url",
         "file_size",
@@ -569,7 +569,7 @@
           "title": "Estimated Prep Time Minutes",
           "description": "Estimated preparation time in minutes for the order."
         },
-        "chef_notes": {
+        "food creator_notes": {
           "anyOf": [
             {
               "type": "string"
@@ -579,7 +579,7 @@
             }
           ],
           "title": "Food Creator Notes",
-          "description": "Notes from the chef, especially when declining an order."
+          "description": "Notes from the food creator, especially when declining an order."
         }
       },
       "type": "object",
@@ -835,7 +835,7 @@
     },
     "ChefReviewsResponse": {
       "properties": {
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -857,7 +857,7 @@
       },
       "type": "object",
       "required": [
-        "chef_id",
+        "food creator_id",
         "avg_rating",
         "total_reviews",
         "reviews"
@@ -1061,7 +1061,7 @@
     },
     "ChefSummary": {
       "properties": {
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -1090,7 +1090,7 @@
       },
       "type": "object",
       "required": [
-        "chef_id"
+        "food creator_id"
       ],
       "title": "ChefSummary",
       "description": "Minimal food creator information exposed in admin review endpoints."
@@ -1382,7 +1382,7 @@
           "format": "date-time",
           "title": "Updated At"
         },
-        "chef_count": {
+        "food creator_count": {
           "anyOf": [
             {
               "type": "integer"
@@ -2261,7 +2261,7 @@
           "type": "string",
           "title": "Dish Id"
         },
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -2292,7 +2292,7 @@
         "avg_rating",
         "total_reviews",
         "dish_id",
-        "chef_id",
+        "food creator_id",
         "cuisine_id",
         "status"
       ],
@@ -2373,7 +2373,7 @@
           "type": "string",
           "title": "Dish Id"
         },
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -2425,7 +2425,7 @@
         "avg_rating",
         "total_reviews",
         "dish_id",
-        "chef_id",
+        "food creator_id",
         "cuisine_id",
         "status",
         "dish_image_url"
@@ -2538,7 +2538,7 @@
           "type": "string",
           "title": "Dish Id"
         },
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -2568,7 +2568,7 @@
           "title": "Reviews",
           "default": []
         },
-        "chef_name": {
+        "food creator_name": {
           "anyOf": [
             {
               "type": "string"
@@ -2634,7 +2634,7 @@
         "avg_rating",
         "total_reviews",
         "dish_id",
-        "chef_id",
+        "food creator_id",
         "cuisine_id",
         "status",
         "dish_image_url"
@@ -2716,7 +2716,7 @@
           "type": "string",
           "title": "Dish Id"
         },
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -2760,7 +2760,7 @@
         "avg_rating",
         "total_reviews",
         "dish_id",
-        "chef_id",
+        "food creator_id",
         "cuisine_id",
         "status",
         "dish_image_url"
@@ -3004,7 +3004,7 @@
           "type": "string",
           "title": "Dish Id"
         },
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -3026,7 +3026,7 @@
           ],
           "title": "Admin Notes"
         },
-        "chef_profile": {
+        "food creator_profile": {
           "anyOf": [
             {
               "$ref": "#/components/schemas/ChefProfileResponse"
@@ -3058,7 +3058,7 @@
         "avg_rating",
         "total_reviews",
         "dish_id",
-        "chef_id",
+        "food creator_id",
         "cuisine_id",
         "status",
         "dish_image_url"
@@ -3333,7 +3333,7 @@
           "type": "string",
           "title": "Menu Id"
         },
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -3360,7 +3360,7 @@
       "required": [
         "name",
         "menu_id",
-        "chef_id",
+        "food creator_id",
         "created_at",
         "updated_at"
       ],
@@ -3554,8 +3554,8 @@
         "new_order",
         "order_status_update",
         "new_chat_message",
-        "chef_approved",
-        "chef_rejected",
+        "food creator_approved",
+        "food creator_rejected",
         "new_review",
         "special_order_request"
       ],
@@ -3629,7 +3629,7 @@
           ],
           "title": "Delivery Time"
         },
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -3647,7 +3647,7 @@
       },
       "type": "object",
       "required": [
-        "chef_id",
+        "food creator_id",
         "order_items",
         "payment_method"
       ],
@@ -3686,7 +3686,7 @@
           "type": "string",
           "title": "Customer Id"
         },
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -3733,7 +3733,7 @@
       "required": [
         "order_id",
         "customer_id",
-        "chef_id",
+        "food creator_id",
         "order_date",
         "total_amount",
         "order_status",
@@ -3870,7 +3870,7 @@
           "type": "string",
           "title": "Customer Id"
         },
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -3908,7 +3908,7 @@
           ],
           "title": "Estimated Prep Time Minutes"
         },
-        "chef_notes": {
+        "food creator_notes": {
           "anyOf": [
             {
               "type": "string"
@@ -3935,13 +3935,13 @@
       "required": [
         "order_id",
         "customer_id",
-        "chef_id",
+        "food creator_id",
         "order_date",
         "total_amount",
         "order_status",
         "special_instructions",
         "estimated_prep_time_minutes",
-        "chef_notes",
+        "food creator_notes",
         "payment_status",
         "order_items"
       ],
@@ -4067,7 +4067,7 @@
           "type": "string",
           "title": "Customer Id"
         },
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id"
         },
@@ -4121,7 +4121,7 @@
       "required": [
         "order_id",
         "customer_id",
-        "chef_id",
+        "food creator_id",
         "order_date",
         "total_amount",
         "order_status",
@@ -4474,7 +4474,7 @@
           "title": "Order Id",
           "description": "Order ID"
         },
-        "chef_id": {
+        "food creator_id": {
           "anyOf": [
             {
               "type": "string"
@@ -4484,7 +4484,7 @@
             }
           ],
           "title": "Food Creator Id",
-          "description": "Chef profile ID being reviewed"
+          "description": "Food Creator profile ID being reviewed"
         },
         "dish_id": {
           "anyOf": [
@@ -4553,7 +4553,7 @@
         "customer": {
           "$ref": "#/components/schemas/CustomerSummary"
         },
-        "chef": {
+        "food creator": {
           "anyOf": [
             {
               "$ref": "#/components/schemas/ChefSummary"
@@ -4852,7 +4852,7 @@
       "type": "string",
       "enum": [
         "all",
-        "chef",
+        "food creator",
         "cuisine",
         "dish"
       ],
@@ -4926,15 +4926,15 @@
     },
     "TopChefResponse": {
       "properties": {
-        "chef_id": {
+        "food creator_id": {
           "type": "string",
           "title": "Food Creator Id",
-          "description": "Chef profile ID"
+          "description": "Food Creator profile ID"
         },
         "name": {
           "type": "string",
           "title": "Name",
-          "description": "Chef name"
+          "description": "Food Creator name"
         },
         "orders": {
           "type": "integer",
@@ -4954,7 +4954,7 @@
       },
       "type": "object",
       "required": [
-        "chef_id",
+        "food creator_id",
         "name",
         "orders",
         "revenue",
@@ -4984,10 +4984,10 @@
           "title": "Revenue",
           "description": "Revenue formatted as currency"
         },
-        "chef": {
+        "food creator": {
           "type": "string",
-          "title": "Chef",
-          "description": "Chef name"
+          "title": "Food Creator",
+          "description": "Food Creator name"
         }
       },
       "type": "object",
@@ -4996,7 +4996,7 @@
         "name",
         "orders",
         "revenue",
-        "chef"
+        "food creator"
       ],
       "title": "TopMenuResponse"
     },
@@ -5248,9 +5248,9 @@
         },
         "role": {
           "type": "string",
-          "const": "chef",
+          "const": "food creator",
           "title": "Role",
-          "default": "chef"
+          "default": "food creator"
         }
       },
       "type": "object",
@@ -5454,7 +5454,7 @@
         "role": {
           "$ref": "#/components/schemas/UserRole"
         },
-        "chef_profile": {
+        "food creator_profile": {
           "anyOf": [
             {
               "$ref": "#/components/schemas/ChefProfileResponse"
@@ -5492,7 +5492,7 @@
         "admin",
         "user",
         "customer",
-        "chef"
+        "food creator"
       ],
       "title": "UserRole"
     },
@@ -5500,7 +5500,7 @@
       "type": "string",
       "enum": [
         "customer",
-        "chef",
+        "food creator",
         "both",
         "supporter"
       ],
@@ -5692,7 +5692,7 @@
           ],
           "title": "Cooking Experience",
           "examples": [
-            "5 years professional chef"
+            "5 years professional food creator"
           ]
         },
         "cooking_type": {

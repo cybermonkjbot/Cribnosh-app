@@ -6,7 +6,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useAddToCart } from "@/hooks/use-cart";
 import { useSession } from "@/lib/auth/use-session";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowLeft, Clock, ChefHat as FoodCreatorHat, MapPin, Play, ShoppingCart, Star, UserCheck, UserPlus, Users, Video } from "lucide-react";
+import { ArrowLeft, Clock, ChefHat as ChefHat, MapPin, Play, ShoppingCart, Star, UserCheck, UserPlus, Users, Video } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -306,7 +306,7 @@ export default function FoodCreatorProfileClient({ foodCreator }: FoodCreatorPro
                     </div>
                 ) : (
                     <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200">
-                        <FoodCreatorHat size={48} className="mx-auto text-slate-300 mb-4" />
+                        <ChefHat size={48} className="mx-auto text-slate-300 mb-4" />
                         <h3 className="text-lg font-medium text-slate-900">No meals available right now</h3>
                         <p className="text-slate-500">Check back later for new dishes.</p>
                     </div>

@@ -33,7 +33,7 @@ const features = [
 	{
 		id: "chef-discovery",
 		title: "Chef Discovery & Hiring",
-		description: "Follow and hire chefs directly explore culinary talent and book unique experiences.",
+		description: "Follow and hire foodCreators directly explore culinary talent and book unique experiences.",
 		icon: <ChefHat className="w-6 h-6" />,
 	},
 	{
@@ -69,13 +69,13 @@ const features = [
 	{
 		id: "shared-kitchen",
 		title: "Shared Kitchen Access",
-		description: "Connect chefs to certified kitchen owners, empowering local food creators.",
+		description: "Connect foodCreators to certified kitchen owners, empowering local food creators.",
 		icon: <Home className="w-6 h-6" />,
 	},
 	{
 		id: "chef-profiles",
 		title: "Chef Profiles",
-		description: "Full multimedia chef profiles, videos, bookings, stories, and menus.",
+		description: "Full multimedia food creator profiles, videos, bookings, stories, and menus.",
 		icon: <Book className="w-6 h-6" />,
 	},
 	{
@@ -93,7 +93,7 @@ const features = [
 	{
 		id: "cultural-storytelling",
 		title: "In-App Cultural Storytelling",
-		description: "Discover kitchen origins, food backgrounds, and chef stories through contextual UI.",
+		description: "Discover kitchen origins, food backgrounds, and food creator stories through contextual UI.",
 		icon: <Star className="w-6 h-6" />,
 	},
 	{

@@ -1876,7 +1876,7 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
   const [showMealPicker, setShowMealPicker] = useState(false);
   const isMountedRef = React.useRef(true);
 
-  // Get chef's meals using Convex query
+  // Get food creator's meals using Convex query
   // Note: TypeScript has type instantiation depth issues with complex Convex queries
   // This is a known limitation but the query works correctly at runtime
 
@@ -1939,7 +1939,7 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
         channelName,
         foodCreatorId: foodCreator._id,
         title: title.trim(),
-        description: description.trim() || 'Live cooking session',
+        description: description.trim() || 'Live Culinary session',
         mealId: selectedMealId as any,
         tags: tags,
         sessionToken,
@@ -2008,7 +2008,7 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
           <Text style={styles.liveStreamInputLabel}>Live Stream Title *</Text>
           <TextInput
             style={styles.liveStreamTitleInput}
-            placeholder="What are you cooking today?"
+            placeholder="What are you preparing today?"
             placeholderTextColor="#999"
             value={title}
             onChangeText={setTitle}

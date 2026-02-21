@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useMutation } from "convex/react";
 import { ArrowLeft, Bold, BookOpen, Check, Heading1, Image as ImageIcon, Italic, Link as LinkIcon, List, Save } from "lucide-react";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function CreateStoryPage() {
-    const { sessionToken, chef } = useChefAuth();
+    const { sessionToken, foodCreator } = useFoodCreatorAuth();
     const createStory = useMutation(api.mutations.stories.createStory);
     const router = useRouter();
 
@@ -19,7 +19,7 @@ export default function CreateStoryPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!sessionToken || !chef) return;
+        if (!sessionToken || !foodCreator) return;
 
         setIsSubmitting(true);
         try {

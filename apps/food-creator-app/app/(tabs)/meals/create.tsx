@@ -139,7 +139,7 @@ export default function CreateMealPage() {
 
   const handleSubmit = async () => {
     if (!foodCreator?._id || !sessionToken) {
-      showError('Error', 'Chef information not available');
+      showError('Error', 'Food Creator information not available');
       return;
     }
 
@@ -164,7 +164,7 @@ export default function CreateMealPage() {
 
     try {
       await createMeal({
-        chefId: foodCreator._id.toString(),
+        foodCreatorId: foodCreator._id.toString(),
         name: formData.name.trim(),
         description: formData.description.trim(),
         price: price * 100, // Convert to pence/cents

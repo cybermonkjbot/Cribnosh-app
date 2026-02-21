@@ -45,13 +45,13 @@ export default function RequestPayoutScreen() {
   // Get earnings summary
   const earningsSummary = useQuery(
     api.queries.chefEarnings.getSummary,
-    foodCreator?._id && sessionToken ? { chefId: foodCreator._id, sessionToken } : 'skip'
+    foodCreator?._id && sessionToken ? { foodCreatorId: foodCreator._id, sessionToken } : 'skip'
   );
 
   // Get bank accounts
   const bankAccounts = useQuery(
     api.queries.chefBankAccounts.getByChefId,
-    foodCreator?._id && sessionToken ? { chefId: foodCreator._id, sessionToken } : 'skip'
+    foodCreator?._id && sessionToken ? { foodCreatorId: foodCreator._id, sessionToken } : 'skip'
   );
 
   // Request payout mutation
@@ -125,7 +125,7 @@ export default function RequestPayoutScreen() {
       }
 
       const result = await requestPayout({
-        chefId: foodCreator._id,
+        foodCreatorId: foodCreator._id,
         bankAccountId: selectedBankAccount,
         amount: amountInPence,
         sessionToken,

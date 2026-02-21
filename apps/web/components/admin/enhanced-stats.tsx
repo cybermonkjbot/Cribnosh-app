@@ -100,7 +100,7 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
     activeUsers: realtimeMetrics?.activeUsers?.toLocaleString() || '0',
     totalRevenue: formatCurrency(analyticsData.totalRevenue, { currency: 'GBP' }),
     monthlyGrowth: `${analyticsData.userGrowth >= 0 ? '+' : ''}${analyticsData.userGrowth.toFixed(1)}%`,
-    chefApplications: analyticsData.activeChefs.toLocaleString(),
+    foodCreatorApplications: analyticsData.activeChefs.toLocaleString(),
     citiesCovered: analyticsData.citiesServed.toString(),
     orderCompletion: analyticsData.totalOrders > 0
       ? `${((analyticsData.totalOrders - (analyticsData.totalOrders * 0.013)) / analyticsData.totalOrders * 100).toFixed(1)}%`
@@ -113,7 +113,7 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
     activeUsers: '0',
     totalRevenue: formatCurrency(0, { currency: 'GBP' }),
     monthlyGrowth: '0%',
-    chefApplications: '0',
+    foodCreatorApplications: '0',
     citiesCovered: '0',
     orderCompletion: '0%',
     avgResponseTime: '0s'
@@ -169,13 +169,14 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
       description: 'Revenue generated this month'
     },
     {
-      title: 'Active Food Creators',
-      value: stats.chefApplications,
-      change: analyticsData ? `${analyticsData.chefGrowth >= 0 ? '+' : ''}${analyticsData.chefGrowth.toFixed(1)}%` : '0%',
-      changeType: analyticsData && analyticsData.chefGrowth >= 0 ? 'positive' as const : 'negative' as const,
+      title: 'foodCreator Apps',
+      value: stats.foodCreatorApplications,
+      change: analyticsData ? `${analyticsData.foodCreatorGrowth >= 0 ? '+' : ''}${analyticsData.foodCreatorGrowth.toFixed(1)}%` : '0%',
+      changeType: analyticsData && analyticsData.foodCreatorGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: <ChefHat className="w-6 h-6" />,
-      color: 'text-gray-600',
-      description: 'Active food creators on platform'
+      color: 'text-amber-600',
+      bgColor: 'bg-amber-50',
+      description: 'Pending foodCreator applications'
     },
     {
       title: 'Cities Covered',

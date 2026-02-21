@@ -29,7 +29,7 @@ export default function TransactionsScreen() {
     api.queries.chefTransactions.getByChefId,
     foodCreator?._id && sessionToken
       ? {
-        chefId: foodCreator._id,
+        foodCreatorId: foodCreator._id,
         sessionToken,
         type: typeFilter === 'all' ? undefined : typeFilter,
         startDate: startDate ? startDate.getTime() : undefined,
@@ -43,7 +43,7 @@ export default function TransactionsScreen() {
   const typeCounts = useQuery(
     api.queries.chefTransactions.getCountByType,
     foodCreator?._id && sessionToken
-      ? { chefId: foodCreator._id, sessionToken }
+      ? { foodCreatorId: foodCreator._id, sessionToken }
       : 'skip'
   );
 

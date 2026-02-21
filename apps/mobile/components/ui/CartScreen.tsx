@@ -12,7 +12,7 @@ import Feather from "@expo/vector-icons/Feather";
 import { useQuery } from "convex/react";
 import { Link, router, usePathname } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { CarFront, ChefHat as FoodCreatorHat, MessageSquare, Utensils } from "lucide-react-native";
+import { CarFront, ChefHat as ChefHat, MessageSquare, Utensils } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -147,7 +147,7 @@ export default function CartScreen() {
     if (cartItems.length === 0) return false;
     const uniqueFoodCreatorIds = new Set(
       cartItems
-        .map((item: any) => item.foodCreator_id || item.chef_id)
+        .map((item: any) => item.foodCreator_id || item.foodCreatorId)
         .filter((id: any) => id !== undefined && id !== null)
     );
     const result = uniqueFoodCreatorIds.size > 1;
@@ -158,8 +158,8 @@ export default function CartScreen() {
       hasMultiple: result,
       itemsWithFoodCreatorId: cartItems.map((item: any) => ({
         name: item.dish_name,
-        foodCreator_id: item.foodCreator_id || item.chef_id,
-        foodCreator_profile_image: item.foodCreator_profile_image || item.chef_profile_image,
+        foodCreator_id: item.foodCreator_id || item.foodCreatorId,
+        foodCreator_profile_image: item.foodCreator_profile_image || item.foodCreator_profile_image,
       })),
     });
     return result;
@@ -652,8 +652,8 @@ export default function CartScreen() {
                   <View style={styles.itemLeft}>
                     {(() => {
                       const absoluteImageUrl = getAbsoluteImageUrl(item.image_url);
-                      const foodCreatorProfileImage = (item.foodCreator_profile_image || item.chef_profile_image)
-                        ? getAbsoluteImageUrl(item.foodCreator_profile_image || item.chef_profile_image)
+                      const foodCreatorProfileImage = (item.foodCreator_profile_image || item.foodCreator_profile_image)
+                        ? getAbsoluteImageUrl(item.foodCreator_profile_image || item.foodCreator_profile_image)
                         : null;
                       const showFoodCreatorBadge = hasMultipleFoodCreators;
 
@@ -662,7 +662,7 @@ export default function CartScreen() {
                         console.log('Cart Item - Badge check:', {
                           dishName: item.dish_name,
                           hasMultipleFoodCreators,
-                          chefProfileImage: item.chef_profile_image,
+                          foodCreatorProfileImage: item.foodCreator_profile_image,
                           foodCreatorProfileImage,
                           showFoodCreatorBadge,
                         });
@@ -685,7 +685,7 @@ export default function CartScreen() {
                                 />
                               ) : (
                                 <View style={styles.foodCreatorBadgePlaceholder}>
-                                  <FoodCreatorHat size={16} color="#094327" />
+                                  <ChefHat size={16} color="#094327" />
                                 </View>
                               )}
                             </View>
@@ -704,7 +704,7 @@ export default function CartScreen() {
                                 />
                               ) : (
                                 <View style={styles.foodCreatorBadgePlaceholder}>
-                                  <FoodCreatorHat size={16} color="#094327" />
+                                  <ChefHat size={16} color="#094327" />
                                 </View>
                               )}
                             </View>

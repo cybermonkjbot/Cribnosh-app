@@ -60,7 +60,7 @@ export default function BankAccountsScreen() {
   // Get bank accounts
   const bankAccounts = useQuery(
     api.queries.chefBankAccounts.getByChefId,
-    foodCreator?._id && sessionToken ? { chefId: foodCreator._id, sessionToken } : 'skip'
+    foodCreator?._id && sessionToken ? { foodCreatorId: foodCreator._id, sessionToken } : 'skip'
   );
 
   // Mutations
@@ -115,7 +115,7 @@ export default function BankAccountsScreen() {
       }
 
       const result = await createAccount({
-        chefId: foodCreator._id,
+        foodCreatorId: foodCreator._id,
         accountHolderName: accountHolderName.trim(),
         accountNumber: accountNumber.trim(),
         sortCode: sortCode.trim(),
@@ -155,7 +155,7 @@ export default function BankAccountsScreen() {
 
     try {
       const result = await setPrimaryAccount({
-        chefId: foodCreator._id,
+        foodCreatorId: foodCreator._id,
         accountId,
         sessionToken,
       });

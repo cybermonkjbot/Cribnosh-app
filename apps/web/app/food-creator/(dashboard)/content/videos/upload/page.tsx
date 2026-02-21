@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useMutation } from "convex/react";
 import { ArrowLeft, Check, Film, UploadCloud, Video, X } from "lucide-react";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 export default function UploadVideoPage() {
-    const { sessionToken, chef } = useChefAuth();
+    const { sessionToken, foodCreator } = useFoodCreatorAuth();
     const generateUploadUrl = useMutation(api.mutations.files.generateUploadUrl);
     const createVideoPost = useMutation(api.mutations.videoPosts.createVideoPost);
     const router = useRouter();
@@ -38,7 +38,7 @@ export default function UploadVideoPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!sessionToken || !chef || !videoFile) return;
+        if (!sessionToken || !foodCreator || !videoFile) return;
 
         setIsSubmitting(true);
         try {
@@ -61,7 +61,7 @@ export default function UploadVideoPage() {
                 title,
                 description,
                 videoStorageId: storageId,
-                chefId: chef._id,
+                chefId: foodCreator._id,
                 channelId: "general", // Default or select channel
                 status: "processing", // Let backend handle processing
                 sessionToken,

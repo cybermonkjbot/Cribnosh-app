@@ -1,17 +1,17 @@
 "use client";
 
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { Camera } from "lucide-react";
 import { useState } from "react";
 
 export default function ProfilePage() {
-    const { chef } = useChefAuth();
+    const { foodCreator } = useFoodCreatorAuth();
     const [formData, setFormData] = useState({
-        name: chef?.name || "",
-        email: chef?.email || "",
-        bio: chef?.bio || "",
-        phone: chef?.phone || "",
-        specialties: chef?.specialties || [],
+        name: foodCreator?.name || "",
+        email: foodCreator?.email || "",
+        bio: foodCreator?.bio || "",
+        phone: foodCreator?.phone || "",
+        specialties: foodCreator?.specialties || [],
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -35,7 +35,7 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-6">
                         <div className="relative">
                             <div className="h-24 w-24 rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center text-white text-3xl font-bold">
-                                {chef?.name?.charAt(0) || "C"}
+                                {foodCreator?.name?.charAt(0) || "C"}
                             </div>
                             <button className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-all border border-gray-200">
                                 <Camera className="h-4 w-4 text-gray-600" />

@@ -61,7 +61,7 @@ export function FoodCreatorAuthProvider({ children }: FoodCreatorAuthProviderPro
     // This prevents errors from requireAuth when session token is invalid
     user &&
       user !== null &&
-      user.roles?.includes('chef') &&
+      user.roles?.includes('food creator') &&
       user._id &&
       sessionToken
       ? { userId: user._id, sessionToken: sessionToken }
@@ -87,8 +87,8 @@ export function FoodCreatorAuthProvider({ children }: FoodCreatorAuthProviderPro
   ) ?? false;
 
   // Check if user is authenticated as a food creator
-  // User must exist, have a session token, and have the 'chef' role
-  const isAuthenticated = !!user && !!sessionToken && user.roles?.includes('chef');
+  // User must exist, have a session token, and have the 'food creator' role
+  const isAuthenticated = !!user && !!sessionToken && user.roles?.includes('food creator');
 
   // Handle the case where user query returns null (no user found)
   // This means the session token is invalid/expired - clear it immediately

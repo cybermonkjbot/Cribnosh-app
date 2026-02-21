@@ -1,4 +1,4 @@
-import { Sparkles, Utensils } from 'lucide-react-native';
+import { ChefHat as ChefIcon, Sparkles, Utensils } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
 import { Animated, Text, View } from 'react-native';
 import AnimatedReanimated, {
@@ -98,7 +98,7 @@ export function PullToNoshHeavenTrigger({
         ]}
       >
         <Utensils size={20} color="#666" />
-        <FoodCreatorHat size={20} color="#666" />
+        <ChefIcon size={20} color="#666" />
         <Sparkles size={20} color="#666" />
       </AnimatedReanimated.View>
 

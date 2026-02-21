@@ -83,7 +83,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockFoodCr
           data: {
             session: result.session,
             meal: result.session.meal,
-            foodCreator: result.session.foodCreator || result.session.chef,
+            foodCreator: result.session.foodCreator || result.session.foodCreator,
           },
         });
       } catch (error: any) {
@@ -316,7 +316,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockFoodCr
         data: {
           session: result.session,
           meal: result.session.meal,
-          foodCreator: result.session.foodCreator || result.session.chef,
+          foodCreator: result.session.foodCreator || result.session.foodCreator,
         },
       });
     } catch (error: any) {
@@ -655,7 +655,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockFoodCr
       title: meal?.name || session.title || 'Live Cooking',
       price,
       imageSource: typeof mealImage === 'string' ? mealImage : mealImage,
-      description: meal?.description || session.description || 'Watch this amazing live cooking session!',
+      description: meal?.description || session.description || 'Watch this amazing live culinary session!',
       foodCreatorName: foodCreator?.foodCreator_name || 'Food Creator',
       ingredients,
       cookingTime,
@@ -664,7 +664,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockFoodCr
     };
   }, [sessionData, isMockId, mockFoodCreatorData, viewerCount]);
 
-  // Get food creator info for header
+  // Get foodCreator info for header
   const foodCreatorInfo = useMemo(() => {
     // Use mock data if available
     if (isMockId && mockFoodCreatorData) {
@@ -818,7 +818,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockFoodCr
             ? { uri: mockFoodCreatorData.image }
             : (sessionData?.data?.session?.thumbnail_url)
               ? { uri: sessionData.data.session.thumbnail_url }
-              : (sessionData?.data?.chef?.profile_image)
+              : (sessionData?.data?.foodCreator?.profile_image)
                 ? { uri: sessionData.data.foodCreator.profile_image }
                 : require('../../assets/images/FoodCreatorLive-01.png')
         }

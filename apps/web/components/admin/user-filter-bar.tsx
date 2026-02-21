@@ -35,7 +35,7 @@ export function UserFilterBar({
     { value: 'user', label: 'User' },
     { value: 'admin', label: 'Admin' },
     { value: 'moderator', label: 'Moderator' },
-    { value: 'chef', label: 'Chef' },
+    { value: 'foodCreator', label: 'foodCreator' },
   ],
   statusOptions = [
     { value: 'all', label: 'All Statuses' },

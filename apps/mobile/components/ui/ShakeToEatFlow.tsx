@@ -116,7 +116,7 @@ export function ShakeToEatFlow({ onAIChatLaunch, isVisible, onClose, onStart }: 
     if (!apiMeal?.meal) return null;
 
     const meal = apiMeal.meal;
-    const chef = apiMeal.chef;
+    const foodCreator = apiMeal.foodCreator;
 
     // Determine emoji/icon based on cuisine or sentiment
     const getMealEmoji = (cuisine: string, sentiment: string) => {
@@ -132,8 +132,8 @@ export function ShakeToEatFlow({ onAIChatLaunch, isVisible, onClose, onStart }: 
       return cuisineEmojis[cuisine] || '🍽️';
     };
 
-    const cuisine = chef?.cuisine || meal?.cuisine || 'Various';
-    const sentiment = meal?.sentiment || chef?.sentiment || 'solid';
+    const cuisine = foodCreator?.cuisine || meal?.cuisine || 'Various';
+    const sentiment = meal?.sentiment || foodCreator?.sentiment || 'solid';
 
     return {
       name: meal.name || 'Delicious Meal',
@@ -151,11 +151,11 @@ export function ShakeToEatFlow({ onAIChatLaunch, isVisible, onClose, onStart }: 
     if (randomMealsData?.success && randomMealsData.data?.meals && Array.isArray(randomMealsData.data.meals)) {
       const transformedMeals = randomMealsData.data.meals
         .map((meal: any) => {
-          // Transform meal format - random meals query returns meals with chef data
+          // Transform meal format - random meals query returns meals with foodCreator data
           const mealData = meal.meal || meal;
-          const chefData = meal.chef;
+          const foodCreatorData = meal.foodCreator;
 
-          return transformMealToShakeFormat({ meal: mealData, foodCreator: chefData });
+          return transformMealToShakeFormat({ meal: mealData, foodCreator: foodCreatorData });
         })
         .filter((meal: any): meal is ShakeMeal => meal !== null);
 

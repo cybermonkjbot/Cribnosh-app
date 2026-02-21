@@ -4,7 +4,7 @@
 - **Version**: 1.0
 - **Last Updated**: 2024
 - **Status**: Draft
-- **Base URL**: `/api/chef`
+- **Base URL**: `/api/food creator`
 
 ## Overview
 
@@ -38,9 +38,9 @@ All endpoints return JSON with the following structure:
 
 ## 1. Course Management Endpoints
 
-### 1.1 Get Chef's Course Enrollment and Progress
+### 1.1 Get Food Creator's Course Enrollment and Progress
 
-**GET** `/api/chef/courses`
+**GET** `/api/food creator/courses`
 
 Get all courses the food creator is enrolled in and their progress.
 
@@ -85,7 +85,7 @@ Get all courses the food creator is enrolled in and their progress.
 
 ### 1.2 Get Course Modules
 
-**GET** `/api/chef/courses/{courseId}/modules`
+**GET** `/api/food creator/courses/{courseId}/modules`
 
 Get all modules for a specific course.
 
@@ -127,7 +127,7 @@ Get all modules for a specific course.
 
 ### 1.3 Get Module Content
 
-**GET** `/api/chef/courses/{courseId}/modules/{moduleId}`
+**GET** `/api/food creator/courses/{courseId}/modules/{moduleId}`
 
 Get detailed content for a specific module.
 
@@ -174,7 +174,7 @@ Get detailed content for a specific module.
 
 ### 1.4 Mark Module as Complete
 
-**POST** `/api/chef/courses/{courseId}/modules/{moduleId}/complete`
+**POST** `/api/food creator/courses/{courseId}/modules/{moduleId}/complete`
 
 Mark a module as completed (after quiz if applicable).
 
@@ -206,7 +206,7 @@ Mark a module as completed (after quiz if applicable).
 
 ### 1.5 Submit Quiz Answers
 
-**POST** `/api/chef/courses/{courseId}/modules/{moduleId}/quiz`
+**POST** `/api/food creator/courses/{courseId}/modules/{moduleId}/quiz`
 
 Submit quiz answers for a module.
 
@@ -253,7 +253,7 @@ Submit quiz answers for a module.
 
 ### 1.6 Get Completion Certificate
 
-**GET** `/api/chef/courses/{courseId}/certificate`
+**GET** `/api/food creator/courses/{courseId}/certificate`
 
 Get the completion certificate for a course.
 
@@ -282,9 +282,9 @@ Get the completion certificate for a course.
 
 ### 2.1 Get All Food Creator Documents
 
-**GET** `/api/chef/documents`
+**GET** `/api/food creator/documents`
 
-Get all documents uploaded by the chef.
+Get all documents uploaded by the food creator.
 
 **Query Parameters**:
 - `type` (string, optional): Filter by document type
@@ -325,7 +325,7 @@ Get all documents uploaded by the chef.
 
 ### 2.2 Upload Document
 
-**POST** `/api/chef/documents`
+**POST** `/api/food creator/documents`
 
 Upload a new document.
 
@@ -361,7 +361,7 @@ Upload a new document.
 
 ### 2.3 Get Document Details
 
-**GET** `/api/chef/documents/{documentId}`
+**GET** `/api/food creator/documents/{documentId}`
 
 Get details for a specific document.
 
@@ -397,7 +397,7 @@ Get details for a specific document.
 
 ### 2.4 Delete Document
 
-**DELETE** `/api/chef/documents/{documentId}`
+**DELETE** `/api/food creator/documents/{documentId}`
 
 Delete a document (only if not verified or if rejected).
 
@@ -425,7 +425,7 @@ Delete a document (only if not verified or if rejected).
 
 ### 2.5 Get Document Requirements Checklist
 
-**GET** `/api/chef/documents/requirements`
+**GET** `/api/food creator/documents/requirements`
 
 Get the document requirements checklist for onboarding.
 
@@ -463,9 +463,9 @@ Get the document requirements checklist for onboarding.
 
 ### 3.1 Get All Food Creator Recipes
 
-**GET** `/api/chef/recipes`
+**GET** `/api/food creator/recipes`
 
-Get all recipes created by the chef.
+Get all recipes created by the food creator.
 
 **Query Parameters**:
 - `status` (string, optional): Filter by status (draft, published, archived)
@@ -510,7 +510,7 @@ Get all recipes created by the chef.
 
 ### 3.2 Create Recipe
 
-**POST** `/api/chef/recipes`
+**POST** `/api/food creator/recipes`
 
 Create a new recipe.
 
@@ -574,7 +574,7 @@ Create a new recipe.
 
 ### 3.3 Get Recipe Details
 
-**GET** `/api/chef/recipes/{recipeId}`
+**GET** `/api/food creator/recipes/{recipeId}`
 
 Get detailed information for a specific recipe.
 
@@ -630,7 +630,7 @@ Get detailed information for a specific recipe.
 
 ### 3.4 Update Recipe
 
-**PUT** `/api/chef/recipes/{recipeId}`
+**PUT** `/api/food creator/recipes/{recipeId}`
 
 Update an existing recipe.
 
@@ -654,7 +654,7 @@ Update an existing recipe.
 
 ### 3.5 Delete Recipe
 
-**DELETE** `/api/chef/recipes/{recipeId}`
+**DELETE** `/api/food creator/recipes/{recipeId}`
 
 Delete a recipe.
 
@@ -676,7 +676,7 @@ Delete a recipe.
 
 ### 3.6 Publish Recipe
 
-**POST** `/api/chef/recipes/{recipeId}/publish`
+**POST** `/api/food creator/recipes/{recipeId}/publish`
 
 Publish a draft recipe.
 
@@ -699,7 +699,7 @@ Publish a draft recipe.
 
 ### 3.7 Archive Recipe
 
-**POST** `/api/chef/recipes/{recipeId}/archive`
+**POST** `/api/food creator/recipes/{recipeId}/archive`
 
 Archive a published recipe.
 
@@ -723,9 +723,9 @@ Archive a published recipe.
 
 ### 4.1 Get All Food Creator Stories
 
-**GET** `/api/chef/stories`
+**GET** `/api/food creator/stories`
 
-Get all stories created by the chef.
+Get all stories created by the food creator.
 
 **Query Parameters**:
 - `status` (string, optional): Filter by status
@@ -761,7 +761,7 @@ Get all stories created by the chef.
 
 ### 4.2 Create Story
 
-**POST** `/api/chef/stories`
+**POST** `/api/food creator/stories`
 
 Create a new story.
 
@@ -797,7 +797,7 @@ Create a new story.
 
 ### 4.3 Get Story Details
 
-**GET** `/api/chef/stories/{storyId}`
+**GET** `/api/food creator/stories/{storyId}`
 
 Get detailed information for a specific story.
 
@@ -838,7 +838,7 @@ Get detailed information for a specific story.
 
 ### 4.4 Update Story
 
-**PUT** `/api/chef/stories/{storyId}`
+**PUT** `/api/food creator/stories/{storyId}`
 
 Update an existing story.
 
@@ -862,7 +862,7 @@ Update an existing story.
 
 ### 4.5 Delete Story
 
-**DELETE** `/api/chef/stories/{storyId}`
+**DELETE** `/api/food creator/stories/{storyId}`
 
 Delete a story.
 
@@ -884,7 +884,7 @@ Delete a story.
 
 ### 4.6 Publish Story
 
-**POST** `/api/chef/stories/{storyId}/publish`
+**POST** `/api/food creator/stories/{storyId}/publish`
 
 Publish a draft story.
 
@@ -909,7 +909,7 @@ Publish a draft story.
 
 ### 5.1 Get Earnings Dashboard
 
-**GET** `/api/chef/earnings`
+**GET** `/api/food creator/earnings`
 
 Get earnings dashboard data.
 
@@ -961,7 +961,7 @@ Get earnings dashboard data.
 
 ### 5.2 Get Payout History
 
-**GET** `/api/chef/payouts`
+**GET** `/api/food creator/payouts`
 
 Get payout history.
 
@@ -1001,7 +1001,7 @@ Get payout history.
 
 ### 5.3 Request Payout
 
-**POST** `/api/chef/payouts/request`
+**POST** `/api/food creator/payouts/request`
 
 Request a new payout.
 
@@ -1037,7 +1037,7 @@ Request a new payout.
 
 ### 5.4 Get Payout Details
 
-**GET** `/api/chef/payouts/{payoutId}`
+**GET** `/api/food creator/payouts/{payoutId}`
 
 Get details for a specific payout.
 
@@ -1075,9 +1075,9 @@ Get details for a specific payout.
 
 ### 6.1 Get Bank Accounts
 
-**GET** `/api/chef/bank-accounts`
+**GET** `/api/food creator/bank-accounts`
 
-Get all bank accounts for the chef.
+Get all bank accounts for the food creator.
 
 **Response**:
 ```typescript
@@ -1103,7 +1103,7 @@ Get all bank accounts for the chef.
 
 ### 6.2 Add Bank Account
 
-**POST** `/api/chef/bank-accounts`
+**POST** `/api/food creator/bank-accounts`
 
 Add a new bank account.
 
@@ -1138,7 +1138,7 @@ Add a new bank account.
 
 ### 6.3 Update Bank Account
 
-**PUT** `/api/chef/bank-accounts/{accountId}`
+**PUT** `/api/food creator/bank-accounts/{accountId}`
 
 Update a bank account (limited fields).
 
@@ -1168,7 +1168,7 @@ Update a bank account (limited fields).
 
 ### 6.4 Delete Bank Account
 
-**DELETE** `/api/chef/bank-accounts/{accountId}`
+**DELETE** `/api/food creator/bank-accounts/{accountId}`
 
 Delete a bank account (only if not primary and no pending payouts).
 
@@ -1190,7 +1190,7 @@ Delete a bank account (only if not primary and no pending payouts).
 
 ### 6.5 Verify Bank Account
 
-**POST** `/api/chef/bank-accounts/{accountId}/verify`
+**POST** `/api/food creator/bank-accounts/{accountId}/verify`
 
 Initiate bank account verification via Stripe Financial Connections.
 
@@ -1215,9 +1215,9 @@ Initiate bank account verification via Stripe Financial Connections.
 
 ### 7.1 Get Tax Records
 
-**GET** `/api/chef/tax-records`
+**GET** `/api/food creator/tax-records`
 
-Get all tax records for the chef.
+Get all tax records for the food creator.
 
 **Response**:
 ```typescript
@@ -1243,7 +1243,7 @@ Get all tax records for the chef.
 
 ### 7.2 Get Tax Year Summary
 
-**GET** `/api/chef/tax-records/{taxYear}`
+**GET** `/api/food creator/tax-records/{taxYear}`
 
 Get detailed tax year summary.
 
@@ -1285,7 +1285,7 @@ Get detailed tax year summary.
 
 ### 7.3 Download Tax Document
 
-**GET** `/api/chef/tax-records/{taxYear}/download`
+**GET** `/api/food creator/tax-records/{taxYear}/download`
 
 Download tax document as PDF.
 
@@ -1306,7 +1306,7 @@ Content-Disposition: attachment; filename="tax-record-2023-2024.pdf"
 
 ### 8.1 Go Online
 
-**POST** `/api/chef/status/online`
+**POST** `/api/food creator/status/online`
 
 Set food creator status to online (available to receive orders).
 
@@ -1325,7 +1325,7 @@ Set food creator status to online (available to receive orders).
 
 ### 8.2 Go Offline
 
-**POST** `/api/chef/status/offline`
+**POST** `/api/food creator/status/offline`
 
 Set food creator status to offline (not available for orders).
 
@@ -1344,7 +1344,7 @@ Set food creator status to offline (not available for orders).
 
 ### 8.3 Get Current Status
 
-**GET** `/api/chef/status`
+**GET** `/api/food creator/status`
 
 Get current food creator status.
 
@@ -1376,7 +1376,7 @@ Get current food creator status.
 
 ### 8.4 Start Live Stream
 
-**POST** `/api/chef/live/start`
+**POST** `/api/food creator/live/start`
 
 Start a live streaming session.
 
@@ -1408,7 +1408,7 @@ Start a live streaming session.
 
 ### 8.5 End Live Stream
 
-**POST** `/api/chef/live/end`
+**POST** `/api/food creator/live/end`
 
 End a live streaming session.
 
@@ -1496,9 +1496,9 @@ All endpoints may return the following error responses:
 ## Rate Limiting
 
 API endpoints are rate-limited to prevent abuse:
-- **General endpoints**: 100 requests per minute per chef
-- **File upload endpoints**: 10 requests per minute per chef
-- **Payout endpoints**: 5 requests per minute per chef
+- **General endpoints**: 100 requests per minute per food creator
+- **File upload endpoints**: 10 requests per minute per food creator
+- **Payout endpoints**: 5 requests per minute per food creator
 
 Rate limit headers:
 ```
@@ -1512,8 +1512,8 @@ X-RateLimit-Reset: 1640995200
 ## Versioning
 
 API versioning is handled via URL path:
-- Current version: `/api/chef/v1/...` (or just `/api/chef/...`)
-- Future versions: `/api/chef/v2/...`
+- Current version: `/api/food creator/v1/...` (or just `/api/food creator/...`)
+- Future versions: `/api/food creator/v2/...`
 
 ---
 

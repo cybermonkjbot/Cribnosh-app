@@ -52,7 +52,7 @@ import { useMemo, useState } from 'react';
 interface Order {
   _id: Id<"orders">;
   customer_id: Id<"users">;
-  chef_id: Id<"chefs">;
+  foodCreator_id: Id<"chefs">;
   order_status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'refunded';
   total_amount: number;
   items: Array<{
@@ -85,7 +85,7 @@ interface Order {
     email: string;
     phone: string;
   };
-  chef?: {
+  foodCreator?: {
     bio: string;
     location: { city: string };
     rating: number;
@@ -136,7 +136,7 @@ export default function OrderManagementPage() {
     const filtered = orders.filter(order => {
       const matchesSearch =
         order.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.chef?.bio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.foodCreator?.bio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.delivery_address.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order._id.includes(searchTerm);
 
@@ -422,7 +422,7 @@ export default function OrderManagementPage() {
                                   </div>
                                   <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
                                     <span>Customer: {order.customer?.name || 'Unknown'}</span>
-                                    <span>Food Creator: {order.chef?.bio?.substring(0, 30) || 'Unknown'}...</span>
+                                    <span>FoodCreator: {order.foodCreator?.bio?.substring(0, 30) || 'Unknown'}...</span>
                                     <span>Amount: ${order.total_amount.toLocaleString()}</span>
                                   </div>
                                 </div>
@@ -479,12 +479,12 @@ export default function OrderManagementPage() {
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => {
                                         toast({
-                                          title: "Assign to Food Creator",
-                                          description: "Chef assignment feature coming soon",
+                                          title: "Assign to foodCreator",
+                                          description: "foodCreator assignment feature coming soon",
                                         });
                                       }}>
                                         <UserPlus className="w-4 h-4 mr-2" />
-                                        Assign to Food Creator
+                                        Assign to foodCreator
                                       </DropdownMenuItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem onClick={() => {
@@ -601,10 +601,10 @@ export default function OrderManagementPage() {
                                 </div>
                                 <div>
                                   <p className="font-medium text-gray-600">Food Creator</p>
-                                  <p>{order.chef?.bio?.substring(0, 30) || 'Unknown'}...</p>
+                                  <p>{order.foodCreator?.bio?.substring(0, 30) || 'Unknown'}...</p>
                                   <div className="flex items-center gap-1">
                                     <Star className="w-3 h-3 text-gray-900" />
-                                    <span className="text-sm">{order.chef?.rating?.toFixed(1) || 'N/A'}</span>
+                                    <span className="text-sm">{order.foodCreator?.rating?.toFixed(1) || 'N/A'}</span>
                                   </div>
                                 </div>
                               </div>
@@ -850,26 +850,26 @@ export default function OrderManagementPage() {
                 </div>
               </div>
 
-              {/* Food Creator Information */}
+              {/* foodCreator Information */}
               <div className="border-t pt-4">
                 <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
                   <ChefHat className="w-5 h-5" />
-                  Food Creator Information
+                  foodCreator Information
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Bio</p>
-                    <p className="mt-1">{selectedOrder.chef?.bio || 'Unknown'}</p>
+                    <p className="mt-1">{selectedOrder.foodCreator?.bio || 'Unknown'}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">Location</p>
-                    <p className="mt-1">{selectedOrder.chef?.location?.city || 'N/A'}</p>
+                    <p className="mt-1">{selectedOrder.foodCreator?.location?.city || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">Rating</p>
                     <div className="flex items-center gap-1 mt-1">
                       <Star className="w-4 h-4 text-yellow-500" />
-                      <span>{selectedOrder.chef?.rating?.toFixed(1) || 'N/A'}</span>
+                      <span>{selectedOrder.foodCreator?.rating?.toFixed(1) || 'N/A'}</span>
                     </div>
                   </div>
                 </div>

@@ -55,7 +55,7 @@ export default function FoodSafetyComplianceScreen() {
   // Get kitchen ID for the current foodCreator
   const kitchenId = useQuery(
     api.queries.kitchens.getKitchenByChefId,
-    foodCreator?._id ? { chefId: foodCreator._id } : 'skip'
+    foodCreator?._id ? { foodCreatorId: foodCreator._id } : 'skip'
   );
 
   // Get kitchen details
@@ -67,7 +67,7 @@ export default function FoodSafetyComplianceScreen() {
   // Get foodCreator documents
   const documents = useQuery(
     api.queries.chefDocuments.getByChefId,
-    foodCreator?._id && sessionToken ? { chefId: foodCreator._id, sessionToken } : 'skip'
+    foodCreator?._id && sessionToken ? { foodCreatorId: foodCreator._id, sessionToken } : 'skip'
   );
 
   // Map documents by type for easy lookup

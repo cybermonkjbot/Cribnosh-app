@@ -47,7 +47,7 @@ export default function CourseModuleViewer() {
 
   // Get course enrollment
   const enrollmentQueryArgs: any = foodCreator?._id && courseId && sessionToken
-    ? { chefId: foodCreator._id, courseId, sessionToken }
+    ? { foodCreatorId: foodCreator._id, courseId, sessionToken }
     : 'skip';
   
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
@@ -77,33 +77,33 @@ export default function CourseModuleViewer() {
       if (!enrollment) {
         // Default course name - could be improved by fetching course details
         const courseName = courseId === 'compliance-course-v1' 
-          ? 'Home Cooking Compliance Course' 
+          ? 'Home culinary Compliance Course' 
           : `Course ${courseId}`;
         
         enrollInCourse({ 
-          chefId: foodCreator._id, 
+          foodCreatorId: foodCreator._id, 
           courseId, 
           courseName,
           sessionToken 
         })
           .then(() => {
             // After enrollment, sync modules and mark as accessed
-            syncModules({ chefId: foodCreator._id, courseId, sessionToken }).catch(console.error);
-            markAccessed({ chefId: foodCreator._id, courseId, sessionToken }).catch(console.error);
+            syncModules({ foodCreatorId: foodCreator._id, courseId, sessionToken }).catch(console.error);
+            markAccessed({ foodCreatorId: foodCreator._id, courseId, sessionToken }).catch(console.error);
           })
           .catch((error) => {
             // If already enrolled, try to sync and mark as accessed anyway
             if (error.message?.includes('Already enrolled')) {
-              syncModules({ chefId: foodCreator._id, courseId, sessionToken }).catch(console.error);
-              markAccessed({ chefId: foodCreator._id, courseId, sessionToken }).catch(console.error);
+              syncModules({ foodCreatorId: foodCreator._id, courseId, sessionToken }).catch(console.error);
+              markAccessed({ foodCreatorId: foodCreator._id, courseId, sessionToken }).catch(console.error);
             } else {
               console.error('Error enrolling in course:', error);
             }
           });
       } else {
         // Already enrolled, sync modules and mark as accessed
-        syncModules({ chefId: foodCreator._id, courseId, sessionToken }).catch(console.error);
-        markAccessed({ chefId: foodCreator._id, courseId, sessionToken }).catch(console.error);
+        syncModules({ foodCreatorId: foodCreator._id, courseId, sessionToken }).catch(console.error);
+        markAccessed({ foodCreatorId: foodCreator._id, courseId, sessionToken }).catch(console.error);
       }
     }
   }, [foodCreator?._id, courseId, sessionToken, enrollment]);

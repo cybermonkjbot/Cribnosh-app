@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Apple, Beef, Cookie, Fish, ChefHat as FoodCreatorHat, Grape, Hamburger, Pizza, UtensilsCrossed } from 'lucide-react-native';
+import { Apple, Beef, Cookie, Fish, ChefHat as ChefHat, Grape, Hamburger, Pizza, UtensilsCrossed } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,7 +22,7 @@ export const OnboardingCuisinesScreen: React.FC<OnboardingCuisinesScreenProps> =
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
 
   const cuisines = [
-    { id: 'Italian', label: 'Italian', icon: FoodCreatorHat },
+    { id: 'Italian', label: 'Italian', icon: ChefHat },
     { id: 'Chinese', label: 'Chinese', icon: UtensilsCrossed },
     { id: 'Indian', label: 'Indian', icon: Grape },
     { id: 'Mexican', label: 'Mexican', icon: Beef },

@@ -20,7 +20,7 @@ export const AllergenSettingsModal = ({ onClose }: { onClose: () => void }) => {
   const processingSteps = [
     { icon: Brain, text: "Analyzing your allergen preferences..." },
     { icon: Sparkles, text: "Updating meal recommendations..." },
-    { icon: Check, text: "Notifying your favorite chefs..." }
+    { icon: Check, text: "Notifying your favorite foodCreators..." }
   ];
 
   const allergens: Allergen[] = [
@@ -153,7 +153,7 @@ export const AllergenSettingsModal = ({ onClose }: { onClose: () => void }) => {
                   <Info className="text-[#ff3b30] flex-shrink-0 mt-1" />
                   <p className="text-sm text-gray-700  font-Satoshi">
                     Your allergen settings help us customize your meal recommendations and ensure your safety.
-                    Our chefs will be notified of your restrictions.
+                    Our foodCreators will be notified of your restrictions.
                   </p>
                 </div>
 

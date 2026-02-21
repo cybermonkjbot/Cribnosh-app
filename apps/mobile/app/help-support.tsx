@@ -201,7 +201,7 @@ export default function HelpSupportScreen() {
   const handleFoodSafetyPress = () => {
     setSelectedHelpCategory({
       title: 'Food safety on Cribnosh',
-      content: 'We take food safety seriously. All our chefs are certified and follow strict hygiene standards. Here&apos;s what you need to know about food safety on Cribnosh.',
+      content: 'We take food safety seriously. All our food creators are certified and follow strict hygiene standards. Here&apos;s what you need to know about food safety on Cribnosh.',
       sections: [
         {
           title: 'Food Creator Certification',
@@ -238,7 +238,7 @@ export default function HelpSupportScreen() {
         },
         {
           title: 'Live Sessions',
-          content: 'Watch food creators prepare meals live. Place orders directly from live cooking sessions and interact with food creators.',
+          content: 'Watch food creators prepare meals live. Place orders directly from live culinary sessions and interact with food creators.',
         },
         {
           title: 'Personalization',

@@ -20,7 +20,7 @@ This document contains all user stories for the food creator platform, organized
 - Can create account with email, name, password
 - Basic profile info can be entered (name, location)
 - Email verification is sent
-- Account is created with 'chef' role
+- Account is created with 'food creator' role
 - Redirected to onboarding dashboard after registration
 
 **Priority**: P0 (Critical)

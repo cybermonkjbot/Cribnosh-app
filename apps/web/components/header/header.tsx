@@ -226,7 +226,7 @@ export function HeaderCTA() {
           whileHover={{ opacity: 1 }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
         />
-        <Link href="/work-with-cribnosh" className="relative z-10" data-cursor-text="Partner with us as a chef or driver">
+        <Link href="/work-with-cribnosh" className="relative z-10" data-cursor-text="Partner with us as a food creator or driver">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}

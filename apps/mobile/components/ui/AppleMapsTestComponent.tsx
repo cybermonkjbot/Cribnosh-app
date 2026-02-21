@@ -21,7 +21,7 @@ export function AppleMapsTestComponent() {
         testLocation.latitude,
         testLocation.longitude,
         5, // 5km radius
-        10, // limit to 10 chefs
+        10, // limit to 10 food creators
         1 // first page
       );
 
@@ -69,7 +69,7 @@ export function AppleMapsTestComponent() {
     try {
       const foodCreator = foodCreators[0];
       if (!foodCreator.location) {
-        Alert.alert('No Location', 'Selected chef has no location data');
+        Alert.alert('No Location', 'Selected food creator has no location data');
         return;
       }
 
@@ -132,7 +132,7 @@ export function AppleMapsTestComponent() {
         <View style={styles.resultsContainer}>
           <Text style={styles.resultsTitle}>Loaded Food Creators:</Text>
           {foodCreators.slice(0, 3).map((foodCreator) => (
-            <Text key={foodCreator.id} style={styles.chefText}>
+            <Text key={foodCreator.id} style={styles.foodCreatorText}>
               • {foodCreator.foodCreator_name} ({foodCreator.cuisine}) - {foodCreator.distance}
             </Text>
           ))}
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
   },
-  chefText: {
+  foodCreatorText: {
     fontSize: 14,
     marginBottom: 5,
     color: '#333',

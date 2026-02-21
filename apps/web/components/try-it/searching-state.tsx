@@ -7,7 +7,7 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 const searchingStates = [
   "Analyzing your request",
   "Searching for perfect matches",
-  "Checking available chefs",
+  "Checking available foodCreators",
   "Finding authentic recipes",
   "Considering dietary preferences",
   "Finalizing results"

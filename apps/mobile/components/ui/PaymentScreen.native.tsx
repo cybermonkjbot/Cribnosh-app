@@ -131,7 +131,7 @@ export default function PaymentScreen({
   // Convert to pounds for display
   const displayTotal = calculatedTotal / 100;
 
-  // Check if cart has items from multiple chefs
+  // Check if cart has items from multiple food creators
   const hasMultipleFoodCreators = useMemo(() => {
     if (!cartData?.data?.items || cartData.data.items.length === 0) {
       return false;
@@ -139,8 +139,8 @@ export default function PaymentScreen({
 
     const foodCreatorIds = new Set<string>();
     for (const item of cartData.data.items) {
-      if (item.chef_id) {
-        foodCreatorIds.add(item.chef_id);
+      if (item.foodCreatorId) {
+        foodCreatorIds.add(item.foodCreatorId);
       }
     }
 
@@ -508,7 +508,7 @@ export default function PaymentScreen({
     getCart,
   ]);
 
-  // Check for offline chefs
+  // Check for offline food creators
   useEffect(() => {
     if (hasCheckedOfflineFoodCreators) {
       return;
@@ -548,7 +548,7 @@ export default function PaymentScreen({
           setShowOfflineFoodCreatorsModal(true);
         }
       } catch (error) {
-        console.error('Error checking food creator availability:', error);
+        console.error('Error checking foodCreator availability:', error);
         // Continue with payment if check fails
         setHasCheckedOfflineFoodCreators(true);
       }
@@ -557,7 +557,7 @@ export default function PaymentScreen({
     checkOfflineFoodCreators();
   }, [cartData, hasCheckedOfflineFoodCreators]);
 
-  // Check for multiple chefs immediately on mount - after offline chefs check
+  // Check for multiple food creators immediately on mount - after offline food creators check
   useEffect(() => {
     if (hasCheckedMultipleFoodCreators || !hasCheckedOfflineFoodCreators || showOfflineFoodCreatorsModal) {
       return;
@@ -574,7 +574,7 @@ export default function PaymentScreen({
       // Show modal before rendering payment screen
       setShowMultipleFoodCreatorsModal(true);
     } else {
-      // No multiple chefs, proceed directly to payment
+      // No multiple food creators, proceed directly to payment
       setPaymentStatus("processing");
       processPaymentInternal();
     }

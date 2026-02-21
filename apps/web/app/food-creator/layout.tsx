@@ -1,13 +1,13 @@
-import { ChefBackButton } from "@/components/ui/chef-back-button";
-import { ChefAuthProvider } from "@/lib/chef-auth";
+import { ChefBackButton } from "@/components/ui/food-creator-back-button";
+import { FoodCreatorAuthProvider } from "@/lib/food-creator-auth";
 
 export default function ChefLayout({ children }: { children: React.ReactNode }) {
     return (
-        <ChefAuthProvider>
+        <FoodCreatorAuthProvider>
             <ChefBackButton />
             <div className="min-h-screen bg-[#02120A] text-white">
                 {children}
             </div>
-        </ChefAuthProvider>
+        </FoodCreatorAuthProvider>
     );
 }

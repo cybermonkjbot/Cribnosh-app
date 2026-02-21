@@ -2,7 +2,7 @@
 
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -13,7 +13,7 @@ export default function EditMealPage() {
     const params = useParams();
     const router = useRouter();
     const mealId = params.id as Id<"meals">;
-    const { sessionToken, chef } = useChefAuth();
+    const { sessionToken, foodCreator } = useFoodCreatorAuth();
 
     const meal = useQuery(api.queries.meals.get, { mealId });
     const updateMeal = useMutation(api.mutations.meals.updateMeal);

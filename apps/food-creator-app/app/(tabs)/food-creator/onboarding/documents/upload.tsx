@@ -145,7 +145,7 @@ export default function DocumentUploadByTypeScreen() {
 
       // Step 6: Create document record
       await uploadDocument({
-        chefId: foodCreator._id,
+        foodCreatorId: foodCreator._id,
         documentType: documentType as any,
         documentName,
         fileName,

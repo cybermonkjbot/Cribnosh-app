@@ -24,7 +24,7 @@ interface PreviousMeal {
   dietary: string[];
   rating?: number;
   images: string[];
-  chefId: string;
+  foodCreatorId: string;
   status: string;
 }
 
@@ -74,12 +74,12 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
         ...meal,
         id: index + 1,
         title: meal.name || 'Unknown Meal',
-        chef: meal.chef?.name || `Chef ${meal.chefId || 'Unknown'}`,
+        foodCreator: meal.foodCreator?.name || `Food Creator ${meal.foodCreatorId || 'Unknown'}`,
         image: meal.images?.[0] || "/kitchenillus.png",
         date: dateString,
         rating: meal.averageRating || meal.rating || 4.5,
         price: `$${(meal.price || 0).toFixed(2)}`,
-        category: meal.cuisine?.[0] || "Chef's Special"
+        category: meal.cuisine?.[0] || "Food Creator's Special"
       };
     });
   }, [previousMeals]);
@@ -211,7 +211,7 @@ export function AllPreviousMeals({ onClose }: AllPreviousMealsProps) {
                               <h4 className="font-medium text-sm md:text-base mb-0.5 md:mb-1">{meal.title}</h4>
                               <div className="flex items-center text-slate-500  mb-1">
                                 <ChefHat size={12} className="mr-1" />
-                                <span className="text-xs">{meal.chef}</span>
+                                <span className="text-xs">{meal.foodCreator}</span>
                               </div>
                             </div>
                             <span className="font-bold text-sm md:text-base text-[#ff3b30]">{meal.price}</span>

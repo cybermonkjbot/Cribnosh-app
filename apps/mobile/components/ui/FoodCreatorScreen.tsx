@@ -160,7 +160,7 @@ export const FoodCreatorScreen: React.FC<FoodCreatorScreenProps> = ({
       title: videoData.title || foodCreatorName || 'FoodCreator Story',
       description: videoData.description || undefined,
       foodCreatorName: foodCreatorName || 'Food Creator',
-      foodCreator: videoData.creator?.name || videoData.foodCreator?.name || videoData.chef?.name || undefined,
+      foodCreator: videoData.creator?.name || videoData.foodCreator?.name || videoData.foodCreator?.name || undefined,
     };
   }, [featuredVideoData, foodCreatorName]);
 

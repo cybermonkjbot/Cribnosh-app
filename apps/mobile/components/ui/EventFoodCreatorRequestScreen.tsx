@@ -50,7 +50,7 @@ export function EventFoodCreatorRequestScreen({ onClose }: EventFoodCreatorReque
   const { isAuthenticated } = useAuthContext();
   const [isCreating, setIsCreating] = useState(false);
 
-  // Create event chef request function
+  // Create event food creator request function
   const createEventFoodCreatorRequest = async (data: {
     event_date: string;
     number_of_guests: number;
@@ -81,7 +81,7 @@ export function EventFoodCreatorRequestScreen({ onClose }: EventFoodCreatorReque
     });
 
     if (result.success === false) {
-      throw new Error(result.error || 'Failed to create event chef request');
+      throw new Error(result.error || 'Failed to create event food creator request');
     }
 
     // Transform to match expected format

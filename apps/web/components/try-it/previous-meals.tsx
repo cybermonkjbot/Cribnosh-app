@@ -15,7 +15,7 @@ export function PreviousMeals() {
     {
       id: 1,
       title: "Thai Green Curry",
-      chef: "Chef Nattaya",
+      foodCreator: "Food Creator Nattaya",
       image: "/kitchenillus.png",
       date: "2 days ago",
       rating: 4.9
@@ -23,7 +23,7 @@ export function PreviousMeals() {
     {
       id: 2,
       title: "Vegetable Pad Thai",
-      chef: "Chef Somchai",
+      foodCreator: "Food Creator Somchai",
       image: "/kitchenillus.png",
       date: "Last week",
       rating: 4.7
@@ -31,7 +31,7 @@ export function PreviousMeals() {
     {
       id: 3,
       title: "Chicken Satay",
-      chef: "Chef Pranee",
+      foodCreator: "Food Creator Pranee",
       image: "/kitchenillus.png",
       date: "2 weeks ago",
       rating: 4.8
@@ -75,7 +75,7 @@ export function PreviousMeals() {
               </div>
               <div className="p-2.5 md:p-3">
                 <h4 className="font-medium text-sm md:text-base mb-0.5 md:mb-1 line-clamp-1">{meal.title}</h4>
-                <p className="text-slate-500  text-xs mb-1.5 md:mb-2 line-clamp-1">{meal.chef}</p>
+                <p className="text-slate-500  text-xs mb-1.5 md:mb-2 line-clamp-1">{meal.foodCreator}</p>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <Clock size={12} className="mr-1 text-slate-500" />

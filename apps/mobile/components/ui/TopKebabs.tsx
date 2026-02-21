@@ -56,8 +56,8 @@ function TopKebabsComponent({ onOpenDrawer, useBackend = true, onKebabPress, has
   const transformKebabData = useCallback((apiItem: any): Kebab | null => {
     if (!apiItem) return null;
 
-    // Handle different response structures - could be chef/foodCreator or meal
-    const item = apiItem.chef || apiItem.foodCreator || apiItem.dish || apiItem.meal || apiItem;
+    // Handle different response structures - could be foodCreator/foodCreator or meal
+    const item = apiItem.foodCreator || apiItem.foodCreator || apiItem.dish || apiItem.meal || apiItem;
     
     // Extract cuisine name from item
     const cuisineName = item.cuisine || item.specialties?.[0] || item.name || 'Unknown';

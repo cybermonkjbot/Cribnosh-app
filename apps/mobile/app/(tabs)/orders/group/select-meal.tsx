@@ -85,14 +85,14 @@ export default function SelectMealScreen() {
   const groupOrder = groupOrderData?.data;
   const currentSelections = selectionsData?.data?.selections?.[0];
 
-  // Fetch chef menu items when group order is loaded
+  // Fetch foodCreator menu items when group order is loaded
   useEffect(() => {
-    if (groupOrder?.chef_id) {
+    if (groupOrder?.foodCreatorId) {
       const loadFoodCreatorMenus = async () => {
         setIsLoadingMenus(true);
         try {
           const result = await getFoodCreatorMeals({
-            foodCreator_id: groupOrder.chef_id,
+            foodCreator_id: groupOrder.foodCreatorId,
             limit: 100,
           });
           if (result?.success) {
@@ -106,7 +106,7 @@ export default function SelectMealScreen() {
       };
       loadFoodCreatorMenus();
     }
-  }, [groupOrder?.chef_id, getFoodCreatorMeals]);
+  }, [groupOrder?.foodCreatorId, getFoodCreatorMeals]);
 
   // Initialize selected items from current selections
   useEffect(() => {

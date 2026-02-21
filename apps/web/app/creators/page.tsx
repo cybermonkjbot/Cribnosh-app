@@ -24,7 +24,7 @@ export default async function Page() {
     try {
         foodCreators = await convex.query(api.queries.foodCreators.getAll, { limit: 20 });
     } catch (error) {
-        console.error("Error fetching food creators:", error);
+        console.error("Error fetching foodCreators:", error);
     }
 
     return (

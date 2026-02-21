@@ -25,7 +25,7 @@ const activityIcons: Record<string, any> = {
   system_event: Settings,
   security_alert: Shield,
   new_user: User,
-  new_chef: User,
+  new_foodCreator: User,
   content_created: Settings,
   order_created: User,
   payment_processed: User,

@@ -50,7 +50,7 @@ export interface Cuisine {
 }
 
 // ============================================================================
-// CHEF/KITCHEN TYPES
+// FOOD_CREATOR/KITCHEN TYPES
 // ============================================================================
 
 export interface FoodCreator {
@@ -801,7 +801,7 @@ export interface LiveSessionDetails {
     protein?: string;
     carbs?: string;
     prep_time?: string;
-    cooking_time?: string;
+    cookingTime?: string;
   } | null;
 }
 
@@ -1914,7 +1914,7 @@ export interface CreateSupportCaseResponse {
 }
 
 // ============================================================================
-// EVENT CHEF REQUEST API TYPES
+// EVENT FOOD_CREATOR REQUEST API TYPES
 // ============================================================================
 
 export interface CreateEventFoodCreatorRequestRequest {
@@ -2213,7 +2213,7 @@ export interface GetWeeklySummaryResponse {
 }
 
 // ============================================================================
-// CHEF DETAILS & MENU TYPES
+// FOOD_CREATOR DETAILS & MENU TYPES
 // ============================================================================
 
 // GET /customer/foodCreators/{foodCreator_id}

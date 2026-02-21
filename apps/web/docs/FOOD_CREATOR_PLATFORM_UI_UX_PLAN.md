@@ -44,14 +44,14 @@ This document outlines the UI/UX design and implementation plan for the food cre
 
 ### Main Navigation
 
-The food creator platform will be integrated into the existing tab-based navigation with a new "Chef" tab.
+The food creator platform will be integrated into the existing tab-based navigation with a new "Food Creator" tab.
 
 ```
 (tabs)/
   ├── index.tsx (Home - existing)
   ├── orders/ (Orders - existing)
   ├── profile.tsx (Profile - existing)
-  └── chef/ (NEW - Food Creator Platform)
+  └── food creator/ (NEW - Food Creator Platform)
       ├── _layout.tsx
       ├── index.tsx (Food Creator Dashboard)
       ├── onboarding/
@@ -106,14 +106,14 @@ The food creator platform will be integrated into the existing tab-based navigat
 
 ### Tab Bar Integration
 
-Add "Chef" tab to existing `CustomTabBar` component:
+Add "Food Creator" tab to existing `CustomTabBar` component:
 
 ```typescript
 // Only show Food Creator tab if user has food creator role
 <Tabs.Screen
-  name="chef"
+  name="food creator"
   options={{
-    title: 'Chef',
+    title: 'Food Creator',
     // Show badge if onboarding incomplete or new orders
   }}
 />
@@ -123,7 +123,7 @@ Add "Chef" tab to existing `CustomTabBar` component:
 
 ## Screen Designs
 
-### 1. Food Creator Dashboard (`chef/index.tsx`)
+### 1. Food Creator Dashboard (`food creator/index.tsx`)
 
 **Purpose**: Main entry point for chefs, showing overview and quick actions
 
@@ -171,7 +171,7 @@ Add "Chef" tab to existing `CustomTabBar` component:
 ```typescript
 // Use Convex queries directly
 const food creator = useQuery(api.queries.chefs.getByUserId, { userId });
-const recentOrders = useQuery(api.queries.orders.getRecentForChef, { chefId });
+const recentOrders = useQuery(api.queries.orders.getRecentForFood Creator, { chefId });
 const earnings = useQuery(api.queries.chefs.getEarningsSummary, { chefId });
 ```
 
@@ -195,7 +195,7 @@ const earnings = useQuery(api.queries.chefs.getEarningsSummary, { chefId });
 
 ### 2. Onboarding Flow
 
-#### 2.1 Onboarding Overview (`chef/onboarding/index.tsx`)
+#### 2.1 Onboarding Overview (`food creator/onboarding/index.tsx`)
 
 **Purpose**: Show onboarding progress and next steps
 
@@ -233,7 +233,7 @@ const courseProgress = useQuery(
 );
 ```
 
-#### 2.2 Course Module List (`chef/onboarding/course/index.tsx`)
+#### 2.2 Course Module List (`food creator/onboarding/course/index.tsx`)
 
 **Purpose**: List all course modules with progress
 
@@ -270,7 +270,7 @@ const course = useQuery(
 );
 ```
 
-#### 2.3 Module Detail (`chef/onboarding/course/[moduleId].tsx`)
+#### 2.3 Module Detail (`food creator/onboarding/course/[moduleId].tsx`)
 
 **Purpose**: Display module content and quiz
 
@@ -311,7 +311,7 @@ const completeModule = useMutation(api.mutations.chefCourses.completeModule);
 const submitQuiz = useMutation(api.mutations.chefCourses.submitQuiz);
 ```
 
-#### 2.4 Document Upload (`chef/onboarding/documents/index.tsx`)
+#### 2.4 Document Upload (`food creator/onboarding/documents/index.tsx`)
 
 **Purpose**: Upload and manage required documents
 
@@ -346,7 +346,7 @@ const submitQuiz = useMutation(api.mutations.chefCourses.submitQuiz);
 **Data Fetching**:
 ```typescript
 const documents = useQuery(
-  api.queries.chefDocuments.getByChef,
+  api.queries.chefDocuments.getByFood Creator,
   { chefId }
 );
 ```
@@ -364,7 +364,7 @@ const deleteDocument = useMutation(api.mutations.chefDocuments.delete);
 
 ### 3. Profile Management
 
-#### 3.1 Food Creator Profile (`chef/profile/index.tsx`)
+#### 3.1 Food Creator Profile (`food creator/profile/index.tsx`)
 
 **Purpose**: View and edit food creator profile
 
@@ -380,7 +380,7 @@ const deleteDocument = useMutation(api.mutations.chefDocuments.delete);
 │  [Edit]                     │
 │                             │
 │  Bio:                       │
-│  Passionate chef...         │
+│  Passionate food creator...         │
 │  [Edit]                     │
 │                             │
 │  Specialties:               │
@@ -405,7 +405,7 @@ const updateProfile = useMutation(api.mutations.chefs.updateProfile);
 const uploadProfileImage = useMutation(api.mutations.chefs.uploadImage);
 ```
 
-#### 3.2 Kitchen Profile (`chef/profile/kitchen.tsx`)
+#### 3.2 Kitchen Profile (`food creator/profile/kitchen.tsx`)
 
 **Purpose**: Manage kitchen details
 
@@ -435,7 +435,7 @@ const uploadProfileImage = useMutation(api.mutations.chefs.uploadImage);
 └─────────────────────────────┘
 ```
 
-#### 3.3 Availability Settings (`chef/profile/availability.tsx`)
+#### 3.3 Availability Settings (`food creator/profile/availability.tsx`)
 
 **Purpose**: Set availability schedule
 
@@ -468,7 +468,7 @@ const uploadProfileImage = useMutation(api.mutations.chefs.uploadImage);
 
 ### 4. Content Creation
 
-#### 4.1 Content Library (`chef/content/index.tsx`)
+#### 4.1 Content Library (`food creator/content/index.tsx`)
 
 **Purpose**: View all content (recipes, stories, videos)
 
@@ -501,12 +501,12 @@ const uploadProfileImage = useMutation(api.mutations.chefs.uploadImage);
 
 **Data Fetching**:
 ```typescript
-const recipes = useQuery(api.queries.chefRecipes.getByChef, { chefId });
-const stories = useQuery(api.queries.chefStories.getByChef, { chefId });
+const recipes = useQuery(api.queries.chefRecipes.getByFood Creator, { chefId });
+const stories = useQuery(api.queries.chefStories.getByFood Creator, { chefId });
 const videos = useQuery(api.queries.videoPosts.getByCreator, { creatorId: userId });
 ```
 
-#### 4.2 Create Recipe (`chef/content/recipes/create.tsx`)
+#### 4.2 Create Recipe (`food creator/content/recipes/create.tsx`)
 
 **Purpose**: Create new recipe
 
@@ -559,7 +559,7 @@ const uploadImage = useMutation(api.mutations.storage.upload);
 
 ### 5. Order Management
 
-#### 5.1 Order Dashboard (`chef/orders/index.tsx`)
+#### 5.1 Order Dashboard (`food creator/orders/index.tsx`)
 
 **Purpose**: View and manage orders
 
@@ -591,7 +591,7 @@ const uploadImage = useMutation(api.mutations.storage.upload);
 **Data Fetching**:
 ```typescript
 const orders = useQuery(
-  api.queries.orders.getByChef,
+  api.queries.orders.getByFood Creator,
   { chefId, status: "active" }
 );
 ```
@@ -599,7 +599,7 @@ const orders = useQuery(
 **Real-time Updates**:
 ```typescript
 // Use Convex reactive queries for real-time order updates
-const orders = useQuery(api.queries.orders.getByChef, { chefId });
+const orders = useQuery(api.queries.orders.getByFood Creator, { chefId });
 // Automatically updates when new orders arrive
 ```
 
@@ -610,7 +610,7 @@ const rejectOrder = useMutation(api.mutations.orders.reject);
 const updateOrderStatus = useMutation(api.mutations.orders.updateStatus);
 ```
 
-#### 5.2 Order Detail (`chef/orders/[orderId].tsx`)
+#### 5.2 Order Detail (`food creator/orders/[orderId].tsx`)
 
 **Purpose**: View order details and update status
 
@@ -655,7 +655,7 @@ const updateOrderStatus = useMutation(api.mutations.orders.updateStatus);
 
 ### 6. Financial Management
 
-#### 6.1 Earnings Dashboard (`chef/earnings/index.tsx`)
+#### 6.1 Earnings Dashboard (`food creator/earnings/index.tsx`)
 
 **Purpose**: View earnings and financial overview
 
@@ -702,7 +702,7 @@ const transactions = useQuery(
 );
 ```
 
-#### 6.2 Request Payout (`chef/earnings/payouts/request.tsx`)
+#### 6.2 Request Payout (`food creator/earnings/payouts/request.tsx`)
 
 **Purpose**: Request payout to bank account
 
@@ -742,7 +742,7 @@ const transactions = useQuery(
 const requestPayout = useMutation(api.mutations.chefPayouts.request);
 ```
 
-#### 6.3 Add Bank Account (`chef/earnings/bank-accounts/add.tsx`)
+#### 6.3 Add Bank Account (`food creator/earnings/bank-accounts/add.tsx`)
 
 **Purpose**: Add new UK bank account
 
@@ -787,7 +787,7 @@ const verifyBankAccount = useMutation(api.mutations.chefBankAccounts.verify);
 
 ### 7. Live Streaming
 
-#### 7.1 Live Dashboard (`chef/live/index.tsx`)
+#### 7.1 Live Dashboard (`food creator/live/index.tsx`)
 
 **Purpose**: Manage live streaming sessions
 
@@ -818,7 +818,7 @@ const verifyBankAccount = useMutation(api.mutations.chefBankAccounts.verify);
 └─────────────────────────────┘
 ```
 
-#### 7.2 Active Stream (`chef/live/[sessionId].tsx`)
+#### 7.2 Active Stream (`food creator/live/[sessionId].tsx`)
 
 **Purpose**: Manage active live stream
 
@@ -950,7 +950,7 @@ export const useChefOnboarding = () => {
   );
   
   const documents = useQuery(
-    api.queries.chefDocuments.getByChef,
+    api.queries.chefDocuments.getByFood Creator,
     { chefId }
   );
   
@@ -973,7 +973,7 @@ export const useChefOrders = () => {
   const { chefId } = useChefContext();
   
   const orders = useQuery(
-    api.queries.orders.getByChef,
+    api.queries.orders.getByFood Creator,
     { chefId, status: "active" }
   );
   
@@ -1002,7 +1002,7 @@ export const useChefEarnings = () => {
   
   const requestPayout = useMutation(api.mutations.chefPayouts.request);
   const bankAccounts = useQuery(
-    api.queries.chefBankAccounts.getByChef,
+    api.queries.chefBankAccounts.getByFood Creator,
     { chefId }
   );
   
@@ -1019,8 +1019,8 @@ export const useChefEarnings = () => {
 export const useChefContent = () => {
   const { chefId } = useChefContext();
   
-  const recipes = useQuery(api.queries.chefRecipes.getByChef, { chefId });
-  const stories = useQuery(api.queries.chefStories.getByChef, { chefId });
+  const recipes = useQuery(api.queries.chefRecipes.getByFood Creator, { chefId });
+  const stories = useQuery(api.queries.chefStories.getByFood Creator, { chefId });
   
   const createRecipe = useMutation(api.mutations.chefRecipes.create);
   const createStory = useMutation(api.mutations.chefStories.create);
@@ -1092,11 +1092,11 @@ const result = await convex.action(
 // contexts/ChefContext.tsx
 export const ChefContext = createContext<{
   chefId: string | null;
-  chef: Food Creator | null;
+  food creator: Food Creator | null;
   isLoading: boolean;
 }>({
   chefId: null,
-  chef: null,
+  food creator: null,
   isLoading: true,
 });
 
@@ -1158,12 +1158,12 @@ try {
 ### Query State Wrapper
 ```typescript
 <QueryStateWrapper
-  query={chef}
+  query={food creator}
   loading={<ChefSkeleton />}
   error={<ErrorState />}
   empty={<EmptyState />}
 >
-  <ChefContent chef={chef} />
+  <ChefContent food creator={food creator} />
 </QueryStateWrapper>
 ```
 
@@ -1321,7 +1321,7 @@ const OrderCard = memo(({ order }) => {
 ### Feature Adoption
 - 80%+ onboarding completion
 - 70%+ profile completion
-- 5+ content items per chef
+- 5+ content items per food creator
 - 2+ payouts per food creator per month
 
 ---
@@ -1340,5 +1340,5 @@ const OrderCard = memo(({ order }) => {
 
 ## Conclusion
 
-This UI/UX plan provides a comprehensive guide for implementing the food creator platform in the mobile app using Convex directly. All screens, components, and data patterns follow existing app conventions while adding chef-specific functionality.
+This UI/UX plan provides a comprehensive guide for implementing the food creator platform in the mobile app using Convex directly. All screens, components, and data patterns follow existing app conventions while adding food creator-specific functionality.
 

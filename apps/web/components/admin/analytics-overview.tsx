@@ -19,13 +19,13 @@ import { useState } from "react";
 
 interface AnalyticsData {
   totalUsers: number;
-  activeChefs: number;
+  activeFoodCreators: number;
   totalOrders: number;
   totalRevenue: number;
   averageRating: number;
   citiesServed: number;
   userGrowth: number;
-  chefGrowth: number;
+  foodCreatorGrowth: number;
   orderGrowth: number;
   revenueGrowth: number;
   topLocations: Array<{ city: string; count: number }>;
@@ -59,13 +59,13 @@ export function AnalyticsOverview() {
 
   const currentData = analyticsData || {
     totalUsers: 0,
-    activeChefs: 0,
+    activeFoodCreators: 0,
     totalOrders: 0,
     totalRevenue: 0,
     averageRating: 0,
     citiesServed: 0,
     userGrowth: 0,
-    chefGrowth: 0,
+    foodCreatorGrowth: 0,
     orderGrowth: 0,
     revenueGrowth: 0,
     topLocations: [],
@@ -84,10 +84,10 @@ export function AnalyticsOverview() {
       bgColor: 'bg-blue-50'
     },
     {
-      title: 'Active Chefs',
-      value: currentData.activeChefs.toLocaleString(),
-      change: `${currentData.chefGrowth >= 0 ? '+' : ''}${currentData.chefGrowth.toFixed(1)}%`,
-      trend: currentData.chefGrowth >= 0 ? 'up' as const : 'down' as const,
+      title: 'Active foodCreators',
+      value: currentData.activeFoodCreators.toLocaleString(),
+      change: `${currentData.foodCreatorGrowth >= 0 ? '+' : ''}${currentData.foodCreatorGrowth.toFixed(1)}%`,
+      trend: currentData.foodCreatorGrowth >= 0 ? 'up' as const : 'down' as const,
       icon: ChefHat,
       color: 'text-amber-600',
       bgColor: 'bg-amber-50'
@@ -140,12 +140,12 @@ export function AnalyticsOverview() {
       bgColor: 'bg-green-50'
     },
     {
-      type: currentData.chefGrowth < 0 ? 'warning' as const : 'positive' as const,
-      title: 'Chef Retention',
-      description: `Chef ${currentData.chefGrowth >= 0 ? 'growth' : 'retention'} ${currentData.chefGrowth >= 0 ? 'increased' : 'dropped'} by ${Math.abs(currentData.chefGrowth).toFixed(1)}%`,
-      icon: currentData.chefGrowth >= 0 ? TrendingUp : TrendingDown,
-      color: currentData.chefGrowth >= 0 ? 'text-green-600' : 'text-amber-600',
-      bgColor: currentData.chefGrowth >= 0 ? 'bg-green-50' : 'bg-amber-50'
+      type: currentData.foodCreatorGrowth < 0 ? 'warning' as const : 'positive' as const,
+      title: 'foodCreator Retention',
+      description: `foodCreator ${currentData.foodCreatorGrowth >= 0 ? 'growth' : 'retention'} ${currentData.foodCreatorGrowth >= 0 ? 'increased' : 'dropped'} by ${Math.abs(currentData.foodCreatorGrowth).toFixed(1)}%`,
+      icon: currentData.foodCreatorGrowth >= 0 ? TrendingUp : TrendingDown,
+      color: currentData.foodCreatorGrowth >= 0 ? 'text-green-600' : 'text-amber-600',
+      bgColor: currentData.foodCreatorGrowth >= 0 ? 'bg-green-50' : 'bg-amber-50'
     },
     {
       type: 'positive' as const,

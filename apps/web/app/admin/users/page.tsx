@@ -42,7 +42,7 @@ interface UserFormData {
   name: string;
   email: string;
   password: string;
-  role: 'user' | 'admin' | 'moderator' | 'chef';
+  role: 'user' | 'admin' | 'moderator' | 'foodCreator';
   status: 'active' | 'inactive' | 'suspended';
 }
 
@@ -50,7 +50,7 @@ interface UpdateUserData {
   userId: Id<"users">;
   name: string;
   email: string;
-  role: 'user' | 'admin' | 'moderator' | 'chef';
+  role: 'user' | 'admin' | 'moderator' | 'foodCreator';
   status: 'active' | 'inactive' | 'suspended';
   password?: string;
 }
@@ -78,11 +78,11 @@ export default function AdminUsers() {
   // Transform users data: map roles array to role string for display
   const users = usersQuery ? (usersQuery as any[]).map((u: any) => ({
     ...u,
-    role: u.roles?.find((r: string) => ['admin', 'moderator', 'chef', 'staff'].includes(r)) || u.roles?.[0] || 'user'
+    role: u.roles?.find((r: string) => ['admin', 'moderator', 'foodCreator', 'staff'].includes(r)) || u.roles?.[0] || 'user'
   })) as User[] : undefined;
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'suspended'>('all');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'admin' | 'moderator' | 'chef'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'admin' | 'moderator' | 'foodCreator'>('all');
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
@@ -229,7 +229,7 @@ export default function AdminUsers() {
       name: user.name,
       email: user.email,
       password: '', // Don't show password when editing
-      role: user.role as 'user' | 'admin' | 'moderator' | 'chef',
+      role: user.role as 'user' | 'admin' | 'moderator' | 'foodCreator',
       status: user.status,
     });
     setFormErrors({});
@@ -306,7 +306,7 @@ export default function AdminUsers() {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800 border-red-200';
       case 'moderator': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'chef': return 'bg-green-100 text-green-800 border-green-200';
+      case 'foodCreator': return 'bg-green-100 text-green-800 border-green-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -371,7 +371,7 @@ export default function AdminUsers() {
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           roleFilter={roleFilter}
-          onRoleFilterChange={(value: string) => setRoleFilter(value as 'all' | 'user' | 'admin' | 'moderator' | 'chef')}
+          onRoleFilterChange={(value: string) => setRoleFilter(value as 'all' | 'user' | 'admin' | 'moderator' | 'foodCreator')}
           statusFilter={statusFilter}
           onStatusFilterChange={(value: string) => setStatusFilter(value as 'all' | 'active' | 'inactive' | 'suspended')}
           totalCount={users?.length || 0}
@@ -643,7 +643,7 @@ export default function AdminUsers() {
               <label className="block text-sm font-medium font-satoshi text-gray-700 mb-2">
                 Role
               </label>
-              <Select value={formData.role} onValueChange={(value: 'user' | 'admin' | 'moderator' | 'chef') => setFormData({ ...formData, role: value })}>
+              <Select value={formData.role} onValueChange={(value: 'user' | 'admin' | 'moderator' | 'foodCreator') => setFormData({ ...formData, role: value })}>
                 <SelectTrigger className="min-h-[44px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -651,7 +651,7 @@ export default function AdminUsers() {
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="moderator">Moderator</SelectItem>
-                  <SelectItem value="chef">Food Creator</SelectItem>
+                  <SelectItem value="Food Creator">Food Creator</SelectItem>
                 </SelectContent>
               </Select>
             </div>

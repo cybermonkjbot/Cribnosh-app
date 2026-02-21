@@ -1,7 +1,7 @@
 "use client";
 
 import { CribNoshLogo } from "@/components/ui/CribNoshLogo";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { cn } from "@/lib/utils";
 import {
     DollarSign,
@@ -32,7 +32,7 @@ const navigation = [
 
 export function FoodCreatorSidebar() {
     const pathname = usePathname();
-    const { chef, user, logout } = useChefAuth();
+    const { foodCreator, user, logout } = useFoodCreatorAuth();
 
     return (
         <div className="flex h-full w-64 flex-col bg-[#02120A] border-r border-white/10">
@@ -41,16 +41,16 @@ export function FoodCreatorSidebar() {
                 <CribNoshLogo size={120} variant="white" />
             </div>
 
-            {/* Chef Info */}
-            {chef && (
+            {/* Food Creator Info */}
+            {foodCreator && (
                 <div className="border-b border-white/10 p-4">
                     <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-semibold shadow-inner">
-                            {chef.name?.charAt(0) || "F"}
+                            {foodCreator.name?.charAt(0) || "F"}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-white truncate">{chef.name}</p>
-                            <p className="text-xs text-gray-400 truncate">{chef.email}</p>
+                            <p className="text-sm font-semibold text-white truncate">{foodCreator.name}</p>
+                            <p className="text-xs text-gray-400 truncate">{foodCreator.email}</p>
                         </div>
                     </div>
                 </div>

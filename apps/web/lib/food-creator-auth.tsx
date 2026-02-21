@@ -6,8 +6,8 @@ import { useConvex, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
-interface ChefAuthContextType {
-    chef: any | null;
+interface FoodCreatorAuthContextType {
+    foodCreator: any | null;
     user: any | null;
     isLoading: boolean;
     isAuthenticated: boolean;
@@ -15,17 +15,17 @@ interface ChefAuthContextType {
     isOnboardingComplete: boolean;
     sessionToken: string | null;
     login: (token: string, user: any) => Promise<void>;
-    refreshChef: () => Promise<void>;
+    refreshFoodCreator: () => Promise<void>;
     logout: () => Promise<void>;
 }
 
-const ChefAuthContext = createContext<ChefAuthContextType | undefined>(undefined);
+const FoodCreatorAuthContext = createContext<FoodCreatorAuthContextType | undefined>(undefined);
 
-interface ChefAuthProviderProps {
+interface FoodCreatorAuthProviderProps {
     children: ReactNode;
 }
 
-export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
+export function FoodCreatorAuthProvider({ children }: FoodCreatorAuthProviderProps) {
     const convex = useConvex();
     const [sessionToken, setSessionToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -55,37 +55,37 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
 
     const user = userQueryResult;
 
-    // Get chef profile if user has chef role
-    const chefQueryResult = useQuery(
-        api.queries.chefs.getByUserId,
-        user && user !== null && user.roles?.includes("chef") && user._id && sessionToken
+    // Get foodCreator profile if user has foodCreator role
+    const foodCreatorQueryResult = useQuery(
+        api.queries.foodCreators.getByUserId,
+        user && user !== null && user.roles?.includes("foodCreator") && user._id && sessionToken
             ? { userId: user._id, sessionToken: sessionToken }
             : "skip"
     );
 
-    const chef = chefQueryResult;
+    const foodCreator = foodCreatorQueryResult;
 
     // Check if basic onboarding is complete (profile setup)
     const isBasicOnboardingComplete =
         useQuery(
-            api.queries.chefs.isBasicOnboardingComplete,
-            chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : "skip"
+            api.queries.foodCreators.isBasicOnboardingComplete,
+            foodCreator?._id && sessionToken ? { foodCreatorId: foodCreator._id, sessionToken } : "skip"
         ) ?? false;
 
     // Check if onboarding is complete (compliance course completed)
     const isOnboardingComplete =
         useQuery(
-            api.queries.chefCourses.isOnboardingComplete,
-            chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : "skip"
+            api.queries.foodCreatorCourses.isOnboardingComplete,
+            foodCreator?._id && sessionToken ? { foodCreatorId: foodCreator._id, sessionToken } : "skip"
         ) ?? false;
 
-    // Check if user is authenticated as a chef
-    const isAuthenticated = !!user && !!sessionToken && user.roles?.includes("chef");
+    // Check if user is authenticated as a foodCreator
+    const isAuthenticated = !!user && !!sessionToken && user.roles?.includes("foodCreator");
 
     // Handle invalid session token
     useEffect(() => {
         if (user === null && sessionToken) {
-            console.warn("ChefAuth: User query returned null - session token is invalid or expired");
+            console.warn("FoodCreatorAuth: User query returned null - session token is invalid or expired");
             setIsLoading(false);
             const clearToken = () => {
                 try {
@@ -106,7 +106,7 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
     useEffect(() => {
         if (isQueryLoading && sessionToken) {
             const timeout = setTimeout(() => {
-                console.warn("ChefAuth: Query loading timeout - stopping loading");
+                console.warn("FoodCreatorAuth: Query loading timeout - stopping loading");
                 setIsLoading(false);
             }, 10000); // 10 second timeout
 
@@ -129,7 +129,7 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
         []
     );
 
-    const refreshChef = useCallback(async () => {
+    const refreshFoodCreator = useCallback(async () => {
         // Force refetch by updating session token state
         const token = getAuthToken();
         setSessionToken(token);
@@ -145,7 +145,7 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
                 });
             }
         } catch (error) {
-            console.error("Logout error in ChefAuth:", error);
+            console.error("Logout error in FoodCreatorAuth:", error);
         } finally {
             // Clear session token using auth-clientRegardless of error
             clearAuthToken();
@@ -155,8 +155,8 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
     }, [convex, router]);
 
 
-    const contextValue: ChefAuthContextType = {
-        chef: chef || null,
+    const contextValue: FoodCreatorAuthContextType = {
+        foodCreator: foodCreator || null,
         user: user || null,
         isLoading: isLoading || isQueryLoading,
         isAuthenticated: !!isAuthenticated,
@@ -164,17 +164,17 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
         isOnboardingComplete: isOnboardingComplete === true,
         sessionToken,
         login,
-        refreshChef,
+        refreshFoodCreator,
         logout,
     };
 
-    return <ChefAuthContext.Provider value={contextValue}>{children}</ChefAuthContext.Provider>;
+    return <FoodCreatorAuthContext.Provider value={contextValue}>{children}</FoodCreatorAuthContext.Provider>;
 }
 
-export function useChefAuth(): ChefAuthContextType {
-    const context = useContext(ChefAuthContext);
+export function useFoodCreatorAuth(): FoodCreatorAuthContextType {
+    const context = useContext(FoodCreatorAuthContext);
     if (context === undefined) {
-        throw new Error("useChefAuth must be used within a ChefAuthProvider");
+        throw new Error("useFoodCreatorAuth must be used within a FoodCreatorAuthProvider");
     }
     return context;
 }

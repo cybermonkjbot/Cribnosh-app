@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-The Food Creator Platform is a comprehensive system that enables food creators to sell meals, manage their business, create content, and interact with customers through live streaming and order management. This document outlines all features, requirements, and technical specifications for the chef/creator platform.
+The Food Creator Platform is a comprehensive system that enables food creators to sell meals, manage their business, create content, and interact with customers through live streaming and order management. This document outlines all features, requirements, and technical specifications for the food creator/creator platform.
 
 ## 1. Product Overview
 
@@ -129,7 +129,7 @@ Enable home food creators to monetize their cooking skills by providing a comple
 ### 2.2 Food Creator Profile & Kitchen Management
 
 #### 2.2.1 Personal Profile
-**Description**: Chef's personal information and branding.
+**Description**: Food Creator's personal information and branding.
 
 **Requirements**:
 - Profile fields:
@@ -722,59 +722,59 @@ Bank account information for payouts.
 ### 3.2 API Endpoints
 
 #### 3.2.1 Course Management
-- `GET /api/chef/courses` - Get chef's course enrollment and progress
-- `GET /api/chef/courses/{courseId}/modules` - Get course modules
-- `GET /api/chef/courses/{courseId}/modules/{moduleId}` - Get module content
-- `POST /api/chef/courses/{courseId}/modules/{moduleId}/complete` - Mark module as complete
-- `POST /api/chef/courses/{courseId}/modules/{moduleId}/quiz` - Submit quiz answers
-- `GET /api/chef/courses/{courseId}/certificate` - Get completion certificate
+- `GET /api/food creator/courses` - Get food creator's course enrollment and progress
+- `GET /api/food creator/courses/{courseId}/modules` - Get course modules
+- `GET /api/food creator/courses/{courseId}/modules/{moduleId}` - Get module content
+- `POST /api/food creator/courses/{courseId}/modules/{moduleId}/complete` - Mark module as complete
+- `POST /api/food creator/courses/{courseId}/modules/{moduleId}/quiz` - Submit quiz answers
+- `GET /api/food creator/courses/{courseId}/certificate` - Get completion certificate
 
 #### 3.2.2 Document Management
-- `GET /api/chef/documents` - Get all food creator documents
-- `POST /api/chef/documents` - Upload new document
-- `GET /api/chef/documents/{documentId}` - Get document details
-- `DELETE /api/chef/documents/{documentId}` - Delete document
-- `GET /api/chef/documents/requirements` - Get document requirements checklist
+- `GET /api/food creator/documents` - Get all food creator documents
+- `POST /api/food creator/documents` - Upload new document
+- `GET /api/food creator/documents/{documentId}` - Get document details
+- `DELETE /api/food creator/documents/{documentId}` - Delete document
+- `GET /api/food creator/documents/requirements` - Get document requirements checklist
 
 #### 3.2.3 Recipe Management
-- `GET /api/chef/recipes` - Get all food creator recipes
-- `POST /api/chef/recipes` - Create new recipe
-- `GET /api/chef/recipes/{recipeId}` - Get recipe details
-- `PUT /api/chef/recipes/{recipeId}` - Update recipe
-- `DELETE /api/chef/recipes/{recipeId}` - Delete recipe
-- `POST /api/chef/recipes/{recipeId}/publish` - Publish recipe
-- `POST /api/chef/recipes/{recipeId}/archive` - Archive recipe
+- `GET /api/food creator/recipes` - Get all food creator recipes
+- `POST /api/food creator/recipes` - Create new recipe
+- `GET /api/food creator/recipes/{recipeId}` - Get recipe details
+- `PUT /api/food creator/recipes/{recipeId}` - Update recipe
+- `DELETE /api/food creator/recipes/{recipeId}` - Delete recipe
+- `POST /api/food creator/recipes/{recipeId}/publish` - Publish recipe
+- `POST /api/food creator/recipes/{recipeId}/archive` - Archive recipe
 
 #### 3.2.4 Story Management
-- `GET /api/chef/stories` - Get all food creator stories
-- `POST /api/chef/stories` - Create new story
-- `GET /api/chef/stories/{storyId}` - Get story details
-- `PUT /api/chef/stories/{storyId}` - Update story
-- `DELETE /api/chef/stories/{storyId}` - Delete story
-- `POST /api/chef/stories/{storyId}/publish` - Publish story
+- `GET /api/food creator/stories` - Get all food creator stories
+- `POST /api/food creator/stories` - Create new story
+- `GET /api/food creator/stories/{storyId}` - Get story details
+- `PUT /api/food creator/stories/{storyId}` - Update story
+- `DELETE /api/food creator/stories/{storyId}` - Delete story
+- `POST /api/food creator/stories/{storyId}/publish` - Publish story
 
 #### 3.2.5 Payout Management
-- `GET /api/chef/earnings` - Get earnings dashboard data
-- `GET /api/chef/payouts` - Get payout history
-- `POST /api/chef/payouts/request` - Request new payout
-- `GET /api/chef/payouts/{payoutId}` - Get payout details
-- `GET /api/chef/bank-accounts` - Get bank accounts
-- `POST /api/chef/bank-accounts` - Add new bank account
-- `PUT /api/chef/bank-accounts/{accountId}` - Update bank account
-- `DELETE /api/chef/bank-accounts/{accountId}` - Delete bank account
-- `POST /api/chef/bank-accounts/{accountId}/verify` - Verify bank account
+- `GET /api/food creator/earnings` - Get earnings dashboard data
+- `GET /api/food creator/payouts` - Get payout history
+- `POST /api/food creator/payouts/request` - Request new payout
+- `GET /api/food creator/payouts/{payoutId}` - Get payout details
+- `GET /api/food creator/bank-accounts` - Get bank accounts
+- `POST /api/food creator/bank-accounts` - Add new bank account
+- `PUT /api/food creator/bank-accounts/{accountId}` - Update bank account
+- `DELETE /api/food creator/bank-accounts/{accountId}` - Delete bank account
+- `POST /api/food creator/bank-accounts/{accountId}/verify` - Verify bank account
 
 #### 3.2.6 Tax Management
-- `GET /api/chef/tax-records` - Get tax records
-- `GET /api/chef/tax-records/{taxYear}` - Get tax year summary
-- `GET /api/chef/tax-records/{taxYear}/download` - Download tax document
+- `GET /api/food creator/tax-records` - Get tax records
+- `GET /api/food creator/tax-records/{taxYear}` - Get tax year summary
+- `GET /api/food creator/tax-records/{taxYear}/download` - Download tax document
 
 #### 3.2.7 Status Management
-- `POST /api/chef/status/online` - Go online
-- `POST /api/chef/status/offline` - Go offline
-- `GET /api/chef/status` - Get current status
-- `POST /api/chef/live/start` - Start live stream
-- `POST /api/chef/live/end` - End live stream
+- `POST /api/food creator/status/online` - Go online
+- `POST /api/food creator/status/offline` - Go offline
+- `GET /api/food creator/status` - Get current status
+- `POST /api/food creator/live/start` - Start live stream
+- `POST /api/food creator/live/end` - End live stream
 
 ### 3.3 Integration Points
 
@@ -841,10 +841,10 @@ Bank account information for payouts.
 - Active food creator rate: 60%+ monthly active
 - Content creation rate: 5+ items per food creator per month
 - Order acceptance rate: 85%+
-- Average orders per chef: 20+ per month
+- Average orders per food creator: 20+ per month
 
 ### 5.3 Financial Metrics
-- Payout request frequency: 2+ per month per chef
+- Payout request frequency: 2+ per month per food creator
 - Average payout amount: £200+
 - Payment processing success rate: 99%+
 - Tax document generation: 100% for active chefs
@@ -892,10 +892,10 @@ Bank account information for payouts.
 ## 8. Appendix
 
 ### 8.1 Glossary
-- **Chef**: Home cook selling meals on the platform
+- **Food Creator**: Home cook selling meals on the platform
 - **Course**: 13-module compliance training program
 - **Document**: Required paperwork for food creator verification
-- **Payout**: Transfer of earnings to chef's bank account
+- **Payout**: Transfer of earnings to food creator's bank account
 - **Live Stream**: Real-time cooking session with order capability
 
 ### 8.2 References

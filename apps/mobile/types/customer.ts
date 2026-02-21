@@ -242,7 +242,7 @@ export interface Dish {
   }[];
   is_vegetarian?: boolean;
   is_safe_for_you?: boolean;
-  prep_time?: string;
+  prepTime?: string;
   delivery_time?: string;
   chef_name?: string;
   foodCreator_story?: string;
@@ -486,7 +486,7 @@ export interface GetCuisinesResponse {
   };
 }
 
-// GET /customer/chefs/popular
+// GET /customer/foodCreators/popular
 export interface GetPopularFoodCreatorsResponse {
   success: boolean;
   data: FoodCreator[];
@@ -791,7 +791,7 @@ export interface LiveSessionDetails {
     specialties?: string[];
     rating: number;
   } | null;
-  chef?: any;
+  // Duplicate removed
   meal: {
     _id: string;
     id: string;
@@ -808,8 +808,8 @@ export interface LiveSessionDetails {
     fat?: string;
     protein?: string;
     carbs?: string;
-    prep_time?: string;
-    cooking_time?: string;
+    prepTime?: string;
+    cookingTime?: string;
   } | null;
 }
 
@@ -1004,8 +1004,8 @@ export interface GetLiveChatResponse {
 export interface LiveStreamOrder {
   orderId: string;
   sessionId: string;
-  chefId: string;
-  chefName: string;
+  foodCreatorId: string;
+  foodCreatorName: string;
   customerId: string;
   customerName: string;
   items: {
@@ -1068,7 +1068,7 @@ export interface ApiError {
 export interface CustomOrder {
   _id: string;
   userId: string;
-  chefId?: string;
+  foodCreatorId?: string;
   requirements: string;
   serving_size: number;
   desired_delivery_time?: string;
@@ -1349,7 +1349,7 @@ export interface SortParams {
 // SEARCH ENDPOINTS - MISSING INTEGRATIONS
 // ========================================================================
 
-// GET /customer/search/chefs
+// GET /customer/search/foodCreators
 export interface FoodCreatorSearchParams {
   q: string; // Required search query
   location?: string;
@@ -1381,7 +1381,7 @@ export interface SearchFoodCreator {
 export interface FoodCreatorSearchResponse {
   success: boolean;
   data: {
-    chefs: SearchFoodCreator[];
+    foodCreators: SearchFoodCreator[];
     metadata: {
       query: string;
       total_results: number;
@@ -1399,13 +1399,13 @@ export interface SearchSuggestionsParams {
   q: string; // Required partial query
   location?: string;
   limit?: number;
-  category?: "all" | "dishes" | "chefs" | "cuisines" | "restaurants";
+  category?: "all" | "dishes" | "foodCreators" | "cuisines" | "restaurants";
   user_id?: string;
 }
 
 export interface SearchSuggestion {
   text: string;
-  type: "dish" | "chef" | "cuisine" | "restaurant" | "ingredient";
+  type: "dish" | "foodCreator" | "cuisine" | "restaurant" | "ingredient";
   confidence: number;
   popularity_score: number;
   category?: string;
@@ -1438,13 +1438,13 @@ export interface TrendingSearchParams {
   cuisine?: string;
   time_range?: "hour" | "day" | "week" | "month";
   limit?: number;
-  category?: "dishes" | "chefs" | "cuisines" | "restaurants";
+  category?: "dishes" | "foodCreators" | "cuisines" | "restaurants";
 }
 
 export interface TrendingItem {
   id: string;
   name: string;
-  type: "dish" | "chef" | "cuisine" | "restaurant";
+  type: "dish" | "foodCreator" | "cuisine" | "restaurant";
   popularity_score: number;
   trend_direction: "up" | "down" | "stable";
   search_count: number;
@@ -1925,7 +1925,7 @@ export interface CreateSupportCaseResponse {
 // EVENT CHEF REQUEST API TYPES
 // ============================================================================
 
-export interface CreateEventChefRequestRequest {
+export interface CreateEventFoodCreatorRequestRequest {
   event_date: string;
   number_of_guests: number;
   event_type: string;
@@ -1936,7 +1936,7 @@ export interface CreateEventChefRequestRequest {
   additional_notes?: string;
 }
 
-export interface CreateEventChefRequestResponse {
+export interface CreateEventFoodCreatorRequestResponse {
   success: boolean;
   data: {
     success: boolean;
@@ -2224,7 +2224,7 @@ export interface GetWeeklySummaryResponse {
 // CHEF DETAILS & MENU TYPES
 // ============================================================================
 
-// GET /customer/chefs/{chef_id}
+// GET /customer/foodCreators/{chef_id}
 export interface FoodCreatorDetailsLocation {
   latitude: number;
   longitude: number;
@@ -2245,12 +2245,12 @@ export interface GetFoodCreatorDetailsResponse {
 }
 
 export interface GetFoodCreatorDetailsParams {
-  chefId: string;
+  foodCreatorId: string;
   latitude?: number;
   longitude?: number;
 }
 
-// POST /customer/chefs/search-by-location
+// POST /customer/foodCreators/search-by-location
 export interface SearchFoodCreatorsByLocationRequest {
   latitude: number;
   longitude: number;
@@ -2262,7 +2262,7 @@ export interface SearchFoodCreatorsByLocationRequest {
 export interface SearchFoodCreatorsByLocationResponse {
   success: boolean;
   data: {
-    chefs: FoodCreator[];
+    foodCreators: FoodCreator[];
     total: number;
     page: number;
     limit: number;
@@ -2270,7 +2270,7 @@ export interface SearchFoodCreatorsByLocationResponse {
   message?: string;
 }
 
-// POST /customer/chefs/search
+// POST /customer/foodCreators/search
 export interface SearchFoodCreatorsRequest {
   query: string;
   location: {
@@ -2285,13 +2285,13 @@ export interface SearchFoodCreatorsRequest {
 export interface SearchFoodCreatorsResponse {
   success: boolean;
   data: {
-    chefs: FoodCreator[];
+    foodCreators: FoodCreator[];
     total: number;
   };
   message?: string;
 }
 
-// GET /customer/chefs/popular/{chef_id}
+// GET /customer/foodCreators/popular/{chef_id}
 export interface PopularFoodCreatorDetails extends FoodCreator {
   reviews?: Review[];
   averageRating?: number;
@@ -2316,10 +2316,10 @@ export interface GetPopularFoodCreatorDetailsResponse {
 // MENU TYPES
 // ============================================================================
 
-// GET /customer/menus/chef/{chef_id}/menus
+// GET /customer/menus/foodCreator/{chef_id}/menus
 export interface MenuItem {
   _id: string;
-  chefId: string;
+  foodCreatorId: string;
   name: string;
   description: string;
   price: number;

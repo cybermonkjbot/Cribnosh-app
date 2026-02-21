@@ -41,7 +41,7 @@ interface LiveSession {
   _id: Id<"liveSessions">;
   _creationTime: number;
   session_id: string;
-  chef_id: Id<"chefs">;
+  foodCreator_id: Id<"chefs">;
   title: string;
   description?: string;
   status: 'scheduled' | 'starting' | 'live' | 'ended' | 'cancelled';
@@ -70,7 +70,7 @@ interface LiveSession {
     totalTips: number;
     totalOrders: number;
   };
-  chef?: {
+  foodCreator?: {
     _id: Id<"chefs">;
     name?: string;
     bio?: string;
@@ -128,7 +128,7 @@ export default function LiveSessionsManagementPage() {
         session.title.toLowerCase().includes(searchLower) ||
         session.description?.toLowerCase().includes(searchLower) ||
         session.session_id.toLowerCase().includes(searchLower) ||
-        session.chef?.name?.toLowerCase().includes(searchLower) ||
+        session.foodCreator?.name?.toLowerCase().includes(searchLower) ||
         session.tags?.some(tag => tag.toLowerCase().includes(searchLower))
       );
     }
@@ -328,7 +328,7 @@ export default function LiveSessionsManagementPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-asgard text-gray-900">Live Sessions</h1>
-          <p className="text-gray-600 font-satoshi mt-2">Manage live cooking sessions</p>
+          <p className="text-gray-600 font-satoshi mt-2">Manage live culinary sessions</p>
         </div>
       </div>
 
@@ -419,7 +419,7 @@ export default function LiveSessionsManagementPage() {
 
       {/* Filters */}
       <AdminFilterBar
-        searchPlaceholder="Search sessions by title, description, chef, or tags..."
+        searchPlaceholder="Search sessions by title, description, foodCreator, or tags..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         filters={filterOptions}
@@ -450,9 +450,9 @@ export default function LiveSessionsManagementPage() {
             >
               {/* Thumbnail */}
               <div className="relative aspect-video bg-gray-100">
-                {session.thumbnailUrl || session.chef?.profileImage ? (
+                {session.thumbnailUrl || session.foodCreator?.profileImage ? (
                   <Image
-                    src={session.thumbnailUrl || session.chef?.profileImage || ''}
+                    src={session.thumbnailUrl || session.foodCreator?.profileImage || ''}
                     alt={session.title}
                     fill
                     className="object-cover"
@@ -481,9 +481,9 @@ export default function LiveSessionsManagementPage() {
                 )}
                 
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
-                  {session.chef?.name && (
+                  {session.foodCreator?.name && (
                     <Badge variant="outline" className="text-xs">
-                      {session.chef.name}
+                      {session.foodCreator.name}
                     </Badge>
                   )}
                   {session.location?.city && (

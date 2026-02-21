@@ -42,7 +42,7 @@ export default function SupportScreen() {
   const [ratingValue, setRatingValue] = useState<number>(0);
   const [ratingComment, setRatingComment] = useState('');
 
-  // Get chef's support cases
+  // Get food creator's support cases
   const supportCases = useQuery(
     api.queries.supportCases.getByUserId,
     user?._id

@@ -1,4 +1,4 @@
-# Chef App Setup Status
+# Food Creator App Setup Status
 
 ## ✅ Completed
 
@@ -51,9 +51,9 @@
 ### 9. Monorepo Integration
 - ✅ Added to root `package.json` workspaces
 - ✅ Added npm scripts:
-  - `npm run chef:dev` - Start dev server (port 8083)
-  - `npm run chef:android` - Run on Android
-  - `npm run chef:ios` - Run on iOS
+  - `npm run food creator:dev` - Start dev server (port 8083)
+  - `npm run food creator:android` - Run on Android
+  - `npm run food creator:ios` - Run on iOS
 
 ## ⚠️ Known Issues
 
@@ -70,13 +70,13 @@ The app is ready for development! You can now:
 
 1. **Start the dev server:**
    ```bash
-   npm run chef:dev
+   npm run food creator:dev
    # or
    cd apps/food-creator-app && bun run start
    ```
 
 2. **Begin building features:**
-   - Chef authentication
+   - Food Creator authentication
    - Dashboard
    - Onboarding flow
    - Profile management
@@ -117,11 +117,11 @@ apps/food-creator-app/
 
 ## 🎯 Next Development Steps
 
-1. Create chef authentication context
-2. Build chef dashboard screen
+1. Create food creator authentication context
+2. Build food creator dashboard screen
 3. Implement onboarding flow
 4. Add navigation structure
-5. Create chef-specific hooks
+5. Create food creator-specific hooks
 6. Build profile management
 7. Implement content creation
 8. Add order management
@@ -130,11 +130,11 @@ apps/food-creator-app/
 ## 📚 Documentation
 
 All planning docs in `apps/web/docs/`:
-- CHEF_PLATFORM_PRD.md
-- CHEF_PLATFORM_USER_STORIES.md
-- CHEF_PLATFORM_USER_JOURNEYS.md
-- CHEF_PLATFORM_UI_UX_PLAN.md
-- CHEF_PLATFORM_API_DESIGN.md
-- CHEF_PLATFORM_SCHEMA_DESIGN.md
-- CHEF_PLATFORM_IMPLEMENTATION_PHASES.md
+- FOOD_CREATOR_PLATFORM_PRD.md
+- FOOD_CREATOR_PLATFORM_USER_STORIES.md
+- FOOD_CREATOR_PLATFORM_USER_JOURNEYS.md
+- FOOD_CREATOR_PLATFORM_UI_UX_PLAN.md
+- FOOD_CREATOR_PLATFORM_API_DESIGN.md
+- FOOD_CREATOR_PLATFORM_SCHEMA_DESIGN.md
+- FOOD_CREATOR_PLATFORM_IMPLEMENTATION_PHASES.md
 

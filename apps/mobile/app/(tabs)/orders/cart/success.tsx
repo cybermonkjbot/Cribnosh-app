@@ -123,7 +123,7 @@ export default function SuccessScreen() {
 
   // Get foodCreator description
   const getFoodCreatorDescription = (): string => {
-    // Could be enhanced with cuisine type from order/chef data
+    // Could be enhanced with cuisine type from order/food creator data
     return 'Top Rated'; // Default fallback
   };
 

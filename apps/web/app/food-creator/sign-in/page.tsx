@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useAction } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { CribNoshLogo } from "@/components/ui/CribNoshLogo";
 
 export default function ChefSignInPage() {
-    const { isAuthenticated, isLoading } = useChefAuth();
+    const { isAuthenticated, isLoading } = useFoodCreatorAuth();
     const router = useRouter();
 
     const [email, setEmail] = useState("");
@@ -19,7 +19,7 @@ export default function ChefSignInPage() {
 
     // Auth actions
     const chefLogin = useAction(api.actions.chefs.chefLogin);
-    const { login } = useChefAuth();
+    const { login } = useFoodCreatorAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

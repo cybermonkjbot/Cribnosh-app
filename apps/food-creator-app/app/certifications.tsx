@@ -32,7 +32,7 @@ export default function CertificationsScreen() {
   // Get kitchen ID
   const kitchenId = useQuery(
     api.queries.kitchens.getKitchenByChefId,
-    foodCreator?._id ? { chefId: foodCreator._id } : 'skip'
+    foodCreator?._id ? { foodCreatorId: foodCreator._id } : 'skip'
   );
 
   // Get kitchen details
@@ -44,7 +44,7 @@ export default function CertificationsScreen() {
   // Get foodCreator documents (certifications)
   const chefDocuments = useQuery(
     api.queries.chefDocuments.getByChefId,
-    foodCreator?._id ? { chefId: foodCreator._id } : 'skip'
+    foodCreator?._id ? { foodCreatorId: foodCreator._id } : 'skip'
   );
 
   useEffect(() => {

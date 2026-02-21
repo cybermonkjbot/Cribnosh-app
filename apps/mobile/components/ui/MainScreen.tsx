@@ -207,7 +207,7 @@ export function MainScreen() {
           data: {
             popular: result.data.meals.map((meal: any) => ({
               meal,
-              foodCreator: meal.foodCreator || meal.chef || null,
+              foodCreator: meal.foodCreator || meal.foodCreator || null,
             }))
           }
         });
@@ -377,7 +377,7 @@ export function MainScreen() {
     if (!apiMeal?.meal) return null;
 
     const meal = apiMeal.meal;
-    const foodCreator = apiMeal.foodCreator || apiMeal.chef;
+    const foodCreator = apiMeal.foodCreator || apiMeal.foodCreator;
 
     return {
       id: meal._id || meal.id || '',
@@ -1436,7 +1436,7 @@ export function MainScreen() {
     };
     setSelectedFoodCreator(foodCreatorData);
     setIsFoodCreatorScreenVisible(true);
-    setIsMapVisible(false); // Close map when selecting a chef
+    setIsMapVisible(false); // Close map when selecting a foodCreator
   }, []);
 
   const handleMapDirections = useCallback(async (foodCreator: FoodCreatorMarker) => {
@@ -1461,7 +1461,7 @@ export function MainScreen() {
     }
   }, [locationState.location]);
 
-  // Initialize map chefs with real data from API
+  // Initialize map food creators with real data from API
   const { getNearbyFoodCreators: getNearbyFoodCreatorsFromHook } = useFoodCreators();
   useEffect(() => {
     const loadNearbyFoodCreators = async () => {
@@ -1490,7 +1490,7 @@ export function MainScreen() {
         // Mark that initial load is complete
         isFirstMapLoad.current = false;
       } catch (error) {
-        console.error('Failed to load nearby chefs:', error);
+        console.error('Failed to load nearby food creators:', error);
         // Fallback to empty array on error - no toast needed, UI will show empty state
         setMapFoodCreators([]);
         // Mark initial load as complete even on error
@@ -2063,7 +2063,7 @@ export function MainScreen() {
                   )}
                   {isFeatureEnabled('mobile_event_banner') && (
                     <EventBanner
-                      onPress={() => router.push('/event-chef-request')}
+                      onPress={() => router.push('/event-foodCreator-request')}
                       isFirstSection={firstSectionId === 'eventBanner'}
                     />
                   )}

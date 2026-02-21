@@ -40,12 +40,12 @@ export interface SalesByCuisine {
 }
 
 /**
- * Top Chef Stats
+ * Top Food Creator Stats
  */
-export interface TopChefStats {
-  chefId: Id<"chefs">;
+export interface TopFoodCreatorStats {
+  foodCreatorId: Id<"chefs">;
   userId?: Id<"users">;
-  chefName: string;
+  foodCreatorName: string;
   userName?: string;
   orderCount: number;
   revenue: number;
@@ -57,8 +57,8 @@ export interface TopChefStats {
 export interface TopMenuItemStats {
   menuId: string; // Changed from Id<"menus"> since menus table doesn't exist
   menuName: string;
-  chefId: Id<"chefs">;
-  chefName: string;
+  foodCreatorId: Id<"chefs">;
+  foodCreatorName: string;
   userId?: Id<"users">;
   userName?: string;
   orderCount: number;

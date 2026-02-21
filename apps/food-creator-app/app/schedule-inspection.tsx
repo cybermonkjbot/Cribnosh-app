@@ -50,7 +50,7 @@ export default function ScheduleInspectionScreen() {
   // Get kitchen ID
   const kitchenId = useQuery(
     api.queries.kitchens.getKitchenByChefId,
-    foodCreator?._id ? { chefId: foodCreator._id } : 'skip'
+    foodCreator?._id ? { foodCreatorId: foodCreator._id } : 'skip'
   );
 
   // Get kitchen details

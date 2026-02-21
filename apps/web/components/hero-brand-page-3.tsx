@@ -35,7 +35,7 @@ export function HeroBrandPage3({ className }: HeroBrandPage3Props) {
     { 
       text: "Food Creators", 
       delay: 0.2,
-      description: "Passionate home chefs sharing authentic recipes"
+      description: "Passionate food creators sharing authentic recipes"
     },
     { 
       text: "Food Lovers", 

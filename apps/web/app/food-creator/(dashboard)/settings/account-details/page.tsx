@@ -1,11 +1,11 @@
 "use client";
 
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { Bell, Lock, Shield, User } from "lucide-react";
 import { useState } from "react";
 
 export default function AccountDetailsPage() {
-    const { chef, user } = useChefAuth();
+    const { foodCreator, user } = useFoodCreatorAuth();
     const [notifications, setNotifications] = useState({
         orderUpdates: true,
         payouts: true,
@@ -33,11 +33,11 @@ export default function AccountDetailsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <p className="text-sm font-medium text-gray-400">Account ID</p>
-                            <p className="mt-1 text-white font-mono text-sm">{chef?._id || "N/A"}</p>
+                            <p className="mt-1 text-white font-mono text-sm">{foodCreator?._id || "N/A"}</p>
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-400">Registered Email</p>
-                            <p className="mt-1 text-white">{user?.email || chef?.email || "N/A"}</p>
+                            <p className="mt-1 text-white">{user?.email || foodCreator?.email || "N/A"}</p>
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-400">Account Status</p>
@@ -48,7 +48,7 @@ export default function AccountDetailsPage() {
                         <div>
                             <p className="text-sm font-medium text-gray-400">Member Since</p>
                             <p className="mt-1 text-white">
-                                {chef?._creationTime ? new Date(chef._creationTime).toLocaleDateString() : "N/A"}
+                                {foodCreator?._creationTime ? new Date(foodCreator._creationTime).toLocaleDateString() : "N/A"}
                             </p>
                         </div>
                     </div>

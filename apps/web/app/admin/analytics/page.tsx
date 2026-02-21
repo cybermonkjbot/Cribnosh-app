@@ -26,13 +26,13 @@ import Link from 'next/link';
 
 interface AnalyticsData {
   totalUsers: number;
-  activeChefs: number;
+  activeFoodCreators: number;
   totalOrders: number;
   totalRevenue: number;
   averageRating: number;
   citiesServed: number;
   userGrowth: number;
-  chefGrowth: number;
+  foodCreatorGrowth: number;
   orderGrowth: number;
   revenueGrowth: number;
   topLocations: Array<{ city: string; count: number }>;
@@ -67,13 +67,13 @@ export default function AdminAnalyticsPage() {
 
   const currentData = analyticsData || {
     totalUsers: 0,
-    activeChefs: 0,
+    activeFoodCreators: 0,
     totalOrders: 0,
     totalRevenue: 0,
     averageRating: 0,
     citiesServed: 0,
     userGrowth: 0,
-    chefGrowth: 0,
+    foodCreatorGrowth: 0,
     orderGrowth: 0,
     revenueGrowth: 0,
     topLocations: [],
@@ -92,10 +92,10 @@ export default function AdminAnalyticsPage() {
       bgColor: 'bg-gray-100',
     },
     {
-      title: 'Active Chefs',
-      value: currentData.activeChefs.toLocaleString(),
-      change: `${currentData.chefGrowth >= 0 ? '+' : ''}${currentData.chefGrowth.toFixed(1)}%`,
-      changeType: currentData.chefGrowth >= 0 ? 'positive' as const : 'negative' as const,
+      title: 'Active food creators',
+      value: currentData.activeFoodCreators.toLocaleString(),
+      change: `${currentData.foodCreatorGrowth >= 0 ? '+' : ''}${currentData.foodCreatorGrowth.toFixed(1)}%`,
+      changeType: currentData.foodCreatorGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: Activity,
       color: 'text-gray-900',
       bgColor: 'bg-gray-100',
@@ -314,7 +314,7 @@ export default function AdminAnalyticsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { title: 'View Users', icon: Users, href: '/admin/users', color: 'text-gray-900', bgColor: 'bg-gray-100' },
-          { title: 'Manage Food Creators', icon: Activity, href: '/admin/food-creators', color: 'text-gray-900', bgColor: 'bg-gray-100' },
+          { title: 'Manage food creators', icon: Activity, href: '/admin/food-creators', color: 'text-gray-900', bgColor: 'bg-gray-100' },
           { title: 'Order History', icon: ShoppingCart, href: '/admin/orders', color: 'text-gray-900', bgColor: 'bg-gray-100' },
           { title: 'System Settings', icon: BarChart3, href: '/admin/settings', color: 'text-gray-900', bgColor: 'bg-gray-100' },
         ].map((action, index) => {

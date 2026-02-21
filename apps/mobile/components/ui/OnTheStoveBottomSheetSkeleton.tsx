@@ -281,7 +281,7 @@ export function OnTheStoveBottomSheetSkeleton({
             </View>
           </View>
           
-          {/* Chef Bio Skeleton */}
+          {/* Food Creator Bio Skeleton */}
           <View style={{ marginBottom: 20 }}>
             <Animated.View style={[
               {

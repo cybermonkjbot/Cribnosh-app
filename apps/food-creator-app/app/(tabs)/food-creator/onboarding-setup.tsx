@@ -9,18 +9,18 @@ import { useEffect, useState } from 'react';
 
 export default function FoodCreatorOnboardingSetupPage() {
   const router = useRouter();
-  const { isAuthenticated, foodCreator, user, sessionToken, isBasicOnboardingComplete, refreshFoodCreator: refreshChef } = useFoodCreatorAuth();
+  const { isAuthenticated, foodCreator, user, sessionToken, isBasicOnboardingComplete, refreshFoodCreator: refreshFood Creator } = useFoodCreatorAuth();
   const { showSuccess, showError } = useToast();
-  const createChef = useMutation(api.mutations.foodCreators.createChef);
-  const updateChef = useMutation(api.mutations.foodCreators.update);
+  const createFood Creator = useMutation(api.mutations.foodCreators.createFood Creator);
+  const updateFood Creator = useMutation(api.mutations.foodCreators.update);
   const createKitchen = useMutation(api.mutations.kitchens.createKitchen);
   const clearDraft = useMutation(api.mutations.foodCreators.clearOnboardingDraft);
   const [isUploading, setIsUploading] = useState(false);
 
   // Load existing foodCreator data including draft
-  const chefData = useQuery(
+  const foodCreatorData = useQuery(
     api.queries.foodCreators.getChefById,
-    foodCreator?._id ? { chefId: foodCreator._id } : 'skip'
+    foodCreator?._id ? { foodCreatorId: foodCreator._id } : 'skip'
   );
 
   // Redirect if already completed basic onboarding
@@ -81,7 +81,7 @@ export default function FoodCreatorOnboardingSetupPage() {
   }) => {
     try {
       setIsUploading(true);
-      console.log('Chef onboarding completed with data:', data);
+      console.log('Food Creator onboarding completed with data:', data);
 
       if (!user?._id || !sessionToken) {
         showError('Error', 'Authentication required');
@@ -108,8 +108,8 @@ export default function FoodCreatorOnboardingSetupPage() {
 
       if (foodCreator) {
         // Update existing foodCreator profile
-        await updateChef({
-          chefId: foodCreator._id,
+        await updateFood Creator({
+          foodCreatorId: foodCreator._id,
           updates: {
             name: data.name,
             bio: data.bio,
@@ -125,7 +125,7 @@ export default function FoodCreatorOnboardingSetupPage() {
         showSuccess('Profile Updated', 'Your foodCreator profile has been set up successfully!');
       } else {
         // Create new foodCreator profile
-        const chefId = await createChef({
+        const chefId = await createFood Creator({
           userId: user._id,
           name: data.name,
           bio: data.bio,
@@ -160,7 +160,7 @@ export default function FoodCreatorOnboardingSetupPage() {
       if (foodCreator?._id && sessionToken) {
         try {
           await clearDraft({
-            chefId: foodCreator._id,
+            foodCreatorId: foodCreator._id,
             sessionToken,
           });
         } catch (error) {
@@ -169,7 +169,7 @@ export default function FoodCreatorOnboardingSetupPage() {
       }
 
       // Refresh foodCreator context to update onboarding status
-      await refreshChef();
+      await refreshFood Creator();
 
       // Use requestAnimationFrame to ensure navigation happens after render
       requestAnimationFrame(() => {
@@ -185,7 +185,7 @@ export default function FoodCreatorOnboardingSetupPage() {
   };
 
   const handleOnboardingSkip = () => {
-    console.log('Chef onboarding skipped');
+    console.log('Food Creator onboarding skipped');
     // Navigate to compliance training (they can complete profile later)
     router.replace('/(tabs)/food-creator/onboarding' as any);
   };
@@ -195,9 +195,9 @@ export default function FoodCreatorOnboardingSetupPage() {
   }
 
   // Prepare initial draft data from saved draft or existing foodCreator profile
-  const initialDraft = chefData?.onboardingDraft ? {
-    ...chefData.onboardingDraft,
-    coordinates: chefData.onboardingDraft.coordinates as [number, number] || [0, 0],
+  const initialDraft = foodCreatorData?.onboardingDraft ? {
+    ...foodCreatorData.onboardingDraft,
+    coordinates: foodCreatorData.onboardingDraft.coordinates as [number, number] || [0, 0],
   } : (foodCreator ? {
     name: foodCreator.name || '',
     bio: foodCreator.bio || '',

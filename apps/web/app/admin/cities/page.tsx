@@ -52,7 +52,7 @@ interface City {
   }[];
   stats: {
     totalUsers: number;
-    totalChefs: number;
+    totalFoodCreators: number;
     totalOrders: number;
     averageOrderValue: number;
     lastOrderAt?: number;
@@ -131,7 +131,7 @@ export default function CitiesManagementPage() {
         deliveryZones: [],
         stats: {
           totalUsers: 0,
-          totalChefs: 0,
+          totalFoodCreators: 0,
           totalOrders: 0,
           averageOrderValue: 0
         },
@@ -234,8 +234,8 @@ export default function CitiesManagementPage() {
         return a.name.localeCompare(b.name);
       case 'users':
         return b.stats.totalUsers - a.stats.totalUsers;
-      case 'chefs':
-        return b.stats.totalChefs - a.stats.totalChefs;
+      case 'food creators':
+        return b.stats.totalFoodCreators - a.stats.totalFoodCreators;
       case 'orders':
         return b.stats.totalOrders - a.stats.totalOrders;
       case 'recent':
@@ -329,9 +329,9 @@ export default function CitiesManagementPage() {
                 <ChefHat className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Food Creators</p>
+                <p className="text-sm text-gray-600">Total food creators</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {cities?.reduce((sum: any, c: any) => sum + c.stats.totalChefs, 0) || 0}
+                  {cities?.reduce((sum: any, c: any) => sum + c.stats.totalFoodCreators, 0) || 0}
                 </p>
               </div>
             </div>
@@ -575,7 +575,7 @@ export default function CitiesManagementPage() {
           <SelectContent>
             <SelectItem value="name">Name</SelectItem>
             <SelectItem value="users">Users</SelectItem>
-            <SelectItem value="chefs">Food Creators</SelectItem>
+            <SelectItem value="Food Creators">Food Creators</SelectItem>
             <SelectItem value="orders">Orders</SelectItem>
             <SelectItem value="recent">Recent</SelectItem>
           </SelectContent>
@@ -608,7 +608,7 @@ export default function CitiesManagementPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <ChefHat className="w-4 h-4 text-gray-500" />
-                  <span>{city.stats.totalChefs} chefs</span>
+                  <span>{city.stats.totalFoodCreators} food creators</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Building className="w-4 h-4 text-gray-500" />

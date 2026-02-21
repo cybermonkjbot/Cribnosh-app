@@ -13,21 +13,21 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useQuery } from "convex/react";
 import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Download, Filter } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 export default function TransactionsPage() {
-    const { chef, sessionToken } = useChefAuth();
+    const { foodCreator, sessionToken } = useFoodCreatorAuth();
     const [typeFilter, setTypeFilter] = useState<"all" | "earning" | "payout" | "fee" | "refund">("all");
     const [page, setPage] = useState(0);
     const limit = 20;
 
     const transactionsData = useQuery(api.queries.chefTransactions.getByChefId,
-        chef ? {
-            chefId: chef._id,
+        foodCreator ? {
+            chefId: foodCreator._id,
             sessionToken,
             type: typeFilter,
             offset: page * limit,

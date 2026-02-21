@@ -39,7 +39,7 @@ const socialLinks: SocialLink[] = [
     {
         id: "instagram",
         title: "Instagram",
-        description: "See our culinary world in pictures. Daily inspiration, chef highlights, and food porn.",
+        description: "See our culinary world in pictures. Daily inspiration, food creator highlights, and food porn.",
         href: "https://www.instagram.com/cribnoshuk?igsh=MXM3NWxsOHpsbDB1bA==",
         color: "text-pink-500",
         icon: (

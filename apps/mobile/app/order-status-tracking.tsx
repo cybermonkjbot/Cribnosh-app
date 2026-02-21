@@ -83,7 +83,7 @@ export default function OrderStatusTrackingScreen() {
             delivery_address: order.delivery_address || order.deliveryAddress,
             order_items: order.order_items || order.items,
             total_amount: order.total_amount || order.total,
-            chef_id: order.chef_id || order.foodCreatorId,
+            foodCreatorId: order.foodCreatorId || order.foodCreatorId,
             created_at: order.created_at || order.createdAt,
           });
         }

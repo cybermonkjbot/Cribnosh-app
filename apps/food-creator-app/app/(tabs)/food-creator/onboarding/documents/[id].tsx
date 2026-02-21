@@ -34,7 +34,7 @@ export default function DocumentUploadScreen() {
   const documents = useQuery(
     api.queries.chefDocuments.getByChefId,
     foodCreator?._id && sessionToken
-      ? { chefId: foodCreator._id, sessionToken }
+      ? { foodCreatorId: foodCreator._id, sessionToken }
       : 'skip'
   );
 
@@ -133,7 +133,7 @@ export default function DocumentUploadScreen() {
 
       // Step 6: Create document record
       await uploadDocument({
-        chefId: foodCreator._id,
+        foodCreatorId: foodCreator._id,
         documentType: document.documentType,
         documentName: document.documentName || document.documentType,
         fileName,

@@ -22,9 +22,7 @@ export interface MealData {
   description: string;
   foodCreatorName: string;
   price: string;
-  foodCreator?: string;
   foodCreatorId?: string;
-  chef?: string;
   likes: number;
   comments: number;
   mealId?: string; // Optional meal ID if video is linked to a meal
@@ -43,8 +41,6 @@ interface NoshHeavenPlayerProps {
     title: string;
     description?: string;
     foodCreatorName: string;
-    foodCreator?: string;
-    chef?: string;
   };
   onClose: () => void;
   onLoadMore?: () => void;
@@ -86,7 +82,7 @@ export function NoshHeavenPlayer({
         title: foodCreatorIntroVideo.title,
         description: foodCreatorIntroVideo.description || '',
         foodCreatorName: foodCreatorIntroVideo.foodCreatorName,
-        foodCreator: foodCreatorIntroVideo.foodCreator || foodCreatorIntroVideo.chef,
+        
         price: 'Free', // FoodCreator intro videos are instructional content
         likes: 0,
         comments: 0,
@@ -327,7 +323,7 @@ export function NoshHeavenPlayer({
           description={item.description}
           foodCreatorName={item.foodCreatorName}
           price={item.price}
-          chef={item.chef}
+          foodCreator={item.foodCreator}
           likes={item.likes}
           comments={item.comments}
           isVisible={isCurrentItem}

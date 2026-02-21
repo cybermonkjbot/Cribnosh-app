@@ -60,7 +60,7 @@ export default function PayoutHistoryScreen() {
     api.queries.chefPayouts.getHistory,
     foodCreator?._id && sessionToken && viewType === 'payouts'
       ? {
-          chefId: foodCreator._id,
+          foodCreatorId: foodCreator._id,
           status: selectedStatus || undefined,
           limit: 50,
           sessionToken: sessionToken,
@@ -75,7 +75,7 @@ export default function PayoutHistoryScreen() {
     api.queries.chefEarnings.getTransactions,
     foodCreator?._id && sessionToken && viewType === 'earnings'
       ? {
-          chefId: foodCreator._id,
+          foodCreatorId: foodCreator._id,
           limit: 50,
           sessionToken: sessionToken,
         }

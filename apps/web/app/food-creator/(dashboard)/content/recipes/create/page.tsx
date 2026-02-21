@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useMutation } from "convex/react";
 import { ArrowLeft, Check, ChefHat, Plus, UploadCloud, X } from "lucide-react";
 import Link from "next/link";
@@ -21,7 +21,7 @@ const DIETARY_OPTIONS = [
 ];
 
 export default function CreateRecipePage() {
-    const { sessionToken, chef } = useChefAuth();
+    const { sessionToken, foodCreator } = useFoodCreatorAuth();
     const createRecipe = useMutation(api.mutations.recipes.createRecipe);
     const generateUploadUrl = useMutation(api.mutations.files.generateUploadUrl);
     const router = useRouter();
@@ -82,7 +82,7 @@ export default function CreateRecipePage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!sessionToken || !chef) return;
+        if (!sessionToken || !foodCreator) return;
 
         setIsSubmitting(true);
         try {
@@ -115,7 +115,7 @@ export default function CreateRecipePage() {
                 difficulty: formData.difficulty as "easy" | "medium" | "hard",
                 cuisine: formData.cuisine,
                 dietary: selectedDietary,
-                author: chef.name,
+                author: foodCreator.name,
                 status: "published",
                 featuredImage: featuredImageUrl,
                 sessionToken,

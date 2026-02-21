@@ -22,7 +22,7 @@ export function JobValuesJsonLd({ type, datePosted = new Date().toISOString() }:
         identifier: {
             "@type": "PropertyValue",
             name: "CribNosh",
-            value: isFoodCreator ? "CN-CHEF-001" : "CN-DRV-001"
+            value: isFoodCreator ? "CN-FOODCREATOR-001" : "CN-DRV-001"
         },
         datePosted: datePosted,
         validThrough: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString(),

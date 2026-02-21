@@ -1,27 +1,27 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { useChefAuth } from "@/lib/chef-auth";
+import { useFoodCreatorAuth } from "@/lib/food-creator-auth";
 import { useQuery } from "convex/react";
 import { ArrowRight, DollarSign, TrendingUp } from "lucide-react";
 import Link from "next/link";
 
 export default function EarningsPage() {
-    const { chef, sessionToken } = useChefAuth();
+    const { foodCreator, sessionToken } = useFoodCreatorAuth();
 
     const analytics = useQuery(
         api.queries.analytics.getChefAnalytics,
-        chef?._id && sessionToken ? { chefId: chef._id, timeRange: "30d", sessionToken } : "skip"
+        foodCreator?._id && sessionToken ? { chefId: foodCreator._id, timeRange: "30d", sessionToken } : "skip"
     );
 
     const earningsSummary = useQuery(
         api.queries.chefEarnings.getSummary,
-        chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : "skip"
+        foodCreator?._id && sessionToken ? { chefId: foodCreator._id, sessionToken } : "skip"
     );
 
     const transactions = useQuery(
         api.queries.chefEarnings.getTransactions,
-        chef?._id && sessionToken ? { chefId: chef._id, limit: 10, sessionToken } : "skip"
+        foodCreator?._id && sessionToken ? { chefId: foodCreator._id, limit: 10, sessionToken } : "skip"
     );
 
     const availableBalance = earningsSummary?.availableBalance || 0;

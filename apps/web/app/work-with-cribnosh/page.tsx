@@ -28,7 +28,7 @@ export default function WorkWithCribnosh() {
                   <span className="block text-[#ff3b30] text-[1.75rem] sm:text-5xl mt-1 sm:mt-0">Shape the Future of Dining</span>
                 </h1>
                 <p className="font-satoshi text-base sm:text-xl text-gray-600 max-w-3xl leading-snug sm:leading-normal">
-                  Whether you're a passionate chef or a reliable driver, become part of our growing
+                  Whether you're a passionate food creator or a reliable driver, become part of our growing
                   community and help revolutionize the home dining experience.
                 </p>
               </motion.div>

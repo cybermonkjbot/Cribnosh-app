@@ -403,9 +403,9 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
                   meal.image_url || 
                   meal.image ||
                   meal.images?.[0] ||
-                  mealData.chef?.image_url ||
+                  mealData.foodCreator?.image_url ||
                   undefined;
-                const foodCreatorName = mealData.chef?.foodCreator_name || mealData.foodCreator_name || meal.chef?.foodCreator_name || meal.foodCreator_name;
+                const foodCreatorName = mealData.foodCreator?.foodCreator_name || mealData.foodCreator_name || meal.foodCreator?.foodCreator_name || meal.foodCreator_name;
                 const isAdding = addingToCart === mealId;
                 const imageUrl = mealImage ? getAbsoluteImageUrl(mealImage) : undefined;
                 

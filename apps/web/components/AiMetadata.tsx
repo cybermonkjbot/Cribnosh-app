@@ -28,7 +28,7 @@ export function AiMetadata() {
     "@context": "https://modelcontext.org/v1",
     "@type": "WebApplication",
     "name": "CribNosh",
-    "description": "The app for foodies connecting local chefs with food enthusiasts",
+    "description": "The app for food enthusiasts connecting local food creators with food enthusiasts",
     "capabilities": [
       {
         "name": "search_meals",
@@ -36,8 +36,8 @@ export function AiMetadata() {
         "endpoint": `${baseUrl}/api/search`
       },
       {
-        "name": "book_chef",
-        "description": "Book a local chef for meal preparation",
+        "name": "connect_with_food_creator",
+        "description": "Connect with a local food creator for meal preparation",
         "endpoint": `${baseUrl}/api/booking`
       }
     ],
@@ -109,7 +109,7 @@ export function AiMetadata() {
         "utterances": [
           "I want to find {cuisine_type} food",
           "Show me {dietary_restriction} meals",
-          "Find chefs near {location}"
+          "Find Food Creators near {location}"
         ],
         "parameters": {
           "cuisine_type": "string",
@@ -118,14 +118,14 @@ export function AiMetadata() {
         }
       },
       {
-        "name": "book_chef",
+        "name": "connect_with_food_creator",
         "utterances": [
-          "Book chef {chef_name}",
+          "Connect with food creator {foodCreatorName}",
           "Schedule meal for {date_time}",
           "Make reservation for {number_of_people} people"
         ],
         "parameters": {
-          "chef_name": "string",
+          "foodCreatorName": "string",
           "date_time": "datetime",
           "number_of_people": "integer"
         }

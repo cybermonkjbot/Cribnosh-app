@@ -39,7 +39,7 @@ export const getCursorTitle = (path: string) => {
   const titles: { [key: string]: string } = {
     "/": "Welcome to CribNosh",
     "/try-it": "Find Your Perfect Meal",
-    "/cooking": "Join Our Chefs",
+    "/cooking": "Join Our Food Creators",
     "/cooking/apply": "Cook on Cribnosh",
     "/driving": "Deliver with Us",
     "/driving/apply": "Join Our Drivers",
@@ -725,7 +725,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                       value={searchQuery}
                       onChange={handleSearchChange}
                       onKeyDown={handleSearchKeyDown}
-                      placeholder="Search for dishes, chefs..."
+                      placeholder="Search for dishes, food creators..."
                       className="w-full px-4 py-2 bg-gray-100  rounded-lg border-0 focus:ring-2 focus:ring-[#ff3b30]  placeholder-gray-400 "
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 ">
@@ -746,7 +746,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                     </button>
                     <button className="flex items-center gap-2 p-2 hover:bg-gray-100  rounded-md transition-colors text-sm">
                       <ChefHat className="w-4 h-4 text-[#ff3b30] shrink-0" />
-                      <span className="truncate">Find Chefs</span>
+                      <span className="truncate">Find Food Creators</span>
                     </button>
                     <button className="flex items-center gap-2 p-2 hover:bg-gray-100  rounded-md transition-colors text-sm">
                       <Star className="w-4 h-4 text-[#ff3b30] shrink-0" />

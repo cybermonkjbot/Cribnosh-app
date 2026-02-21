@@ -21,7 +21,7 @@ export function AdminStats({ onError }: { onError?: (err: string) => void }) {
 
   const statIcons: Record<string, typeof Users> = {
     total_users: Users,
-    active_chefs: Utensils,
+    active_foodCreators: Utensils,
     avg_response_time: Clock,
     conversion_rate: TrendingUp,
   };

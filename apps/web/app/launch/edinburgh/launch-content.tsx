@@ -78,7 +78,7 @@ export default function EdinburghLaunchContent() {
                         >
                             <SwappingSubtitle
                                 phrases={[
-                                    "Your personal chef, decoded by AI.",
+                                    "Your personal food creator, decoded by AI.",
                                     "Authentic meals, delivered to your door.",
                                     "Local creators, global flavors.",
                                     "Dining, evolved."

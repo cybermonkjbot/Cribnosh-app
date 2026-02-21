@@ -38,7 +38,7 @@ export default function EditRecipeScreen() {
     title: '',
     description: '',
     prepTime: '',
-    cookTime: '',
+    cookingTime: '',
     servings: '',
     difficulty: 'medium' as 'easy' | 'medium' | 'hard',
     cuisine: '',
@@ -59,7 +59,7 @@ export default function EditRecipeScreen() {
         title: recipe.title || '',
         description: recipe.description || '',
         prepTime: recipe.prepTime?.toString() || '',
-        cookTime: recipe.cookTime?.toString() || '',
+        cookingTime: recipe.cookingTime?.toString() || '',
         servings: recipe.servings?.toString() || '',
         difficulty: recipe.difficulty || 'medium',
         cuisine: recipe.cuisine || '',
@@ -226,7 +226,7 @@ export default function EditRecipeScreen() {
         })),
         instructions: validInstructions.map(inst => inst.trim()),
         prepTime: parseInt(formData.prepTime) || 0,
-        cookTime: parseInt(formData.cookTime) || 0,
+        cookingTime: parseInt(formData.cookingTime) || 0,
         servings: parseInt(formData.servings) || 1,
         difficulty: formData.difficulty,
         cuisine: formData.cuisine.trim() || 'Other',
@@ -340,11 +340,11 @@ export default function EditRecipeScreen() {
               />
             </View>
             <View style={[styles.field, styles.halfField]}>
-              <Text style={styles.label}>Cook Time (min)</Text>
+              <Text style={styles.label}>Cooking Time (min)</Text>
               <TextInput
                 style={styles.input}
-                value={formData.cookTime}
-                onChangeText={(text) => setFormData({ ...formData, cookTime: text })}
+                value={formData.cookingTime}
+                onChangeText={(text) => setFormData({ ...formData, cookingTime: text })}
                 placeholder="45"
                 keyboardType="numeric"
               />
