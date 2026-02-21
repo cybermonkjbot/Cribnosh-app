@@ -1,4 +1,4 @@
-import { KitchenNameCard } from '@/components/KitchenNameCard';
+import { FoodCreatorNameCard } from '@/components/FoodCreatorNameCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SuperButton } from '@/components/ui/SuperButton';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -110,19 +110,19 @@ export default function SuccessScreen() {
     return 'Address not provided';
   };
 
-  // Get kitchen name
-  const getKitchenName = (): string => {
-    if (!orderData) return 'Kitchen';
+  // Get foodCreator name
+  const getFoodCreatorName = (): string => {
+    if (!orderData) return 'FoodCreator';
 
-    const kitchenName = (orderData as any).kitchen_name || (orderData as any).restaurant_name;
-    if (typeof kitchenName === 'string' && kitchenName) {
-      return kitchenName;
+    const foodCreatorName = (orderData as any).foodCreator_name || (orderData as any).restaurant_name;
+    if (typeof foodCreatorName === 'string' && foodCreatorName) {
+      return foodCreatorName;
     }
-    return 'Kitchen'; // Default fallback
+    return 'FoodCreator'; // Default fallback
   };
 
-  // Get kitchen description
-  const getKitchenDescription = (): string => {
+  // Get foodCreator description
+  const getFoodCreatorDescription = (): string => {
     // Could be enhanced with cuisine type from order/chef data
     return 'Top Rated'; // Default fallback
   };
@@ -177,8 +177,8 @@ export default function SuccessScreen() {
   // Get order data (with fallbacks)
   const deliveryTime = getDeliveryTime();
   const deliveryAddress = getDeliveryAddress();
-  const kitchenName = getKitchenName();
-  const kitchenDescription = getKitchenDescription();
+  const foodCreatorName = getFoodCreatorName();
+  const foodCreatorDescription = getFoodCreatorDescription();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -245,11 +245,11 @@ export default function SuccessScreen() {
           </View>
         </View>
 
-        {/* Kitchen Information Card */}
-        <View style={styles.kitchenCard}>
-          <KitchenNameCard
-            name={kitchenName}
-            description={kitchenDescription}
+        {/* FoodCreator Information Card */}
+        <View style={styles.foodCreatorCard}>
+          <FoodCreatorNameCard
+            name={foodCreatorName}
+            description={foodCreatorDescription}
             tiltEnabled={false}
           />
         </View>
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     fontSize: 18, // text-lg
     fontWeight: '600', // font-semibold
   },
-  kitchenCard: {
+  foodCreatorCard: {
     marginTop: 32, // mt-8
     marginBottom: 24, // mb-6
   },

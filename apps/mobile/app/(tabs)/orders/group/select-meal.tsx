@@ -38,7 +38,7 @@ export default function SelectMealScreen() {
   const [selectionsData, setSelectionsData] = useState<any>(null);
   const [isLoadingOrder, setIsLoadingOrder] = useState(false);
   const [isLoadingSelections, setIsLoadingSelections] = useState(false);
-  const { getKitchenMeals } = useMeals();
+  const { getFoodCreatorMeals } = useMeals();
   const [foodCreatorMenusData, setFoodCreatorMenusData] = useState<any>(null);
   const [isLoadingMenus, setIsLoadingMenus] = useState(false);
 
@@ -91,8 +91,8 @@ export default function SelectMealScreen() {
       const loadFoodCreatorMenus = async () => {
         setIsLoadingMenus(true);
         try {
-          const result = await getKitchenMeals({
-            kitchen_id: groupOrder.chef_id,
+          const result = await getFoodCreatorMeals({
+            foodCreator_id: groupOrder.chef_id,
             limit: 100,
           });
           if (result?.success) {
@@ -106,7 +106,7 @@ export default function SelectMealScreen() {
       };
       loadFoodCreatorMenus();
     }
-  }, [groupOrder?.chef_id, getKitchenMeals]);
+  }, [groupOrder?.chef_id, getFoodCreatorMeals]);
 
   // Initialize selected items from current selections
   useEffect(() => {

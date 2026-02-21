@@ -1,6 +1,6 @@
 export { DietCompatibilityBar } from './DietCompatibilityBar';
 export { FoodCreatorNotes } from './FoodCreatorNotes';
-export { KitchenInfo } from './KitchenInfo';
+export { FoodCreatorInfo } from './FoodCreatorInfo';
 export { MealBadges } from './MealBadges';
 export { MealDescription } from './MealDescription';
 export { MealHeader } from './MealHeader';

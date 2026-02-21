@@ -1,3 +1,4 @@
+import LiveBroadcasterScreen from "@/components/ui/LiveBroadcasterScreen";
 import LiveScreenView from "@/components/ui/LiveViewerScreen";
 import { useFeatureFlag } from "@/context/FeatureFlagContext";
 import { router, useLocalSearchParams } from "expo-router";
@@ -5,7 +6,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const LiveScreen = () => {
-  const { sessionId } = useLocalSearchParams();
+  const { sessionId, isBroadcaster } = useLocalSearchParams();
   const { isEnabled } = useFeatureFlag();
 
   const isLiveEnabled = isEnabled('mobile_live_sessions');
@@ -27,6 +28,10 @@ const LiveScreen = () => {
         </View>
       </SafeAreaView>
     );
+  }
+
+  if (isBroadcaster === 'true') {
+    return <LiveBroadcasterScreen sessionId={sessionId as string} onClose={() => router.back()} />;
   }
 
   return <LiveScreenView sessionId={sessionId as string} onClose={() => router.back()} />;

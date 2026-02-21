@@ -164,9 +164,9 @@ export const useFoodCreators = () => {
   );
 
   /**
-   * Get featured kitchens
+   * Get featured foodCreators
    */
-  const getFeaturedKitchens = useCallback(
+  const getFeaturedFoodCreators = useCallback(
     async (filters?: {
       sentiment?: string;
       is_live?: boolean;
@@ -178,7 +178,7 @@ export const useFoodCreators = () => {
         const sessionToken = await getSessionToken();
 
         const result = await convex.action(
-          api.actions.foodCreators.customerGetFeaturedKitchens,
+          api.actions.foodCreators.customerGetFeaturedFoodCreators,
           {
             sessionToken: sessionToken || undefined,
             limit: filters?.limit,
@@ -186,13 +186,13 @@ export const useFoodCreators = () => {
         );
 
         if (result.success === false) {
-          throw new Error(result.error || "Failed to get featured kitchens");
+          throw new Error(result.error || "Failed to get featured foodCreators");
         }
 
         return {
           success: true,
           data: {
-            kitchens: result.kitchens || [],
+            foodCreators: result.foodCreators || [],
             total: result.total || 0,
             limit: result.limit || 20,
           },
@@ -310,10 +310,10 @@ export const useFoodCreators = () => {
   );
 
   /**
-   * Get kitchen favorite status
+   * Get foodCreator favorite status
    */
-  const getKitchenFavoriteStatus = useCallback(
-    async (kitchenId: string) => {
+  const getFoodCreatorFavoriteStatus = useCallback(
+    async (foodCreatorId: string) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
@@ -324,10 +324,10 @@ export const useFoodCreators = () => {
         }
 
         const result = await convex.action(
-          api.actions.foodCreators.customerGetKitchenFavoriteStatus,
+          api.actions.foodCreators.customerGetFoodCreatorFavoriteStatus,
           {
             sessionToken,
-            kitchenId,
+            foodCreatorId,
           }
         );
 
@@ -352,10 +352,10 @@ export const useFoodCreators = () => {
   );
 
   /**
-   * Add kitchen to favorites
+   * Add foodCreator to favorites
    */
-  const addKitchenFavorite = useCallback(
-    async (kitchenId: string) => {
+  const addFoodCreatorFavorite = useCallback(
+    async (foodCreatorId: string) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
@@ -366,15 +366,15 @@ export const useFoodCreators = () => {
         }
 
         const result = await convex.action(
-          api.actions.foodCreators.customerAddKitchenFavorite,
+          api.actions.foodCreators.customerAddFoodCreatorFavorite,
           {
             sessionToken,
-            kitchenId,
+            foodCreatorId,
           }
         );
 
         if (result.success === false) {
-          throw new Error(result.error || "Failed to add kitchen to favorites");
+          throw new Error(result.error || "Failed to add foodCreator to favorites");
         }
 
         // Success feedback handled by components - no toast in hooks
@@ -393,10 +393,10 @@ export const useFoodCreators = () => {
   );
 
   /**
-   * Remove kitchen from favorites
+   * Remove foodCreator from favorites
    */
-  const removeKitchenFavorite = useCallback(
-    async (kitchenId: string) => {
+  const removeFoodCreatorFavorite = useCallback(
+    async (foodCreatorId: string) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
@@ -407,16 +407,16 @@ export const useFoodCreators = () => {
         }
 
         const result = await convex.action(
-          api.actions.foodCreators.customerRemoveKitchenFavorite,
+          api.actions.foodCreators.customerRemoveFoodCreatorFavorite,
           {
             sessionToken,
-            kitchenId,
+            foodCreatorId,
           }
         );
 
         if (result.success === false) {
           throw new Error(
-            result.error || "Failed to remove kitchen from favorites"
+            result.error || "Failed to remove foodCreator from favorites"
           );
         }
 
@@ -436,29 +436,29 @@ export const useFoodCreators = () => {
   );
 
   /**
-   * Get kitchen details
+   * Get foodCreator details
    */
-  const getKitchenDetails = useCallback(
-    async (kitchenId: string) => {
+  const getFoodCreatorDetails = useCallback(
+    async (foodCreatorId: string) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
         const sessionToken = await getSessionToken();
 
         if (!sessionToken) {
-          throw new Error('Please log in to view kitchen details');
+          throw new Error('Please log in to view foodCreator details');
         }
 
-        const result = await convex.action(api.actions.foodCreators.customerGetKitchenDetails, {
+        const result = await convex.action(api.actions.foodCreators.customerGetFoodCreatorDetails, {
           sessionToken,
-          kitchenId,
+          foodCreatorId,
         });
 
         if (!result.success) {
-          throw new Error(result.error || 'Failed to get kitchen details');
+          throw new Error(result.error || 'Failed to get foodCreator details');
         }
 
-        return result.kitchen;
+        return result.foodCreator;
       } catch (error: any) {
         // Let components handle errors - no toast in hooks
         throw error;
@@ -470,10 +470,10 @@ export const useFoodCreators = () => {
   );
 
   /**
-   * Get kitchen featured video
+   * Get foodCreator featured video
    */
-  const getKitchenFeaturedVideo = useCallback(
-    async (kitchenId: string) => {
+  const getFoodCreatorFeaturedVideo = useCallback(
+    async (foodCreatorId: string) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
@@ -483,9 +483,9 @@ export const useFoodCreators = () => {
           throw new Error('Please log in to view featured video');
         }
 
-        const result = await convex.action(api.actions.foodCreators.customerGetKitchenFeaturedVideo, {
+        const result = await convex.action(api.actions.foodCreators.customerGetFoodCreatorFeaturedVideo, {
           sessionToken,
-          kitchenId,
+          foodCreatorId,
         });
 
         if (!result.success) {
@@ -504,10 +504,10 @@ export const useFoodCreators = () => {
   );
 
   /**
-   * Get kitchen categories
+   * Get foodCreator categories
    */
-  const getKitchenCategories = useCallback(
-    async (kitchenId: string) => {
+  const getFoodCreatorCategories = useCallback(
+    async (foodCreatorId: string) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
@@ -518,15 +518,15 @@ export const useFoodCreators = () => {
         }
 
         const result = await convex.action(
-          api.actions.foodCreators.customerGetKitchenCategories,
+          api.actions.foodCreators.customerGetFoodCreatorCategories,
           {
             sessionToken,
-            kitchenId,
+            foodCreatorId,
           }
         );
 
         if (result.success === false) {
-          throw new Error(result.error || "Failed to get kitchen categories");
+          throw new Error(result.error || "Failed to get foodCreator categories");
         }
 
         return {
@@ -546,10 +546,10 @@ export const useFoodCreators = () => {
   );
 
   /**
-   * Get kitchen tags
+   * Get foodCreator tags
    */
-  const getKitchenTags = useCallback(
-    async (kitchenId: string) => {
+  const getFoodCreatorTags = useCallback(
+    async (foodCreatorId: string) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
@@ -559,13 +559,13 @@ export const useFoodCreators = () => {
           throw new Error("Not authenticated");
         }
 
-        const result = await convex.action(api.actions.foodCreators.customerGetKitchenTags, {
+        const result = await convex.action(api.actions.foodCreators.customerGetFoodCreatorTags, {
           sessionToken,
-          kitchenId,
+          foodCreatorId,
         });
 
         if (result.success === false) {
-          throw new Error(result.error || "Failed to get kitchen tags");
+          throw new Error(result.error || "Failed to get foodCreator tags");
         }
 
         return {
@@ -688,16 +688,16 @@ export const useFoodCreators = () => {
     getFoodCreatorDetails,
     getPopularFoodCreators,
     getPopularFoodCreatorDetails,
-    getFeaturedKitchens,
+    getFeaturedFoodCreators,
     searchFoodCreators,
     searchFoodCreatorsByLocation,
-    getKitchenFavoriteStatus,
-    addKitchenFavorite,
-    removeKitchenFavorite,
-    getKitchenDetails,
-    getKitchenFeaturedVideo,
-    getKitchenCategories,
-    getKitchenTags,
+    getFoodCreatorFavoriteStatus,
+    addFoodCreatorFavorite,
+    removeFoodCreatorFavorite,
+    getFoodCreatorDetails,
+    getFoodCreatorFeaturedVideo,
+    getFoodCreatorCategories,
+    getFoodCreatorTags,
     getFoodCreatorMeals,
     startLiveSession,
   };

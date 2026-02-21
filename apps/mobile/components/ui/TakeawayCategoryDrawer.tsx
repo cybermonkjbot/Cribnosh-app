@@ -249,7 +249,7 @@ export function TakeawayCategoryDrawer({
   return (
     <CategoryFullDrawer
       categoryName={categoryName}
-      categoryDescription="Fresh, delicious takeaway options from the best local kitchens"
+      categoryDescription="Fresh, delicious takeaway options from the best local foodCreators"
       onBack={onBack}
       filterChips={filterChips}
       activeFilters={activeFilters}
@@ -274,7 +274,7 @@ export function TakeawayCategoryDrawer({
         {/* All Available Section */}
         <CategoryFoodItemsGrid
           title="All Available"
-          subtitle="Complete menu from local kitchens"
+          subtitle="Complete menu from local foodCreators"
           items={displayAllAvailable}
           onAddToCart={onAddToCart}
           onItemPress={onItemPress}

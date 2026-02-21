@@ -61,7 +61,7 @@ export default function CreateGroupOrderScreen() {
   const [foodCreatorsData, setFoodCreatorsData] = useState<any>(null);
   const [isLoadingFoodCreatorsData, setIsLoadingFoodCreatorsData] = useState(false);
 
-  // Fetch nearby kitchens or search kitchens using Convex queries directly
+  // Fetch nearby foodCreators or search foodCreators using Convex queries directly
   useEffect(() => {
     if (showFoodCreatorSelection && userLocation) {
       const loadFoodCreators = async () => {
@@ -72,7 +72,7 @@ export default function CreateGroupOrderScreen() {
           let foodCreators: any[] = [];
 
           if (searchQuery && searchQuery.length >= 2) {
-            // Search kitchens/chefs by query
+            // Search foodCreators/chefs by query
             const searchResult = await convex.query(api.queries.foodCreators.searchFoodCreatorsByQuery, {
               query: searchQuery,
               latitude: userLocation.latitude,
@@ -82,7 +82,7 @@ export default function CreateGroupOrderScreen() {
             });
             foodCreators = searchResult.chefs || [];
           } else {
-            // Get nearby kitchens/food creators
+            // Get nearby foodCreators/food creators
             const nearbyResult = await convex.query(api.queries.foodCreators.findNearbyFoodCreators, {
               latitude: userLocation.latitude,
               longitude: userLocation.longitude,
@@ -96,8 +96,8 @@ export default function CreateGroupOrderScreen() {
           // Transform to expected format
           const transformedFoodCreators = foodCreators.map((foodCreator: any) => ({
             id: foodCreator._id,
-            name: foodCreator.kitchenName || foodCreator.name || 'Unknown Kitchen',
-            kitchen_name: foodCreator.kitchenName || foodCreator.name,
+            name: foodCreator.foodCreatorName || foodCreator.name || 'Unknown FoodCreator',
+            foodCreator_name: foodCreator.foodCreatorName || foodCreator.name,
             cuisine: foodCreator.specialties?.[0] || 'Other',
             image_url: foodCreator.imageUrl || foodCreator.image_url || foodCreator.profileImage || null,
             delivery_time: foodCreator.deliveryTime || null,
@@ -254,7 +254,7 @@ export default function CreateGroupOrderScreen() {
   const handleFoodCreatorSelect = (foodCreator: FoodCreator) => {
     setSelectedFoodCreator({
       chef_id: foodCreator.id,
-      restaurant_name: foodCreator.kitchen_name || foodCreator.name,
+      restaurant_name: foodCreator.foodCreator_name || foodCreator.name,
     });
     setShowFoodCreatorSelection(false);
   };
@@ -336,7 +336,7 @@ export default function CreateGroupOrderScreen() {
                   />
                   <View style={styles.chefInfo}>
                     <Text style={styles.chefName}>
-                      {foodCreator.kitchen_name || foodCreator.name}
+                      {foodCreator.foodCreator_name || foodCreator.name}
                     </Text>
                     <Text style={styles.chefCuisine}>{foodCreator.cuisine}</Text>
                     {foodCreator.delivery_time && (

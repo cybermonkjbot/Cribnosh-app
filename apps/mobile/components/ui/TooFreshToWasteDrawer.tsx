@@ -85,7 +85,7 @@ export function TooFreshToWasteDrawer({
     ) || 'Other';
 
     // Extract origin from metadata or default
-    const origin = item.origin || item.source || item.kitchen_name || 'Local Source';
+    const origin = item.origin || item.source || item.foodCreator_name || 'Local Source';
 
     // Get eco impact from API or return undefined (don't generate random data)
     const ecoImpact = item.eco_impact || item.ecoImpact || undefined;
@@ -155,7 +155,7 @@ export function TooFreshToWasteDrawer({
   return (
     <CategoryFullDrawer
       categoryName="Too Fresh to Waste"
-      categoryDescription="High-quality meals and groceries that didn't make it to full menu — still fresh, still delicious, priced to move. Good for you, good for the kitchen, great for the planet."
+      categoryDescription="High-quality meals and groceries that didn't make it to full menu — still fresh, still delicious, priced to move. Good for you, good for the foodCreator, great for the planet."
       onBack={onBack}
       onSearch={setSearchQuery}
       searchPlaceholder="Search eco-friendly items..."

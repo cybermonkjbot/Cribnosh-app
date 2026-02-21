@@ -14,21 +14,21 @@ import { Circle, Path, Svg } from 'react-native-svg';
 import { Mascot } from '../Mascot';
 import { AIChatDrawer } from './AIChatDrawer';
 import { GeneratingSuggestionsLoader } from './GeneratingSuggestionsLoader';
-import { BackgroundElements } from './KitchenMainScreen/BackgroundElements';
-import { KitchenBottomSheet } from './KitchenMainScreen/KitchenBottomSheet';
-import { KitchenIntroCard } from './KitchenMainScreen/KitchenIntroCard';
+import { BackgroundElements } from './FoodCreatorScreen/BackgroundElements';
+import { FoodCreatorBottomSheet } from './FoodCreatorScreen/FoodCreatorBottomSheet';
+import { FoodCreatorIntroCard } from './FoodCreatorScreen/FoodCreatorIntroCard';
 import { NoshHeavenPlayer } from './NoshHeavenPlayer';
 
 const { width, height } = Dimensions.get('window');
 
-interface KitchenMainScreenProps {
-  kitchenName?: string;
+interface FoodCreatorScreenProps {
+  foodCreatorName?: string;
   cuisine?: string;
   rating?: string;
   deliveryTime?: string;
   cartItems?: number;
   distance?: string;
-  kitchenId?: string;
+  foodCreatorId?: string;
   foodcreatorId?: string;
   onCartPress?: () => void;
   onHeartPress?: () => void;
@@ -37,13 +37,13 @@ interface KitchenMainScreenProps {
   onMealPress?: (meal: any) => void;
 }
 
-export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
-  kitchenName: propKitchenName,
+export const FoodCreatorScreen: React.FC<FoodCreatorScreenProps> = ({
+  foodCreatorName: propFoodCreatorName,
   cuisine = "Nigerian",
   deliveryTime = "30-45 Mins",
   cartItems: initialCartItems = 2,
   distance = "0.8 km",
-  kitchenId,
+  foodCreatorId,
   foodcreatorId,
   onCartPress,
   onHeartPress,
@@ -53,18 +53,18 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
 }) => {
   const topPosition = useTopPosition(20);
   const playIconScale = useSharedValue(1);
-  const { getKitchenDetails, getKitchenFeaturedVideo } = useFoodCreators();
-  const [kitchenDetails, setKitchenDetails] = useState<any>(null);
+  const { getFoodCreatorDetails, getFoodCreatorFeaturedVideo } = useFoodCreators();
+  const [foodCreatorDetails, setFoodCreatorDetails] = useState<any>(null);
   const [featuredVideoData, setFeaturedVideoData] = useState<any>(null);
-  const [isLoadingKitchenDetails, setIsLoadingKitchenDetails] = useState(false);
+  const [isLoadingFoodCreatorDetails, setIsLoadingFoodCreatorDetails] = useState(false);
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
   const [isPlayerVisible, setIsPlayerVisible] = useState(false);
   const [cartItems, setCartItems] = useState(initialCartItems);
   const [isChatVisible, setIsChatVisible] = useState(false);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
 
-  // Derive the creator's user ID from kitchen details (for follow/unfollow)
-  const creatorUserId = kitchenDetails?.data?.userId as string | undefined;
+  // Derive the creator's user ID from foodCreator details (for follow/unfollow)
+  const creatorUserId = foodCreatorDetails?.data?.userId as string | undefined;
   const { isFollowing, followerCount, loading: followLoading, toggle: toggleFollow } = useFollowCreator({ creatorUserId });
 
   const handleOpenAIChat = () => {
@@ -80,33 +80,33 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
     setIsGeneratingSuggestions(false);
   };
 
-  // Fetch kitchen details if kitchenId is provided
+  // Fetch foodCreator details if foodCreatorId is provided
   useEffect(() => {
-    if (kitchenId) {
-      const loadKitchenDetails = async () => {
-        setIsLoadingKitchenDetails(true);
+    if (foodCreatorId) {
+      const loadFoodCreatorDetails = async () => {
+        setIsLoadingFoodCreatorDetails(true);
         try {
-          const details = await getKitchenDetails(kitchenId);
+          const details = await getFoodCreatorDetails(foodCreatorId);
           if (details) {
-            setKitchenDetails({ data: details });
+            setFoodCreatorDetails({ data: details });
           }
         } catch {
           // Error already handled in hook
         } finally {
-          setIsLoadingKitchenDetails(false);
+          setIsLoadingFoodCreatorDetails(false);
         }
       };
-      loadKitchenDetails();
+      loadFoodCreatorDetails();
     }
-  }, [kitchenId, getKitchenDetails]);
+  }, [foodCreatorId, getFoodCreatorDetails]);
 
-  // Fetch featured video if kitchenId is available
+  // Fetch featured video if foodCreatorId is available
   useEffect(() => {
-    if (kitchenId) {
+    if (foodCreatorId) {
       const loadFeaturedVideo = async () => {
         setIsLoadingVideo(true);
         try {
-          const video = await getKitchenFeaturedVideo(kitchenId);
+          const video = await getFoodCreatorFeaturedVideo(foodCreatorId);
           if (video) {
             setFeaturedVideoData({ data: video });
           }
@@ -118,18 +118,18 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
       };
       loadFeaturedVideo();
     }
-  }, [kitchenId, getKitchenFeaturedVideo]);
+  }, [foodCreatorId, getFoodCreatorFeaturedVideo]);
 
-  // Extract kitchen name from API response
-  const apiKitchenName = kitchenDetails?.data?.kitchenName;
+  // Extract foodCreator name from API response
+  const apiFoodCreatorName = foodCreatorDetails?.data?.foodCreatorName;
 
-  // Use fetched kitchen name from API
-  // If kitchenId is provided, always prioritize API data over prop
-  // Never use "Amara's Kitchen" prop when we have a kitchenId
-  const isDemoName = propKitchenName === "Amara's Kitchen";
-  const kitchenName = kitchenId
-    ? (apiKitchenName || (!isDemoName && propKitchenName) || (isLoadingKitchenDetails ? undefined : "Kitchen"))
-    : (propKitchenName || "Amara's Kitchen");
+  // Use fetched foodCreator name from API
+  // If foodCreatorId is provided, always prioritize API data over prop
+  // Never use "Amara's FoodCreator" prop when we have a foodCreatorId
+  const isDemoName = propFoodCreatorName === "Amara's FoodCreator";
+  const foodCreatorName = foodCreatorId
+    ? (apiFoodCreatorName || (!isDemoName && propFoodCreatorName) || (isLoadingFoodCreatorDetails ? undefined : "FoodCreator"))
+    : (propFoodCreatorName || "Amara's FoodCreator");
 
   // Continuous play icon animation
   useEffect(() => {
@@ -147,30 +147,30 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
     };
   });
 
-  // Transform featured video data to kitchenIntroVideo format
-  const kitchenIntroVideo = useMemo(() => {
+  // Transform featured video data to foodCreatorIntroVideo format
+  const foodCreatorIntroVideo = useMemo(() => {
     const videoData = featuredVideoData?.data?.data || featuredVideoData?.data;
     if (!videoData || !videoData.videoUrl) {
       return null;
     }
 
     return {
-      id: videoData._id || videoData.id || 'kitchen-intro',
+      id: videoData._id || videoData.id || 'foodCreator-intro',
       videoSource: videoData.videoUrl,
-      title: videoData.title || kitchenName || 'Kitchen Story',
+      title: videoData.title || foodCreatorName || 'FoodCreator Story',
       description: videoData.description || undefined,
-      kitchenName: kitchenName || 'Kitchen',
+      foodCreatorName: foodCreatorName || 'FoodCreator',
       foodCreator: videoData.creator?.name || videoData.chef || undefined,
     };
-  }, [featuredVideoData, kitchenName]);
+  }, [featuredVideoData, foodCreatorName]);
 
   const handlePlayPress = () => {
     if (isLoadingVideo) {
       return;
     }
 
-    if (!kitchenIntroVideo) {
-      console.warn('Featured video not available for this kitchen');
+    if (!foodCreatorIntroVideo) {
+      console.warn('Featured video not available for this foodCreator');
       return;
     }
 
@@ -191,12 +191,12 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
         <BlurView intensity={82.5} tint="light" style={styles.blurOverlay} />
       </View>
 
-      {/* Header Container with Kitchen Info Card, Follow Button, and Close Button */}
+      {/* Header Container with FoodCreator Info Card, Follow Button, and Close Button */}
       <View style={[styles.headerContainer, { top: topPosition }]}>
-        {/* Kitchen Intro Card */}
+        {/* FoodCreator Intro Card */}
         <View style={styles.introCardWrapper}>
-          <KitchenIntroCard
-            kitchenName={kitchenName}
+          <FoodCreatorIntroCard
+            foodCreatorName={foodCreatorName}
             cuisine={cuisine}
           />
         </View>
@@ -252,7 +252,7 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
         activeOpacity={0.8}
         disabled={
           isLoadingVideo ||
-          !kitchenId ||
+          !foodCreatorId ||
           !foodcreatorId ||
           !(featuredVideoData?.data?.data?._id || featuredVideoData?.data?._id)
         }
@@ -286,12 +286,12 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
       </TouchableOpacity>
 
       {/* Bottom Sheet */}
-      <KitchenBottomSheet
+      <FoodCreatorBottomSheet
         deliveryTime={deliveryTime}
         cartItems={cartItems}
-        kitchenName={kitchenName}
+        foodCreatorName={foodCreatorName}
         distance={distance}
-        kitchenId={kitchenId}
+        foodCreatorId={foodCreatorId}
         onCartPress={onCartPress}
         onHeartPress={onHeartPress}
         onSearchSubmit={(query) => console.log('Search submitted:', query)}
@@ -312,12 +312,12 @@ export const KitchenMainScreen: React.FC<KitchenMainScreenProps> = ({
         <Mascot emotion="excited" size={320} />
       </View>
 
-      {/* NoshHeaven Player for Kitchen Intro Video */}
-      {kitchenIntroVideo && (
+      {/* NoshHeaven Player for FoodCreator Intro Video */}
+      {foodCreatorIntroVideo && (
         <NoshHeavenPlayer
           isVisible={isPlayerVisible}
-          mode="kitchenIntro"
-          kitchenIntroVideo={kitchenIntroVideo}
+          mode="foodCreatorIntro"
+          foodCreatorIntroVideo={foodCreatorIntroVideo}
           onClose={handleClosePlayer}
         />
       )}
@@ -454,4 +454,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default KitchenMainScreen; 
+export default FoodCreatorScreen; 

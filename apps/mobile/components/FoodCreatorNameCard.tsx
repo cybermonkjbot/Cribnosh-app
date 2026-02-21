@@ -3,19 +3,19 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { TiltCard } from './ui/TiltCard';
 
-interface KitchenNameCardProps {
+interface FoodCreatorNameCardProps {
   avatarUri?: string | { uri: string };
   name?: string;
   description?: string;
   tiltEnabled?: boolean;
 }
 
-export function KitchenNameCard({
+export function FoodCreatorNameCard({
   name,
   description,
   tiltEnabled = true,
-}: KitchenNameCardProps) {
-  const displayName = typeof name === 'string' && name.trim() ? name : 'Stans Kitchen';
+}: FoodCreatorNameCardProps) {
+  const displayName = typeof name === 'string' && name.trim() ? name : 'Stans FoodCreator';
   const displayDesc = typeof description === 'string' && description.trim() ? description : 'African cuisine (Top Rated)';
 
   const cardContent = (
@@ -107,4 +107,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default KitchenNameCard;
+export default FoodCreatorNameCard;

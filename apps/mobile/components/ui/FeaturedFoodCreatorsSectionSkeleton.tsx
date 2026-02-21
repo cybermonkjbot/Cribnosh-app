@@ -1,11 +1,11 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-interface FeaturedKitchensSectionSkeletonProps {
+interface FeaturedFoodCreatorsSectionSkeletonProps {
   itemCount?: number;
 }
 
-export const FeaturedKitchensSectionSkeleton: React.FC<FeaturedKitchensSectionSkeletonProps> = ({
+export const FeaturedFoodCreatorsSectionSkeleton: React.FC<FeaturedFoodCreatorsSectionSkeletonProps> = ({
   itemCount = 4,
 }) => {
   const renderSkeletonCard = (index: number) => (

@@ -5,10 +5,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useUserLocation } from '../../hooks/useUserLocation';
-import { KitchensNearMeSkeleton } from './KitchensNearMeSkeleton';
+import { FoodCreatorsNearMeSkeleton } from './FoodCreatorsNearMeSkeleton';
 import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
-interface Kitchen {
+interface FoodCreator {
   id: string;
   name: string;
   description: string;
@@ -17,21 +17,21 @@ interface Kitchen {
   isVerified?: boolean;
 }
 
-interface KitchensNearMeProps {
-  onKitchenPress?: (kitchen: Kitchen) => void;
+interface FoodCreatorsNearMeProps {
+  onFoodCreatorPress?: (foodCreator: FoodCreator) => void;
   onMapPress?: () => void;
   useBackend?: boolean;
   hasInitialLoadCompleted?: boolean;
   isFirstSection?: boolean;
 }
 
-export function KitchensNearMe({
-  onKitchenPress,
+export function FoodCreatorsNearMe({
+  onFoodCreatorPress,
   onMapPress,
   useBackend = true,
   hasInitialLoadCompleted = false,
   isFirstSection = false,
-}: KitchensNearMeProps) {
+}: FoodCreatorsNearMeProps) {
   const { isAuthenticated } = useAuthContext();
   const locationState = useUserLocation();
   const { getNearbyFoodCreators } = useFoodCreators();
@@ -70,7 +70,7 @@ export function KitchensNearMe({
   }, [useBackend, isAuthenticated, locationState.location?.latitude, locationState.location?.longitude, getNearbyFoodCreators]);
 
   // Transform API data to component format
-  const transformKitchenData = useCallback((apiFoodCreator: any): Kitchen | null => {
+  const transformFoodCreatorData = useCallback((apiFoodCreator: any): FoodCreator | null => {
     if (!apiFoodCreator) return null;
 
     // Format distance
@@ -84,7 +84,7 @@ export function KitchensNearMe({
 
     return {
       id: apiFoodCreator.id || '',
-      name: apiFoodCreator.name || 'Unknown Kitchen',
+      name: apiFoodCreator.name || 'Unknown FoodCreator',
       description,
       distance: distanceText,
       image: apiFoodCreator.image_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face',
@@ -92,18 +92,18 @@ export function KitchensNearMe({
     };
   }, []);
 
-  // Process kitchens data
-  const kitchens: Kitchen[] = useMemo(() => {
+  // Process foodCreators data
+  const foodCreators: FoodCreator[] = useMemo(() => {
     if (!useBackend || !nearbyFoodCreatorsData?.success || !nearbyFoodCreatorsData.data?.foodCreators) {
       return [];
     }
 
-    const transformedKitchens = nearbyFoodCreatorsData.data.foodCreators
-      .map(transformKitchenData)
-      .filter((kitchen: Kitchen | null): kitchen is Kitchen => kitchen !== null);
+    const transformedFoodCreators = nearbyFoodCreatorsData.data.foodCreators
+      .map(transformFoodCreatorData)
+      .filter((foodCreator: FoodCreator | null): foodCreator is FoodCreator => foodCreator !== null);
 
-    return transformedKitchens;
-  }, [nearbyFoodCreatorsData, useBackend, transformKitchenData]);
+    return transformedFoodCreators;
+  }, [nearbyFoodCreatorsData, useBackend, transformFoodCreatorData]);
 
   // Error state is shown in UI - no toast needed
 
@@ -111,13 +111,13 @@ export function KitchensNearMe({
   if (useBackend && backendLoading && !hasInitialLoadCompleted) {
     return (
       <SkeletonWithTimeout isLoading={backendLoading}>
-        <KitchensNearMeSkeleton itemCount={2} />
+        <FoodCreatorsNearMeSkeleton itemCount={2} />
       </SkeletonWithTimeout>
     );
   }
 
-  // Hide section if no kitchens (don't show empty state)
-  if (kitchens.length === 0) {
+  // Hide section if no foodCreators (don't show empty state)
+  if (foodCreators.length === 0) {
     return null;
   }
   return (
@@ -129,7 +129,7 @@ export function KitchensNearMe({
         marginBottom: 16
       }}>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000' }}>
-          Kitchens near me
+          FoodCreators near me
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity
@@ -155,21 +155,21 @@ export function KitchensNearMe({
       </View>
 
       <View>
-        {kitchens.map((kitchen, index) => (
+        {foodCreators.map((foodCreator, index) => (
           <TouchableOpacity
-            key={kitchen.id}
+            key={foodCreator.id}
             style={{
               backgroundColor: '#fff',
               borderRadius: 16,
               padding: 16,
-              marginBottom: index < kitchens.length - 1 ? 12 : 0,
+              marginBottom: index < foodCreators.length - 1 ? 12 : 0,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.1,
               shadowRadius: 8,
               elevation: 3
             }}
-            onPress={() => onKitchenPress?.(kitchen)}
+            onPress={() => onFoodCreatorPress?.(foodCreator)}
             activeOpacity={0.8}
           >
             <View style={{ flexDirection: 'row' }}>
@@ -182,7 +182,7 @@ export function KitchensNearMe({
                 marginRight: 12
               }}>
                 <Image
-                  source={{ uri: kitchen.image }}
+                  source={{ uri: foodCreator.image }}
                   style={{ width: 56, height: 56 }}
                   contentFit="cover"
                 />
@@ -200,9 +200,9 @@ export function KitchensNearMe({
                     color: '#000',
                     marginRight: 6
                   }}>
-                    {kitchen.name}
+                    {foodCreator.name}
                   </Text>
-                  {kitchen.isVerified && (
+                  {foodCreator.isVerified && (
                     <View style={{
                       width: 18,
                       height: 18,
@@ -227,13 +227,13 @@ export function KitchensNearMe({
                   marginBottom: 4,
                   lineHeight: 20
                 }}>
-                  {kitchen.description}
+                  {foodCreator.description}
                 </Text>
                 <Text style={{
                   fontSize: 12,
                   color: '#999'
                 }}>
-                  {kitchen.distance}
+                  {foodCreator.distance}
                 </Text>
               </View>
             </View>

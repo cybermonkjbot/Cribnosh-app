@@ -16,7 +16,7 @@ const shieldIconSVG = `<svg width="28" height="28" viewBox="0 0 28 28" fill="non
 export function VerificationBanner({ 
   style, 
   containerStyle, 
-  text = "Finish your verification to help kitchens serve you better" 
+  text = "Finish your verification to help foodCreators serve you better" 
 }: VerificationBannerProps) {
   return (
     <View style={[styles.container, containerStyle]}>

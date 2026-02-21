@@ -208,8 +208,8 @@ export default function HelpSupportScreen() {
           content: 'All food creators on Cribnosh are required to have valid food safety certifications. We verify these certifications before allowing food creators to join our platform.',
         },
         {
-          title: 'Kitchen Standards',
-          content: 'All kitchens must meet our strict hygiene and safety standards. We conduct regular inspections to ensure compliance.',
+          title: 'FoodCreator Standards',
+          content: 'All foodCreators must meet our strict hygiene and safety standards. We conduct regular inspections to ensure compliance.',
         },
         {
           title: 'Allergen Information',

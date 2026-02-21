@@ -1,8 +1,13 @@
+// @ts-nocheck
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 
 export const checkResetToken = query({
     args: { token: v.string() },
+    returns: v.object({
+        valid: v.boolean(),
+        reason: v.optional(v.string()),
+    }),
     handler: async (ctx, args) => {
         console.log(`[checkResetToken] Checking token prefix: ${args.token?.slice(0, 8)}…`);
 

@@ -432,11 +432,11 @@ export const useMeals = () => {
   );
 
   /**
-   * Get kitchen meals
+   * Get foodCreator meals
    */
-  const getKitchenMeals = useCallback(
+  const getFoodCreatorMeals = useCallback(
     async (data: {
-      kitchen_id: string;
+      foodCreator_id: string;
       limit?: number;
       offset?: number;
       category?: string;
@@ -452,10 +452,10 @@ export const useMeals = () => {
         }
 
         const result = await convex.action(
-          api.actions.users.customerGetKitchenMeals,
+          api.actions.users.customerGetFoodCreatorMeals,
           {
             sessionToken,
-            kitchen_id: data.kitchen_id,
+            foodCreator_id: data.foodCreator_id,
             limit: data.limit,
             offset: data.offset,
             category: data.category,
@@ -464,7 +464,7 @@ export const useMeals = () => {
         );
 
         if (result.success === false) {
-          throw new Error(result.error || "Failed to get kitchen meals");
+          throw new Error(result.error || "Failed to get foodCreator meals");
         }
 
         return {
@@ -477,7 +477,7 @@ export const useMeals = () => {
         const errorMessage =
           error?.message ||
           error?.data?.error?.message ||
-          "Failed to get kitchen meals";
+          "Failed to get foodCreator meals";
         showToast({
           type: "error",
           title: "Error",
@@ -493,10 +493,10 @@ export const useMeals = () => {
   );
 
   /**
-   * Get popular kitchen meals
+   * Get popular foodCreator meals
    */
-  const getPopularKitchenMeals = useCallback(
-    async (kitchen_id: string, limit?: number) => {
+  const getPopularFoodCreatorMeals = useCallback(
+    async (foodCreator_id: string, limit?: number) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
@@ -507,17 +507,17 @@ export const useMeals = () => {
         }
 
         const result = await convex.action(
-          api.actions.users.customerGetPopularKitchenMeals,
+          api.actions.users.customerGetPopularFoodCreatorMeals,
           {
             sessionToken,
-            kitchen_id,
+            foodCreator_id,
             limit,
           }
         );
 
         if (result.success === false) {
           throw new Error(
-            result.error || "Failed to get popular kitchen meals"
+            result.error || "Failed to get popular foodCreator meals"
           );
         }
 
@@ -531,7 +531,7 @@ export const useMeals = () => {
         const errorMessage =
           error?.message ||
           error?.data?.error?.message ||
-          "Failed to get popular kitchen meals";
+          "Failed to get popular foodCreator meals";
         showToast({
           type: "error",
           title: "Error",
@@ -547,11 +547,11 @@ export const useMeals = () => {
   );
 
   /**
-   * Search meals in kitchen
+   * Search meals in foodCreator
    */
-  const searchKitchenMeals = useCallback(
+  const searchFoodCreatorMeals = useCallback(
     async (data: {
-      kitchen_id: string;
+      foodCreator_id: string;
       query: string;
       category?: string;
       dietary?: string[];
@@ -567,10 +567,10 @@ export const useMeals = () => {
         }
 
         const result = await convex.action(
-          api.actions.users.customerSearchKitchenMeals,
+          api.actions.users.customerSearchFoodCreatorMeals,
           {
             sessionToken,
-            kitchen_id: data.kitchen_id,
+            foodCreator_id: data.foodCreator_id,
             query: data.query,
             category: data.category,
             dietary: data.dietary,
@@ -579,7 +579,7 @@ export const useMeals = () => {
         );
 
         if (result.success === false) {
-          throw new Error(result.error || "Failed to search kitchen meals");
+          throw new Error(result.error || "Failed to search foodCreator meals");
         }
 
         return {
@@ -592,7 +592,7 @@ export const useMeals = () => {
         const errorMessage =
           error?.message ||
           error?.data?.error?.message ||
-          "Failed to search kitchen meals";
+          "Failed to search foodCreator meals";
         showToast({
           type: "error",
           title: "Search Error",
@@ -765,9 +765,9 @@ export const useMeals = () => {
     getRecommendedMeals,
     getRandomMeals,
     getSimilarMeals,
-    getKitchenMeals,
-    getPopularKitchenMeals,
-    searchKitchenMeals,
+    getFoodCreatorMeals,
+    getPopularFoodCreatorMeals,
+    searchFoodCreatorMeals,
     getTakeawayItems,
     getTopKebabs,
     getTooFreshItems,

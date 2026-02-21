@@ -23,7 +23,7 @@ export interface MapRegion {
 export interface FoodCreatorMarker {
   id: string;
   name: string;
-  kitchen_name: string;
+  foodCreator_name: string;
   cuisine: string;
   rating: number;
   review_count: number;

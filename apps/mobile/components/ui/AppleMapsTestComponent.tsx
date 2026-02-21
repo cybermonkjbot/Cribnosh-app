@@ -79,7 +79,7 @@ export function AppleMapsTestComponent() {
         const route = directions.data.routes[0];
         Alert.alert(
           'Directions Success',
-          `To ${foodCreator.kitchen_name}:\nDistance: ${route.distance.text}\nDuration: ${route.duration.text}`
+          `To ${foodCreator.foodCreator_name}:\nDistance: ${route.distance.text}\nDuration: ${route.duration.text}`
         );
       }
     } catch (err) {
@@ -133,7 +133,7 @@ export function AppleMapsTestComponent() {
           <Text style={styles.resultsTitle}>Loaded Food Creators:</Text>
           {foodCreators.slice(0, 3).map((foodCreator) => (
             <Text key={foodCreator.id} style={styles.chefText}>
-              • {foodCreator.kitchen_name} ({foodCreator.cuisine}) - {foodCreator.distance}
+              • {foodCreator.foodCreator_name} ({foodCreator.cuisine}) - {foodCreator.distance}
             </Text>
           ))}
           {foodCreators.length > 3 && (

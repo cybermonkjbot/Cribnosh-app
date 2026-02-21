@@ -23,15 +23,15 @@ import { AIChatDrawer } from '../AIChatDrawer';
 import { AISearchResponseOverlay, ProductCardProps } from '../AISearchResponseOverlay';
 import { CartButton } from '../CartButton';
 import { InlineAILoader } from '../InlineAILoader';
-import { KitchenBottomSheetContent } from './KitchenBottomSheetContent';
-import { KitchenBottomSheetHeader } from './KitchenBottomSheetHeader';
+import { FoodCreatorBottomSheetContent } from './FoodCreatorBottomSheetContent';
+import { FoodCreatorBottomSheetHeader } from './FoodCreatorBottomSheetHeader';
 
-interface KitchenBottomSheetProps {
+interface FoodCreatorBottomSheetProps {
   deliveryTime: string;
   cartItems: number;
-  kitchenName?: string;
+  foodCreatorName?: string;
   distance?: string;
-  kitchenId?: string;
+  foodCreatorId?: string;
   onCartPress?: () => void;
   onHeartPress?: () => void;
   onSearchPress?: () => void;
@@ -61,12 +61,12 @@ const SPRING_CONFIG = {
 const VELOCITY_THRESHOLD = 500;
 const GESTURE_THRESHOLD = 50;
 
-export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
+export const FoodCreatorBottomSheet: React.FC<FoodCreatorBottomSheetProps> = ({
   deliveryTime,
   cartItems,
-  kitchenName: propKitchenName,
+  foodCreatorName: propFoodCreatorName,
   distance = "0.8 km",
-  kitchenId,
+  foodCreatorId,
   onCartPress,
   onHeartPress,
   onSearchPress,
@@ -80,8 +80,8 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   const searchInputRef = useRef<TextInput>(null);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { getKitchenDetails } = useFoodCreators();
-  const [kitchenDetails, setKitchenDetails] = useState<any>(null);
+  const { getFoodCreatorDetails } = useFoodCreators();
+  const [foodCreatorDetails, setFoodCreatorDetails] = useState<any>(null);
 
   // AI response state
   const [isAIModeActive, setIsAIModeActive] = useState(false);
@@ -110,31 +110,31 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
   const startHeight = useSharedValue(0);
   const startSnapPoint = useSharedValue<SnapPoint>(SNAP_POINTS.COLLAPSED);
 
-  // Load kitchen details
+  // Load foodCreator details
   useEffect(() => {
-    if (kitchenId) {
-      const loadKitchenDetails = async () => {
+    if (foodCreatorId) {
+      const loadFoodCreatorDetails = async () => {
         try {
-          const details = await getKitchenDetails(kitchenId);
+          const details = await getFoodCreatorDetails(foodCreatorId);
           if (details) {
-            setKitchenDetails({ data: details });
+            setFoodCreatorDetails({ data: details });
           }
         } catch (error) {
           // Error already handled in hook
         }
       };
-      loadKitchenDetails();
+      loadFoodCreatorDetails();
     }
-  }, [kitchenId, getKitchenDetails]);
+  }, [foodCreatorId, getFoodCreatorDetails]);
 
-  // Extract kitchen name from API response
-  const apiKitchenName = kitchenDetails?.data?.kitchenName;
+  // Extract foodCreator name from API response
+  const apiFoodCreatorName = foodCreatorDetails?.data?.foodCreatorName;
 
-  // Use fetched kitchen name from API
-  const isDemoName = propKitchenName === "Amara's Kitchen";
-  const kitchenName = kitchenId
-    ? (apiKitchenName || (!isDemoName && propKitchenName) || "Amara's Kitchen")
-    : (propKitchenName || "Amara's Kitchen");
+  // Use fetched foodCreator name from API
+  const isDemoName = propFoodCreatorName === "Amara's FoodCreator";
+  const foodCreatorName = foodCreatorId
+    ? (apiFoodCreatorName || (!isDemoName && propFoodCreatorName) || "Amara's FoodCreator")
+    : (propFoodCreatorName || "Amara's FoodCreator");
 
   // Initialize drawer to collapsed state
   useEffect(() => {
@@ -593,12 +593,12 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
                   )}
 
                   {/* Search Results */}
-                  <KitchenBottomSheetContent
+                  <FoodCreatorBottomSheetContent
                     ref={contentScrollRef}
                     isExpanded={true}
                     deliveryTime={deliveryTime}
-                    kitchenId={kitchenId}
-                    kitchenName={kitchenName}
+                    foodCreatorId={foodCreatorId}
+                    foodCreatorName={foodCreatorName}
                     searchQuery={searchQuery}
                     onMealPress={onMealPress}
                     onCartCountChange={onCartCountChange}
@@ -608,24 +608,24 @@ export const KitchenBottomSheet: React.FC<KitchenBottomSheetProps> = ({
                 // Normal Content Interface
                 <>
                   {/* Header */}
-                  <KitchenBottomSheetHeader
+                  <FoodCreatorBottomSheetHeader
                     deliveryTime={deliveryTime}
-                    kitchenName={kitchenName}
+                    foodCreatorName={foodCreatorName}
                     currentSnapPoint={currentSnapPointIndex}
                     distance={distance}
-                    kitchenId={kitchenId}
+                    foodCreatorId={foodCreatorId}
                     onHeartPress={onHeartPress}
                     onSearchPress={handleSearchPress}
                   />
 
                   {/* Content */}
-                  <KitchenBottomSheetContent
+                  <FoodCreatorBottomSheetContent
                     ref={contentScrollRef}
                     isExpanded={isExpanded}
                     onScrollAttempt={() => !isExpanded && animateToSnapPoint(SNAP_POINTS.EXPANDED)}
                     deliveryTime={deliveryTime}
-                    kitchenId={kitchenId}
-                    kitchenName={kitchenName}
+                    foodCreatorId={foodCreatorId}
+                    foodCreatorName={foodCreatorName}
                     searchQuery={isSearchMode ? searchQuery : undefined}
                     onMealPress={onMealPress}
                     onCartCountChange={onCartCountChange}

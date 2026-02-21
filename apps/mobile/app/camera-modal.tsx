@@ -31,11 +31,14 @@ const captureButtonSVG = `<svg width="80" height="80" viewBox="0 0 80 80" fill="
 
 type CameraType = 'front' | 'back';
 type FlashMode = 'off' | 'on' | 'auto';
+type CameraMode = 'photo' | 'live';
 
 export default function CameraModalScreen() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameraType, setCameraType] = useState<CameraType>('back');
   const [flashMode, setFlashMode] = useState<FlashMode>('off');
+  const [mode, setMode] = useState<CameraMode>('photo');
+  const [isGoingLive, setIsGoingLive] = useState(false);
   const cameraRef = useRef<any>(null);
   const router = useRouter();
 
@@ -48,13 +51,13 @@ export default function CameraModalScreen() {
   }, []);
 
   const handleFlipCamera = () => {
-    setCameraType((current: CameraType) => 
+    setCameraType((current: CameraType) =>
       current === 'back' ? 'front' : 'back'
     );
   };
 
   const handleFlashToggle = () => {
-    setFlashMode((current: FlashMode) => 
+    setFlashMode((current: FlashMode) =>
       current === 'off' ? 'on' : 'off'
     );
   };
@@ -71,6 +74,44 @@ export default function CameraModalScreen() {
       } catch (error) {
         console.error('Error capturing photo:', error);
       }
+    }
+  };
+
+  const handleGoLive = async () => {
+    if (isGoingLive) return;
+    setIsGoingLive(true);
+    try {
+      // Dynamically import Convex client to avoid circular deps
+      const { getConvexClient, getSessionToken } = await import('@/lib/convexClient');
+      const { api } = await import('@/convex/_generated/api');
+      const convex = getConvexClient();
+      const sessionToken = await getSessionToken();
+      if (!sessionToken) {
+        console.warn('Not authenticated — cannot go live');
+        return;
+      }
+
+      // Start a live session via the action
+      const result = await convex.action(api.actions.liveSessions.startLiveSession, {
+        sessionToken,
+        title: 'Live Cooking Session',
+        description: '',
+        scheduledStartTime: Date.now(),
+      });
+
+      if (result?.success) {
+        // Navigate to the live broadcaster screen
+        router.replace({
+          pathname: '/live' as any,
+          params: { sessionId: result.sessionId, channelName: result.channelName, isBroadcaster: 'true' },
+        });
+      } else {
+        console.error('Failed to start live session:', result?.error);
+      }
+    } catch (err) {
+      console.error('Go live error:', err);
+    } finally {
+      setIsGoingLive(false);
     }
   };
 
@@ -92,19 +133,19 @@ export default function CameraModalScreen() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false,
           title: 'Camera',
           presentation: 'modal',
           animation: 'slide_from_bottom',
           gestureEnabled: true,
           gestureDirection: 'vertical',
-        }} 
+        }}
       />
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="#000000" />
-        
+
         {/* Camera View */}
         <CameraView
           ref={cameraRef}
@@ -117,32 +158,65 @@ export default function CameraModalScreen() {
             <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
               <SvgXml xml={closeIconSVG} width={24} height={24} />
             </TouchableOpacity>
-            
+
             <View style={styles.topRightControls}>
-              <TouchableOpacity style={styles.controlButton} onPress={handleFlashToggle}>
-                <SvgXml 
-                  xml={flashMode === 'off' ? flashOffIconSVG : flashIconSVG} 
-                  width={24} 
-                  height={24} 
-                />
-              </TouchableOpacity>
-              
+              {mode === 'photo' && (
+                <TouchableOpacity style={styles.controlButton} onPress={handleFlashToggle}>
+                  <SvgXml
+                    xml={flashMode === 'off' ? flashOffIconSVG : flashIconSVG}
+                    width={24}
+                    height={24}
+                  />
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity style={styles.controlButton} onPress={handleFlipCamera}>
                 <SvgXml xml={flipCameraIconSVG} width={24} height={24} />
               </TouchableOpacity>
             </View>
           </View>
 
+          {/* Mode Tabs */}
+          <View style={styles.modeTabs}>
+            {(['photo', 'live'] as CameraMode[]).map((m) => (
+              <TouchableOpacity key={m} onPress={() => setMode(m)} style={styles.modeTab}>
+                <Text style={[styles.modeTabText, mode === m && styles.modeTabTextActive]}>
+                  {m === 'photo' ? 'Photo' : '🔴 Live'}
+                </Text>
+                {mode === m && <View style={styles.modeTabIndicator} />}
+              </TouchableOpacity>
+            ))}
+          </View>
+
           {/* Bottom Controls */}
           <View style={styles.bottomControls}>
             {/* Left side - Gallery or other options could go here */}
             <View style={styles.leftControls} />
-            
-            {/* Center - Capture Button */}
-            <TouchableOpacity style={styles.captureButton} onPress={handleCapture}>
-              <SvgXml xml={captureButtonSVG} width={80} height={80} />
-            </TouchableOpacity>
-            
+
+            {mode === 'photo' ? (
+              /* Shutter button */
+              <TouchableOpacity style={styles.captureButton} onPress={handleCapture}>
+                <SvgXml xml={captureButtonSVG} width={80} height={80} />
+              </TouchableOpacity>
+            ) : (
+              /* Go Live button */
+              <TouchableOpacity
+                style={[styles.goLiveButton, isGoingLive && styles.goLiveButtonLoading]}
+                onPress={handleGoLive}
+                activeOpacity={0.8}
+                disabled={isGoingLive}
+              >
+                {isGoingLive ? (
+                  <Text style={styles.goLiveButtonText}>Starting…</Text>
+                ) : (
+                  <>
+                    <View style={styles.goLiveDot} />
+                    <Text style={styles.goLiveButtonText}>Go Live</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+
             {/* Right side - Additional options could go here */}
             <View style={styles.rightControls} />
           </View>
@@ -193,6 +267,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 12,
   },
+  modeTabs: {
+    position: 'absolute',
+    bottom: 160,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 32,
+    zIndex: 10,
+  },
+  modeTab: {
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  modeTabText: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 15,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+  },
+  modeTabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  modeTabIndicator: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+    marginTop: 4,
+  },
   bottomControls: {
     position: 'absolute',
     bottom: 0,
@@ -212,6 +318,36 @@ const styles = StyleSheet.create({
   captureButton: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  goLiveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#E53935',
+    borderRadius: 36,
+    paddingHorizontal: 28,
+    paddingVertical: 18,
+    shadowColor: '#E53935',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  goLiveButtonLoading: {
+    backgroundColor: 'rgba(229, 57, 53, 0.6)',
+  },
+  goLiveDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FFFFFF',
+  },
+  goLiveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   rightControls: {
     width: 80,

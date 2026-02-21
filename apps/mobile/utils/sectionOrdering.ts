@@ -84,8 +84,8 @@ export const DEFAULT_SECTIONS: SectionConfig[] = [
     isConditional: false,
   },
   {
-    id: 'featured_kitchens',
-    name: 'Featured Kitchens',
+    id: 'featured_foodCreators',
+    name: 'Featured FoodCreators',
     priority: 9,
     timeWeight: 0.3,
     userWeight: 0.4,
@@ -144,8 +144,8 @@ export const DEFAULT_SECTIONS: SectionConfig[] = [
     isConditional: true,
   },
   {
-    id: 'nearby_kitchens',
-    name: 'Kitchens Near Me',
+    id: 'nearby_foodCreators',
+    name: 'FoodCreators Near Me',
     priority: 4,
     timeWeight: 0.2,
     userWeight: 0.3,
@@ -247,10 +247,10 @@ function getTimeScore(section: SectionConfig, timeContext: TimeContext): number 
   // Meal time bonuses
   if (mealTime) {
     const mealBonuses = {
-      breakfast: ['search', 'featured_kitchens', 'popular_meals'],
-      lunch: ['popular_meals', 'cuisine_categories', 'nearby_kitchens'],
-      dinner: ['featured_kitchens', 'popular_meals', 'special_offers'],
-      snack: ['popular_meals', 'nearby_kitchens', 'live_content']
+      breakfast: ['search', 'featured_foodCreators', 'popular_meals'],
+      lunch: ['popular_meals', 'cuisine_categories', 'nearby_foodCreators'],
+      dinner: ['featured_foodCreators', 'popular_meals', 'special_offers'],
+      snack: ['popular_meals', 'nearby_foodCreators', 'live_content']
     };
     
     if (mealBonuses[mealTime].includes(section.id)) {
@@ -261,22 +261,22 @@ function getTimeScore(section: SectionConfig, timeContext: TimeContext): number 
   // Time of day bonuses
   if (hour >= 6 && hour < 10) {
     // Morning - prioritize featured and popular
-    if (['featured_kitchens', 'popular_meals'].includes(section.id)) {
+    if (['featured_foodCreators', 'popular_meals'].includes(section.id)) {
       timeScore += 0.2;
     }
   } else if (hour >= 11 && hour < 14) {
     // Lunch time - prioritize popular and nearby
-    if (['popular_meals', 'nearby_kitchens', 'cuisine_categories'].includes(section.id)) {
+    if (['popular_meals', 'nearby_foodCreators', 'cuisine_categories'].includes(section.id)) {
       timeScore += 0.2;
     }
   } else if (hour >= 17 && hour < 20) {
     // Dinner time - prioritize featured and special offers
-    if (['featured_kitchens', 'special_offers', 'popular_meals'].includes(section.id)) {
+    if (['featured_foodCreators', 'special_offers', 'popular_meals'].includes(section.id)) {
       timeScore += 0.2;
     }
   } else if (hour >= 20 || hour < 6) {
     // Late night - prioritize nearby and live content
-    if (['nearby_kitchens', 'live_content', 'popular_meals'].includes(section.id)) {
+    if (['nearby_foodCreators', 'live_content', 'popular_meals'].includes(section.id)) {
       timeScore += 0.2;
     }
   }
@@ -326,7 +326,7 @@ function getUserScore(section: SectionConfig, userBehavior: UserBehavior): numbe
       userScore += 0.2;
     }
   } else if (userBehavior.orderFrequency === 'low') {
-    if (['featured_kitchens', 'special_offers'].includes(section.id)) {
+    if (['featured_foodCreators', 'special_offers'].includes(section.id)) {
       userScore += 0.2;
     }
   }
@@ -355,7 +355,7 @@ function getContextScore(section: SectionConfig, context: OrderingContext): numb
   
   // Location influence
   if (context.currentLocation) {
-    if (section.id === 'nearby_kitchens') {
+    if (section.id === 'nearby_foodCreators') {
       contextScore += 0.4;
     }
   }
@@ -365,7 +365,7 @@ function getContextScore(section: SectionConfig, context: OrderingContext): numb
     const { condition, temperature } = context.weather;
     
     if (condition.includes('rain') || condition.includes('snow')) {
-      if (['nearby_kitchens', 'popular_meals'].includes(section.id)) {
+      if (['nearby_foodCreators', 'popular_meals'].includes(section.id)) {
         contextScore += 0.2;
       }
     }

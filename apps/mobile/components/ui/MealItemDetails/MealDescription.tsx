@@ -3,13 +3,13 @@ import { StyleSheet, Text, View } from 'react-native';
 
 interface MealDescriptionProps {
   description: string;
-  kitchenName?: string;
-  onKitchenNamePress?: () => void;
+  foodCreatorName?: string;
+  onFoodCreatorNamePress?: () => void;
 }
 
-export function MealDescription({ description, kitchenName, onKitchenNamePress }: MealDescriptionProps) {
-  // If no kitchen name, just show the description as-is
-  if (!kitchenName) {
+export function MealDescription({ description, foodCreatorName, onFoodCreatorNamePress }: MealDescriptionProps) {
+  // If no foodCreator name, just show the description as-is
+  if (!foodCreatorName) {
     return (
       <View style={styles.container}>
         <Text style={styles.description}>{description}</Text>
@@ -17,22 +17,22 @@ export function MealDescription({ description, kitchenName, onKitchenNamePress }
     );
   }
 
-  // Split the description to highlight the kitchen name
-  const parts = description.split(kitchenName);
+  // Split the description to highlight the foodCreator name
+  const parts = description.split(foodCreatorName);
   
   return (
     <View style={styles.container}>
       <Text style={styles.description}>
         {parts[0]}
-        {onKitchenNamePress ? (
+        {onFoodCreatorNamePress ? (
           <Text 
-            style={styles.kitchenLink}
-            onPress={onKitchenNamePress}
+            style={styles.foodCreatorLink}
+            onPress={onFoodCreatorNamePress}
           >
-            {kitchenName}
+            {foodCreatorName}
           </Text>
         ) : (
-          <Text style={styles.kitchenLink}>{kitchenName}</Text>
+          <Text style={styles.foodCreatorLink}>{foodCreatorName}</Text>
         )}
         {parts[1]}
       </Text>
@@ -53,8 +53,8 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   
-  // Kitchen name styled as a link (CribNosh orange-red)
-  kitchenLink: {
+  // FoodCreator name styled as a link (CribNosh orange-red)
+  foodCreatorLink: {
     color: '#FF3B30', // CribNosh orange-red instead of iOS blue
     textDecorationLine: 'underline',
   },

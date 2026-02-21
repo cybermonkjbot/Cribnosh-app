@@ -106,7 +106,7 @@ const FoodCreatorItem = React.memo(({
             itemStyles.foodCreatorName,
             { color: Colors[itemColorScheme as keyof typeof Colors].text }
           ]}>
-            {foodCreator.kitchen_name}
+            {foodCreator.foodCreator_name}
           </Text>
           <Text style={itemStyles.foodCreatorCuisine}>{foodCreator.cuisine}</Text>
           <View style={itemStyles.foodCreatorStats}>
@@ -194,7 +194,7 @@ export function MapBottomSheet({
     // Don't search if user location is not available
     if (!currentUserLocation) {
       setIsSearching(false);
-      setFoodCreatorLoadError("Please enable location services to search for kitchens.");
+      setFoodCreatorLoadError("Please enable location services to search for foodCreators.");
       return;
     }
 
@@ -287,7 +287,7 @@ export function MapBottomSheet({
                 styles.selectedFoodCreatorName,
                 { color: Colors[colorScheme as keyof typeof Colors].text }
               ]}>
-                {selectedFoodCreator.kitchen_name}
+                {selectedFoodCreator.foodCreator_name}
               </Text>
               <Text style={styles.selectedFoodCreatorCuisine}>{selectedFoodCreator.cuisine}</Text>
               <TouchableOpacity

@@ -150,7 +150,7 @@ export function CuisineCategoryDrawer({
   return (
     <CategoryFullDrawer
       categoryName={cuisine.name}
-      categoryDescription={`Explore ${cuisine.name} cuisine from the best local kitchens`}
+      categoryDescription={`Explore ${cuisine.name} cuisine from the best local foodCreators`}
       onBack={onBack}
       filterChips={filterChips}
       activeFilters={activeFilters}
@@ -206,7 +206,7 @@ export function CuisineCategoryDrawer({
             {/* All Available Section */}
             <CategoryFoodItemsGrid
               title="All Available"
-              subtitle={`Complete ${cuisine.name} menu from local kitchens`}
+              subtitle={`Complete ${cuisine.name} menu from local foodCreators`}
               items={filteredMeals as any}
               onAddToCart={onAddToCart}
               onItemPress={onItemPress}

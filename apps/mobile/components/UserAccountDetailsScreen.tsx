@@ -562,7 +562,7 @@ export function UserAccountDetailsScreen({
       {isAuthenticated && !isProfileComplete && (
         <View style={styles.bannerContainer}>
           <VerificationBanner 
-            text="Finish your verification to help kitchens serve you better"
+            text="Finish your verification to help foodCreators serve you better"
           />
         </View>
       )}

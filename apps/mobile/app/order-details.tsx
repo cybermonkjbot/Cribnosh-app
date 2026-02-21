@@ -139,15 +139,15 @@ export default function OrderDetailsScreen() {
     }
   };
 
-  const handleCallKitchen = async () => {
+  const handleCallFoodCreator = async () => {
     // Get phone number from enriched order data
-    const phoneNumber = order?.kitchen_phone;
+    const phoneNumber = order?.foodCreator_phone;
 
     if (!phoneNumber) {
       // Phone number not available
       Alert.alert(
         "Phone Number Not Available",
-        "The kitchen phone number is not available for this order. Please contact support if you need assistance."
+        "The foodCreator phone number is not available for this order. Please contact support if you need assistance."
       );
       return;
     }
@@ -164,7 +164,7 @@ export default function OrderDetailsScreen() {
         );
       }
     } catch (error) {
-      console.error("Error calling kitchen:", error);
+      console.error("Error calling foodCreator:", error);
       Alert.alert(
         "Call Failed",
         "Unable to make the call. Please try again."
@@ -370,22 +370,22 @@ export default function OrderDetailsScreen() {
               </View>
             </View>
 
-            {/* Kitchen Info */}
+            {/* FoodCreator Info */}
             <View style={styles.sectionRow}>
               <View style={styles.sectionLeft}>
                 <View style={styles.iconBadge}>
                   <Phone size={16} color="white" />
                 </View>
                 <View style={styles.sectionText}>
-                  <Text style={styles.sectionTitle}>Kitchen</Text>
-                  <Text style={styles.kitchenName}>{order.kitchen_name}</Text>
+                  <Text style={styles.sectionTitle}>FoodCreator</Text>
+                  <Text style={styles.foodCreatorName}>{order.foodCreator_name}</Text>
                 </View>
               </View>
               <TouchableOpacity
-                style={styles.callKitchenButton}
-                onPress={handleCallKitchen}
+                style={styles.callFoodCreatorButton}
+                onPress={handleCallFoodCreator}
               >
-                <Text style={styles.callKitchenText}>Call</Text>
+                <Text style={styles.callFoodCreatorText}>Call</Text>
               </TouchableOpacity>
             </View>
 
@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 4,
   },
-  kitchenName: {
+  foodCreatorName: {
     color: "#111827",
     fontSize: 18,
     fontWeight: "600",
@@ -794,7 +794,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     paddingLeft: 40, // Align with text below icon
   },
-  callKitchenButton: {
+  callFoodCreatorButton: {
     backgroundColor: '#F3F4F6',
     borderRadius: 16,
     paddingHorizontal: 16,
@@ -803,7 +803,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  callKitchenText: {
+  callFoodCreatorText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#111827',

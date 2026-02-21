@@ -1,21 +1,21 @@
 // Export main components
 export { CartButton } from './CartButton';
-export { KitchenMainScreen } from './KitchenMainScreen';
+export { FoodCreatorScreen } from './FoodCreatorScreen';
 export { MainScreen } from './MainScreen';
 export { MealItemDetails } from './MealItemDetails';
 
-// Export Kitchen Main Screen components
-export { BackgroundElements } from './KitchenMainScreen/BackgroundElements';
-export { FoodIllustrations } from './KitchenMainScreen/FoodIllustrations';
-export { KitchenBottomSheet } from './KitchenMainScreen/KitchenBottomSheet';
-export { KitchenBottomSheetContent } from './KitchenMainScreen/KitchenBottomSheetContent';
-export { KitchenBottomSheetHeader } from './KitchenMainScreen/KitchenBottomSheetHeader';
-export { KitchenIntroCard } from './KitchenMainScreen/KitchenIntroCard';
+// Export FoodCreator Main Screen components
+export { BackgroundElements } from './FoodCreatorScreen/BackgroundElements';
+export { FoodIllustrations } from './FoodCreatorScreen/FoodIllustrations';
+export { FoodCreatorBottomSheet } from './FoodCreatorScreen/FoodCreatorBottomSheet';
+export { FoodCreatorBottomSheetContent } from './FoodCreatorScreen/FoodCreatorBottomSheetContent';
+export { FoodCreatorBottomSheetHeader } from './FoodCreatorScreen/FoodCreatorBottomSheetHeader';
+export { FoodCreatorIntroCard } from './FoodCreatorScreen/FoodCreatorIntroCard';
 
 // Export Meal Item Details components
 export { DietCompatibilityBar } from './MealItemDetails/DietCompatibilityBar';
 export { FoodCreatorNotes } from './MealItemDetails/FoodCreatorNotes';
-export { KitchenInfo } from './MealItemDetails/KitchenInfo';
+export { FoodCreatorInfo } from './MealItemDetails/FoodCreatorInfo';
 export { MealBadges } from './MealItemDetails/MealBadges';
 export { MealDescription } from './MealItemDetails/MealDescription';
 export { MealHeader } from './MealItemDetails/MealHeader';

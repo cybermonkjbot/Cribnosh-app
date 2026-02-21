@@ -19,7 +19,7 @@ interface MealVideoCardProps {
   videoSource: string;
   title: string;
   description: string;
-  kitchenName: string;
+  foodCreatorName: string;
   price: string;
   chef?: string;
   isVisible: boolean;
@@ -27,7 +27,7 @@ interface MealVideoCardProps {
   onLike?: () => void;
   onShare?: () => void;
   onAddToCart?: () => void;
-  onKitchenPress?: () => void;
+  onFoodCreatorPress?: () => void;
   onCommentPress?: () => void;
   likes?: number;
   comments?: number;
@@ -37,7 +37,7 @@ function MealVideoCardComponent({
   videoSource,
   title,
   description,
-  kitchenName,
+  foodCreatorName,
   price,
   chef,
   isVisible,
@@ -45,7 +45,7 @@ function MealVideoCardComponent({
   onLike,
   onShare,
   onAddToCart,
-  onKitchenPress,
+  onFoodCreatorPress,
   onCommentPress,
   likes = 0,
   comments = 0,
@@ -207,8 +207,8 @@ function MealVideoCardComponent({
 
   // Validate required props
   // Allow empty price for videos (instructional content)
-  if (!videoSource || !title || !kitchenName) {
-    logger.error('Invalid props provided', { videoSource, title, kitchenName, price });
+  if (!videoSource || !title || !foodCreatorName) {
+    logger.error('Invalid props provided', { videoSource, title, foodCreatorName, price });
     return null;
   }
 
@@ -335,9 +335,9 @@ function MealVideoCardComponent({
         alignItems: 'center',
         gap: 24,
       }}>
-        {/* Kitchen Profile */}
+        {/* FoodCreator Profile */}
         <Pressable
-          onPress={onKitchenPress}
+          onPress={onFoodCreatorPress}
           style={{
             alignItems: 'center',
             gap: 4,
@@ -363,7 +363,7 @@ function MealVideoCardComponent({
             textShadowOffset: { width: 0, height: 1 },
             textShadowRadius: 2,
           }}>
-            Kitchen
+            FoodCreator
           </Text>
         </Pressable>
 
@@ -443,7 +443,7 @@ function MealVideoCardComponent({
         left: 16,
         right: 80, // Account for right side actions
       }}>
-        {/* Kitchen Name */}
+        {/* FoodCreator Name */}
         <Text style={{
           fontSize: 14,
           color: '#FF3B30',
@@ -453,7 +453,7 @@ function MealVideoCardComponent({
           textShadowOffset: { width: 0, height: 1 },
           textShadowRadius: 2,
         }}>
-          {kitchenName}
+          {foodCreatorName}
         </Text>
 
         {/* Meal Title */}

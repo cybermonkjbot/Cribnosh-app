@@ -405,7 +405,7 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
                   meal.images?.[0] ||
                   mealData.chef?.image_url ||
                   undefined;
-                const kitchenName = mealData.chef?.kitchen_name || mealData.kitchen_name || meal.chef?.kitchen_name || meal.kitchen_name;
+                const foodCreatorName = mealData.chef?.foodCreator_name || mealData.foodCreator_name || meal.chef?.foodCreator_name || meal.foodCreator_name;
                 const isAdding = addingToCart === mealId;
                 const imageUrl = mealImage ? getAbsoluteImageUrl(mealImage) : undefined;
                 
@@ -438,9 +438,9 @@ export function ClaimOfferModal({ onClose, offer }: ClaimOfferModalProps) {
                       <Text style={styles.mealName} numberOfLines={2}>
                         {mealName}
                       </Text>
-                      {kitchenName && (
-                        <Text style={styles.mealKitchen} numberOfLines={1}>
-                          {kitchenName}
+                      {foodCreatorName && (
+                        <Text style={styles.mealFoodCreator} numberOfLines={1}>
+                          {foodCreatorName}
                         </Text>
                       )}
                       <View style={styles.mealFooter}>
@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
     color: BRAND_COLORS.darkGray,
     marginBottom: 4,
   },
-  mealKitchen: {
+  mealFoodCreator: {
     fontSize: 12,
     fontWeight: '400',
     color: BRAND_COLORS.gray,

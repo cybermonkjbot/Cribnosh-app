@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { SkeletonBox } from './ShimmerBox';
 
-export function KitchenInfoSkeleton() {
+export function FoodCreatorInfoSkeleton() {
   return (
     <View style={styles.container}>
       {/* Avatar container with confetti positions */}
@@ -21,7 +21,7 @@ export function KitchenInfoSkeleton() {
       
       {/* Name container */}
       <View style={styles.nameContainer}>
-        <SkeletonBox width={120} height={16} borderRadius={4} style={styles.kitchenName} />
+        <SkeletonBox width={120} height={16} borderRadius={4} style={styles.foodCreatorName} />
         <SkeletonBox width={150} height={24} borderRadius={4} />
       </View>
     </View>
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
-  kitchenName: {
+  foodCreatorName: {
     marginBottom: 2,
   },
 });

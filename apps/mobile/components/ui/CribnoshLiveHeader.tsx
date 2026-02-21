@@ -2,12 +2,12 @@ import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { CribnoshLiveIndicator } from './CribnoshLiveIndicator';
 
 interface CribnoshLiveHeaderProps {
-  kitchenTitle: string;
+  foodCreatorTitle: string;
   viewers: number;
 }
 
 export function CribnoshLiveHeader({
-  kitchenTitle,
+  foodCreatorTitle,
   viewers,
 }: CribnoshLiveHeaderProps) {
   const { width } = useWindowDimensions();
@@ -16,7 +16,7 @@ export function CribnoshLiveHeader({
       <View style={styles.content}>
         <View style={styles.textContainer}>
           <Text style={styles.title}>
-            {kitchenTitle}
+            {foodCreatorTitle}
           </Text>
           <View style={styles.viewersContainer}>
             <View style={styles.viewersBadge}>

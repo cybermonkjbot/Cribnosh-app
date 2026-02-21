@@ -88,7 +88,7 @@ export default function DeliveryMapScreen({ onClose, orderId }: DeliveryMapScree
   const mapMarkers = hasLocationData ? [
     {
       id: 'delivery-person',
-      kitchen_name: getDriverName(),
+      foodCreator_name: getDriverName(),
       cuisine: 'On the way',
       delivery_time: getEstimatedTime(),
       location: deliveryLocation,
@@ -97,7 +97,7 @@ export default function DeliveryMapScreen({ onClose, orderId }: DeliveryMapScree
     },
     {
       id: 'destination',
-      kitchen_name: 'Your Location',
+      foodCreator_name: 'Your Location',
       cuisine: 'Destination',
       delivery_time: '',
       location: destinationLocation,

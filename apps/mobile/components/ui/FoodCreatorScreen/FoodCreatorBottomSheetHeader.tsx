@@ -5,36 +5,36 @@ import HearEmoteIcon from '../HearEmoteIcon';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient, getSessionToken } from '@/lib/convexClient';
 
-interface KitchenBottomSheetHeaderProps {
+interface FoodCreatorBottomSheetHeaderProps {
   deliveryTime: string;
-  kitchenName?: string;
+  foodCreatorName?: string;
   currentSnapPoint?: number;
   distance?: string;
-  kitchenId?: string;
+  foodCreatorId?: string;
   onHeartPress?: () => void;
   onSearchPress?: () => void;
 }
 
-export const KitchenBottomSheetHeader: React.FC<KitchenBottomSheetHeaderProps> = ({
+export const FoodCreatorBottomSheetHeader: React.FC<FoodCreatorBottomSheetHeaderProps> = ({
   deliveryTime,
-  kitchenName = "Amara's Kitchen",
+  foodCreatorName = "Amara's FoodCreator",
   currentSnapPoint = 0,
   distance = "0.8 km",
-  kitchenId,
+  foodCreatorId,
   onHeartPress,
   onSearchPress,
 }) => {
   // Determine title text based on snap point
-  const titleText = currentSnapPoint === 1 ? kitchenName : "Kitchen Story";
+  const titleText = currentSnapPoint === 1 ? foodCreatorName : "FoodCreator Story";
   const isExpanded = currentSnapPoint === 1;
 
   const [isFavorited, setIsFavorited] = useState(false);
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
 
-  // Fetch favorite status if kitchenId is provided
+  // Fetch favorite status if foodCreatorId is provided
   useEffect(() => {
     const loadFavoriteStatus = async () => {
-      if (!kitchenId) {
+      if (!foodCreatorId) {
         setIsFavorited(false);
         return;
       }
@@ -50,9 +50,9 @@ export const KitchenBottomSheetHeader: React.FC<KitchenBottomSheetHeaderProps> =
           return;
         }
 
-        const result = await convex.action(api.actions.users.customerGetKitchenFavoriteStatus, {
+        const result = await convex.action(api.actions.users.customerGetFoodCreatorFavoriteStatus, {
           sessionToken,
-          kitchenId,
+          foodCreatorId,
         });
 
         if (result.success) {
@@ -67,10 +67,10 @@ export const KitchenBottomSheetHeader: React.FC<KitchenBottomSheetHeaderProps> =
     };
 
     loadFavoriteStatus();
-  }, [kitchenId]);
+  }, [foodCreatorId]);
 
   const handleHeartPress = async () => {
-    if (!kitchenId) {
+    if (!foodCreatorId) {
       onHeartPress?.();
       return;
     }
@@ -86,17 +86,17 @@ export const KitchenBottomSheetHeader: React.FC<KitchenBottomSheetHeaderProps> =
       }
 
       if (isFavorited) {
-        const result = await convex.action(api.actions.users.customerRemoveKitchenFavorite, {
+        const result = await convex.action(api.actions.users.customerRemoveFoodCreatorFavorite, {
           sessionToken,
-          kitchenId,
+          foodCreatorId,
         });
         if (result.success) {
           setIsFavorited(false);
         }
       } else {
-        const result = await convex.action(api.actions.users.customerAddKitchenFavorite, {
+        const result = await convex.action(api.actions.users.customerAddFoodCreatorFavorite, {
           sessionToken,
-          kitchenId,
+          foodCreatorId,
         });
         if (result.success) {
           setIsFavorited(true);
@@ -117,7 +117,7 @@ export const KitchenBottomSheetHeader: React.FC<KitchenBottomSheetHeaderProps> =
         <View style={styles.titleContainer}>
           <Text style={styles.title}>{titleText}</Text>
           {isExpanded && (
-            <Text style={styles.kitchenDetails}>
+            <Text style={styles.foodCreatorDetails}>
               Delivers in {deliveryTime} • {distance} away
             </Text>
           )}
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     lineHeight: 38,
     color: '#F3F4F6',
   },
-  kitchenDetails: {
+  foodCreatorDetails: {
     fontFamily: 'Lato',
     fontStyle: 'normal',
     fontWeight: '400',

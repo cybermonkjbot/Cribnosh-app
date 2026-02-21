@@ -5,8 +5,8 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useAddToCart } from "@/hooks/use-cart";
 import { useSession } from "@/lib/auth/use-session";
-import { useQuery } from "convex/react";
-import { ArrowLeft, ChefHat, Clock, MapPin, Play, ShoppingCart, Star, Users, Video } from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
+import { ArrowLeft, ChefHat, Clock, MapPin, Play, ShoppingCart, Star, UserCheck, UserPlus, Users, Video } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -43,6 +43,41 @@ export default function FoodCreatorProfileClient({ foodCreator }: FoodCreatorPro
         api.queries.videoPosts.getVideosByCreator,
         foodCreator.userId ? { creatorId: foodCreator.userId as Id<'users'>, limit: 6 } : "skip"
     );
+
+    // Follower functionality
+    const isFollowing = useQuery(
+        api.queries.userFollows.isFollowing,
+        foodCreator.userId && isAuthenticated ? { followingId: foodCreator.userId as Id<'users'> } : "skip"
+    );
+    const followUser = useMutation(api.mutations.userFollows.followUser);
+    const unfollowUser = useMutation(api.mutations.userFollows.unfollowUser);
+    const [isFollowLoading, setIsFollowLoading] = useState(false);
+
+    const handleFollowToggle = async () => {
+        if (!isAuthenticated) {
+            toast.error('Please sign in to follow creators');
+            router.push('/try-it');
+            return;
+        }
+
+        if (!foodCreator.userId || isFollowLoading) return;
+
+        setIsFollowLoading(true);
+        try {
+            if (isFollowing) {
+                await unfollowUser({ followingId: foodCreator.userId as Id<'users'> });
+                toast.success(`Unfollowed ${foodCreator.name}`);
+            } else {
+                await followUser({ followingId: foodCreator.userId as Id<'users'> });
+                toast.success(`Following ${foodCreator.name}`);
+            }
+        } catch (error: any) {
+            console.error('Error toggling follow:', error);
+            toast.error(error?.message || 'Failed to update follow status');
+        } finally {
+            setIsFollowLoading(false);
+        }
+    };
 
     const isLoadingMeals = meals === undefined;
 
@@ -102,7 +137,31 @@ export default function FoodCreatorProfileClient({ foodCreator }: FoodCreatorPro
 
                         {/* Food Creator Info */}
                         <div className="flex-1 text-center md:text-left">
-                            <h1 className="font-asgard text-3xl md:text-4xl mb-2">{foodCreator.name}</h1>
+                            <div className="flex flex-col md:flex-row md:items-center gap-4 mb-2 justify-center md:justify-start">
+                                <h1 className="font-asgard text-3xl md:text-4xl">{foodCreator.name}</h1>
+
+                                {/* Follow Button */}
+                                {foodCreator.userId && (
+                                    <Button
+                                        onClick={handleFollowToggle}
+                                        disabled={isFollowLoading || isFollowing === undefined}
+                                        variant={isFollowing ? "outline" : "default"}
+                                        className={`rounded-full shadow-xs px-6 ${isFollowing
+                                                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800'
+                                                : 'bg-[#ff3b30] hover:bg-[#ff3b30]/90 text-white'
+                                            }`}
+                                    >
+                                        {isFollowLoading ? (
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+                                        ) : isFollowing ? (
+                                            <UserCheck size={16} className="mr-2" />
+                                        ) : (
+                                            <UserPlus size={16} className="mr-2" />
+                                        )}
+                                        {isFollowLoading ? 'Wait...' : isFollowing ? 'Following' : 'Follow'}
+                                    </Button>
+                                )}
+                            </div>
 
                             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-slate-600 mb-4">
                                 {foodCreator.location?.city && (
@@ -154,10 +213,10 @@ export default function FoodCreatorProfileClient({ foodCreator }: FoodCreatorPro
                                         <span className="text-slate-500">followers</span>
                                     </div>
                                 )}
-                                {followStats?.videoCount !== undefined && followStats.videoCount > 0 && (
+                                {followStats?.videosCount !== undefined && followStats.videosCount > 0 && (
                                     <div className="flex items-center gap-1.5 text-slate-700">
                                         <Video size={15} className="text-slate-400" />
-                                        <span className="font-semibold">{followStats.videoCount}</span>
+                                        <span className="font-semibold">{followStats.videosCount}</span>
                                         <span className="text-slate-500">videos</span>
                                     </div>
                                 )}

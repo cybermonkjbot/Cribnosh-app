@@ -100,7 +100,7 @@ export function MealVideoCardSkeleton({ isVisible = true }: MealVideoCardSkeleto
         alignItems: 'center',
         gap: 24,
       }}>
-        {/* Kitchen Profile Skeleton */}
+        {/* FoodCreator Profile Skeleton */}
         <View style={{ alignItems: 'center', gap: 4 }}>
           <Animated.View style={[
             {
@@ -204,7 +204,7 @@ export function MealVideoCardSkeleton({ isVisible = true }: MealVideoCardSkeleto
         left: 16,
         right: 80,
       }}>
-        {/* Kitchen Name Skeleton */}
+        {/* FoodCreator Name Skeleton */}
         <Animated.View style={[
           {
             width: 80,

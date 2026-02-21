@@ -9,10 +9,10 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Id } from '@/convex/_generated/dataModel';
 
-export default function KitchenVideoPage() {
+export default function FoodCreatorVideoPage() {
   const { videoId } = useLocalSearchParams<{
     foodcreatorId: string;
-    kitchenId: string;
+    foodCreatorId: string;
     videoId: string;
   }>();
   const router = useRouter();

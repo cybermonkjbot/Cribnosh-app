@@ -36,7 +36,7 @@ export function CategoryFullDrawer({
   selectedSegment = 'forYou',
   onSegmentChange,
   onSearch,
-  searchPlaceholder = "Search Stans Kitchens",
+  searchPlaceholder = "Search Stans FoodCreators",
   filterChips = [],
   onFilterChange,
   activeFilters = [],

@@ -11,7 +11,7 @@ import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 interface Meal {
   id: string;
   name: string;
-  kitchen: string;
+  foodCreator: string;
   price: string;
   originalPrice?: string;
   image: any;
@@ -81,7 +81,7 @@ const RecommendedMealsSectionComponent: React.FC<RecommendedMealsSectionProps> =
     return {
       id: meal._id || meal.id || '',
       name: meal.name || 'Unknown Meal',
-      kitchen: chef?.name || chef?.kitchen_name || 'Unknown Kitchen',
+      foodCreator: chef?.name || chef?.foodCreator_name || 'Unknown FoodCreator',
       price: meal.price ? `£${(typeof meal.price === 'number' ? meal.price / 100 : parseFloat(meal.price)).toFixed(2)}` : '£0.00',
       originalPrice: meal.original_price ? `£${(typeof meal.original_price === 'number' ? meal.original_price / 100 : parseFloat(meal.original_price)).toFixed(2)}` : undefined,
       image: {
@@ -195,7 +195,7 @@ const RecommendedMealsSectionComponent: React.FC<RecommendedMealsSectionProps> =
           }}
           numberOfLines={1}
         >
-          {meal.kitchen}
+          {meal.foodCreator}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>

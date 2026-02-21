@@ -5,7 +5,7 @@ import { LiveComment } from '@/types/customer';
 import { useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, AppStateStatus, ImageBackground, Modal, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, AppState, AppStateStatus, ImageBackground, KeyboardAvoidingView, Modal, Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../../../../packages/convex/_generated/api';
 import { showError, showSuccess, showWarning } from '../../lib/GlobalToastManager';
@@ -13,10 +13,12 @@ import LiveComments from '../LiveComments';
 import OnTheStoveBottomSheet from '../OnTheStoveBottomSheet';
 import { CartButton } from './CartButton';
 import { CribnoshLiveHeader } from './CribnoshLiveHeader';
+import { LivePinnedMeal } from './LivePinnedMeal';
+import { LiveReactionsOverlay } from './LiveReactionsOverlay';
 
 interface LiveViewerScreenProps {
   sessionId: string;
-  mockKitchenData?: {
+  mockFoodCreatorData?: {
     id: string;
     name: string;
     cuisine: string;
@@ -29,7 +31,7 @@ interface LiveViewerScreenProps {
   onClose: () => void;
 }
 
-const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitchenData, onClose }) => {
+const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockFoodCreatorData, onClose }) => {
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
   const [commentText, setCommentText] = useState('');
   const { isAuthenticated, token, checkTokenExpiration, refreshAuthState } = useAuthContext();
@@ -38,6 +40,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
   const [cartData, setCartData] = useState<any>(null);
   const [cartLoading, setCartLoading] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [reactionCount, setReactionCount] = useState(0);
   const insets = useSafeAreaInsets();
 
   // Detect if this is a mock ID (simple numeric string like "1", "2", etc.)
@@ -169,12 +172,12 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     }
 
     // Fallback to mock data
-    if (isMockId && mockKitchenData) {
-      return mockKitchenData.viewers || 0;
+    if (isMockId && mockFoodCreatorData) {
+      return mockFoodCreatorData.viewers || 0;
     }
 
     return 0;
-  }, [liveViewersData, sessionData, isMockId, mockKitchenData]);
+  }, [liveViewersData, sessionData, isMockId, mockFoodCreatorData]);
 
   // Fetch live comments from Convex
   const fetchLiveComments = useCallback(async () => {
@@ -408,8 +411,10 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
     return []; // Return empty array if API has no data
   }, [liveCommentsData]);
 
-  // Handle sending live reaction
   const handleSendReaction = useCallback(async (reactionType: 'heart' | 'fire' | 'clap' | 'star') => {
+    // Fire the local animation immediately for perceived performance
+    setReactionCount(prev => prev + 1);
+
     if (!isAuthenticated) {
       showWarning('Authentication Required', 'Please sign in to send reactions');
       router.push('/auth/sign-in' as any);
@@ -596,17 +601,17 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
   // Transform API data or mock data to component format
   const mealData = useMemo(() => {
     // Use mock data if available
-    if (isMockId && mockKitchenData) {
+    if (isMockId && mockFoodCreatorData) {
       return {
-        title: mockKitchenData.description || mockKitchenData.name || 'Live Cooking',
+        title: mockFoodCreatorData.description || mockFoodCreatorData.name || 'Live Cooking',
         price: '£ 16', // Default price for mock data
-        imageSource: mockKitchenData.image || require('../../assets/images/cribnoshpackaging.png'),
-        description: mockKitchenData.description || `Watch ${mockKitchenData.name} cook amazing ${mockKitchenData.cuisine} cuisine live!`,
-        kitchenName: mockKitchenData.name || 'Food Creator\'s Kitchen',
+        imageSource: mockFoodCreatorData.image || require('../../assets/images/cribnoshpackaging.png'),
+        description: mockFoodCreatorData.description || `Watch ${mockFoodCreatorData.name} cook amazing ${mockFoodCreatorData.cuisine} cuisine live!`,
+        foodCreatorName: mockFoodCreatorData.name || 'Food Creator\'s FoodCreator',
         ingredients: ['Fresh Ingredients', 'Premium Spices', 'Authentic Recipe'],
         cookingTime: '25 minutes',
-        foodCreatorBio: `${mockKitchenData.name} brings years of ${mockKitchenData.cuisine} cooking experience.`,
-        liveViewers: mockKitchenData.viewers || 0,
+        foodCreatorBio: `${mockFoodCreatorData.name} brings years of ${mockFoodCreatorData.cuisine} cooking experience.`,
+        liveViewers: mockFoodCreatorData.viewers || 0,
       };
     }
 
@@ -617,7 +622,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
         price: '£ 0',
         imageSource: require('../../assets/images/cribnoshpackaging.png'),
         description: 'Loading meal details...',
-        kitchenName: 'Loading...',
+        foodCreatorName: 'Loading...',
         ingredients: [],
         cookingTime: undefined,
 
@@ -651,21 +656,21 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
       price,
       imageSource: typeof mealImage === 'string' ? mealImage : mealImage,
       description: meal?.description || session.description || 'Watch this amazing live cooking session!',
-      kitchenName: foodCreator?.kitchen_name || 'Food Creator\'s Kitchen',
+      foodCreatorName: foodCreator?.foodCreator_name || 'Food Creator\'s FoodCreator',
       ingredients,
       cookingTime,
       foodCreatorBio: foodCreator?.bio || undefined,
       liveViewers: viewerCount,
     };
-  }, [sessionData, isMockId, mockKitchenData, viewerCount]);
+  }, [sessionData, isMockId, mockFoodCreatorData, viewerCount]);
 
   // Get food creator info for header
   const foodCreatorInfo = useMemo(() => {
     // Use mock data if available
-    if (isMockId && mockKitchenData) {
+    if (isMockId && mockFoodCreatorData) {
       return {
-        name: mockKitchenData.name || 'Food Creator',
-        avatar: mockKitchenData.image || 'https://fhfhfhhf',
+        name: mockFoodCreatorData.name || 'Food Creator',
+        avatar: mockFoodCreatorData.image || 'https://fhfhfhhf',
         viewers: viewerCount,
       };
     }
@@ -685,7 +690,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
       avatar: foodCreator.profile_image || 'https://fhfhfhhf',
       viewers: viewerCount,
     };
-  }, [sessionData, isMockId, mockKitchenData, viewerCount]);
+  }, [sessionData, isMockId, mockFoodCreatorData, viewerCount]);
 
   // Show loading state only if not using mock data
   if (isLoadingSession && !isMockId) {
@@ -765,7 +770,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
                 ? { uri: sessionData.data.session.thumbnail_url }
                 : sessionData?.data?.foodCreator?.profile_image
                   ? { uri: sessionData.data.foodCreator.profile_image }
-                  : require('../../assets/images/KitchenLive-01.png')
+                  : require('../../assets/images/FoodCreatorLive-01.png')
             }
             style={styles.backgroundImage}
             resizeMode="cover"
@@ -800,32 +805,29 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
   }
 
   return (
-    <Modal
-      visible={true}
-      animationType="fade"
-      presentationStyle="fullScreen"
-      statusBarTranslucent={true}
-      onRequestClose={handleClose}
-    >
-      <View style={styles.container}>
-        <StatusBar
-          hidden={true}
-          backgroundColor="transparent"
-          translucent={true}
-          barStyle="light-content"
-        />
-        <ImageBackground
-          source={
-            (isMockId && mockKitchenData?.image)
-              ? { uri: mockKitchenData.image }
-              : (sessionData?.data?.session?.thumbnail_url)
-                ? { uri: sessionData.data.session.thumbnail_url }
-                : (sessionData?.data?.chef?.profile_image)
-                  ? { uri: sessionData.data.foodCreator.profile_image }
-                  : require('../../assets/images/KitchenLive-01.png')
-          }
-          style={styles.backgroundImage}
-          resizeMode="cover"
+    <View style={styles.container}>
+      <StatusBar
+        hidden={true}
+        backgroundColor="transparent"
+        translucent={true}
+        barStyle="light-content"
+      />
+      <ImageBackground
+        source={
+          (isMockId && mockFoodCreatorData?.image)
+            ? { uri: mockFoodCreatorData.image }
+            : (sessionData?.data?.session?.thumbnail_url)
+              ? { uri: sessionData.data.session.thumbnail_url }
+              : (sessionData?.data?.chef?.profile_image)
+                ? { uri: sessionData.data.foodCreator.profile_image }
+                : require('../../assets/images/FoodCreatorLive-01.png')
+        }
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      >
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoidingContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           {/* Back Button and Live Info Header */}
           <View style={styles.headerContainer}>
@@ -836,81 +838,104 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockKitche
             {/* Live Header Info */}
             <View style={styles.liveInfoContainer}>
               <CribnoshLiveHeader
-                kitchenTitle={foodCreatorInfo.name}
+                foodCreatorTitle={foodCreatorInfo.name}
                 viewers={foodCreatorInfo.viewers}
               />
             </View>
           </View>
 
-          {/* Live Comments - Positioned like TikTok */}
-          <View style={styles.commentsContainer}>
-            <LiveComments comments={liveComments} />
-          </View>
+          {/* Live Reactions Overlay */}
+          <LiveReactionsOverlay reactionCount={reactionCount} />
 
-          {/* Comment Input - Positioned at bottom */}
-          {!isMockId && (
-            <View style={styles.commentInputContainer}>
-              <TextInput
-                style={styles.commentInput}
-                placeholder="Add a comment..."
-                placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                value={commentText}
-                onChangeText={setCommentText}
-                multiline={false}
-                maxLength={200}
-                editable={isAuthenticated}
+          {/* Spacer to push everything to the bottom */}
+          <View style={styles.flexSpacer} />
+
+          <View style={[styles.bottomStack, { paddingBottom: 120 }]}>
+            {/* Pinned Meal Card */}
+            {!isMockId && mealData && (
+              <LivePinnedMeal
+                mealData={mealData}
+                onPress={() => toggleBottomSheet()}
               />
+            )}
+
+            {/* Live Comments */}
+            <View style={styles.commentsContainer}>
+              <LiveComments comments={liveComments} />
+            </View>
+
+            {/* Comment Input */}
+            {!isMockId && (
               <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  (!commentText.trim() || !isAuthenticated) && styles.sendButtonDisabled,
-                ]}
+                activeOpacity={1}
+                style={styles.commentInputContainer}
                 onPress={() => {
-                  if (commentText.trim() && isAuthenticated) {
-                    handleSendComment(commentText);
-                    setCommentText('');
+                  if (!isAuthenticated) {
+                    showWarning('Authentication Required', 'Please sign in to comment');
+                    router.push('/auth/sign-in' as any);
                   }
                 }}
-                disabled={!commentText.trim() || !isAuthenticated}
               >
-                <Text style={styles.sendButtonText}>Send</Text>
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder={isAuthenticated ? "Add a comment..." : "Sign in to comment"}
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  multiline={false}
+                  maxLength={200}
+                  editable={isAuthenticated}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.sendButton,
+                    (!commentText.trim() || !isAuthenticated) && styles.sendButtonDisabled,
+                  ]}
+                  onPress={() => {
+                    if (commentText.trim() && isAuthenticated) {
+                      handleSendComment(commentText);
+                      setCommentText('');
+                    }
+                  }}
+                  disabled={!commentText.trim() || !isAuthenticated}
+                >
+                  <Text style={styles.sendButtonText}>Send</Text>
+                </TouchableOpacity>
               </TouchableOpacity>
-            </View>
-          )}
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </ImageBackground>
 
-          {/* Love Button is now rendered inside OnTheStoveBottomSheet */}
-        </ImageBackground>
+      {/* Bottom Sheet - moved outside ImageBackground for better persistence */}
+      <OnTheStoveBottomSheet
+        isVisible={true}
+        isLoading={isLoadingSession && !isMockId}
+        onToggleVisibility={toggleBottomSheet}
+        onShareLive={handleShareLive}
+        onTreatSomeone={handleTreatSomeone}
+        mealData={mealData}
+        mealId={sessionData?.data?.meal?._id}
+        onAddToCart={isMockId ? undefined : handleAddToCart}
+        onQuantityChange={isMockId ? undefined : handleQuantityChange}
+        isOrdered={isOrdered}
+        onReaction={isMockId ? undefined : handleSendReaction}
+      />
 
-        {/* Bottom Sheet - moved outside ImageBackground for better persistence */}
-        <OnTheStoveBottomSheet
-          isVisible={true}
-          isLoading={isLoadingSession && !isMockId}
-          onToggleVisibility={toggleBottomSheet}
-          onShareLive={handleShareLive}
-          onTreatSomeone={handleTreatSomeone}
-          mealData={mealData}
-          mealId={sessionData?.data?.meal?._id}
-          onAddToCart={isMockId ? undefined : handleAddToCart}
-          onQuantityChange={isMockId ? undefined : handleQuantityChange}
-          isOrdered={isOrdered}
-          onReaction={isMockId ? undefined : handleSendReaction}
+      {/* Floating Cart Button - shows when cart has items */}
+      {cartItemCount > 0 && (
+        <CartButton
+          quantity={cartItemCount}
+          onPress={() => router.push('/orders/cart')}
+          variant="view"
+          position="absolute"
+          bottom={Math.max(insets.bottom, 30)}
+          left={20}
+          right={20}
+          showIcon={true}
         />
-
-        {/* Floating Cart Button - shows when cart has items */}
-        {cartItemCount > 0 && (
-          <CartButton
-            quantity={cartItemCount}
-            onPress={() => router.push('/orders/cart')}
-            variant="view"
-            position="absolute"
-            bottom={Math.max(insets.bottom, 30)}
-            left={20}
-            right={20}
-            showIcon={true}
-          />
-        )}
-      </View>
-    </Modal>
+      )}
+    </View>
   );
 };
 
@@ -935,6 +960,18 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+    justifyContent: 'space-between',
+  },
+  flexSpacer: {
+    flex: 1,
+  },
+  keyboardAvoidingContainer: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  bottomStack: {
+    justifyContent: 'flex-end',
+    width: '100%',
   },
   headerContainer: {
     paddingHorizontal: 10,
@@ -969,24 +1006,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   commentsContainer: {
-    position: 'absolute',
-    right: 0,
-    left: 0,
-    bottom: 250, // Positioned above the comment input
+    height: 250,
+    width: '100%',
     paddingHorizontal: 16,
-    zIndex: 500,
-    maxHeight: 300,
+    marginBottom: 8,
   },
   commentInputContainer: {
-    position: 'absolute',
-    bottom: 200, // Positioned above the bottom sheet
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    zIndex: 600,
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    width: '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderTopWidth: 1,
     borderTopColor: 'rgba(230, 255, 232, 0.1)',

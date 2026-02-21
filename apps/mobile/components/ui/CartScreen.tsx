@@ -140,19 +140,19 @@ export default function CartScreen() {
   const isLoading = cartData === undefined; // undefined means query is loading
   const isEmpty = cartData !== undefined && cartItems.length === 0;
 
-  // Check if items come from multiple kitchens
-  const hasMultipleKitchens = useMemo(() => {
+  // Check if items come from multiple foodCreators
+  const hasMultipleFoodCreators = useMemo(() => {
     if (cartItems.length === 0) return false;
-    const uniqueKitchenIds = new Set(
+    const uniqueFoodCreatorIds = new Set(
       cartItems
         .map((item: any) => item.chef_id)
         .filter((id: any) => id !== undefined && id !== null)
     );
-    const result = uniqueKitchenIds.size > 1;
+    const result = uniqueFoodCreatorIds.size > 1;
     // Debug logging
-    console.log('Cart - Multiple kitchens check:', {
+    console.log('Cart - Multiple foodCreators check:', {
       totalItems: cartItems.length,
-      uniqueKitchenIds: Array.from(uniqueKitchenIds),
+      uniqueFoodCreatorIds: Array.from(uniqueFoodCreatorIds),
       hasMultiple: result,
       itemsWithFoodCreatorId: cartItems.map((item: any) => ({
         name: item.dish_name,
@@ -650,19 +650,19 @@ export default function CartScreen() {
                   <View style={styles.itemLeft}>
                     {(() => {
                       const absoluteImageUrl = getAbsoluteImageUrl(item.image_url);
-                      const kitchenProfileImage = item.chef_profile_image
+                      const foodCreatorProfileImage = item.chef_profile_image
                         ? getAbsoluteImageUrl(item.chef_profile_image)
                         : null;
-                      const showKitchenBadge = hasMultipleKitchens;
+                      const showFoodCreatorBadge = hasMultipleFoodCreators;
 
                       // Debug logging
-                      if (hasMultipleKitchens) {
+                      if (hasMultipleFoodCreators) {
                         console.log('Cart Item - Badge check:', {
                           dishName: item.dish_name,
-                          hasMultipleKitchens,
+                          hasMultipleFoodCreators,
                           chefProfileImage: item.chef_profile_image,
-                          kitchenProfileImage,
-                          showKitchenBadge,
+                          foodCreatorProfileImage,
+                          showFoodCreatorBadge,
                         });
                       }
 
@@ -673,16 +673,16 @@ export default function CartScreen() {
                             style={styles.itemImage}
                             defaultSource={require("@/assets/images/sample.png")}
                           />
-                          {showKitchenBadge && (
-                            <View style={styles.kitchenBadgeContainer}>
-                              {kitchenProfileImage ? (
+                          {showFoodCreatorBadge && (
+                            <View style={styles.foodCreatorBadgeContainer}>
+                              {foodCreatorProfileImage ? (
                                 <Image
-                                  source={{ uri: kitchenProfileImage }}
-                                  style={styles.kitchenBadge}
+                                  source={{ uri: foodCreatorProfileImage }}
+                                  style={styles.foodCreatorBadge}
                                   defaultSource={require("@/assets/images/sample.png")}
                                 />
                               ) : (
-                                <View style={styles.kitchenBadgePlaceholder}>
+                                <View style={styles.foodCreatorBadgePlaceholder}>
                                   <ChefHat size={16} color="#094327" />
                                 </View>
                               )}
@@ -692,16 +692,16 @@ export default function CartScreen() {
                       ) : (
                         <View style={[styles.imageContainer, styles.iconContainer]}>
                           <Utensils size={32} color="#9CA3AF" />
-                          {showKitchenBadge && (
-                            <View style={styles.kitchenBadgeContainer}>
-                              {kitchenProfileImage ? (
+                          {showFoodCreatorBadge && (
+                            <View style={styles.foodCreatorBadgeContainer}>
+                              {foodCreatorProfileImage ? (
                                 <Image
-                                  source={{ uri: kitchenProfileImage }}
-                                  style={styles.kitchenBadge}
+                                  source={{ uri: foodCreatorProfileImage }}
+                                  style={styles.foodCreatorBadge}
                                   defaultSource={require("@/assets/images/sample.png")}
                                 />
                               ) : (
-                                <View style={styles.kitchenBadgePlaceholder}>
+                                <View style={styles.foodCreatorBadgePlaceholder}>
                                   <ChefHat size={16} color="#094327" />
                                 </View>
                               )}
@@ -1046,7 +1046,7 @@ const styles = StyleSheet.create({
     width: 80, // w-20
     borderRadius: 12, // rounded-xl
     padding: 8, // p-2
-    position: 'relative', // For absolute positioning of kitchen badge
+    position: 'relative', // For absolute positioning of foodCreator badge
   },
   itemImage: {
     width: '100%', // w-full
@@ -1059,7 +1059,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6', // Light gray background for icon
     padding: 8, // p-2
   },
-  kitchenBadgeContainer: {
+  foodCreatorBadgeContainer: {
     position: 'absolute',
     bottom: -2,
     right: -2,
@@ -1080,12 +1080,12 @@ const styles = StyleSheet.create({
     elevation: 5,
     zIndex: 10,
   },
-  kitchenBadge: {
+  foodCreatorBadge: {
     width: '100%',
     height: '100%',
     borderRadius: 14,
   },
-  kitchenBadgePlaceholder: {
+  foodCreatorBadgePlaceholder: {
     width: '100%',
     height: '100%',
     borderRadius: 14,

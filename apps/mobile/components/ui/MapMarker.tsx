@@ -59,7 +59,7 @@ export function MapMarker({ foodCreator, onPress, isSelected = false }: MapMarke
         ) : (
           <View style={styles.avatarPlaceholder}>
             <Text style={styles.avatarText}>
-              {foodCreator.name?.charAt(0)?.toUpperCase() || foodCreator.kitchen_name?.charAt(0)?.toUpperCase() || 'K'}
+              {foodCreator.name?.charAt(0)?.toUpperCase() || foodCreator.foodCreator_name?.charAt(0)?.toUpperCase() || 'K'}
             </Text>
           </View>
         )}
@@ -73,16 +73,16 @@ export function MapMarker({ foodCreator, onPress, isSelected = false }: MapMarke
         )}
       </View>
 
-      {/* Kitchen Name */}
+      {/* FoodCreator Name */}
       <View style={styles.nameContainer}>
         <Text
           style={[
-            styles.kitchenName,
+            styles.foodCreatorName,
             { color: Colors[colorScheme as keyof typeof Colors].text }
           ]}
           numberOfLines={1}
         >
-          {foodCreator.kitchen_name}
+          {foodCreator.foodCreator_name}
         </Text>
 
         {/* Rating */}
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
-  kitchenName: {
+  foodCreatorName: {
     fontSize: 10,
     fontWeight: '600',
     textAlign: 'center',

@@ -20,7 +20,7 @@ export function CategoryFullHeader({
   selectedSegment = 'forYou',
   onSegmentChange,
   onSearch,
-  searchPlaceholder = "Search Stans Kitchens",
+  searchPlaceholder = "Search Stans FoodCreators",
   showTabs = false
 }: CategoryFullHeaderProps) {
   return (

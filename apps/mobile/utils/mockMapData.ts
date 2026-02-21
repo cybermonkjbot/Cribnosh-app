@@ -31,7 +31,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-001',
     name: 'Food Creator Maria',
-    kitchen_name: "Maria's Authentic Mexican",
+    foodCreator_name: "Maria's Authentic Mexican",
     cuisine: 'Mexican',
     rating: 4.8,
     review_count: 127,
@@ -48,7 +48,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-002',
     name: 'Food Creator James',
-    kitchen_name: "James' Italian Kitchen",
+    foodCreator_name: "James' Italian FoodCreator",
     cuisine: 'Italian',
     rating: 4.6,
     review_count: 89,
@@ -64,7 +64,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-003',
     name: 'Food Creator Priya',
-    kitchen_name: 'Spice Garden',
+    foodCreator_name: 'Spice Garden',
     cuisine: 'Indian',
     rating: 4.9,
     review_count: 203,
@@ -81,7 +81,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-004',
     name: 'Food Creator David',
-    kitchen_name: 'Fresh Catch Seafood',
+    foodCreator_name: 'Fresh Catch Seafood',
     cuisine: 'Seafood',
     rating: 4.4,
     review_count: 67,
@@ -97,7 +97,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-005',
     name: 'Food Creator Sarah',
-    kitchen_name: 'Green Bowl',
+    foodCreator_name: 'Green Bowl',
     cuisine: 'Healthy',
     rating: 4.7,
     review_count: 156,
@@ -114,7 +114,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-006',
     name: 'Food Creator Tony',
-    kitchen_name: 'Tony\'s BBQ Pit',
+    foodCreator_name: 'Tony\'s BBQ Pit',
     cuisine: 'BBQ',
     rating: 4.5,
     review_count: 94,
@@ -130,7 +130,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-007',
     name: 'Food Creator Lisa',
-    kitchen_name: 'Lisa\'s Thai Kitchen',
+    foodCreator_name: 'Lisa\'s Thai FoodCreator',
     cuisine: 'Thai',
     rating: 4.8,
     review_count: 178,
@@ -147,7 +147,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-008',
     name: 'Food Creator Michael',
-    kitchen_name: 'Michael\'s Steakhouse',
+    foodCreator_name: 'Michael\'s Steakhouse',
     cuisine: 'Steakhouse',
     rating: 4.3,
     review_count: 112,
@@ -163,7 +163,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-009',
     name: 'Food Creator Ana',
-    kitchen_name: 'Ana\'s Vegan Delights',
+    foodCreator_name: 'Ana\'s Vegan Delights',
     cuisine: 'Vegan',
     rating: 4.6,
     review_count: 145,
@@ -180,7 +180,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-010',
     name: 'Food Creator Roberto',
-    kitchen_name: 'Roberto\'s Pizza Corner',
+    foodCreator_name: 'Roberto\'s Pizza Corner',
     cuisine: 'Pizza',
     rating: 4.4,
     review_count: 98,
@@ -196,7 +196,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-011',
     name: 'Food Creator Yuki',
-    kitchen_name: 'Yuki\'s Sushi Bar',
+    foodCreator_name: 'Yuki\'s Sushi Bar',
     cuisine: 'Japanese',
     rating: 4.9,
     review_count: 267,
@@ -213,7 +213,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-012',
     name: 'Food Creator Ahmed',
-    kitchen_name: 'Ahmed\'s Middle Eastern',
+    foodCreator_name: 'Ahmed\'s Middle Eastern',
     cuisine: 'Middle Eastern',
     rating: 4.7,
     review_count: 134,
@@ -229,7 +229,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-013',
     name: 'Food Creator Emma',
-    kitchen_name: 'Emma\'s Farm Fresh',
+    foodCreator_name: 'Emma\'s Farm Fresh',
     cuisine: 'Farm-to-Table',
     rating: 4.5,
     review_count: 89,
@@ -246,7 +246,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-014',
     name: 'Food Creator Carlos',
-    kitchen_name: 'Carlos\' Cuban Kitchen',
+    foodCreator_name: 'Carlos\' Cuban FoodCreator',
     cuisine: 'Cuban',
     rating: 4.6,
     review_count: 167,
@@ -262,7 +262,7 @@ const mockFoodCreators: FoodCreatorMarker[] = [
   {
     id: 'food-creator-015',
     name: 'Food Creator Jennifer',
-    kitchen_name: 'Jennifer\'s Dessert Bar',
+    foodCreator_name: 'Jennifer\'s Dessert Bar',
     cuisine: 'Desserts',
     rating: 4.8,
     review_count: 201,
@@ -350,7 +350,7 @@ export function generateAdditionalMockFoodCreators(count: number = 5): FoodCreat
     additionalFoodCreators.push({
       id: `food-creator-${String(mockFoodCreators.length + i + 1).padStart(3, '0')}`,
       name: `Food Creator ${String.fromCharCode(65 + i)}`,
-      kitchen_name: `Food Creator ${String.fromCharCode(65 + i)}'s ${cuisine} Kitchen`,
+      foodCreator_name: `Food Creator ${String.fromCharCode(65 + i)}'s ${cuisine} FoodCreator`,
       cuisine,
       rating: 4.0 + Math.random() * 1.0, // 4.0 to 5.0
       review_count: Math.floor(Math.random() * 200) + 20,

@@ -81,7 +81,7 @@ const CuisineCategoriesSectionComponent: React.FC<CuisineCategoriesSectionProps>
       id: apiCategory.id || cuisineNameLower,
       name: apiCategory.name,
       image: { uri: imageUrl },
-      restaurantCount: apiCategory.kitchen_count || 0,
+      restaurantCount: apiCategory.foodCreator_count || 0,
       isActive: apiCategory.is_active ?? true,
     };
   }, []);
@@ -193,7 +193,7 @@ const CuisineCategoriesSectionComponent: React.FC<CuisineCategoriesSectionProps>
             textShadowOffset: { width: 0, height: 1 },
             textShadowRadius: 2,
           }}>
-            {cuisine.restaurantCount} Kitchens
+            {cuisine.restaurantCount} FoodCreators
           </Text>
         </View>
         

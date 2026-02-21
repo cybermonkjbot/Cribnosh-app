@@ -27,7 +27,7 @@ export const FEATURE_FLAGS = {
 
     // Phase 4 (Day 90 - Ecosystem)
     // Hold back for operational maturity.
-    ENABLE_KITCHEN_MARKETPLACE: false, // Shared Kitchens
+    ENABLE_KITCHEN_MARKETPLACE: false, // Shared FoodCreators
     ENABLE_WASTE_REDUCTION: false, // Too Good To Go internal logic
 } as const;
 

@@ -95,7 +95,7 @@ export function SpecialOffersDrawer({
   return (
     <CategoryFullDrawer
       categoryName="Special Offers"
-      categoryDescription="Discover exclusive deals and promotions from top kitchens"
+      categoryDescription="Discover exclusive deals and promotions from top foodCreators"
       onBack={onBack}
       showTabs={false}
       onSearch={setSearchQuery}

@@ -1,6 +1,6 @@
 export { DietCompatibilityBarSkeleton } from './DietCompatibilityBarSkeleton';
 export { FoodCreatorNotesSkeleton } from './FoodCreatorNotesSkeleton';
-export { KitchenInfoSkeleton } from './KitchenInfoSkeleton';
+export { FoodCreatorInfoSkeleton } from './FoodCreatorInfoSkeleton';
 export { MealBadgesSkeleton } from './MealBadgesSkeleton';
 export { MealDescriptionSkeleton } from './MealDescriptionSkeleton';
 export { MealImageSkeleton } from './MealImageSkeleton';

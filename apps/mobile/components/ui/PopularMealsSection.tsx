@@ -11,7 +11,7 @@ import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 interface Meal {
   id: string;
   name: string;
-  kitchen: string;
+  foodCreator: string;
   price: string;
   originalPrice?: string;
   image: any;
@@ -96,7 +96,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
     return {
       id: meal._id || meal.id || '',
       name: meal.name || 'Unknown Meal',
-      kitchen: chef?.kitchen_name || chef?.name || 'Unknown Kitchen',
+      foodCreator: chef?.foodCreator_name || chef?.name || 'Unknown FoodCreator',
       price: meal.price ? `£${(meal.price / 100).toFixed(2)}` : '£0.00',
       originalPrice: meal.original_price ? `£${(meal.original_price / 100).toFixed(2)}` : undefined,
       image: {
@@ -234,7 +234,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
           fontWeight: '400',
           marginBottom: 6,
         }}>
-          {meal.kitchen}
+          {meal.foodCreator}
         </Text>
 
         {/* Sentiment and Delivery Time */}

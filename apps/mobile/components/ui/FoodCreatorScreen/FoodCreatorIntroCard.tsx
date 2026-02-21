@@ -4,13 +4,13 @@ import { Circle, Path, Svg } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
 
-interface KitchenIntroCardProps {
-  kitchenName: string;
+interface FoodCreatorIntroCardProps {
+  foodCreatorName: string;
   cuisine: string;
 }
 
-export const KitchenIntroCard: React.FC<KitchenIntroCardProps> = ({
-  kitchenName,
+export const FoodCreatorIntroCard: React.FC<FoodCreatorIntroCardProps> = ({
+  foodCreatorName,
   cuisine,
 }) => {
   return (
@@ -31,7 +31,7 @@ export const KitchenIntroCard: React.FC<KitchenIntroCardProps> = ({
 
         {/* Details */}
         <View style={styles.detailsContainer}>
-          <Text style={styles.kitchenName}>{kitchenName}</Text>
+          <Text style={styles.foodCreatorName}>{foodCreatorName}</Text>
           <Text style={styles.cuisine}>{cuisine}</Text>
         </View>
       </View>
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   detailsContainer: {
     flex: 1,
   },
-  kitchenName: {
+  foodCreatorName: {
     fontFamily: 'Poppins',
     fontStyle: 'normal',
     fontWeight: '500',

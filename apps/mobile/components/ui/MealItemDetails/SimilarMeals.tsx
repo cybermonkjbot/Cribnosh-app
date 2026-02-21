@@ -33,7 +33,7 @@ export function SimilarMeals({ meals, isLoading = false, onMealPress }: SimilarM
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>More from this Kitchen</Text>
+      <Text style={styles.header}>More from this FoodCreator</Text>
       
       <ScrollView 
         horizontal 

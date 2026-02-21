@@ -85,7 +85,7 @@ export function MapView({
   if (!isMapsAvailable) {
     // Check if this is a delivery tracking scenario (has "Your Location" or "On the way" markers)
     const isDeliveryTracking = foodCreators.some(
-      foodCreator => foodCreator.kitchen_name === 'Your Location' || foodCreator.cuisine === 'On the way' || foodCreator.cuisine === 'Destination'
+      foodCreator => foodCreator.foodCreator_name === 'Your Location' || foodCreator.cuisine === 'On the way' || foodCreator.cuisine === 'Destination'
     );
 
     if (isDeliveryTracking) {
@@ -107,7 +107,7 @@ export function MapView({
             {/* Delivery Status Cards */}
             <View style={styles.deliveryStatusContainer}>
               {foodCreators.map((foodCreator) => {
-                if (foodCreator.kitchen_name === 'Your Location' || foodCreator.cuisine === 'Destination') {
+                if (foodCreator.foodCreator_name === 'Your Location' || foodCreator.cuisine === 'Destination') {
                   return (
                     <View key={foodCreator.id} style={styles.deliveryStatusCard}>
                       <View style={styles.deliveryStatusIcon}>
@@ -127,7 +127,7 @@ export function MapView({
                         <MapPin size={20} color="#FF3B30" />
                       </View>
                       <View style={styles.deliveryStatusText}>
-                        <Text style={styles.deliveryStatusTitle}>{foodCreator.kitchen_name}</Text>
+                        <Text style={styles.deliveryStatusTitle}>{foodCreator.foodCreator_name}</Text>
                         <Text style={styles.deliveryStatusSubtitle}>
                           {foodCreator.delivery_time || 'On the way'}
                         </Text>
@@ -265,7 +265,7 @@ export function MapView({
                 longitude: foodCreator.location.longitude,
               }}
               onPress={() => handleMarkerPress(foodCreator)}
-              title={foodCreator.kitchen_name}
+              title={foodCreator.foodCreator_name}
               subtitle={`${foodCreator.cuisine} • ${foodCreator.delivery_time}`}
             >
               <MapMarker

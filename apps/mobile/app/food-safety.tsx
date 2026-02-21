@@ -68,7 +68,7 @@ export default function FoodSafetyScreen() {
         type: value ? "success" : "info",
         title: value ? "Cross-Contamination Protection Enabled" : "Settings Updated",
         message: value
-          ? "Kitchens will now avoid preparing your meals in areas that handle your allergens. This may limit some menu options but ensures your safety."
+          ? "FoodCreators will now avoid preparing your meals in areas that handle your allergens. This may limit some menu options but ensures your safety."
           : "Cross-contamination protection has been disabled.",
         duration: value ? 5000 : 3000,
       });
@@ -161,7 +161,7 @@ export default function FoodSafetyScreen() {
               <View style={styles.toggleContent}>
                 <Text style={styles.toggleTitle}>Avoid cross-contamination</Text>
                 <Text style={styles.toggleDescription}>
-                  Avoid meals prepared in kitchens handling your allergens
+                  Avoid meals prepared in foodCreators handling your allergens
                 </Text>
               </View>
               <Switch

@@ -20,7 +20,7 @@ export interface MealData {
   videoSource: string;
   title: string;
   description: string;
-  kitchenName: string;
+  foodCreatorName: string;
   price: string;
   foodCreator?: string;
   chef?: string;
@@ -29,19 +29,19 @@ export interface MealData {
   mealId?: string; // Optional meal ID if video is linked to a meal
 }
 
-type PlayerMode = 'meals' | 'kitchenIntro';
+type PlayerMode = 'meals' | 'foodCreatorIntro';
 
 interface NoshHeavenPlayerProps {
   isVisible: boolean;
   meals?: MealData[];
   mode?: PlayerMode;
   initialIndex?: number;
-  kitchenIntroVideo?: {
+  foodCreatorIntroVideo?: {
     id: string;
     videoSource: string;
     title: string;
     description?: string;
-    kitchenName: string;
+    foodCreatorName: string;
     chef?: string;
   };
   onClose: () => void;
@@ -49,7 +49,7 @@ interface NoshHeavenPlayerProps {
   onMealLike?: (mealId: string) => void;
   onMealShare?: (mealId: string) => void;
   onAddToCart?: (mealId: string) => void;
-  onKitchenPress?: (kitchenName: string) => void;
+  onFoodCreatorPress?: (foodCreatorName: string) => void;
   onCommentPress?: (videoId: string) => void;
 }
 
@@ -58,13 +58,13 @@ export function NoshHeavenPlayer({
   meals = [],
   mode = 'meals',
   initialIndex = 0,
-  kitchenIntroVideo,
+  foodCreatorIntroVideo,
   onClose,
   onLoadMore,
   onMealLike,
   onMealShare,
   onAddToCart,
-  onKitchenPress,
+  onFoodCreatorPress,
   onCommentPress,
 }: NoshHeavenPlayerProps) {
   const insets = useSafeAreaInsets();
@@ -75,31 +75,31 @@ export function NoshHeavenPlayer({
   const isMountedRef = useRef(true);
   const [activeCommentVideoId, setActiveCommentVideoId] = useState<string | null>(null);
 
-  // Convert kitchen intro video to MealData format
-  const kitchenIntroMeal: MealData | null = useMemo(() => {
-    if (mode === 'kitchenIntro' && kitchenIntroVideo) {
+  // Convert foodCreator intro video to MealData format
+  const foodCreatorIntroMeal: MealData | null = useMemo(() => {
+    if (mode === 'foodCreatorIntro' && foodCreatorIntroVideo) {
       return {
-        id: kitchenIntroVideo.id,
-        videoSource: kitchenIntroVideo.videoSource,
-        title: kitchenIntroVideo.title,
-        description: kitchenIntroVideo.description || '',
-        kitchenName: kitchenIntroVideo.kitchenName,
-        foodCreator: kitchenIntroVideo.chef,
-        price: 'Free', // Kitchen intro videos are instructional content
+        id: foodCreatorIntroVideo.id,
+        videoSource: foodCreatorIntroVideo.videoSource,
+        title: foodCreatorIntroVideo.title,
+        description: foodCreatorIntroVideo.description || '',
+        foodCreatorName: foodCreatorIntroVideo.foodCreatorName,
+        foodCreator: foodCreatorIntroVideo.chef,
+        price: 'Free', // FoodCreator intro videos are instructional content
         likes: 0,
         comments: 0,
       };
     }
     return null;
-  }, [mode, kitchenIntroVideo]);
+  }, [mode, foodCreatorIntroVideo]);
 
   // Determine which meals array to use
   const displayMeals = useMemo(() => {
-    if (mode === 'kitchenIntro' && kitchenIntroMeal) {
-      return [kitchenIntroMeal];
+    if (mode === 'foodCreatorIntro' && foodCreatorIntroMeal) {
+      return [foodCreatorIntroMeal];
     }
     return meals;
-  }, [mode, kitchenIntroMeal, meals]);
+  }, [mode, foodCreatorIntroMeal, meals]);
 
   // Auto-hide animation for swipe down message
   const swipeMessageOpacity = useSharedValue(1);
@@ -147,7 +147,7 @@ export function NoshHeavenPlayer({
       if (cleanup1) preloadTasks.push(cleanup1);
     }
 
-    // Preload next 2 videos (only if not in kitchen intro mode)
+    // Preload next 2 videos (only if not in foodCreator intro mode)
     if (mode === 'meals') {
       for (let i = 1; i <= 2; i++) {
         const nextIndex = currentIndex + i;
@@ -198,8 +198,8 @@ export function NoshHeavenPlayer({
   useEffect(() => {
     if (!isVisible || displayMeals.length === 0 || !isMountedRef.current) return;
 
-    // Preload first 3 videos (or just the one video in kitchen intro mode)
-    const initialVideos = displayMeals.slice(0, mode === 'kitchenIntro' ? 1 : 3);
+    // Preload first 3 videos (or just the one video in foodCreator intro mode)
+    const initialVideos = displayMeals.slice(0, mode === 'foodCreatorIntro' ? 1 : 3);
     const cleanupTasks: (() => void)[] = [];
 
     initialVideos.forEach(meal => {
@@ -298,9 +298,9 @@ export function NoshHeavenPlayer({
     onAddToCart?.(mealId);
   }, [onAddToCart]);
 
-  const handleKitchenPress = useCallback((kitchenName: string) => {
-    onKitchenPress?.(kitchenName);
-  }, [onKitchenPress]);
+  const handleFoodCreatorPress = useCallback((foodCreatorName: string) => {
+    onFoodCreatorPress?.(foodCreatorName);
+  }, [onFoodCreatorPress]);
 
   const handleCommentPress = useCallback((videoId: string) => {
     setActiveCommentVideoId(videoId);
@@ -323,7 +323,7 @@ export function NoshHeavenPlayer({
           videoSource={item.videoSource}
           title={item.title}
           description={item.description}
-          kitchenName={item.kitchenName}
+          foodCreatorName={item.foodCreatorName}
           price={item.price}
           chef={item.chef}
           likes={item.likes}
@@ -333,7 +333,7 @@ export function NoshHeavenPlayer({
           onLike={() => handleMealLike(item.id)}
           onShare={() => handleMealShare(item.id)}
           onAddToCart={() => handleMealAddToCart(item.id)}
-          onKitchenPress={() => handleKitchenPress(item.kitchenName)}
+          onFoodCreatorPress={() => handleFoodCreatorPress(item.foodCreatorName)}
           onCommentPress={() => handleCommentPress(item.id)}
         />
       );
@@ -341,7 +341,7 @@ export function NoshHeavenPlayer({
       console.warn('Render meal item error:', error);
       return null;
     }
-  }, [currentIndex, preloadedVideos, handleMealLike, handleMealShare, handleMealAddToCart, handleKitchenPress]);
+  }, [currentIndex, preloadedVideos, handleMealLike, handleMealShare, handleMealAddToCart, handleFoodCreatorPress]);
 
   // Validate props - moved after all hooks
   if (!Array.isArray(displayMeals) || displayMeals.length === 0) {

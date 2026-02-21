@@ -3,11 +3,11 @@ import { useFoodCreators } from '@/hooks/useFoodCreators';
 import { Image } from 'expo-image';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { FeaturedKitchensSectionSkeleton } from './FeaturedKitchensSectionSkeleton';
-import { KitchenRating } from './KitchenRating';
+import { FeaturedFoodCreatorsSectionSkeleton } from './FeaturedFoodCreatorsSectionSkeleton';
+import { FoodCreatorRating } from './FoodCreatorRating';
 import { SkeletonWithTimeout } from './SkeletonWithTimeout';
 
-interface Kitchen {
+interface FoodCreator {
   id: string;
   name: string;
   cuisine: string;
@@ -19,9 +19,9 @@ interface Kitchen {
   liveViewers?: number;
 }
 
-interface FeaturedKitchensSectionProps {
-  kitchens?: Kitchen[];
-  onKitchenPress?: (kitchen: Kitchen) => void;
+interface FeaturedFoodCreatorsSectionProps {
+  foodCreators?: FoodCreator[];
+  onFoodCreatorPress?: (foodCreator: FoodCreator) => void;
   onSeeAllPress?: () => void;
   title?: string;
   showTitle?: boolean;
@@ -31,9 +31,9 @@ interface FeaturedKitchensSectionProps {
   isFirstSection?: boolean;
 }
 
-const FeaturedKitchensSectionComponent: React.FC<FeaturedKitchensSectionProps> = ({
-  kitchens: propKitchens,
-  onKitchenPress,
+const FeaturedFoodCreatorsSectionComponent: React.FC<FeaturedFoodCreatorsSectionProps> = ({
+  foodCreators: propFoodCreators,
+  onFoodCreatorPress,
   onSeeAllPress,
   title,
   showTitle = true,
@@ -43,22 +43,22 @@ const FeaturedKitchensSectionComponent: React.FC<FeaturedKitchensSectionProps> =
   isFirstSection = false,
 }) => {
   const { isAuthenticated } = useAuthContext();
-  const { getFeaturedKitchens } = useFoodCreators();
+  const { getFeaturedFoodCreators } = useFoodCreators();
 
-  const [featuredKitchensData, setFeaturedKitchensData] = useState<any>(null);
+  const [featuredFoodCreatorsData, setFeaturedFoodCreatorsData] = useState<any>(null);
   const [backendLoading, setBackendLoading] = useState(false);
   const [backendError, setBackendError] = useState<any>(null);
 
-  // Load featured kitchens
+  // Load featured foodCreators
   useEffect(() => {
     if (useBackend && isAuthenticated) {
-      const loadFeaturedKitchens = async () => {
+      const loadFeaturedFoodCreators = async () => {
         try {
           setBackendLoading(true);
           setBackendError(null);
-          const result = await getFeaturedKitchens({ limit: 20 });
+          const result = await getFeaturedFoodCreators({ limit: 20 });
           if (result.success) {
-            setFeaturedKitchensData({ success: true, data: result.data });
+            setFeaturedFoodCreatorsData({ success: true, data: result.data });
           }
         } catch (error: any) {
           setBackendError(error);
@@ -66,61 +66,61 @@ const FeaturedKitchensSectionComponent: React.FC<FeaturedKitchensSectionProps> =
           setBackendLoading(false);
         }
       };
-      loadFeaturedKitchens();
+      loadFeaturedFoodCreators();
     } else {
-      setFeaturedKitchensData(null);
+      setFeaturedFoodCreatorsData(null);
     }
-  }, [useBackend, isAuthenticated, getFeaturedKitchens]);
+  }, [useBackend, isAuthenticated, getFeaturedFoodCreators]);
 
   // Transform API data to component format
-  const transformKitchenData = useCallback((apiKitchen: any): Kitchen | null => {
-    if (!apiKitchen) return null;
+  const transformFoodCreatorData = useCallback((apiFoodCreator: any): FoodCreator | null => {
+    if (!apiFoodCreator) return null;
 
     // Ensure sentiment type matches component interface
-    const validSentiments: Kitchen['sentiment'][] = [
+    const validSentiments: FoodCreator['sentiment'][] = [
       'bussing', 'mid', 'notIt', 'fire', 'slaps', 'decent', 
       'meh', 'trash', 'elite', 'solid', 'average', 'skip'
     ];
-    const sentiment = validSentiments.includes(apiKitchen.sentiment as Kitchen['sentiment'])
-      ? apiKitchen.sentiment as Kitchen['sentiment']
+    const sentiment = validSentiments.includes(apiFoodCreator.sentiment as FoodCreator['sentiment'])
+      ? apiFoodCreator.sentiment as FoodCreator['sentiment']
       : 'average';
 
-    // Default kitchen image if null
-    const imageUrl = apiKitchen.image_url || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop';
+    // Default foodCreator image if null
+    const imageUrl = apiFoodCreator.image_url || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop';
 
     return {
-      id: apiKitchen.id,
-      name: apiKitchen.name || 'Unknown Kitchen',
-      cuisine: apiKitchen.cuisine || 'Various',
+      id: apiFoodCreator.id,
+      name: apiFoodCreator.name || 'Unknown FoodCreator',
+      cuisine: apiFoodCreator.cuisine || 'Various',
       sentiment,
-      deliveryTime: apiKitchen.deliveryTime || apiKitchen.delivery_time || null, // Use backend-calculated delivery time
-      distance: apiKitchen.distance || 'N/A',
+      deliveryTime: apiFoodCreator.deliveryTime || apiFoodCreator.delivery_time || null, // Use backend-calculated delivery time
+      distance: apiFoodCreator.distance || 'N/A',
       image: { uri: imageUrl },
-      isLive: apiKitchen.is_live || false,
-      liveViewers: apiKitchen.live_viewers || undefined,
+      isLive: apiFoodCreator.is_live || false,
+      liveViewers: apiFoodCreator.live_viewers || undefined,
     };
   }, []);
 
-  // Process kitchens data
-  const kitchens: Kitchen[] = useMemo(() => {
-    // If propKitchens provided (even if empty), use them (for filtered view)
+  // Process foodCreators data
+  const foodCreators: FoodCreator[] = useMemo(() => {
+    // If propFoodCreators provided (even if empty), use them (for filtered view)
     // This allows empty arrays to be respected when filtering
-    if (propKitchens !== undefined) {
-      return propKitchens;
+    if (propFoodCreators !== undefined) {
+      return propFoodCreators;
     }
 
     // Otherwise, use backend data if available
-    if (useBackend && featuredKitchensData?.success && featuredKitchensData.data?.kitchens) {
-      const apiKitchens = featuredKitchensData.data.kitchens;
-      const transformedKitchens = apiKitchens
-        .map(transformKitchenData)
-        .filter((kitchen): kitchen is Kitchen => kitchen !== null);
-      return transformedKitchens;
+    if (useBackend && featuredFoodCreatorsData?.success && featuredFoodCreatorsData.data?.foodCreators) {
+      const apiFoodCreators = featuredFoodCreatorsData.data.foodCreators;
+      const transformedFoodCreators = apiFoodCreators
+        .map(transformFoodCreatorData)
+        .filter((foodCreator): foodCreator is FoodCreator => foodCreator !== null);
+      return transformedFoodCreators;
     }
 
     // Fallback to empty array
     return [];
-  }, [propKitchens, featuredKitchensData, useBackend, transformKitchenData]);
+  }, [propFoodCreators, featuredFoodCreatorsData, useBackend, transformFoodCreatorData]);
 
   // Error state is shown in UI - no toast needed
 
@@ -131,14 +131,14 @@ const FeaturedKitchensSectionComponent: React.FC<FeaturedKitchensSectionProps> =
   if (isLoading && useBackend && !hasInitialLoadCompleted) {
     return (
       <SkeletonWithTimeout isLoading={isLoading}>
-        <FeaturedKitchensSectionSkeleton itemCount={4} />
+        <FeaturedFoodCreatorsSectionSkeleton itemCount={4} />
       </SkeletonWithTimeout>
     );
   }
   
-  const renderKitchenCard = (kitchen: Kitchen, index: number) => (
+  const renderFoodCreatorCard = (foodCreator: FoodCreator, index: number) => (
     <TouchableOpacity
-      key={kitchen.id}
+      key={foodCreator.id}
       style={{
         width: 160,
         marginRight: 12,
@@ -148,13 +148,13 @@ const FeaturedKitchensSectionComponent: React.FC<FeaturedKitchensSectionProps> =
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.15)',
       }}
-      onPress={() => onKitchenPress?.(kitchen)}
+      onPress={() => onFoodCreatorPress?.(foodCreator)}
       activeOpacity={0.8}
     >
-      {/* Kitchen Image */}
+      {/* FoodCreator Image */}
       <View style={{ position: 'relative' }}>
         <Image
-          source={kitchen.image}
+          source={foodCreator.image}
           style={{
             width: '100%',
             height: 100,
@@ -163,7 +163,7 @@ const FeaturedKitchensSectionComponent: React.FC<FeaturedKitchensSectionProps> =
         />
         
         {/* Live Badge */}
-        {kitchen.isLive && (
+        {foodCreator.isLive && (
           <View style={{
             position: 'absolute',
             top: 8,
@@ -192,21 +192,21 @@ const FeaturedKitchensSectionComponent: React.FC<FeaturedKitchensSectionProps> =
           </View>
         )}
         
-        {/* Kitchen Sentiment Badge */}
+        {/* FoodCreator Sentiment Badge */}
         <View style={{
           position: 'absolute',
           top: 8,
           right: 8,
         }}>
-          <KitchenRating 
-            sentiment={kitchen.sentiment} 
+          <FoodCreatorRating 
+            sentiment={foodCreator.sentiment} 
             size="small" 
-            compact={kitchen.isLive}
+            compact={foodCreator.isLive}
           />
         </View>
       </View>
       
-      {/* Kitchen Info */}
+      {/* FoodCreator Info */}
       <View style={{ padding: 12 }}>
         <Text style={{
           color: '#1a1a1a',
@@ -215,7 +215,7 @@ const FeaturedKitchensSectionComponent: React.FC<FeaturedKitchensSectionProps> =
           marginBottom: 2,
           lineHeight: 18,
         }}>
-          {kitchen.name}
+          {foodCreator.name}
         </Text>
         <Text style={{
           color: '#666666',
@@ -224,7 +224,7 @@ const FeaturedKitchensSectionComponent: React.FC<FeaturedKitchensSectionProps> =
           marginBottom: 8,
           lineHeight: 16,
         }}>
-          {kitchen.cuisine}
+          {foodCreator.cuisine}
         </Text>
         
         {/* Delivery Info */}
@@ -238,22 +238,22 @@ const FeaturedKitchensSectionComponent: React.FC<FeaturedKitchensSectionProps> =
             fontSize: 11,
             fontWeight: '500',
           }}>
-            {kitchen.deliveryTime}
+            {foodCreator.deliveryTime}
           </Text>
           <Text style={{
             color: '#666666',
             fontSize: 11,
             fontWeight: '500',
           }}>
-            {kitchen.distance}
+            {foodCreator.distance}
           </Text>
         </View>
       </View>
     </TouchableOpacity>
   );
 
-  // Hide section if no kitchens (don't show empty state)
-  if (kitchens.length === 0) {
+  // Hide section if no foodCreators (don't show empty state)
+  if (foodCreators.length === 0) {
     return null;
   }
 
@@ -276,7 +276,7 @@ const FeaturedKitchensSectionComponent: React.FC<FeaturedKitchensSectionProps> =
             fontWeight: '700',
             lineHeight: 24,
           }}>
-            {title || 'Featured Kitchens'}
+            {title || 'Featured FoodCreators'}
           </Text>
           
           {shouldShowSeeAll && (
@@ -301,10 +301,10 @@ const FeaturedKitchensSectionComponent: React.FC<FeaturedKitchensSectionProps> =
           gap: 12,
         }}
       >
-        {kitchens.map(renderKitchenCard)}
+        {foodCreators.map(renderFoodCreatorCard)}
       </ScrollView>
     </View>
   );
 };
 
-export const FeaturedKitchensSection = React.memo(FeaturedKitchensSectionComponent); 
+export const FeaturedFoodCreatorsSection = React.memo(FeaturedFoodCreatorsSectionComponent); 

@@ -47,7 +47,7 @@ import { useCart } from "@/hooks/useCart";
 import { navigateToSignIn } from "@/utils/signInNavigationGuard";
 import { showError, showInfo, showSuccess, showWarning } from "../../lib/GlobalToastManager";
 
-interface LiveKitchen {
+interface LiveFoodCreator {
   id: string;
   name: string;
   cuisine: string;
@@ -73,25 +73,25 @@ interface LiveContentProps {
   onCategoryChange?: (category: NoshHeavenCategory) => void;
 }
 
-// Memoized Kitchen Card Component to prevent unnecessary re-renders
-const KitchenCard = React.memo(({
-  kitchen,
+// Memoized FoodCreator Card Component to prevent unnecessary re-renders
+const FoodCreatorCard = React.memo(({
+  foodCreator,
   onPress,
   formatNumber
 }: {
-  kitchen: LiveKitchen;
-  onPress: (kitchen: LiveKitchen) => void;
+  foodCreator: LiveFoodCreator;
+  onPress: (foodCreator: LiveFoodCreator) => void;
   formatNumber: (num: number) => string;
 }) => (
   <TouchableOpacity
-    style={styles.kitchenCard}
-    onPress={() => onPress(kitchen)}
+    style={styles.foodCreatorCard}
+    onPress={() => onPress(foodCreator)}
     activeOpacity={0.8}
   >
     <View style={styles.imageContainer}>
       <Image
-        source={{ uri: kitchen.image }}
-        style={styles.kitchenImage}
+        source={{ uri: foodCreator.image }}
+        style={styles.foodCreatorImage}
         contentFit="cover"
       />
       <View style={styles.liveIndicator}>
@@ -101,24 +101,24 @@ const KitchenCard = React.memo(({
       <View style={styles.viewersContainer}>
         <Eye size={16} color="#fff" style={styles.eyeIcon} />
         <Text style={styles.viewersText}>
-          {formatNumber(kitchen.viewers)}
+          {formatNumber(foodCreator.viewers)}
         </Text>
       </View>
     </View>
 
-    <View style={styles.kitchenInfo}>
-      <Text style={styles.kitchenName}>{kitchen.name}</Text>
-      <Text style={styles.kitchenCuisine}>
-        {kitchen.cuisine}
+    <View style={styles.foodCreatorInfo}>
+      <Text style={styles.foodCreatorName}>{foodCreator.name}</Text>
+      <Text style={styles.foodCreatorCuisine}>
+        {foodCreator.cuisine}
       </Text>
-      <Text style={styles.kitchenDescription}>
-        {kitchen.description}
+      <Text style={styles.foodCreatorDescription}>
+        {foodCreator.description}
       </Text>
     </View>
   </TouchableOpacity>
 ));
 
-KitchenCard.displayName = 'KitchenCard';
+FoodCreatorCard.displayName = 'FoodCreatorCard';
 
 // Recipe Card Component - Distinct styling with recipe icon
 const RecipeCard = React.memo(({
@@ -306,11 +306,11 @@ const SkeletonCard = React.memo(() => {
   }));
 
   return (
-    <View style={styles.kitchenCard}>
+    <View style={styles.foodCreatorCard}>
       <Animated.View style={[styles.imageContainer, animatedStyle]}>
-        <View style={[styles.kitchenImage, { backgroundColor: 'rgba(156, 163, 175, 0.3)' }]} />
+        <View style={[styles.foodCreatorImage, { backgroundColor: 'rgba(156, 163, 175, 0.3)' }]} />
       </Animated.View>
-      <View style={styles.kitchenInfo}>
+      <View style={styles.foodCreatorInfo}>
         <Animated.View style={[{ marginBottom: 6, overflow: 'hidden' }, animatedStyle]}>
           <View style={{ height: 14, backgroundColor: 'rgba(156, 163, 175, 0.3)', borderRadius: 4, width: '80%', marginBottom: 4 }} />
           <View style={{ height: 14, backgroundColor: 'rgba(156, 163, 175, 0.3)', borderRadius: 4, width: '60%' }} />
@@ -327,8 +327,8 @@ SkeletonCard.displayName = 'SkeletonCard';
 
 // Skeleton Grid Component
 const SkeletonGrid = React.memo(({ count = 6 }: { count?: number }) => (
-  <View style={styles.kitchensContainer}>
-    <View style={styles.kitchensGrid}>
+  <View style={styles.foodCreatorsContainer}>
+    <View style={styles.foodCreatorsGrid}>
       {Array.from({ length: count }).map((_, index) => (
         <SkeletonCard key={index} />
       ))}
@@ -355,7 +355,7 @@ export default function LiveContent({
   );
   const [showLiveModal, setShowLiveModal] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [selectedKitchen, setSelectedKitchen] = useState<LiveKitchen | null>(null);
+  const [selectedFoodCreator, setSelectedFoodCreator] = useState<LiveFoodCreator | null>(null);
   const [activeCategory, setActiveCategory] = useState<NoshHeavenCategory>(externalActiveCategory);
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
@@ -454,7 +454,7 @@ export default function LiveContent({
   const transformLiveStreamsData = useCallback((apiStreams: LiveStream[]) => {
     return apiStreams.map((stream) => ({
       id: stream.id,
-      name: stream.kitchen_name,
+      name: stream.foodCreator_name,
       cuisine: "Live Cooking", // Default cuisine since API doesn't provide it
       viewers: stream.viewer_count,
       isLive: stream.is_live,
@@ -468,7 +468,7 @@ export default function LiveContent({
   }, []);
 
   // Process live streams data from API
-  const liveKitchens = useMemo(() => {
+  const liveFoodCreators = useMemo(() => {
     // Feature Flag Check: Live Streaming (Phase 3)
     if (!isEnabled('ENABLE_LIVE_STREAMING')) {
       return [];
@@ -492,17 +492,17 @@ export default function LiveContent({
 
   // Error state is shown in UI - no toast needed
 
-  const handleKitchenPress = useCallback((kitchen: LiveKitchen) => {
-    // Pass session ID and kitchen data when opening live viewer
-    setSelectedSessionId(kitchen.id);
-    setSelectedKitchen(kitchen);
+  const handleFoodCreatorPress = useCallback((foodCreator: LiveFoodCreator) => {
+    // Pass session ID and foodCreator data when opening live viewer
+    setSelectedSessionId(foodCreator.id);
+    setSelectedFoodCreator(foodCreator);
     setShowLiveModal(true);
   }, []);
 
   const handleCloseLiveModal = useCallback(() => {
     setShowLiveModal(false);
     setSelectedSessionId(null);
-    setSelectedKitchen(null);
+    setSelectedFoodCreator(null);
   }, []);
 
   // Function to format numbers to K, M format
@@ -515,12 +515,12 @@ export default function LiveContent({
     return num.toString();
   }, []);
 
-  const filteredKitchens = useMemo(() => {
-    return liveKitchens.filter((kitchen) => {
-      // For now, show all kitchens since we removed the category filter
+  const filteredFoodCreators = useMemo(() => {
+    return liveFoodCreators.filter((foodCreator) => {
+      // For now, show all foodCreators since we removed the category filter
       return true;
     });
-  }, [liveKitchens]);
+  }, [liveFoodCreators]);
 
   const handleRefresh = useCallback(async () => {
     if (externalOnRefresh) {
@@ -572,7 +572,7 @@ export default function LiveContent({
       videoSource: video.videoUrl || '',
       title: video.title,
       description: video.description || '',
-      kitchenName: video.creator?.name || 'Unknown Food Creator',
+      foodCreatorName: video.creator?.name || 'Unknown Food Creator',
       price,
       foodCreator: video.creator?.name,
       likes: video.likesCount || 0,
@@ -786,15 +786,15 @@ export default function LiveContent({
       );
     } else if (item.type === 'live') {
       return (
-        <KitchenCard
-          kitchen={item}
-          onPress={handleKitchenPress}
+        <FoodCreatorCard
+          foodCreator={item}
+          onPress={handleFoodCreatorPress}
           formatNumber={formatNumber}
         />
       );
     }
     return null;
-  }, [handleVideoPress, handleVideoCardPress, handleKitchenPress, formatNumber]);
+  }, [handleVideoPress, handleVideoCardPress, handleFoodCreatorPress, formatNumber]);
 
   const renderRecipeItem = useCallback(({ item }: { item: any }) => {
     return (
@@ -827,15 +827,15 @@ export default function LiveContent({
     }
   }, [handleVideoPress, handleVideoCardPress]);
 
-  const renderLiveItem = useCallback(({ item }: { item: LiveKitchen }) => {
+  const renderLiveItem = useCallback(({ item }: { item: LiveFoodCreator }) => {
     return (
-      <KitchenCard
-        kitchen={item}
-        onPress={handleKitchenPress}
+      <FoodCreatorCard
+        foodCreator={item}
+        onPress={handleFoodCreatorPress}
         formatNumber={formatNumber}
       />
     );
-  }, [handleKitchenPress, formatNumber]);
+  }, [handleFoodCreatorPress, formatNumber]);
 
   // Key extractors
   const keyExtractorAll = useCallback((item: any) => {
@@ -848,7 +848,7 @@ export default function LiveContent({
 
   const keyExtractorRecipe = useCallback((item: any) => item._id, []);
   const keyExtractorStory = useCallback((item: any) => item._id, []);
-  const keyExtractorLive = useCallback((item: LiveKitchen) => item.id, []);
+  const keyExtractorLive = useCallback((item: LiveFoodCreator) => item.id, []);
 
   const renderContent = () => {
     switch (activeCategory) {
@@ -860,13 +860,13 @@ export default function LiveContent({
         const allRecipesForAll = recipesData?.recipes || [];
         const allStoriesForAll = storiesData || [];
         const allVideosForAll = videosData?.videos || [];
-        const allLiveKitchensForAll = filteredKitchens || [];
+        const allLiveFoodCreatorsForAll = filteredFoodCreators || [];
 
         // Transform each content type with metadata
         const recipesWithType = allRecipesForAll.map((recipe: any) => ({ type: 'recipe', ...recipe }));
         const storiesWithType = allStoriesForAll.map((story: any) => ({ type: 'story', ...story }));
         const videosWithType = allVideosForAll.map((video: any) => ({ type: 'video', ...video }));
-        const liveWithType = allLiveKitchensForAll.map((kitchen: any) => ({ type: 'live', ...kitchen }));
+        const liveWithType = allLiveFoodCreatorsForAll.map((foodCreator: any) => ({ type: 'live', ...foodCreator }));
 
         // Interleave content types for better mixing
         const allContentArrays = [
@@ -908,7 +908,7 @@ export default function LiveContent({
         }
 
         return (
-          <View style={styles.kitchensContainer}>
+          <View style={styles.foodCreatorsContainer}>
             <FlatList
               data={allContent}
               renderItem={renderAllContentItem}
@@ -941,7 +941,7 @@ export default function LiveContent({
           );
         }
         return (
-          <View style={styles.kitchensContainer}>
+          <View style={styles.foodCreatorsContainer}>
             <FlatList
               data={recipesData.recipes}
               renderItem={renderRecipeItem}
@@ -985,7 +985,7 @@ export default function LiveContent({
         ];
 
         return (
-          <View style={styles.kitchensContainer}>
+          <View style={styles.foodCreatorsContainer}>
             <FlatList
               data={allStories}
               renderItem={renderStoryItem}
@@ -1016,10 +1016,10 @@ export default function LiveContent({
         }
 
         return (
-          <View style={styles.kitchensContainer}>
-            {filteredKitchens.length > 0 ? (
+          <View style={styles.foodCreatorsContainer}>
+            {filteredFoodCreators.length > 0 ? (
               <FlatList
-                data={filteredKitchens}
+                data={filteredFoodCreators}
                 renderItem={renderLiveItem}
                 keyExtractor={keyExtractorLive}
                 numColumns={3}
@@ -1101,7 +1101,7 @@ export default function LiveContent({
       {showLiveModal && selectedSessionId && (
         <LiveScreenView
           sessionId={selectedSessionId}
-          mockKitchenData={selectedKitchen}
+          mockFoodCreatorData={selectedFoodCreator}
           onClose={handleCloseLiveModal}
         />
       )}
@@ -1254,17 +1254,17 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.3)",
     marginHorizontal: 6,
   },
-  kitchensContainer: {
+  foodCreatorsContainer: {
     paddingHorizontal: 12,
     gap: 12,
   },
-  kitchensGrid: {
+  foodCreatorsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
     gap: 12,
   },
-  kitchenCard: {
+  foodCreatorCard: {
     backgroundColor: "#fff",
     borderRadius: 12,
     overflow: "hidden",
@@ -1280,7 +1280,7 @@ const styles = StyleSheet.create({
     position: "relative",
     height: 160,
   },
-  kitchenImage: {
+  foodCreatorImage: {
     width: "100%",
     height: "100%",
   },
@@ -1531,23 +1531,23 @@ const styles = StyleSheet.create({
   eyeIcon: {
     marginRight: 4,
   },
-  kitchenInfo: {
+  foodCreatorInfo: {
     padding: 12,
   },
-  kitchenName: {
+  foodCreatorName: {
     fontSize: 14,
     fontWeight: "600",
     color: "#111827",
     marginBottom: 4,
     lineHeight: 18,
   },
-  kitchenCuisine: {
+  foodCreatorCuisine: {
     fontSize: 11,
     color: "#6B7280",
     marginBottom: 6,
     fontWeight: "500",
   },
-  kitchenDescription: {
+  foodCreatorDescription: {
     fontSize: 11,
     color: "#9CA3AF",
     lineHeight: 15,

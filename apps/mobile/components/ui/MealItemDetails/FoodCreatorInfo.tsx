@@ -1,25 +1,25 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 
-interface KitchenInfoProps {
-  kitchenName: string;
-  kitchenAvatar?: string;
+interface FoodCreatorInfoProps {
+  foodCreatorName: string;
+  foodCreatorAvatar?: string;
   onPress?: () => void;
 }
 
-export function KitchenInfo({ kitchenName, kitchenAvatar, onPress }: KitchenInfoProps) {
-  // Split kitchen name to separate "Stans Kitchen's" and "Burgers"
-  const nameParts = kitchenName.split("'s ");
-  const kitchenNamePart = nameParts[0] + "'s";
+export function FoodCreatorInfo({ foodCreatorName, foodCreatorAvatar, onPress }: FoodCreatorInfoProps) {
+  // Split foodCreator name to separate "Stans FoodCreator's" and "Burgers"
+  const nameParts = foodCreatorName.split("'s ");
+  const foodCreatorNamePart = nameParts[0] + "'s";
   const categoryPart = nameParts[1] || "";
 
   const content = (
     <>
-      {/* Kitchen Avatar */}
+      {/* FoodCreator Avatar */}
       <View style={styles.avatarContainer}>
-        {kitchenAvatar ? (
+        {foodCreatorAvatar ? (
           <Image 
-            source={{ uri: kitchenAvatar }} 
+            source={{ uri: foodCreatorAvatar }} 
             style={styles.avatarImage}
             resizeMode="cover"
           />
@@ -32,9 +32,9 @@ export function KitchenInfo({ kitchenName, kitchenAvatar, onPress }: KitchenInfo
         <View style={styles.confetti3} />
       </View>
       
-      {/* Kitchen Name */}
+      {/* FoodCreator Name */}
       <View style={styles.nameContainer}>
-        <Text style={styles.kitchenName}>{kitchenNamePart}</Text>
+        <Text style={styles.foodCreatorName}>{foodCreatorNamePart}</Text>
         <Text style={styles.categoryName}>{categoryPart}</Text>
       </View>
     </>
@@ -127,8 +127,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // Kitchen name (red text)
-  kitchenName: {
+  // FoodCreator name (red text)
+  foodCreatorName: {
     fontFamily: 'SF Pro',
     fontWeight: '600',
     fontSize: 16,

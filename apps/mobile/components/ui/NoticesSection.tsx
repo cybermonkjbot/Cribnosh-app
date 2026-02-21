@@ -52,7 +52,7 @@ export const NoticesSection: React.FC = () => {
                 <NoticeCard
                     variant="action"
                     title="Rate Your Last Meal"
-                    message="How was the Chicken Tikka Masala from Kitchen Royale? Your feedback helps us improve."
+                    message="How was the Chicken Tikka Masala from FoodCreator Royale? Your feedback helps us improve."
                     actionLabel="Rate 5 Stars"
                     onAction={() => console.log('Rated')}
                     onClose={() => setVisibleNotices(prev => ({ ...prev, action: false }))}

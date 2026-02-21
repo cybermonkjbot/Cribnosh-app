@@ -38,7 +38,7 @@ interface OnTheStoveBottomSheetProps {
     price: string;
     imageSource: any;
     description: string;
-    kitchenName: string;
+    foodCreatorName: string;
     ingredients?: string[];
     cookingTime?: string;
     chefBio?: string;
@@ -63,7 +63,7 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
     price: '£ 16',
     imageSource: 'https://avatar.iran.liara.run/public/44',
     description: 'Watch Food Creator Minnie craft authentic Nigerian Jollof Rice live! Fresh tomatoes, aromatic spices, and perfectly seasoned rice - order now before it\'s ready.', // Changed 'Chef Minnie' to 'Food Creator Minnie'
-    kitchenName: 'Minnies Kitchen',
+    foodCreatorName: 'Minnies FoodCreator',
     ingredients: ['Premium Basmati Rice', 'Fresh Tomatoes', 'Bell Peppers', 'Red Onions', 'Secret Spice Blend'],
     cookingTime: '25 minutes',
     foodCreatorBio: 'Food Creator Minnie brings 15+ years of authentic Nigerian cooking experience. Every dish tells a story of tradition and love.', // Changed from chefBio and updated content

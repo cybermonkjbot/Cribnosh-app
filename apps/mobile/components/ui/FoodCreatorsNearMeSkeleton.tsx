@@ -1,11 +1,11 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-interface KitchensNearMeSkeletonProps {
+interface FoodCreatorsNearMeSkeletonProps {
   itemCount?: number;
 }
 
-export const KitchensNearMeSkeleton: React.FC<KitchensNearMeSkeletonProps> = ({
+export const FoodCreatorsNearMeSkeleton: React.FC<FoodCreatorsNearMeSkeletonProps> = ({
   itemCount = 2,
 }) => {
   const renderSkeletonCard = (index: number) => (

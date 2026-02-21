@@ -6,7 +6,7 @@ import { PopularMealsSection } from './PopularMealsSection';
 interface Meal {
   id: string;
   name: string;
-  kitchen: string;
+  foodCreator: string;
   price: string;
   originalPrice?: string;
   image: any;
@@ -34,7 +34,7 @@ export function PopularMealsDrawer({
   // Search functionality with debouncing
   const { setSearchQuery, filteredItems: displayMeals } = useCategoryDrawerSearch({
     items: baseMeals,
-    searchFields: ['name', 'kitchen'],
+    searchFields: ['name', 'foodCreator'],
   });
 
   // Enhanced filter chips for meal categories
@@ -55,7 +55,7 @@ export function PopularMealsDrawer({
       filterChips={filterChips}
       activeFilters={[]}
       onSearch={setSearchQuery}
-      searchPlaceholder="Search meals by name or kitchen..."
+      searchPlaceholder="Search meals by name or foodCreator..."
       backButtonInSearchBar={true}
     >
       <View style={styles.content}>

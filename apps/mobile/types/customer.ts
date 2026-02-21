@@ -56,7 +56,7 @@ export interface Cuisine {
 export interface FoodCreator {
   id: string;
   name: string;
-  kitchen_name: string;
+  foodCreator_name: string;
   cuisine: string;
   rating: number;
   review_count: number;
@@ -94,8 +94,8 @@ export interface CartItem {
   id: string;
   dish_id: string;
   dish_name: string;
-  kitchen_id: string;
-  kitchen_name: string;
+  foodCreator_id: string;
+  foodCreator_name: string;
   price: number; // in cents
   quantity: number;
   image_url?: string;
@@ -124,9 +124,9 @@ export interface Order {
   _id?: string;
   order_id?: string;
   customer_id: string;
-  kitchen_id: string;
-  kitchen_name?: string;
-  kitchen_phone?: string;
+  foodCreator_id: string;
+  foodCreator_name?: string;
+  foodCreator_phone?: string;
   restaurant_name?: string;
   status:
   | "pending"
@@ -223,9 +223,9 @@ export interface Dish {
   id: string;
   name: string;
   description: string;
-  kitchen_id: string;
-  kitchen_name: string;
-  kitchen_avatar?: string;
+  foodCreator_id: string;
+  foodCreator_name: string;
+  foodCreator_avatar?: string;
   price: number; // in cents
   image_url?: string;
   calories?: number;
@@ -273,7 +273,7 @@ export interface SimilarDish {
   image_url?: string;
   sentiment?: "bussing" | "mid" | "notIt";
   is_vegetarian?: boolean;
-  kitchen_name?: string;
+  foodCreator_name?: string;
 }
 
 // ============================================================================
@@ -321,7 +321,7 @@ export interface LiveStream {
   id: string;
   chef_id: string;
   chef_name: string;
-  kitchen_name: string;
+  foodCreator_name: string;
   title: string;
   description?: string;
   thumbnail_url?: string;
@@ -568,7 +568,7 @@ export interface GetOrderStatusResponse {
 
 // POST /customer/orders
 export interface CreateOrderRequest {
-  kitchen_id: string;
+  foodCreator_id: string;
   items: {
     dish_id: string;
     quantity: number;
@@ -781,7 +781,7 @@ export interface LiveSessionDetails {
     name: string;
     bio: string;
     profile_image?: string;
-    kitchen_name: string;
+    foodCreator_name: string;
     specialties?: string[];
     rating: number;
   } | null;
@@ -2440,7 +2440,7 @@ export interface VideoPost {
   _id: string;
   _creationTime: number;
   creatorId: string;
-  kitchenId?: string;
+  foodCreatorId?: string;
   title: string;
   description?: string;
   videoUrl: string;
@@ -2497,7 +2497,7 @@ export interface CreateVideoRequest {
   description?: string;
   videoStorageId: string;
   thumbnailStorageId?: string;
-  kitchenId?: string;
+  foodCreatorId?: string;
   duration: number;
   fileSize: number;
   resolution: {

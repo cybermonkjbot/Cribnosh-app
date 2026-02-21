@@ -13,7 +13,7 @@ export interface MealLog {
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   calories: number;
   cuisine: string;
-  kitchenName: string;
+  foodCreatorName: string;
   createdAt: number;
 }
 
@@ -130,7 +130,7 @@ export const mockConvexQueries = {
     // Generate mock meal logs
     const mockLogs: MealLog[] = [];
     const cuisines = ['Nigerian', 'Italian', 'Asian Fusion', 'Mexican', 'Indian'];
-    const kitchens = ['Kitchen A', 'Kitchen B', 'Kitchen C', 'Kitchen D'];
+    const foodCreators = ['FoodCreator A', 'FoodCreator B', 'FoodCreator C', 'FoodCreator D'];
     const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
     
     for (let i = 0; i < days; i++) {
@@ -149,7 +149,7 @@ export const mockConvexQueries = {
           mealType: mealTypes[Math.floor(Math.random() * mealTypes.length)],
           calories: Math.floor(Math.random() * 600) + 200,
           cuisine: cuisines[Math.floor(Math.random() * cuisines.length)],
-          kitchenName: kitchens[Math.floor(Math.random() * kitchens.length)],
+          foodCreatorName: foodCreators[Math.floor(Math.random() * foodCreators.length)],
           createdAt: Date.now(),
         });
       }

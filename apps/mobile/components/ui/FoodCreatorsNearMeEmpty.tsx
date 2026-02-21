@@ -1,19 +1,19 @@
 import React from 'react';
 import { EmptyState } from './EmptyState';
 
-interface KitchensNearMeEmptyProps {
+interface FoodCreatorsNearMeEmptyProps {
   onBrowseAll?: () => void;
   onEnableLocation?: () => void;
 }
 
-export const KitchensNearMeEmpty: React.FC<KitchensNearMeEmptyProps> = ({
+export const FoodCreatorsNearMeEmpty: React.FC<FoodCreatorsNearMeEmptyProps> = ({
   onBrowseAll,
   onEnableLocation,
 }) => {
   return (
     <EmptyState
-      title="No Kitchens Nearby"
-      subtitle="We couldn't find any kitchens near your location. Try enabling location services or browse all kitchens."
+      title="No FoodCreators Nearby"
+      subtitle="We couldn't find any foodCreators near your location. Try enabling location services or browse all foodCreators."
       icon="location-outline"
       actionButton={
         onEnableLocation
@@ -26,7 +26,7 @@ export const KitchensNearMeEmpty: React.FC<KitchensNearMeEmptyProps> = ({
       secondaryActionButton={
         onBrowseAll
           ? {
-              label: 'Browse All Kitchens',
+              label: 'Browse All FoodCreators',
               onPress: onBrowseAll,
             }
           : undefined

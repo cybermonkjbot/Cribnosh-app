@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-type KitchenSentimentType = 
+type FoodCreatorSentimentType = 
   | 'bussing' 
   | 'mid' 
   | 'notIt'
@@ -16,8 +16,8 @@ type KitchenSentimentType =
   | 'average'
   | 'skip';
 
-interface KitchenRatingProps {
-  sentiment: KitchenSentimentType;
+interface FoodCreatorRatingProps {
+  sentiment: FoodCreatorSentimentType;
   showLabel?: boolean;
   size?: 'small' | 'medium' | 'large';
   compact?: boolean;
@@ -50,7 +50,7 @@ const sentimentStyles = {
     bg: '#059669',
     text: '#FFFFFF',
     icon: 'diamond',
-    label: 'Elite Kitchen',
+    label: 'Elite FoodCreator',
     compactLabel: 'Elite'
   },
   
@@ -73,14 +73,14 @@ const sentimentStyles = {
     bg: '#0284C7',
     text: '#FFFFFF',
     icon: 'fitness',
-    label: 'Solid Kitchen',
+    label: 'Solid FoodCreator',
     compactLabel: 'Solid'
   },
   average: {
     bg: '#64748B',
     text: '#FFFFFF',
     icon: 'analytics',
-    label: 'Average Kitchen',
+    label: 'Average FoodCreator',
     compactLabel: 'Average'
   },
   
@@ -110,7 +110,7 @@ const sentimentStyles = {
     bg: '#EF4444',
     text: '#FFFFFF',
     icon: 'play-skip-forward',
-    label: 'Skip This Kitchen',
+    label: 'Skip This FoodCreator',
     compactLabel: 'Skip'
   },
 };
@@ -133,12 +133,12 @@ const sizeStyles = {
   },
 };
 
-export function KitchenRating({ 
+export function FoodCreatorRating({ 
   sentiment, 
   showLabel = true, 
   size = 'medium', 
   compact = false 
-}: KitchenRatingProps) {
+}: FoodCreatorRatingProps) {
   const sentimentStyle = sentimentStyles[sentiment];
   const sizeStyle = sizeStyles[size];
   const displayLabel = compact ? sentimentStyle.compactLabel : sentimentStyle.label;

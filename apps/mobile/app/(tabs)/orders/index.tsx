@@ -66,7 +66,7 @@ interface Order {
   price: string;
   status?: OrderStatus;
   estimatedTime?: string;
-  kitchenName?: string;
+  foodCreatorName?: string;
   orderNumber?: string;
   items?: string[];
   orderItems?: OrderItemWithImage[];
@@ -242,15 +242,15 @@ export default function OrdersScreen() {
         : [];
 
     // Get description
-    const kitchenName =
-      apiOrder.kitchen_name || apiOrder.restaurant_name || undefined;
+    const foodCreatorName =
+      apiOrder.foodCreator_name || apiOrder.restaurant_name || undefined;
     const description =
       items.length > 0
-        ? kitchenName
-          ? `${items.slice(0, 2).join(", ")}${items.length > 2 ? `, +${items.length - 2} more` : ""} from ${kitchenName}`
+        ? foodCreatorName
+          ? `${items.slice(0, 2).join(", ")}${items.length > 2 ? `, +${items.length - 2} more` : ""} from ${foodCreatorName}`
           : `${items.slice(0, 2).join(", ")}${items.length > 2 ? `, +${items.length - 2} more` : ""}`
-        : kitchenName
-          ? `Order from ${kitchenName}`
+        : foodCreatorName
+          ? `Order from ${foodCreatorName}`
           : "Order";
 
     // Get price
@@ -277,7 +277,7 @@ export default function OrdersScreen() {
       status:
         statusMap[apiOrder.order_status || apiOrder.status] || "preparing",
       estimatedTime,
-      kitchenName,
+      foodCreatorName,
       orderNumber,
       items,
       orderItems: orderItemsWithImages,
@@ -351,7 +351,7 @@ export default function OrdersScreen() {
         : "TBD",
       status: statusMap[customOrder.status] || "preparing",
       estimatedTime: "Processing",
-      kitchenName: "Custom Kitchen",
+      foodCreatorName: "Custom FoodCreator",
       orderNumber: formatOrderId(customOrder.custom_order_id),
       items: [customOrder.requirements],
       orderType: "individual",
@@ -492,7 +492,7 @@ export default function OrdersScreen() {
       return (
         <EmptyState
           title="Place your first order to see orders here"
-          subtitle="Browse kitchens and meals to get started with your first order"
+          subtitle="Browse foodCreators and meals to get started with your first order"
           icon="receipt-outline"
           titleColor="#094327"
           subtitleColor="#6B7280"
@@ -502,7 +502,7 @@ export default function OrdersScreen() {
             paddingHorizontal: 32,
           }}
           actionButton={{
-            label: "Browse Kitchens",
+            label: "Browse FoodCreators",
             onPress: () => router.push("/(tabs)" as any),
           }}
         />

@@ -34,7 +34,7 @@ const transformVideoToMeal = (video: VideoPost): MealData => {
     videoSource: video.videoUrl || '',
     title: video.title,
     description: video.description || '',
-    kitchenName: video.creator.name,
+    foodCreatorName: video.creator.name,
     price,
     foodCreator: video.creator.name,
     likes: video.likesCount,
@@ -376,12 +376,12 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
     [noshHeavenMeals, isAuthenticated, token, checkTokenExpiration, refreshAuthState, addToCartAction]
   );
 
-  const handleKitchenPress = useCallback(
-    (kitchenName: string) => {
-      // Navigate to kitchen profile or main screen
+  const handleFoodCreatorPress = useCallback(
+    (foodCreatorName: string) => {
+      // Navigate to foodCreator profile or main screen
       // For now, we'll just close and navigate - could be improved
       onClose();
-      // Could navigate to kitchen detail page if needed
+      // Could navigate to foodCreator detail page if needed
     },
     [onClose]
   );
@@ -397,7 +397,7 @@ export function NoshHeavenModal({ onClose }: NoshHeavenModalProps) {
           onMealLike={handleMealLike}
           onMealShare={handleMealShare}
           onAddToCart={handleAddToCart}
-          onKitchenPress={handleKitchenPress}
+          onFoodCreatorPress={handleFoodCreatorPress}
         />
       </NoshHeavenErrorBoundary>
     </>

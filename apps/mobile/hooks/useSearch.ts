@@ -8,7 +8,7 @@ export const useSearch = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   /**
-   * General search across dishes, chefs, kitchens, videos, recipes, stories, and livestreams
+   * General search across dishes, chefs, foodCreators, videos, recipes, stories, and livestreams
    */
   const search = useCallback(
     async (data: {

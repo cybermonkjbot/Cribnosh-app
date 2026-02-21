@@ -49,9 +49,9 @@ export function SustainabilityDrawer({ onBack }: SustainabilityDrawerProps) {
                 <Text style={styles.numberText}>1</Text>
               </View>
               <View style={styles.numberedContent}>
-                <Text style={styles.numberedTitle}>Smarter Kitchens</Text>
+                <Text style={styles.numberedTitle}>Smarter FoodCreators</Text>
                 <Text style={styles.numberedDescription}>
-                  Our kitchens cook with precision, planning meals around real demand and shared grocery pools — not bulk waste.
+                  Our foodCreators cook with precision, planning meals around real demand and shared grocery pools — not bulk waste.
                 </Text>
               </View>
             </View>
@@ -73,9 +73,9 @@ export function SustainabilityDrawer({ onBack }: SustainabilityDrawerProps) {
                 <Text style={styles.numberText}>3</Text>
               </View>
               <View style={styles.numberedContent}>
-                <Text style={styles.numberedTitle}>Shared Kitchen Model</Text>
+                <Text style={styles.numberedTitle}>Shared FoodCreator Model</Text>
                 <Text style={styles.numberedDescription}>
-                  By connecting certified kitchens with passionate home chefs, we reduce the need for duplicate equipment, energy use, and unnecessary space.
+                  By connecting certified foodCreators with passionate home chefs, we reduce the need for duplicate equipment, energy use, and unnecessary space.
                 </Text>
               </View>
             </View>
@@ -128,7 +128,7 @@ export function SustainabilityDrawer({ onBack }: SustainabilityDrawerProps) {
         <View style={styles.summarySection}>
           <View style={styles.summaryContent}>
             <Text style={styles.summaryText}>
-              High-quality meals and groceries that didn&apos;t make it to full menu — still fresh, still delicious, priced to move. Good for you, good for the kitchen, great for the planet.
+              High-quality meals and groceries that didn&apos;t make it to full menu — still fresh, still delicious, priced to move. Good for you, good for the foodCreator, great for the planet.
             </Text>
             <Ionicons name="reload" size={24} color="#10B981" style={styles.recycleIcon} />
           </View>

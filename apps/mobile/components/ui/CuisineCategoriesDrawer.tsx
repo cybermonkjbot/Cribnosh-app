@@ -51,7 +51,7 @@ export function CuisineCategoriesDrawer({
         <View style={styles.content}>
           <Text style={styles.cuisineName}>{cuisine.name}</Text>
           <Text style={styles.restaurantCount}>
-            {cuisine.restaurantCount} Kitchens
+            {cuisine.restaurantCount} FoodCreators
           </Text>
         </View>
         

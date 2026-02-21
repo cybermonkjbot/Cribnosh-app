@@ -39,15 +39,15 @@ import { CategoryFullDrawer } from "./CategoryFullDrawer";
 import { CuisineCategoriesSection } from "./CuisineCategoriesSection";
 import { CuisinesSection } from "./CuisinesSection";
 import { EventBanner } from "./EventBanner";
-import { FeaturedKitchensDrawer } from "./FeaturedKitchensDrawer";
-import { FeaturedKitchensSection } from "./FeaturedKitchensSection";
+import { FeaturedFoodCreatorsDrawer } from "./FeaturedFoodCreatorsDrawer";
+import { FeaturedFoodCreatorsSection } from "./FeaturedFoodCreatorsSection";
 import { FilteredEmptyState } from "./FilteredEmptyState";
 import { FloatingActionButton } from "./FloatingActionButton";
 import { GeneratingSuggestionsLoader } from "./GeneratingSuggestionsLoader";
 import { Header } from "./Header";
 import { HiddenSections } from "./HiddenSections";
-import { KitchenMainScreen } from "./KitchenMainScreen";
-import { KitchensNearMe } from "./KitchensNearMe";
+import { FoodCreatorScreen } from "./FoodCreatorScreen";
+import { FoodCreatorsNearMe } from "./FoodCreatorsNearMe";
 import LiveContent from "./LiveContent";
 import { MapBottomSheet } from "./MapBottomSheet";
 import { MealItemDetails } from "./MealItemDetails";
@@ -356,7 +356,7 @@ export function MainScreen() {
     }
     return apiFoodCreators.map((foodCreator) => ({
       id: foodCreator.id,
-      name: foodCreator.kitchen_name,
+      name: foodCreator.foodCreator_name,
       cuisine: foodCreator.cuisine,
       sentiment: foodCreator.sentiment,
       deliveryTime: foodCreator.delivery_time,
@@ -382,7 +382,7 @@ export function MainScreen() {
     return {
       id: meal._id || meal.id || '',
       name: meal.name || 'Unknown Meal',
-      kitchen: chef?.kitchen_name || chef?.name || 'Unknown Kitchen',
+      foodCreator: chef?.foodCreator_name || chef?.name || 'Unknown FoodCreator',
       cuisine: chef?.cuisine || '', // Store cuisine for filtering
       price: meal.price ? `£${(meal.price / 100).toFixed(2)}` : '£0.00',
       originalPrice: meal.original_price ? `£${(meal.original_price / 100).toFixed(2)}` : undefined,
@@ -416,7 +416,7 @@ export function MainScreen() {
     return []; // Return empty array instead of mock data
   }, [cuisinesData, transformCuisinesData]);
 
-  const kitchens = useMemo(() => {
+  const foodCreators = useMemo(() => {
     if (foodCreatorsData?.success && foodCreatorsData.data && Array.isArray(foodCreatorsData.data)) {
       const transformedData = transformFoodCreatorsData(foodCreatorsData.data);
       return transformedData;
@@ -525,17 +525,17 @@ export function MainScreen() {
     return normalized;
   }, []);
 
-  // Filtered kitchens based on activeCategoryFilter
-  const filteredKitchens = useMemo(() => {
+  // Filtered foodCreators based on activeCategoryFilter
+  const filteredFoodCreators = useMemo(() => {
     if (activeCategoryFilter === 'all') {
-      return kitchens;
+      return foodCreators;
     }
 
-    return kitchens.filter((kitchen) => {
-      const cuisineNormalized = normalizeCuisineForFilter(kitchen.cuisine || '');
+    return foodCreators.filter((foodCreator) => {
+      const cuisineNormalized = normalizeCuisineForFilter(foodCreator.cuisine || '');
       return cuisineNormalized === activeCategoryFilter || cuisineNormalized === 'all';
     });
-  }, [kitchens, activeCategoryFilter, normalizeCuisineForFilter]);
+  }, [foodCreators, activeCategoryFilter, normalizeCuisineForFilter]);
 
   // Filtered meals based on activeCategoryFilter
   const filteredMeals = useMemo(() => {
@@ -553,11 +553,11 @@ export function MainScreen() {
         }
       }
 
-      // Fallback: match by kitchen name to filtered kitchens
-      const filteredKitchenNames = new Set(filteredKitchens.map(k => k.name.toLowerCase()));
-      return filteredKitchenNames.has(meal.kitchen.toLowerCase());
+      // Fallback: match by foodCreator name to filtered foodCreators
+      const filteredFoodCreatorNames = new Set(filteredFoodCreators.map(k => k.name.toLowerCase()));
+      return filteredFoodCreatorNames.has(meal.foodCreator.toLowerCase());
     });
-  }, [meals, filteredKitchens, activeCategoryFilter, normalizeCuisineForFilter]);
+  }, [meals, filteredFoodCreators, activeCategoryFilter, normalizeCuisineForFilter]);
 
   // Filtered cuisines based on activeCategoryFilter
   const filteredCuisines = useMemo(() => {
@@ -577,11 +577,11 @@ export function MainScreen() {
       return false;
     }
     return (
-      filteredKitchens.length === 0 &&
+      filteredFoodCreators.length === 0 &&
       filteredMeals.length === 0 &&
       filteredCuisines.length === 0
     );
-  }, [activeCategoryFilter, filteredKitchens, filteredMeals, filteredCuisines]);
+  }, [activeCategoryFilter, filteredFoodCreators, filteredMeals, filteredCuisines]);
 
   // Determine which section should be marked as first
   // This helps add top padding to the first visible section
@@ -590,19 +590,19 @@ export function MainScreen() {
   const firstSectionId = useMemo(():
     | 'cuisines'
     | 'cuisineCategories'
-    | 'featuredKitchens'
+    | 'featuredFoodCreators'
     | 'popularMeals'
     | 'recommendedMeals'
     | 'hiddenSections'
     | 'specialOffers'
-    | 'kitchensNearMe'
+    | 'foodCreatorsNearMe'
     | 'topKebabs'
     | 'takeAways'
     | 'tooFreshToWaste'
     | 'eventBanner'
     | 'filteredEmptyState'
     | 'filteredCuisineCategories'
-    | 'filteredFeaturedKitchens'
+    | 'filteredFeaturedFoodCreators'
     | 'filteredPopularMeals'
     | null => {
     // Skip NotLoggedInNotice, loading, error views, and OrderAgainSection per plan notes
@@ -626,8 +626,8 @@ export function MainScreen() {
       if (filteredCuisines.length > 0) {
         return 'filteredCuisineCategories';
       }
-      if (filteredKitchens.length > 0) {
-        return 'filteredFeaturedKitchens';
+      if (filteredFoodCreators.length > 0) {
+        return 'filteredFeaturedFoodCreators';
       }
       if (filteredMeals.length > 0) {
         return 'filteredPopularMeals';
@@ -639,7 +639,7 @@ export function MainScreen() {
     cuisinesData,
     isAllSectionsEmpty,
     filteredCuisines,
-    filteredKitchens,
+    filteredFoodCreators,
     filteredMeals,
   ]);
 
@@ -662,7 +662,7 @@ export function MainScreen() {
     | "takeaway"
     | "tooFresh"
     | "topKebabs"
-    | "featuredKitchens"
+    | "featuredFoodCreators"
     | "popularMeals"
     | "sustainability"
     | "specialOffers"
@@ -698,9 +698,9 @@ export function MainScreen() {
   const [selectedMeal, setSelectedMeal] = useState<any>(null);
   const [isMealDetailsVisible, setIsMealDetailsVisible] = useState(false);
 
-  // Kitchen Main Screen state management
-  const [selectedKitchen, setSelectedKitchen] = useState<any>(null);
-  const [isKitchenMainScreenVisible, setIsKitchenMainScreenVisible] =
+  // FoodCreator Main Screen state management
+  const [selectedFoodCreator, setSelectedFoodCreator] = useState<any>(null);
+  const [isFoodCreatorScreenVisible, setIsFoodCreatorScreenVisible] =
     useState(false);
 
   // Sign-in modal state management
@@ -1408,14 +1408,14 @@ export function MainScreen() {
 
   // Handlers for new sections
   const handleCuisinePress = useCallback((cuisine: any) => {
-    // Open category drawer for this cuisine instead of kitchen sheet
+    // Open category drawer for this cuisine instead of foodCreator sheet
     setSelectedCuisineCategory(cuisine);
     setActiveDrawer("cuisineCategory");
   }, []);
 
-  const handleFeaturedFoodCreatorPress = useCallback((kitchen: any) => {
-    setSelectedKitchen(kitchen);
-    setIsKitchenMainScreenVisible(true);
+  const handleFeaturedFoodCreatorPress = useCallback((foodCreator: any) => {
+    setSelectedFoodCreator(foodCreator);
+    setIsFoodCreatorScreenVisible(true);
   }, []);
 
   // Map handlers
@@ -1424,18 +1424,18 @@ export function MainScreen() {
   }, [isMapVisible]);
 
   const handleMapFoodCreatorSelect = useCallback((foodCreator: FoodCreatorMarker) => {
-    // Convert FoodCreatorMarker to kitchen format for existing handler
-    const kitchenData = {
+    // Convert FoodCreatorMarker to foodCreator format for existing handler
+    const foodCreatorData = {
       id: foodCreator.id,
-      name: foodCreator.kitchen_name,
+      name: foodCreator.foodCreator_name,
       cuisine: foodCreator.cuisine,
       deliveryTime: foodCreator.delivery_time,
       distance: foodCreator.distance,
       image: foodCreator.image_url || "https://avatar.iran.liara.run/public/44",
       sentiment: foodCreator.sentiment,
     };
-    setSelectedKitchen(kitchenData);
-    setIsKitchenMainScreenVisible(true);
+    setSelectedFoodCreator(foodCreatorData);
+    setIsFoodCreatorScreenVisible(true);
     setIsMapVisible(false); // Close map when selecting a chef
   }, []);
 
@@ -1452,7 +1452,7 @@ export function MainScreen() {
         const route = directions.data.routes[0];
         showInfo(
           `Distance: ${route.distance.text}\nDuration: ${route.duration.text}`,
-          `Directions to ${foodCreator.kitchen_name}`
+          `Directions to ${foodCreator.foodCreator_name}`
         );
       }
     } catch (error) {
@@ -1509,11 +1509,11 @@ export function MainScreen() {
 
     // MealItemDetails will fetch the data itself using the mealId
     // Only pass minimal data if available for initial render
-    const mealData = meal.name || meal.kitchen ? {
+    const mealData = meal.name || meal.foodCreator ? {
       title: meal.name || 'Unknown Meal',
-      description: meal.description || `Delicious ${meal.name || 'meal'} from ${meal.kitchen || 'Unknown Kitchen'}.`,
+      description: meal.description || `Delicious ${meal.name || 'meal'} from ${meal.foodCreator || 'Unknown FoodCreator'}.`,
       imageUrl: meal.image?.uri || meal.image_url || meal.image,
-      kitchenName: meal.kitchen || meal.kitchenName || 'Unknown Kitchen',
+      foodCreatorName: meal.foodCreator || meal.foodCreatorName || 'Unknown FoodCreator',
     } : undefined;
 
     // Always open meal details modal - MealItemDetails will fetch full data
@@ -1564,8 +1564,8 @@ export function MainScreen() {
     setActiveDrawer("topKebabs");
   }, []);
 
-  const handleOpenFeaturedKitchensDrawer = useCallback(() => {
-    setActiveDrawer("featuredKitchens");
+  const handleOpenFeaturedFoodCreatorsDrawer = useCallback(() => {
+    setActiveDrawer("featuredFoodCreators");
   }, []);
 
   const handleOpenPopularMealsDrawer = useCallback(() => {
@@ -1603,61 +1603,61 @@ export function MainScreen() {
     navigateToSignIn();
   }, [clearSessionExpired]);
 
-  // Kitchen Main Screen handlers
-  const handleCloseKitchenMainScreen = useCallback(() => {
-    setIsKitchenMainScreenVisible(false);
-    setSelectedKitchen(null);
+  // FoodCreator Main Screen handlers
+  const handleCloseFoodCreatorScreen = useCallback(() => {
+    setIsFoodCreatorScreenVisible(false);
+    setSelectedFoodCreator(null);
   }, []);
 
-  const handleKitchenCartPress = useCallback(() => {
+  const handleFoodCreatorCartPress = useCallback(() => {
     // In a real app, this would navigate to cart
   }, []);
 
-  const handleKitchenHeartPress = useCallback(() => {
+  const handleFoodCreatorHeartPress = useCallback(() => {
     // In a real app, this would toggle favorite
   }, []);
 
-  const handleKitchenSearchPress = useCallback(() => {
+  const handleFoodCreatorSearchPress = useCallback(() => {
     // In a real app, this would open search
   }, []);
 
-  // Handle kitchen name press from meal details
-  const handleKitchenNamePressFromMeal = useCallback((kitchenName: string, kitchenId?: string, foodcreatorId?: string) => {
-    // Try to find kitchen in kitchens data by name or ID
-    const foundKitchen = kitchens.find(k =>
-      k.name === kitchenName ||
-      k.name === `${kitchenName}'s Kitchen` ||
-      k.id === kitchenId
+  // Handle foodCreator name press from meal details
+  const handleFoodCreatorNamePressFromMeal = useCallback((foodCreatorName: string, foodCreatorId?: string, foodcreatorId?: string) => {
+    // Try to find foodCreator in foodCreators data by name or ID
+    const foundFoodCreator = foodCreators.find(k =>
+      k.name === foodCreatorName ||
+      k.name === `${foodCreatorName}'s FoodCreator` ||
+      k.id === foodCreatorId
     );
 
-    // Create kitchen object with all necessary properties
-    const kitchen: any = foundKitchen
+    // Create foodCreator object with all necessary properties
+    const foodCreator: any = foundFoodCreator
       ? {
-        ...foundKitchen,
-        kitchenId: kitchenId || foundKitchen.id,
+        ...foundFoodCreator,
+        foodCreatorId: foodCreatorId || foundFoodCreator.id,
         foodcreatorId: foodcreatorId,
         ownerId: foodcreatorId,
         userId: foodcreatorId,
       }
       : {
-        id: kitchenId || `kitchen-${kitchenName.toLowerCase().replace(/\s+/g, '-')}`,
-        name: kitchenName,
+        id: foodCreatorId || `foodCreator-${foodCreatorName.toLowerCase().replace(/\s+/g, '-')}`,
+        name: foodCreatorName,
         cuisine: "Nigerian",
         deliveryTime: "30-45 Mins",
         distance: "0.8 km",
         image: undefined,
         sentiment: "elite" as const,
-        kitchenId: kitchenId,
+        foodCreatorId: foodCreatorId,
         foodcreatorId: foodcreatorId,
         ownerId: foodcreatorId,
         userId: foodcreatorId,
       };
 
-    setSelectedKitchen(kitchen);
-    setIsKitchenMainScreenVisible(true);
+    setSelectedFoodCreator(foodCreator);
+    setIsFoodCreatorScreenVisible(true);
     // Close meal details modal
     setIsMealDetailsVisible(false);
-  }, [kitchens]);
+  }, [foodCreators]);
 
   const handleDrawerAddToCart = useCallback(
     async (id: string) => {
@@ -1708,7 +1708,7 @@ export function MainScreen() {
   const handleDrawerItemPress = useCallback((id: string) => {
     // Navigate to meal details when a meal item is clicked
     if (id) {
-      handleMealPress({ id, name: '', price: 0, kitchen: '', image: undefined });
+      handleMealPress({ id, name: '', price: 0, foodCreator: '', image: undefined });
     }
   }, [handleMealPress]);
 
@@ -1980,13 +1980,13 @@ export function MainScreen() {
                       isFirstSection={firstSectionId === 'cuisineCategories'}
                     />
                   )}
-                  {isFeatureEnabled('mobile_featured_kitchens_section') && (
-                    <FeaturedKitchensSection
-                      onKitchenPress={handleFeaturedFoodCreatorPress}
-                      onSeeAllPress={handleOpenFeaturedKitchensDrawer}
+                  {isFeatureEnabled('mobile_featured_foodCreators_section') && (
+                    <FeaturedFoodCreatorsSection
+                      onFoodCreatorPress={handleFeaturedFoodCreatorPress}
+                      onSeeAllPress={handleOpenFeaturedFoodCreatorsDrawer}
                       useBackend={true}
                       hasInitialLoadCompleted={hasInitialLoadCompleted}
-                      isFirstSection={firstSectionId === 'featuredKitchens'}
+                      isFirstSection={firstSectionId === 'featuredFoodCreators'}
                     />
                   )}
                   {isFeatureEnabled('mobile_popular_meals_section') && (
@@ -2023,12 +2023,12 @@ export function MainScreen() {
                       isFirstSection={firstSectionId === 'specialOffers'}
                     />
                   )}
-                  {isFeatureEnabled('mobile_kitchens_near_me') && (
-                    <KitchensNearMe
-                      onKitchenPress={handleFeaturedFoodCreatorPress}
+                  {isFeatureEnabled('mobile_foodCreators_near_me') && (
+                    <FoodCreatorsNearMe
+                      onFoodCreatorPress={handleFeaturedFoodCreatorPress}
                       onMapPress={handleMapToggle}
                       hasInitialLoadCompleted={hasInitialLoadCompleted}
-                      isFirstSection={firstSectionId === 'kitchensNearMe'}
+                      isFirstSection={firstSectionId === 'foodCreatorsNearMe'}
                     />
                   )}
                   {isFeatureEnabled('mobile_top_kebabs') && (
@@ -2057,7 +2057,7 @@ export function MainScreen() {
                       isFirstSection={firstSectionId === 'tooFreshToWaste'}
                       onItemPress={(item) => {
                         // Navigate to meal details from sustainability item
-                        handleMealPress({ id: item.id, name: item.name, kitchen: item.cuisine, price: '£0.00', image: { uri: item.image } });
+                        handleMealPress({ id: item.id, name: item.name, foodCreator: item.cuisine, price: '£0.00', image: { uri: item.image } });
                       }}
                     />
                   )}
@@ -2128,14 +2128,14 @@ export function MainScreen() {
                           isFirstSection={firstSectionId === 'filteredCuisineCategories'}
                         />
                       )}
-                      {filteredKitchens.length > 0 && isFeatureEnabled('mobile_featured_kitchens_section') && (
-                        <FeaturedKitchensSection
-                          kitchens={filteredKitchens}
-                          onKitchenPress={handleFeaturedFoodCreatorPress}
+                      {filteredFoodCreators.length > 0 && isFeatureEnabled('mobile_featured_foodCreators_section') && (
+                        <FeaturedFoodCreatorsSection
+                          foodCreators={filteredFoodCreators}
+                          onFoodCreatorPress={handleFeaturedFoodCreatorPress}
                           showTitle={false}
                           isLoading={foodCreatorsLoading}
                           hasInitialLoadCompleted={hasInitialLoadCompleted}
-                          isFirstSection={firstSectionId === 'filteredFeaturedKitchens'}
+                          isFirstSection={firstSectionId === 'filteredFeaturedFoodCreators'}
                         />
                       )}
                       {filteredMeals.length > 0 && isFeatureEnabled('mobile_popular_meals_section') && (
@@ -2234,7 +2234,7 @@ export function MainScreen() {
         {activeDrawer === "topKebabs" && (
           <CategoryFullDrawer
             categoryName="From Top Kebabs"
-            categoryDescription="Discover the best kebabs from top-rated kitchens in your area"
+            categoryDescription="Discover the best kebabs from top-rated foodCreators in your area"
             onBack={handleCloseDrawer}
             filterChips={[
               { id: "italian", label: "Italian" },
@@ -2262,11 +2262,11 @@ export function MainScreen() {
             </View>
           </CategoryFullDrawer>
         )}
-        {activeDrawer === "featuredKitchens" && (
-          <FeaturedKitchensDrawer
+        {activeDrawer === "featuredFoodCreators" && (
+          <FeaturedFoodCreatorsDrawer
             onBack={handleCloseDrawer}
-            kitchens={kitchens}
-            onKitchenPress={handleFeaturedFoodCreatorPress}
+            foodCreators={foodCreators}
+            onFoodCreatorPress={handleFeaturedFoodCreatorPress}
             isLoading={foodCreatorsLoading}
             error={foodCreatorsError}
           />
@@ -2330,7 +2330,7 @@ export function MainScreen() {
               // Handle add to cart logic here
               setIsMealDetailsVisible(false);
             }}
-            onKitchenNamePress={handleKitchenNamePressFromMeal}
+            onFoodCreatorNamePress={handleFoodCreatorNamePressFromMeal}
             onSimilarMealPress={handleSimilarMealPress}
           />
         )}
@@ -2363,28 +2363,28 @@ export function MainScreen() {
         }}
       />
 
-      {/* Add KitchenMainScreen Modal */}
+      {/* Add FoodCreatorScreen Modal */}
       <Modal
-        visible={isKitchenMainScreenVisible}
+        visible={isFoodCreatorScreenVisible}
         animationType="slide"
         presentationStyle="fullScreen"
-        onRequestClose={handleCloseKitchenMainScreen}
+        onRequestClose={handleCloseFoodCreatorScreen}
         statusBarTranslucent={true}
         hardwareAccelerated={true}
       >
-        {selectedKitchen && (
-          <KitchenMainScreen
-            kitchenName={selectedKitchen.name && selectedKitchen.name !== "Amara's Kitchen" ? selectedKitchen.name : undefined}
-            cuisine={selectedKitchen.cuisine}
-            deliveryTime={selectedKitchen.deliveryTime}
-            distance={selectedKitchen.distance}
+        {selectedFoodCreator && (
+          <FoodCreatorScreen
+            foodCreatorName={selectedFoodCreator.name && selectedFoodCreator.name !== "Amara's FoodCreator" ? selectedFoodCreator.name : undefined}
+            cuisine={selectedFoodCreator.cuisine}
+            deliveryTime={selectedFoodCreator.deliveryTime}
+            distance={selectedFoodCreator.distance}
             cartItems={cartData?.items?.length || 0}
-            kitchenId={selectedKitchen.id || selectedKitchen.kitchenId}
-            foodcreatorId={selectedKitchen.ownerId || selectedKitchen.foodcreatorId || selectedKitchen.userId}
-            onCartPress={handleKitchenCartPress}
-            onHeartPress={handleKitchenHeartPress}
-            onSearchPress={handleKitchenSearchPress}
-            onClose={handleCloseKitchenMainScreen}
+            foodCreatorId={selectedFoodCreator.id || selectedFoodCreator.foodCreatorId}
+            foodcreatorId={selectedFoodCreator.ownerId || selectedFoodCreator.foodcreatorId || selectedFoodCreator.userId}
+            onCartPress={handleFoodCreatorCartPress}
+            onHeartPress={handleFoodCreatorHeartPress}
+            onSearchPress={handleFoodCreatorSearchPress}
+            onClose={handleCloseFoodCreatorScreen}
             onMealPress={handleMealPress}
           />
         )}

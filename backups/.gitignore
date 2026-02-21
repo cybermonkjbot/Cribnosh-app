@@ -1,0 +1,3 @@
+# Convex backup ZIPs contain database data (potentially sensitive) and are large.
+# Do NOT commit these to git. Store them securely (e.g. encrypted cloud storage).
+*.zip

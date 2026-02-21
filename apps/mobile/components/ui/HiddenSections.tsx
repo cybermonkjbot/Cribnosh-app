@@ -20,8 +20,8 @@ interface UsualDinnerItem {
   name: string;
   price: number;
   image_url?: string;
-  kitchen_name: string;
-  kitchen_id: string;
+  foodCreator_name: string;
+  foodCreator_id: string;
   order_count: number;
   last_ordered_at: number;
   avg_rating?: number;
@@ -87,10 +87,10 @@ export function UsualDinnerSection({
         pathname: '/meal-details' as any,
         params: { mealId: item.dish_id },
       });
-    } else if (item.kitchen_id) {
+    } else if (item.foodCreator_id) {
       router.push({
-        pathname: '/kitchen' as any,
-        params: { kitchenId: item.kitchen_id },
+        pathname: '/foodCreator' as any,
+        params: { foodCreatorId: item.foodCreator_id },
       });
     }
   }, [router]);

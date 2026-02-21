@@ -52,12 +52,12 @@ function TopKebabsComponent({ onOpenDrawer, useBackend = true, onKebabPress, has
   }, [useBackend, isAuthenticated, getTopKebabs]);
 
   // Transform API data to component format
-  // TopKebabs shows cuisines/kitchens, not individual meals
+  // TopKebabs shows cuisines/foodCreators, not individual meals
   const transformKebabData = useCallback((apiItem: any): Kebab | null => {
     if (!apiItem) return null;
 
-    // Handle different response structures - could be chef/kitchen or meal
-    const item = apiItem.chef || apiItem.kitchen || apiItem.dish || apiItem.meal || apiItem;
+    // Handle different response structures - could be chef/foodCreator or meal
+    const item = apiItem.chef || apiItem.foodCreator || apiItem.dish || apiItem.meal || apiItem;
     
     // Extract cuisine name from item
     const cuisineName = item.cuisine || item.specialties?.[0] || item.name || 'Unknown';
