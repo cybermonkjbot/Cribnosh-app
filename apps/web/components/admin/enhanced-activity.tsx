@@ -1,12 +1,12 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { motion } from "motion/react";
-import { Clock, User, Settings, Shield, Filter, Search, Bell, Eye, ChevronDown, ChevronUp, X } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { useState, useEffect } from 'react';
 import { useAdminUser } from '@/app/admin/AdminUserProvider';
+import { api } from "@/convex/_generated/api";
+import { useQuery } from "convex/react";
+import { formatDistanceToNow } from "date-fns";
+import { Bell, ChevronDown, ChevronUp, Clock, Eye, Filter, Search, Settings, Shield, User, X } from "lucide-react";
+import { motion } from "motion/react";
+import { useState } from 'react';
 
 interface ActivityItem {
   id: string;
@@ -57,7 +57,7 @@ export function EnhancedActivity() {
   const { sessionToken } = useAdminUser();
 
   // Fetch real activity data from Convex
-  const activities = useQuery(api.queries.activityFeed.getActivityFeed, sessionToken ? { 
+  const activities = useQuery(api.queries.activityFeed.getActivityFeed, sessionToken ? {
     limit: 20,
     type: filter === 'all' ? undefined : filter as any,
     timeRange: '24h',
@@ -79,7 +79,7 @@ export function EnhancedActivity() {
     const user = activity.user ? getUserDetails(activity.user) : null;
     const userName = user ? (user as any).name : ''; // Assuming user has a name property
     const matchesSearch = activity.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (userName && userName.toLowerCase().includes(searchTerm.toLowerCase()));
+      (userName && userName.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesFilter && matchesSearch;
   }) || [];
 
@@ -93,11 +93,11 @@ export function EnhancedActivity() {
       system_event: 'System',
       security_alert: 'Security',
       new_user: 'Users',
-      new_chef: 'Chefs',
+      new_chef: 'Food Creators',
       system_update: 'System',
       content_created: 'Content',
       order_created: 'Orders',
-      chef_joined: 'Chefs',
+      chef_joined: 'Food Creators',
       payment_processed: 'Payments'
     };
     return labels[type] || type;
@@ -106,7 +106,7 @@ export function EnhancedActivity() {
   const filterOptions = [
     { key: 'all', label: 'All Activities' },
     { key: 'new_user', label: 'User Registrations' },
-    { key: 'new_chef', label: 'Chef Onboarding' },
+    { key: 'new_chef', label: 'Food Creator Onboarding' },
     { key: 'system_event', label: 'System Events' },
     { key: 'security_alert', label: 'Security Alerts' },
     { key: 'content_created', label: 'Content Creation' },
@@ -137,7 +137,7 @@ export function EnhancedActivity() {
             </motion.div>
           )}
         </div>
-        
+
         {/* Mobile Filter Toggle */}
         <div className="flex items-center space-x-2 sm:hidden">
           <button
@@ -192,7 +192,7 @@ export function EnhancedActivity() {
               </button>
             )}
           </div>
-          
+
           {/* Mobile Search */}
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -211,18 +211,16 @@ export function EnhancedActivity() {
               <button
                 key={option.key}
                 onClick={() => setFilter(option.key)}
-                className={`admin-filter-option admin-filter-button flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
-                  filter === option.key
+                className={`admin-filter-option admin-filter-button flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${filter === option.key
                     ? 'bg-gray-900 text-white border-gray-900 shadow-sm font-semibold'
                     : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 <span className="whitespace-nowrap">{option.label}</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                  filter === option.key
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${filter === option.key
                     ? 'bg-white/20 text-white'
                     : 'bg-gray-100 text-gray-600'
-                }`}>
+                  }`}>
                   {getActivityCount(option.key)}
                 </span>
               </button>
@@ -237,18 +235,16 @@ export function EnhancedActivity() {
           <button
             key={tab.key}
             onClick={() => setFilter(tab.key)}
-            className={`admin-filter-option flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap border ${
-              filter === tab.key
+            className={`admin-filter-option flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap border ${filter === tab.key
                 ? 'bg-gray-900 text-white border-gray-900 shadow-sm font-semibold'
                 : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900'
-            }`}
+              }`}
           >
             <span>{tab.label}</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-              filter === tab.key
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${filter === tab.key
                 ? 'bg-white/20 text-white'
                 : 'bg-gray-100 text-gray-600'
-            }`}>
+              }`}>
               {getActivityCount(tab.key)}
             </span>
           </button>

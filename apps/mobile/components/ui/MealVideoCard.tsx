@@ -21,7 +21,7 @@ interface MealVideoCardProps {
   description: string;
   foodCreatorName: string;
   price: string;
-  chef?: string;
+  foodCreator?: string;
   isVisible: boolean;
   isPreloaded?: boolean;
   onLike?: () => void;
@@ -39,7 +39,7 @@ function MealVideoCardComponent({
   description,
   foodCreatorName,
   price,
-  chef,
+  foodCreator,
   isVisible,
   isPreloaded = false,
   onLike,
@@ -363,7 +363,7 @@ function MealVideoCardComponent({
             textShadowOffset: { width: 0, height: 1 },
             textShadowRadius: 2,
           }}>
-            FoodCreator
+            {foodCreator || 'Creator'}
           </Text>
         </Pressable>
 

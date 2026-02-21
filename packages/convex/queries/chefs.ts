@@ -24,11 +24,12 @@ import {
   isBasicOnboardingComplete,
   listAllCuisines,
   listCuisinesByStatus,
+  listPaginated,
   searchFoodCreatorsByQuery
 } from './foodCreators';
 
 export const getAllChefLocations = getAllFoodCreatorLocations;
-export { getAll };
+export { getAll, listPaginated };
 export const getChefById = getFoodCreatorById;
 export { getById };
 export const getKitchenPhoneByChefId = getKitchenPhoneByFoodCreatorId;

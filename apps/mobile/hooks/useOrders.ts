@@ -83,7 +83,7 @@ export const useOrders = (params?: {
 
   const createOrder = useCallback(
     async (data: {
-      chef_id: string;
+      foodCreatorId: string;
       order_items: Array<{ dish_id: string; quantity: number }>;
       special_instructions?: string;
       delivery_time?: string;
@@ -106,7 +106,7 @@ export const useOrders = (params?: {
         const convex = getConvexClient();
         const result = await convex.action(api.actions.orders.customerCreateOrder, {
           sessionToken: token,
-          chef_id: data.chef_id,
+          foodCreatorId: data.foodCreatorId,
           order_items: data.order_items,
           special_instructions: data.special_instructions,
           delivery_time: data.delivery_time,

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     },
     openGraph: {
         title: "Meet Our Food Creators | Cribnosh",
-        description: "Connect with local chefs cooking authentic family recipes.",
+        description: "Connect with local food creators cooking authentic family recipes.",
         images: ["/og-image.jpg"],
         url: "https://cribnosh.com/creators"
     },

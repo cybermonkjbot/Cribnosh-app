@@ -143,7 +143,7 @@ export function MapView({
       );
     }
 
-    // Original fallback for regular chef list
+    // Original fallback for regular food creator list
     return (
       <View style={[styles.container, style, styles.fallbackContainer]}>
         <View style={[

@@ -64,7 +64,7 @@ const LiveBroadcasterScreen: React.FC<LiveBroadcasterScreenProps> = ({ sessionId
                         data: {
                             session: result.session,
                             meal: result.session.meal,
-                            foodCreator: result.session.chef,
+                            foodCreator: result.session.foodCreator || result.session.chef,
                         },
                     });
                 }

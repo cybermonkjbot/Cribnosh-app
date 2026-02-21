@@ -1,9 +1,8 @@
+import { getBaseUrlFromHeaders } from '@/lib/utils/domain';
 import { MetadataRoute } from 'next';
 
 import { api } from '@/convex/_generated/api';
 import { ConvexHttpClient } from 'convex/browser';
-
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://cribnosh.com';
 
 /**
  * Generates a sitemap array for the Next.js application, including main site, cities, and dynamic content.
@@ -13,6 +12,7 @@ const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://cribnosh.com';
  * @returns An array of sitemap entries conforming to `MetadataRoute.Sitemap` for use in search engine indexing.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = getBaseUrlFromHeaders();
   // Main routes
   const routes = [
     '',

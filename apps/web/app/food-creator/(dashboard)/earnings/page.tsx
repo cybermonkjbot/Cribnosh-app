@@ -44,7 +44,7 @@ export default function EarningsPage() {
                     </div>
                     <p className="text-5xl font-bold mb-6">£{(availableBalance / 100).toFixed(2)}</p>
                     <Link
-                        href="/chef/earnings/payouts"
+                        href="/food-creator/earnings/payouts"
                         className="inline-flex items-center gap-2 bg-white text-green-600 font-semibold py-3 px-6 rounded-lg hover:bg-gray-50 transition-all shadow-lg"
                     >
                         Request Payout
@@ -59,7 +59,7 @@ export default function EarningsPage() {
                     </div>
                     <p className="text-5xl font-bold text-gray-900 mb-6">£{(pendingPayouts / 100).toFixed(2)}</p>
                     <Link
-                        href="/chef/earnings/payouts"
+                        href="/food-creator/earnings/payouts"
                         className="inline-flex items-center gap-2 text-orange-600 font-semibold hover:text-orange-700"
                     >
                         View Payout History
@@ -95,7 +95,7 @@ export default function EarningsPage() {
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold text-gray-900">Recent Transactions</h2>
                     <Link
-                        href="/chef/earnings/transactions"
+                        href="/food-creator/earnings/transactions"
                         className="text-sm font-semibold text-orange-600 hover:text-orange-700"
                     >
                         View All
@@ -135,21 +135,21 @@ export default function EarningsPage() {
             {/* Quick Actions */}
             <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Link
-                    href="/chef/earnings/transactions"
+                    href="/food-creator/earnings/transactions"
                     className="flex items-center justify-between rounded-lg bg-white/80 backdrop-blur-sm p-4 shadow-md border border-white/20 hover:shadow-lg hover:border-orange-300 transition-all"
                 >
                     <span className="font-semibold text-gray-900">View All Transactions</span>
                     <ArrowRight className="h-5 w-5 text-gray-400" />
                 </Link>
                 <Link
-                    href="/chef/earnings/taxes"
+                    href="/food-creator/earnings/taxes"
                     className="flex items-center justify-between rounded-lg bg-white/80 backdrop-blur-sm p-4 shadow-md border border-white/20 hover:shadow-lg hover:border-orange-300 transition-all"
                 >
                     <span className="font-semibold text-gray-900">Tax Information</span>
                     <ArrowRight className="h-5 w-5 text-gray-400" />
                 </Link>
                 <Link
-                    href="/chef/earnings/bank-accounts"
+                    href="/food-creator/earnings/bank-accounts"
                     className="flex items-center justify-between rounded-lg bg-white/80 backdrop-blur-sm p-4 shadow-md border border-white/20 hover:shadow-lg hover:border-orange-300 transition-all"
                 >
                     <span className="font-semibold text-gray-900">Bank Accounts</span>

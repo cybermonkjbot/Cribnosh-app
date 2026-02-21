@@ -29,7 +29,7 @@ const CATEGORIES = [
   "Family Traditions",
   "Cultural Heritage",
   "Modern Fusion",
-  "Sustainable Cooking",
+  "Sustainable Practices",
   "Kitchen Stories",
   "Recipe Collections"
 ];

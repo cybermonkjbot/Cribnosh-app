@@ -80,7 +80,7 @@ export default function ModernSlaveryStatement() {
                                     </p>
                                     <ul className="list-disc pl-5 space-y-3 text-gray-600">
                                         <li>
-                                            <strong className="text-gray-900">Food Creators (Chefs & Cooks):</strong> Independent individuals and small businesses who prepare meals. They are the heart of our platform, and we maintain strict oversight of their operations.
+                                            <strong className="text-gray-900">Food Creators:</strong> Independent individuals and small businesses who prepare meals. They are the heart of our platform, and we maintain strict oversight of their operations.
                                         </li>
                                         <li>
                                             <strong className="text-gray-900">Delivery Partners:</strong> A network of drivers and riders who ensure meals are delivered safely and efficiently.

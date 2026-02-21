@@ -304,7 +304,7 @@ export const OrderConfirmationEmail = ({
             role: "Regular Customer",
           },
           {
-            quote: "CribNosh has changed how I think about food delivery. It's like having a personal chef!",
+            quote: "CribNosh has changed how I think about food delivery. It's like having a personal food creator!",
             author: "Michael R.",
             role: "Food Enthusiast",
           },

@@ -59,7 +59,7 @@ export const useFoodCreators = () => {
    * Get food creator details
    */
   const getFoodCreatorDetails = useCallback(
-    async (chef_id: string, latitude?: number, longitude?: number) => {
+    async (foodCreatorId: string, latitude?: number, longitude?: number) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
@@ -69,7 +69,7 @@ export const useFoodCreators = () => {
           api.actions.foodCreators.customerGetFoodCreatorDetails,
           {
             sessionToken: sessionToken || undefined,
-            foodCreatorId: chef_id,
+            foodCreatorId,
             latitude,
             longitude,
           }
@@ -131,7 +131,7 @@ export const useFoodCreators = () => {
    * Get popular food creator details
    */
   const getPopularFoodCreatorDetails = useCallback(
-    async (chef_id: string) => {
+    async (foodCreatorId: string) => {
       try {
         setIsLoading(true);
         const convex = getConvexClient();
@@ -141,7 +141,7 @@ export const useFoodCreators = () => {
           api.actions.foodCreators.customerGetPopularFoodCreatorDetails,
           {
             sessionToken: sessionToken || undefined,
-            foodCreatorId: chef_id,
+            foodCreatorId,
           }
         );
 

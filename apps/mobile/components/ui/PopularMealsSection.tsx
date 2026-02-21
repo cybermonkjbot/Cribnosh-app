@@ -69,7 +69,7 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
               data: {
                 popular: result.data.meals.map((meal: any) => ({
                   meal,
-                  foodCreator: meal.chef || null,
+                  foodCreator: meal.foodCreator || meal.chef || null,
                 }))
               }
             });
@@ -91,12 +91,12 @@ const PopularMealsSectionComponent: React.FC<PopularMealsSectionProps> = ({
     if (!apiMeal?.meal) return null;
 
     const meal = apiMeal.meal;
-    const chef = apiMeal.chef;
+    const foodCreator = apiMeal.foodCreator || apiMeal.chef;
 
     return {
       id: meal._id || meal.id || '',
       name: meal.name || 'Unknown Meal',
-      foodCreator: chef?.foodCreator_name || chef?.name || 'Unknown FoodCreator',
+      foodCreator: foodCreator?.foodCreator_name || foodCreator?.name || 'Unknown Food Creator',
       price: meal.price ? `£${(meal.price / 100).toFixed(2)}` : '£0.00',
       originalPrice: meal.original_price ? `£${(meal.original_price / 100).toFixed(2)}` : undefined,
       image: {

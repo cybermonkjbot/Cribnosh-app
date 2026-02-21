@@ -152,7 +152,7 @@ DocumentItemComponent.displayName = 'DocumentItemComponent';
 export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { foodCreator: chef, sessionToken: authSessionToken } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken: authSessionToken } = useFoodCreatorAuth();
   const { showSuccess, showError } = useToast();
   const [sessionToken, setSessionToken] = useState<string | null>(null);
 
@@ -164,7 +164,7 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
-  const uploadDocument = useMutation(api.mutations.chefDocuments.uploadDocument);
+  const uploadDocument = useMutation(api.mutations.foodCreatorDocuments.uploadDocument);
 
   // Get session token
   const loadToken = useCallback(async () => {
@@ -177,15 +177,15 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
   }, [authSessionToken]);
 
   useEffect(() => {
-    if (isVisible && chef) {
+    if (isVisible && foodCreator) {
       loadToken();
     }
-  }, [isVisible, chef, loadToken]);
+  }, [isVisible, foodCreator, loadToken]);
 
-  // Get chef documents
+  // Get food creator documents
   const documents = useQuery(
-    api.queries.chefDocuments.getByChefId,
-    chef?._id && sessionToken ? { chefId: chef._id, sessionToken } : 'skip'
+    api.queries.foodCreatorDocuments.getByFoodCreatorId,
+    foodCreator?._id && sessionToken ? { foodCreatorId: foodCreator._id, sessionToken } : 'skip'
   );
 
   // Map documents by type for easy lookup
@@ -241,8 +241,8 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
 
   // Determine if we have enough data to show content
   const hasMinimumData = useMemo(() => {
-    return !!chef;
-  }, [chef]);
+    return !!foodCreator;
+  }, [foodCreator]);
 
   const handleItemPress = useCallback((item: DocumentItem) => {
     console.log('Document item pressed:', item);
@@ -310,7 +310,7 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
   };
 
   const handleUpload = async () => {
-    if (!selectedImage || !selectedDocument || !chef?._id || !sessionToken) {
+    if (!selectedImage || !selectedDocument || !foodCreator?._id || !sessionToken) {
       return;
     }
 
@@ -362,7 +362,7 @@ export function DocumentUploadSheet({ isVisible, onClose }: DocumentUploadSheetP
 
       // Step 6: Create document record
       await uploadDocument({
-        chefId: chef._id,
+        foodCreatorId: foodCreator._id,
         documentType: selectedDocument.type as any,
         documentName,
         fileName,

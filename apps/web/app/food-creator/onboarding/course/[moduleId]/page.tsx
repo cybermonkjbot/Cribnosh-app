@@ -75,7 +75,7 @@ export default function ModulePage() {
 
             if (passed) {
                 alert(`Quiz Passed! Score: ${percentage}%`);
-                router.push('/chef/onboarding/course');
+                router.push('/food-creator/onboarding/course');
             } else {
                 alert(`Quiz Failed. Score: ${percentage}%. Required: ${moduleContent.quiz.passingScore}%. Please try again.`);
                 setSelectedAnswers({});
@@ -105,7 +105,7 @@ export default function ModulePage() {
             {/* Sidebar/Navigation */}
             <div className="w-80 bg-[#02120A] border-r border-white/10 overflow-y-auto hidden lg:block">
                 <div className="p-6 border-b border-white/10">
-                    <Link href="/chef/onboarding/course" className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
+                    <Link href="/food-creator/onboarding/course" className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
                         <ArrowLeft className="h-4 w-4" />
                         Back to Course
                     </Link>
@@ -123,7 +123,7 @@ export default function ModulePage() {
                     {enrollment?.progress.map((m: any) => (
                         <div
                             key={m.moduleId}
-                            onClick={() => router.push(`/chef/onboarding/course/${m.moduleNumber}`)}
+                            onClick={() => router.push(`/food-creator/onboarding/course/${m.moduleNumber}`)}
                             className={`p-3 rounded-lg text-sm font-medium cursor-pointer flex justify-between items-center transition-all ${m.moduleNumber === moduleNumber
                                 ? 'bg-[#FF6B35]/20 text-[#FF6B35] border border-[#FF6B35]/50'
                                 : 'text-gray-400 hover:bg-white/5 hover:text-white'

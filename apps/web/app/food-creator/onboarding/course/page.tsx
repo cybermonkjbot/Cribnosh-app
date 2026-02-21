@@ -30,7 +30,7 @@ export default function CoursePage() {
             {/* Header */}
             <div className="mb-8">
                 <Link
-                    href="/chef/onboarding"
+                    href="/food-creator/onboarding"
                     className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-4 transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
@@ -58,7 +58,7 @@ export default function CoursePage() {
                 {modules.map((module) => (
                     <Link
                         key={module.id}
-                        href={module.status !== 'locked' ? `/chef/onboarding/course/${module.id}` : '#'}
+                        href={module.status !== 'locked' ? `/food-creator/onboarding/course/${module.id}` : '#'}
                         className={`block rounded-xl border p-4 transition-all ${module.status === 'locked'
                             ? 'bg-white/5 border-white/5 opacity-50 cursor-not-allowed'
                             : 'bg-white/5 border-white/10 shadow-lg hover:bg-white/10 hover:border-[#4ADE80] backdrop-blur-sm'

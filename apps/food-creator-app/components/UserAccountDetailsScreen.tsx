@@ -79,9 +79,9 @@ const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none
 </svg>`;
 
 const MenuItem = ({ icon, text, onPress, disabled }: { icon: string, text: string, onPress?: () => void, disabled?: boolean }) => (
-  <TouchableOpacity 
-    style={[styles.menuItem, disabled && styles.menuItemDisabled]} 
-    onPress={disabled ? undefined : onPress} 
+  <TouchableOpacity
+    style={[styles.menuItem, disabled && styles.menuItemDisabled]}
+    onPress={disabled ? undefined : onPress}
     activeOpacity={disabled ? 1 : 0.7}
     disabled={disabled}
   >
@@ -101,20 +101,20 @@ const SectionHeader = ({ title }: { title: string }) => (
   <Text style={styles.sectionHeader}>{title}</Text>
 );
 
-export function UserAccountDetailsScreen({ 
-  userName: propUserName, 
-  style 
+export function UserAccountDetailsScreen({
+  userName: propUserName,
+  style
 }: UserAccountDetailsScreenProps) {
   const router = useRouter();
   const [selectedProfileImage, setSelectedProfileImage] = useState<string | undefined>();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isSetupSheetVisible, setIsSetupSheetVisible] = useState(false);
-  const { logout, isAuthenticated, foodCreator: chef } = useFoodCreatorAuth();
+  const { logout, isAuthenticated, foodCreator } = useFoodCreatorAuth();
 
   // Get session token for reactive queries
   const [sessionToken, setSessionToken] = useState<string | null>(null);
-  
+
   useEffect(() => {
     const loadToken = async () => {
       if (isAuthenticated) {
@@ -139,11 +139,11 @@ export function UserAccountDetailsScreen({
     user?._id && sessionToken ? { userId: user._id, sessionToken } : "skip"
   );
 
-  // Get kitchen ID for chef
+  // Get kitchen ID for food creator
   const kitchenId = useQuery(
-    api.queries.kitchens.getKitchenByChefId,
-    chef?._id
-      ? { chefId: chef._id }
+    api.queries.kitchens.getKitchenByFoodCreatorId,
+    foodCreator?._id
+      ? { foodCreatorId: foodCreator._id }
       : 'skip'
   );
 
@@ -161,11 +161,11 @@ export function UserAccountDetailsScreen({
       return kitchenDetails.kitchenName;
     }
     // Fallback to onboarding draft kitchen name
-    if (chef?.onboardingDraft?.kitchenName) {
-      return chef.onboardingDraft.kitchenName;
+    if (foodCreator?.onboardingDraft?.kitchenName) {
+      return foodCreator.onboardingDraft.kitchenName;
     }
     return undefined;
-  }, [kitchenDetails, chef?.onboardingDraft]);
+  }, [kitchenDetails, foodCreator?.onboardingDraft]);
 
   // Transform profile data to match expected format
   const transformedProfileData = useMemo(() => {
@@ -184,37 +184,37 @@ export function UserAccountDetailsScreen({
   // Get user data from API or fallback to prop
   const userName = transformedProfileData?.data?.name || propUserName || "User";
   const isVerified = transformedProfileData?.data?.is_verified ?? false;
-  
+
   // Check if profile is complete
   // Profile is complete if it has: name, email or phone, and is verified
-  // Address requirement removed for chef app
+  // Address requirement removed for food creator app
   const isProfileComplete = useMemo(() => {
     if (!transformedProfileData?.data) {
       return false;
     }
-    
+
     const hasName = !!transformedProfileData.data.name && transformedProfileData.data.name.trim().length > 0;
     const hasEmail = !!transformedProfileData.data.email && transformedProfileData.data.email.trim().length > 0;
     const hasPhone = !!transformedProfileData.data.phone && transformedProfileData.data.phone.trim().length > 0;
     const hasContact = hasEmail || hasPhone;
-    
+
     return hasName && hasContact && isVerified;
   }, [transformedProfileData?.data, isVerified]);
-  
+
   // Convert profile picture URL to absolute if needed
   // Check multiple possible locations for the picture field
   const profilePictureUrl = useMemo(() => {
     if (!transformedProfileData?.data) {
       return undefined;
     }
-    
+
     // Check multiple possible locations for the picture
-    const picture = 
-      transformedProfileData.data.picture || 
-      (transformedProfileData.data as any)?.user?.picture || 
+    const picture =
+      transformedProfileData.data.picture ||
+      (transformedProfileData.data as any)?.user?.picture ||
       (transformedProfileData.data as any)?.user?.avatar ||
       (transformedProfileData.data as any)?.avatar;
-    
+
     // Debug: Log the profile data structure
     console.log('Account Details Screen - Profile Data:', {
       hasData: !!transformedProfileData.data,
@@ -225,7 +225,7 @@ export function UserAccountDetailsScreen({
       dataAvatar: (transformedProfileData.data as any)?.avatar,
       dataKeys: Object.keys(transformedProfileData.data),
     });
-    
+
     if (picture) {
       const absoluteUrl = getAbsoluteImageUrl(picture);
       console.log('Account Details Screen - Picture URL:', {
@@ -234,14 +234,14 @@ export function UserAccountDetailsScreen({
       });
       return absoluteUrl;
     }
-    
+
     return undefined;
   }, [transformedProfileData]);
-  
+
   // Use profile picture from API or selected local image
   const displayPicture = selectedProfileImage || profilePictureUrl;
 
-  // Address functionality removed for chef app
+  // Address functionality removed for food creator app
 
   // Update local state when profile picture changes
   useEffect(() => {
@@ -258,7 +258,7 @@ export function UserAccountDetailsScreen({
   const handleProfileImageSelected = async (imageUri: string) => {
     setSelectedProfileImage(imageUri);
     setIsUploadingImage(true);
-    
+
     try {
       const convex = getConvexClient();
       const sessionToken = await getSessionToken();
@@ -326,8 +326,8 @@ export function UserAccountDetailsScreen({
     setShowLogoutModal(false);
   }
 
-  // Address selection functionality removed for chef app
-  // Chefs may not need address selection in the same way as customers
+  // Address selection functionality removed for food creator app
+  // Food creators may not need address selection in the same way as customers
 
   // Loading state
   if (isLoadingProfile) {
@@ -339,8 +339,8 @@ export function UserAccountDetailsScreen({
           </TouchableOpacity>
           <View style={styles.headerSpacer} />
         </View>
-        <ScrollView 
-          style={[styles.container, style]} 
+        <ScrollView
+          style={[styles.container, style]}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
@@ -370,8 +370,8 @@ export function UserAccountDetailsScreen({
           </TouchableOpacity>
           <View style={styles.headerSpacer} />
         </View>
-        <ScrollView 
-          style={[styles.container, style]} 
+        <ScrollView
+          style={[styles.container, style]}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
@@ -380,8 +380,8 @@ export function UserAccountDetailsScreen({
             <Text style={styles.errorMessage}>
               Unable to load your profile information. Please try again.
             </Text>
-            <TouchableOpacity 
-              style={styles.retryButton} 
+            <TouchableOpacity
+              style={styles.retryButton}
               onPress={() => {
                 // Reactive queries will automatically retry and update
                 // Force a re-render by updating session token state
@@ -395,11 +395,11 @@ export function UserAccountDetailsScreen({
             >
               <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
-            
+
             {/* Logout button in error state */}
             {isAuthenticated && (
-              <TouchableOpacity 
-                style={[styles.logOutButton, { marginTop: 16 }]} 
+              <TouchableOpacity
+                style={[styles.logOutButton, { marginTop: 16 }]}
                 onPress={handleLogOut}
               >
                 <Text style={styles.logOutText}>Log Out</Text>
@@ -422,15 +422,15 @@ export function UserAccountDetailsScreen({
                 Are you sure you want to log out? You&apos;ll need to sign in again to access your account.
               </Text>
               <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={styles.modalCancelButton} 
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
                   onPress={handleCancelLogout}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.modalCancelText}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.modalLogoutButton} 
+                <TouchableOpacity
+                  style={styles.modalLogoutButton}
                   onPress={handleConfirmLogout}
                   activeOpacity={0.7}
                 >
@@ -454,124 +454,124 @@ export function UserAccountDetailsScreen({
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView 
-        style={[styles.container, style]} 
+      <ScrollView
+        style={[styles.container, style]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-      {/* Header Section with Avatar and Name */}
-      <View style={styles.headerSection}>
-        <View style={styles.avatarContainer}>
-          <ProfileAvatar 
-            size={80} 
-            onImageSelected={handleProfileImageSelected}
-            selectedImageUri={displayPicture}
-            isAuthenticated={isAuthenticated}
-          />
-          {isUploadingImage && (
-            <View style={styles.uploadOverlay}>
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            </View>
+        {/* Header Section with Avatar and Name */}
+        <View style={styles.headerSection}>
+          <View style={styles.avatarContainer}>
+            <ProfileAvatar
+              size={80}
+              onImageSelected={handleProfileImageSelected}
+              selectedImageUri={displayPicture}
+              isAuthenticated={isAuthenticated}
+            />
+            {isUploadingImage && (
+              <View style={styles.uploadOverlay}>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              </View>
+            )}
+          </View>
+          {kitchenName ? (
+            <Text style={styles.userName}>{kitchenName}</Text>
+          ) : (
+            <Text style={styles.userName}>{userName}</Text>
           )}
         </View>
-        {kitchenName ? (
-          <Text style={styles.userName}>{kitchenName}</Text>
-        ) : (
-          <Text style={styles.userName}>{userName}</Text>
-        )}
-      </View>
-      
-      {/* Verification Banner - Only show if authenticated and profile is not complete */}
-      {isAuthenticated && !isProfileComplete && (
-        <TouchableOpacity 
-          style={styles.bannerContainer}
-          onPress={() => setIsSetupSheetVisible(true)}
-          activeOpacity={0.7}
-        >
-          <VerificationBanner 
-            text="Complete your kitchen verification to start receiving orders"
-          />
-        </TouchableOpacity>
-      )}
-      
-      {/* Main Settings Section */}
-      <View style={styles.section}>
-        <MenuItem 
-          icon={userIconSVG} 
-          text="Business settings" 
-          onPress={() => router.push('/personal-info' as any)}
-          disabled={!isAuthenticated}
-        />
-        <MenuItem 
-          icon={shieldIconSVG} 
-          text="Payouts" 
-          onPress={() => router.push('/payout-settings' as any)}
-          disabled={!isAuthenticated}
-        />
-        <MenuItem 
-          icon={hopOffIconSVG} 
-          text="Food Safety Compliance" 
-          onPress={() => router.push('/food-safety-compliance' as any)}
-          disabled={!isAuthenticated}
-        />
-        <MenuItem 
-          icon={lockIconSVG} 
-          text="Login & security" 
-          onPress={() => router.push('/login-security' as any)}
-          disabled={!isAuthenticated}
-        />
-        <MenuItem 
-          icon={handIconSVG} 
-          text="Privacy" 
-          onPress={() => router.push('/privacy' as any)}
-          disabled={!isAuthenticated}
-        />
-      </View>
-      
-      {/* Saved Places Section - Removed for chef app */}
-      
-      {/* Your Data Section */}
-      <View style={styles.section}>
-        <SectionHeader title="Your Data" />
-        <MenuItem 
-          icon={filePenIconSVG} 
-          text="Download your account data" 
-          onPress={() => router.push('/download-account-data' as any)}
-          disabled={!isAuthenticated}
-        />
-        <MenuItem 
-          icon={heartHandshakeIconSVG} 
-          text="Manage Data Sharing" 
-          onPress={() => router.push('/manage-data-sharing' as any)}
-          disabled={!isAuthenticated}
-        />
-      </View>
-      
-      {/* Support Section */}
-      <View style={styles.section}>
-        <SectionHeader title="Support" />
-        <MenuItem 
-          icon={briefcaseIconSVG} 
-          text="Help & Support" 
-          onPress={() => router.push('/help-support' as any)}
-        />
-      </View>
-      
-      {/* Bottom Actions */}
-      {isAuthenticated && (
-        <View style={styles.bottomActions}>
-          <TouchableOpacity style={styles.logOutButton} onPress={handleLogOut}>
-            <Text style={styles.logOutText}>Log Out</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.deleteAccountButton}
-            onPress={() => router.push('/delete-account' as any)}
+
+        {/* Verification Banner - Only show if authenticated and profile is not complete */}
+        {isAuthenticated && !isProfileComplete && (
+          <TouchableOpacity
+            style={styles.bannerContainer}
+            onPress={() => setIsSetupSheetVisible(true)}
+            activeOpacity={0.7}
           >
-            <Text style={styles.deleteAccountText}>Delete account</Text>
+            <VerificationBanner
+              text="Complete your kitchen verification to start receiving orders"
+            />
           </TouchableOpacity>
+        )}
+
+        {/* Main Settings Section */}
+        <View style={styles.section}>
+          <MenuItem
+            icon={userIconSVG}
+            text="Business settings"
+            onPress={() => router.push('/personal-info' as any)}
+            disabled={!isAuthenticated}
+          />
+          <MenuItem
+            icon={shieldIconSVG}
+            text="Payouts"
+            onPress={() => router.push('/payout-settings' as any)}
+            disabled={!isAuthenticated}
+          />
+          <MenuItem
+            icon={hopOffIconSVG}
+            text="Food Safety Compliance"
+            onPress={() => router.push('/food-safety-compliance' as any)}
+            disabled={!isAuthenticated}
+          />
+          <MenuItem
+            icon={lockIconSVG}
+            text="Login & security"
+            onPress={() => router.push('/login-security' as any)}
+            disabled={!isAuthenticated}
+          />
+          <MenuItem
+            icon={handIconSVG}
+            text="Privacy"
+            onPress={() => router.push('/privacy' as any)}
+            disabled={!isAuthenticated}
+          />
         </View>
-      )}
+
+        {/* Saved Places Section - Removed for food creator app */}
+
+        {/* Your Data Section */}
+        <View style={styles.section}>
+          <SectionHeader title="Your Data" />
+          <MenuItem
+            icon={filePenIconSVG}
+            text="Download your account data"
+            onPress={() => router.push('/download-account-data' as any)}
+            disabled={!isAuthenticated}
+          />
+          <MenuItem
+            icon={heartHandshakeIconSVG}
+            text="Manage Data Sharing"
+            onPress={() => router.push('/manage-data-sharing' as any)}
+            disabled={!isAuthenticated}
+          />
+        </View>
+
+        {/* Support Section */}
+        <View style={styles.section}>
+          <SectionHeader title="Support" />
+          <MenuItem
+            icon={briefcaseIconSVG}
+            text="Help & Support"
+            onPress={() => router.push('/help-support' as any)}
+          />
+        </View>
+
+        {/* Bottom Actions */}
+        {isAuthenticated && (
+          <View style={styles.bottomActions}>
+            <TouchableOpacity style={styles.logOutButton} onPress={handleLogOut}>
+              <Text style={styles.logOutText}>Log Out</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.deleteAccountButton}
+              onPress={() => router.push('/delete-account' as any)}
+            >
+              <Text style={styles.deleteAccountText}>Delete account</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
 
       {/* Logout Confirmation Modal */}
@@ -588,15 +588,15 @@ export function UserAccountDetailsScreen({
               Are you sure you want to log out? You&apos;ll need to sign in again to access your account.
             </Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={styles.modalCancelButton} 
+              <TouchableOpacity
+                style={styles.modalCancelButton}
                 onPress={handleCancelLogout}
                 activeOpacity={0.7}
               >
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.modalLogoutButton} 
+              <TouchableOpacity
+                style={styles.modalLogoutButton}
                 onPress={handleConfirmLogout}
                 activeOpacity={0.7}
               >

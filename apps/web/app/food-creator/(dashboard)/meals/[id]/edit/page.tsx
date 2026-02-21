@@ -69,7 +69,7 @@ export default function EditMealPage() {
                 sessionToken
             });
             alert("Meal updated successfully!");
-            router.push("/chef/meals");
+            router.push("/food-creator/meals");
         } catch (error) {
             console.error("Failed to update meal:", error);
             alert("Failed to update meal");
@@ -84,7 +84,7 @@ export default function EditMealPage() {
 
         try {
             await deleteMeal({ mealId, sessionToken });
-            router.push("/chef/meals");
+            router.push("/food-creator/meals");
         } catch (error) {
             console.error("Failed to delete meal:", error);
             alert("Failed to delete meal");
@@ -99,7 +99,7 @@ export default function EditMealPage() {
             <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <Link
-                        href="/chef/meals"
+                        href="/food-creator/meals"
                         className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
                     >
                         <ArrowLeft className="h-4 w-4" />
@@ -234,7 +234,7 @@ export default function EditMealPage() {
                             {isLoading ? "Updating..." : "Update Meal"}
                         </button>
                         <Link
-                            href="/chef/meals"
+                            href="/food-creator/meals"
                             className="px-6 py-3 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-all"
                         >
                             Cancel

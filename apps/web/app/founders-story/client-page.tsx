@@ -296,7 +296,7 @@ export default function FoundersStoryPage() {
                             Join the Movement
                         </Link>
                         <Link href="/cooking" className="px-8 py-4 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-xl font-bold text-lg hover:bg-white/20 transition-colors">
-                            Start Cooking
+                            Become a Food Creator
                         </Link>
                     </motion.div>
                 </div>

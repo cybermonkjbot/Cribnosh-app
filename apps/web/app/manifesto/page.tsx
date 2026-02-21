@@ -109,7 +109,7 @@ export default function ManifestoPage() {
                       href="/cooking"
                       className="inline-flex items-center px-6 py-3 bg-[#ff3b30] text-white rounded-lg hover:bg-[#ff5e54] transition-all duration-300 font-satoshi group relative overflow-hidden"
                     >
-                      <span className="relative z-10">Cook on Cribnosh</span>
+                      <span className="relative z-10">Become a Food Creator</span>
                       <motion.svg
                         className="ml-2 w-5 h-5 relative z-10 transition-transform duration-300 group-hover:translate-x-1"
                         fill="none"

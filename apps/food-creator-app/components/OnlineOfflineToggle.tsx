@@ -48,7 +48,7 @@ export function OnlineOfflineToggle({ foodCreatorId, isOnline, sessionToken, onS
 
   // Check if food creator can go online
   const canGoOnlineStatus = useQuery(
-    api.queries.chefCourses.canGoOnline,
+    api.queries.foodCreatorCourses.canGoOnline,
     foodCreatorId && sessionToken
       ? { foodCreatorId, sessionToken }
       : 'skip'

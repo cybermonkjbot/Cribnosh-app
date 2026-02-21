@@ -4362,7 +4362,7 @@ export const customerSearchKitchenMeals = action({
       }
 
       // Search meals by chefId
-      const meals = await ctx.runQuery(api.queries.meals.searchMealsByChefId, {
+      const meals = await ctx.runQuery(api.queries.meals.searchMealsByFoodCreatorId, {
         chefId,
         query: args.query,
         userId: user._id,

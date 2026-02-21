@@ -455,15 +455,16 @@ export default function LiveContent({
     return apiStreams.map((stream) => ({
       id: stream.id,
       name: stream.foodCreator_name,
-      cuisine: "Live Cooking", // Default cuisine since API doesn't provide it
+      cuisine: "Live Stream", // Default cuisine since API doesn't provide it
       viewers: stream.viewer_count,
       isLive: stream.is_live,
       image:
         stream.thumbnail_url ||
+        stream.foodCreator_profile_image ||
         stream.chef_profile_image ||
         "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=300&fit=crop",
       description: stream.description || "Live cooking session",
-      foodCreator: stream.chef_name,
+      foodCreator: stream.foodCreator_name || stream.chef_name || "Food Creator",
     }));
   }, []);
 
@@ -1551,11 +1552,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#9CA3AF",
     lineHeight: 15,
-  },
-  foodCreatorName: {
-    fontSize: 12,
-    color: "#16a34a",
-    fontWeight: "500",
   },
   emptyState: {
     alignItems: "center",

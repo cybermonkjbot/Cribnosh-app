@@ -6,7 +6,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useAddToCart } from "@/hooks/use-cart";
 import { useSession } from "@/lib/auth/use-session";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowLeft, ChefHat, Clock, MapPin, Play, ShoppingCart, Star, UserCheck, UserPlus, Users, Video } from "lucide-react";
+import { ArrowLeft, Clock, ChefHat as FoodCreatorHat, MapPin, Play, ShoppingCart, Star, UserCheck, UserPlus, Users, Video } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -25,7 +25,7 @@ export default function FoodCreatorProfileClient({ foodCreator }: FoodCreatorPro
     const [addingToCart, setAddingToCart] = useState<string | null>(null);
 
     // Fetch food creator's meals
-    const meals = useQuery(api.queries.meals.searchMealsByChefId, {
+    const meals = useQuery(api.queries.meals.searchMealsByFoodCreatorId, {
         chefId: foodCreator._id,
         query: "",
         userId,
@@ -147,8 +147,8 @@ export default function FoodCreatorProfileClient({ foodCreator }: FoodCreatorPro
                                         disabled={isFollowLoading || isFollowing === undefined}
                                         variant={isFollowing ? "outline" : "default"}
                                         className={`rounded-full shadow-xs px-6 ${isFollowing
-                                                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800'
-                                                : 'bg-[#ff3b30] hover:bg-[#ff3b30]/90 text-white'
+                                            ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800'
+                                            : 'bg-[#ff3b30] hover:bg-[#ff3b30]/90 text-white'
                                             }`}
                                     >
                                         {isFollowLoading ? (
@@ -306,7 +306,7 @@ export default function FoodCreatorProfileClient({ foodCreator }: FoodCreatorPro
                     </div>
                 ) : (
                     <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200">
-                        <ChefHat size={48} className="mx-auto text-slate-300 mb-4" />
+                        <FoodCreatorHat size={48} className="mx-auto text-slate-300 mb-4" />
                         <h3 className="text-lg font-medium text-slate-900">No meals available right now</h3>
                         <p className="text-slate-500">Check back later for new dishes.</p>
                     </div>

@@ -8,8 +8,8 @@ import { showError, showSuccess, showWarning } from "../../lib/GlobalToastManage
 import { navigateToSignIn } from "../../utils/signInNavigationGuard";
 import { CartButton } from "./CartButton";
 import { DietCompatibilityBar } from "./MealItemDetails/DietCompatibilityBar";
-import { FoodCreatorNotes } from "./MealItemDetails/FoodCreatorNotes";
 import { FoodCreatorInfo } from "./MealItemDetails/FoodCreatorInfo";
+import { FoodCreatorNotes } from "./MealItemDetails/FoodCreatorNotes";
 import { MealBadges } from "./MealItemDetails/MealBadges";
 import { MealDescription } from "./MealItemDetails/MealDescription";
 import { MealHeader } from "./MealItemDetails/MealHeader";
@@ -21,8 +21,8 @@ import { NutritionalInfo } from "./MealItemDetails/NutritionalInfo";
 import { SimilarMeals } from "./MealItemDetails/SimilarMeals";
 import {
   DietCompatibilityBarSkeleton,
-  FoodCreatorNotesSkeleton,
   FoodCreatorInfoSkeleton,
+  FoodCreatorNotesSkeleton,
   MealBadgesSkeleton,
   MealDescriptionSkeleton,
   MealImageSkeleton,
@@ -45,7 +45,6 @@ interface MealItemDetailsProps {
     foodCreatorName: string;
     foodCreatorAvatar?: string;
     foodCreatorId?: string;
-    foodcreatorId?: string;
     calories: number;
     fat: string;
     protein: string;
@@ -273,10 +272,9 @@ export function MealItemDetails({
         ? parseFloat((dish.price as string).replace(/[£$]/g, '')) * 100
         : (dish.price || 0),
       imageUrl: dish.image_url || (dish as any).images?.[0],
-      foodCreatorName: dish.foodCreator_name || (dish as any).chef?.name || '',
-      foodCreatorAvatar: (dish as any).chef?.profile_image || (dish as any).foodCreator_image,
-      foodCreatorId: dish.foodCreator_id || (dish as any).chef?.id,
-      foodcreatorId: (dish as any).chef?.id,
+      foodCreatorName: dish.foodCreator_name || (dish as any).foodCreator?.name || (dish as any).chef?.name || '',
+      foodCreatorAvatar: (dish as any).foodCreator?.profile_image || (dish as any).chef?.profile_image || (dish as any).foodCreator_image,
+      foodCreatorId: dish.foodCreator_id || (dish as any).foodCreator?.id || (dish as any).chef?.id,
       calories: dish.calories || 0,
       fat: dish.fat || '0g',
       protein: dish.protein || '0g',
@@ -293,9 +291,8 @@ export function MealItemDetails({
       isSafeForYou: dish.is_safe_for_you !== undefined ? dish.is_safe_for_you : true,
       prepTime: dish.prep_time || (dish as any).preparation_time,
       deliveryTime: dish.delivery_time,
-      foodCreatorName: (dish as any).chef?.name,
-      foodCreatorStory: (dish as any).chef?.story || (dish as any).chef?.bio,
-      foodCreatorTips: (dish as any).chef_tips || (dish as any).tips || [],
+      foodCreatorStory: (dish as any).foodCreator?.story || (dish as any).foodCreator?.bio || (dish as any).chef?.story || (dish as any).chef?.bio,
+      foodCreatorTips: (dish as any).foodCreator_tips || (dish as any).chef_tips || (dish as any).tips || [],
       // Extract reviews and sentiment for sentiment bar
       reviews: dish.reviews || [],
       sentiment: dish.sentiment || undefined,
@@ -466,7 +463,7 @@ export function MealItemDetails({
             <FoodCreatorInfo
               foodCreatorName={finalMealData.foodCreatorName}
               foodCreatorAvatar={finalMealData.foodCreatorAvatar}
-              onPress={() => onFoodCreatorNamePress?.(finalMealData.foodCreatorName, finalMealData.foodCreatorId, finalMealData.foodcreatorId)}
+              onPress={() => onFoodCreatorNamePress?.(finalMealData.foodCreatorName, finalMealData.foodCreatorId, finalMealData.foodCreatorId)}
             />
           ) : (
             <FoodCreatorInfoSkeleton />

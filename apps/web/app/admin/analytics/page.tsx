@@ -314,7 +314,7 @@ export default function AdminAnalyticsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { title: 'View Users', icon: Users, href: '/admin/users', color: 'text-gray-900', bgColor: 'bg-gray-100' },
-          { title: 'Manage Chefs', icon: Activity, href: '/admin/chefs', color: 'text-gray-900', bgColor: 'bg-gray-100' },
+          { title: 'Manage Food Creators', icon: Activity, href: '/admin/food-creators', color: 'text-gray-900', bgColor: 'bg-gray-100' },
           { title: 'Order History', icon: ShoppingCart, href: '/admin/orders', color: 'text-gray-900', bgColor: 'bg-gray-100' },
           { title: 'System Settings', icon: BarChart3, href: '/admin/settings', color: 'text-gray-900', bgColor: 'bg-gray-100' },
         ].map((action, index) => {

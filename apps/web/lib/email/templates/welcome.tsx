@@ -1,25 +1,18 @@
 import {
-  Html as EmailHtml,
-  Head,
-  Preview,
-  Container,
-  Section,
-  Row,
-  Column,
+  Section
 } from '@react-email/components';
+import { emailUrls } from '../utils/urls';
 import {
-  EmailWrapper,
-  ProfessionalHeader,
-  ContentText,
-  EmailButton,
-  FooterSection,
   CallToActionSection,
+  ContentText,
+  EmailWrapper,
+  FooterSection,
+  ProfessionalHeader,
   SocialLinks,
   colors,
   spacing,
-  typography,
+  typography
 } from './components';
-import { emailUrls } from '../utils/urls';
 
 interface WelcomeEmailProps {
   name: string;
@@ -63,14 +56,14 @@ export const WelcomeEmail = ({
       subtitle="Your Personal Food Journey Begins"
       showLogo
     />
-    
+
     <Section style={{ padding: `${spacing['2xl']} ${spacing.xl}` }}>
       <ContentText variant="large" color="text">
         Hi {name}!
       </ContentText>
-      
+
       <ContentText>
-        We're absolutely thrilled to have you join our community of food lovers who appreciate 
+        We're absolutely thrilled to have you join our community of food lovers who appreciate
         authentic, home-cooked meals that celebrate cultural diversity and personal connections.
       </ContentText>
 
@@ -79,11 +72,11 @@ export const WelcomeEmail = ({
         <ContentText style={{ ...typography.heading.h3, marginBottom: spacing.lg, textAlign: 'center' }}>
           What Makes CribNosh Special
         </ContentText>
-        
+
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.lg }}>
           <div style={{ flex: '1', minWidth: '250px', textAlign: 'center' }}>
-            <div style={{ 
-              fontSize: '32px', 
+            <div style={{
+              fontSize: '32px',
               marginBottom: spacing.sm,
               width: '48px',
               height: '48px',
@@ -105,10 +98,10 @@ export const WelcomeEmail = ({
               Home kitchens with the highest safety and quality standards
             </ContentText>
           </div>
-          
+
           <div style={{ flex: '1', minWidth: '250px', textAlign: 'center' }}>
-            <div style={{ 
-              fontSize: '32px', 
+            <div style={{
+              fontSize: '32px',
               marginBottom: spacing.sm,
               width: '48px',
               height: '48px',
@@ -127,15 +120,15 @@ export const WelcomeEmail = ({
               Real Food Creators
             </ContentText>
             <ContentText variant="small" color="textSecondary">
-              Authentic chefs sharing their cultural heritage through food
+              Authentic food creators sharing their cultural heritage through food
             </ContentText>
           </div>
         </div>
-        
+
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.md }}>
           <div style={{ flex: '1', minWidth: '250px', textAlign: 'center' }}>
-            <div style={{ 
-              fontSize: '32px', 
+            <div style={{
+              fontSize: '32px',
               marginBottom: spacing.sm,
               width: '48px',
               height: '48px',
@@ -157,10 +150,10 @@ export const WelcomeEmail = ({
               Recommendations tailored to your unique preferences
             </ContentText>
           </div>
-          
+
           <div style={{ flex: '1', minWidth: '250px', textAlign: 'center' }}>
-            <div style={{ 
-              fontSize: '32px', 
+            <div style={{
+              fontSize: '32px',
               marginBottom: spacing.sm,
               width: '48px',
               height: '48px',
@@ -200,7 +193,7 @@ export const WelcomeEmail = ({
     </Section>
 
     <SocialLinks links={socialLinks} />
-    
+
     <FooterSection
       unsubscribeUrl={unsubscribeUrl}
       address={companyAddress}

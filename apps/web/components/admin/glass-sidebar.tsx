@@ -129,10 +129,10 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
       ]
     },
     {
-      name: 'Chefs',
-      href: '/admin/chefs',
+      name: 'Food Creators',
+      href: '/admin/food-creators',
       icon: ChefHat,
-      description: 'Chef management'
+      description: 'Food Creator management'
     },
     {
       name: 'Orders',
@@ -168,7 +168,7 @@ export function GlassSidebar({ isOpen = true, onClose, onLogout }: GlassSidebarP
           name: 'Reviews',
           href: '/admin/reviews',
           icon: MessageSquare,
-          description: 'Chef & Meal reviews',
+          description: 'Food Creator & Meal reviews',
         },
       ]
     },

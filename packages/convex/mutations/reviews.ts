@@ -1,14 +1,14 @@
 // @ts-nocheck
-import { mutation } from '../_generated/server';
 import { v } from 'convex/values';
-import { requireAuth, isAdmin, isStaff } from '../utils/auth';
 import { api } from '../_generated/api';
+import { mutation } from '../_generated/server';
+import { isAdmin, isStaff, requireAuth } from '../utils/auth';
 
 export const create = mutation({
   args: {
     user_id: v.id('users'),
     meal_id: v.optional(v.id('meals')),
-    chef_id: v.optional(v.id('chefs')),
+    foodCreatorId: v.optional(v.id('chefs')),
     order_id: v.optional(v.id('orders')),
     rating: v.number(),
     comment: v.optional(v.string()),
@@ -25,7 +25,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     // Users can only create reviews for themselves
     if (!isAdmin(user) && !isStaff(user) && args.user_id !== user._id) {
       throw new Error('Access denied');
@@ -33,7 +33,7 @@ export const create = mutation({
     return await ctx.db.insert('reviews', {
       user_id: args.user_id,
       meal_id: args.meal_id,
-      chef_id: args.chef_id,
+      chef_id: args.foodCreatorId,
       order_id: args.order_id,
       rating: args.rating,
       comment: args.comment,
@@ -58,13 +58,13 @@ export const updateReview = mutation({
   handler: async (ctx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     // Get review to check ownership
     const review = await ctx.db.get(args.reviewId);
     if (!review) {
       throw new Error('Review not found');
     }
-    
+
     // Users can update their own reviews, staff/admin can update any
     // Only staff/admin can update status and approvalNotes
     if (args.status || args.approvalNotes) {
@@ -96,31 +96,31 @@ export const deleteReview = mutation({
   handler: async (ctx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     // Get review to check ownership
     const review = await ctx.db.get(args.reviewId);
     if (!review) {
       throw new Error('Review not found');
     }
-    
+
     // Users can delete their own reviews, staff/admin can delete any
     if (!isAdmin(user) && !isStaff(user) && (review as any).user_id !== user._id) {
       throw new Error('Access denied');
     }
-    
+
     await ctx.db.delete(args.reviewId);
   },
 });
 
 /**
- * Create review with chef rating update - consolidates review creation and chef rating update
- * This mutation creates a review and immediately updates the chef's average rating
+ * Create review with food creator rating update - consolidates review creation and food creator rating update
+ * This mutation creates a review and immediately updates the food creator's average rating
  */
-export const createReviewWithChefRatingUpdate = mutation({
+export const createReviewWithFoodCreatorRatingUpdate = mutation({
   args: {
     user_id: v.id('users'),
     meal_id: v.optional(v.id('meals')),
-    chef_id: v.optional(v.id('chefs')),
+    foodCreatorId: v.optional(v.id('chefs')),
     order_id: v.optional(v.id('orders')),
     rating: v.number(),
     comment: v.optional(v.string()),
@@ -136,13 +136,13 @@ export const createReviewWithChefRatingUpdate = mutation({
   },
   returns: v.object({
     reviewId: v.id('reviews'),
-    chefRatingUpdated: v.optional(v.boolean()),
+    foodCreatorRatingUpdated: v.optional(v.boolean()),
     averageRating: v.optional(v.number()),
   }),
   handler: async (ctx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
+
     // Users can only create reviews for themselves
     if (!isAdmin(user) && !isStaff(user) && args.user_id !== user._id) {
       throw new Error('Access denied');
@@ -151,7 +151,7 @@ export const createReviewWithChefRatingUpdate = mutation({
     const reviewId = await ctx.db.insert('reviews', {
       user_id: args.user_id,
       meal_id: args.meal_id,
-      chef_id: args.chef_id,
+      chef_id: args.foodCreatorId,
       order_id: args.order_id,
       rating: args.rating,
       comment: args.comment,
@@ -160,18 +160,18 @@ export const createReviewWithChefRatingUpdate = mutation({
       createdAt: args.createdAt,
     });
 
-    // Update chef's average rating if chef_id is provided
-    let chefRatingUpdated = false;
+    // Update food creator's average rating if foodCreatorId is provided
+    let foodCreatorRatingUpdated = false;
     let averageRating: number | undefined;
-    
-    if (args.chef_id) {
+
+    if (args.foodCreatorId) {
       try {
-        const chef = await ctx.db.get(args.chef_id);
-        if (chef) {
-          // Get all reviews for this chef
+        const foodCreator = await ctx.db.get(args.foodCreatorId);
+        if (foodCreator) {
+          // Get all reviews for this food creator
           const reviews = await ctx.db
             .query('reviews')
-            .filter((q) => q.eq(q.field('chef_id'), args.chef_id))
+            .filter((q) => q.eq(q.field('chef_id'), args.foodCreatorId))
             .collect();
 
           if (reviews.length > 0) {
@@ -179,15 +179,15 @@ export const createReviewWithChefRatingUpdate = mutation({
             const totalRating = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
             averageRating = totalRating / reviews.length;
 
-            // Update chef rating and performance
-            const currentPerformance = chef.performance || {
+            // Update food creator rating and performance
+            const currentPerformance = foodCreator.performance || {
               totalOrders: 0,
               completedOrders: 0,
               averageRating: 0,
               totalEarnings: 0,
             };
 
-            await ctx.db.patch(args.chef_id, {
+            await ctx.db.patch(args.foodCreatorId, {
               rating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
               performance: {
                 ...currentPerformance,
@@ -196,11 +196,11 @@ export const createReviewWithChefRatingUpdate = mutation({
               updatedAt: Date.now(),
             });
 
-            chefRatingUpdated = true;
+            foodCreatorRatingUpdated = true;
           }
         }
       } catch (error) {
-        console.error('Failed to update chef rating:', error);
+        console.error('Failed to update food creator rating:', error);
         // Continue - review is created, rating update can be retried
       }
     }
@@ -222,7 +222,7 @@ export const createReviewWithChefRatingUpdate = mutation({
 
     return {
       reviewId,
-      chefRatingUpdated,
+      foodCreatorRatingUpdated,
       averageRating,
     };
   },

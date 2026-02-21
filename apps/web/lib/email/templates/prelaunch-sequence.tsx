@@ -59,11 +59,11 @@ export const PrelaunchWelcome = ({ user, unsubscribeUrl, companyAddress }: Prela
     <HeaderSection title="You're officially on the guest list!" showLogo />
     <ContentText variant="large">Hi {user.name},</ContentText>
     <ContentText>
-      Thanks for joining CribNosh early! You&apos;re not just a number, you&apos;re a founding foodie. We&apos;re building a platform where every meal is a vibe, every chef is a storyteller, and every bite is curated for you.
+      Thanks for joining CribNosh early! You&apos;re not just a number, you&apos;re a founding foodie. We&apos;re building a platform where every meal is a vibe, every food creator is a storyteller, and every bite is curated for you.
     </ContentText>
     <CardSection>
       <ContentText>
-        Over the next few weeks, well share sneak peeks, chef stories, and exclusive perks. Stay tuned, your citys food scene is about to get a glow-up.
+        Over the next few weeks, well share sneak peeks, food creator stories, and exclusive perks. Stay tuned, your citys food scene is about to get a glow-up.
       </ContentText>
     </CardSection>
     <img

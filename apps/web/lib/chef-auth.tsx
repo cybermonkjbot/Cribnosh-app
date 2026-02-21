@@ -150,7 +150,7 @@ export function ChefAuthProvider({ children }: ChefAuthProviderProps) {
             // Clear session token using auth-clientRegardless of error
             clearAuthToken();
             setSessionToken(null);
-            router.push("/chef/sign-in");
+            router.push("/food-creator/sign-in");
         }
     }, [convex, router]);
 

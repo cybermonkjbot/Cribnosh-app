@@ -43,11 +43,11 @@ import { FeaturedFoodCreatorsDrawer } from "./FeaturedFoodCreatorsDrawer";
 import { FeaturedFoodCreatorsSection } from "./FeaturedFoodCreatorsSection";
 import { FilteredEmptyState } from "./FilteredEmptyState";
 import { FloatingActionButton } from "./FloatingActionButton";
+import { FoodCreatorScreen } from "./FoodCreatorScreen";
+import { FoodCreatorsNearMe } from "./FoodCreatorsNearMe";
 import { GeneratingSuggestionsLoader } from "./GeneratingSuggestionsLoader";
 import { Header } from "./Header";
 import { HiddenSections } from "./HiddenSections";
-import { FoodCreatorScreen } from "./FoodCreatorScreen";
-import { FoodCreatorsNearMe } from "./FoodCreatorsNearMe";
 import LiveContent from "./LiveContent";
 import { MapBottomSheet } from "./MapBottomSheet";
 import { MealItemDetails } from "./MealItemDetails";
@@ -160,13 +160,13 @@ export function MainScreen() {
   // Refetch function for compatibility
   const refetchCuisines = loadCuisines;
 
-  // Popular chefs using useFoodCreators hook
+  // Popular food creators using useFoodCreators hook
   const { getPopularFoodCreators } = useFoodCreators();
   const [foodCreatorsData, setFoodCreatorsData] = useState<any>(null);
   const [foodCreatorsLoading, setFoodCreatorsLoading] = useState(false);
   const [foodCreatorsError, setFoodCreatorsError] = useState<any>(null);
 
-  // Load popular chefs function
+  // Load popular food creators function
   const loadPopularFoodCreators = useCallback(async () => {
     try {
       setFoodCreatorsLoading(true);
@@ -207,7 +207,7 @@ export function MainScreen() {
           data: {
             popular: result.data.meals.map((meal: any) => ({
               meal,
-              foodCreator: meal.chef || null,
+              foodCreator: meal.foodCreator || meal.chef || null,
             }))
           }
         });
@@ -377,13 +377,13 @@ export function MainScreen() {
     if (!apiMeal?.meal) return null;
 
     const meal = apiMeal.meal;
-    const chef = apiMeal.chef;
+    const foodCreator = apiMeal.foodCreator || apiMeal.chef;
 
     return {
       id: meal._id || meal.id || '',
       name: meal.name || 'Unknown Meal',
-      foodCreator: chef?.foodCreator_name || chef?.name || 'Unknown FoodCreator',
-      cuisine: chef?.cuisine || '', // Store cuisine for filtering
+      foodCreator: foodCreator?.foodCreator_name || foodCreator?.name || 'Unknown FoodCreator',
+      cuisine: foodCreator?.cuisine || '', // Store cuisine for filtering
       price: meal.price ? `£${(meal.price / 100).toFixed(2)}` : '£0.00',
       originalPrice: meal.original_price ? `£${(meal.original_price / 100).toFixed(2)}` : undefined,
       image: {

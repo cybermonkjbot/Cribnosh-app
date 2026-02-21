@@ -5,12 +5,12 @@ import { useMutation } from 'convex/react';
 import { useEffect } from 'react';
 
 export function LocationTracker() {
-    const { foodCreator: chef, isAuthenticated, sessionToken } = useFoodCreatorAuth();
-    const updateChefLocation = useMutation(api.mutations.foodCreators.updateChefLocation);
+    const { foodCreator, isAuthenticated, sessionToken } = useFoodCreatorAuth();
+    const updateFoodCreatorLocation = useMutation(api.mutations.foodCreators.updateFoodCreatorLocation);
 
     useEffect(() => {
-        // Only track if authenticated and have chef profile
-        if (!isAuthenticated || !chef?._id || !sessionToken) {
+        // Only track if authenticated and have food creator profile
+        if (!isAuthenticated || !foodCreator?._id || !sessionToken) {
             locationService.stopLocationWatching();
             return;
         }
@@ -28,22 +28,22 @@ export function LocationTracker() {
                     updateLocation(location);
                 },
                 {
-                    timeInterval: 60000, // Update every minute for chefs (less critical than drivers)
+                    timeInterval: 60000, // Update every minute for food creators (less critical than drivers)
                     distanceInterval: 100, // Or every 100 meters
                 }
             );
         };
 
         const updateLocation = (location: LocationData) => {
-            if (!chef?._id) return;
+            if (!foodCreator?._id) return;
 
-            updateChefLocation({
-                chefId: chef._id,
+            updateFoodCreatorLocation({
+                foodCreatorId: foodCreator._id,
                 lat: location.latitude,
                 lng: location.longitude,
                 sessionToken,
             }).catch((err) => {
-                console.error('Failed to update chef location:', err);
+                console.error('Failed to update food creator location:', err);
             });
         };
 
@@ -52,7 +52,7 @@ export function LocationTracker() {
         return () => {
             locationService.stopLocationWatching();
         };
-    }, [isAuthenticated, chef?._id, sessionToken]);
+    }, [isAuthenticated, foodCreator?._id, sessionToken]);
 
     return null; // Logic component only, no UI
 }

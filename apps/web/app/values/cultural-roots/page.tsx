@@ -33,7 +33,7 @@ export default function CulturalRootsPage() {
       title: "Cultural Education",
       description: "Learning about different cultures through their unique cooking methods and ingredients.",
       color: "from-emerald-400/20 to-teal-400/20",
-      examples: ["Cooking techniques", "Ingredient origins", "Cultural significance", "Historical context"]
+      examples: ["Culinary techniques", "Ingredient origins", "Cultural significance", "Historical context"]
     }
   ];
 

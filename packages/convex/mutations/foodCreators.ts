@@ -175,7 +175,7 @@ export const deleteCuisine = mutation({
 
 export const updateFoodCreator = mutation({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     status: v.union(
       v.literal('active'),
       v.literal('inactive'),
@@ -187,7 +187,7 @@ export const updateFoodCreator = mutation({
     // Require staff/admin authentication for status updates
     await requireStaff(ctx, args.sessionToken);
 
-    await ctx.db.patch(args.chefId, {
+    await ctx.db.patch(args.foodCreatorId, {
       status: args.status
     });
     return { status: 'ok' };
@@ -196,7 +196,7 @@ export const updateFoodCreator = mutation({
 
 export const toggleAvailability = mutation({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     isAvailable: v.boolean(),
     sessionToken: v.optional(v.string()),
   },
@@ -205,7 +205,7 @@ export const toggleAvailability = mutation({
     const user = await requireAuth(ctx, args.sessionToken);
 
     // Get the foodCreator to verify ownership
-    const foodCreator = await ctx.db.get(args.chefId);
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
     if (!foodCreator) {
       throw new Error('FoodCreator not found');
     }
@@ -221,7 +221,7 @@ export const toggleAvailability = mutation({
       const complianceCourse = await ctx.db
         .query('chefCourses')
         .withIndex('by_chef_course', q =>
-          q.eq('chefId', args.chefId).eq('courseId', 'compliance-course-v1')
+          q.eq('chefId', args.foodCreatorId).eq('courseId', 'compliance-course-v1')
         )
         .first();
 
@@ -234,7 +234,7 @@ export const toggleAvailability = mutation({
       // Check required documents
       const documents = await ctx.db
         .query('chefDocuments')
-        .withIndex('by_chef', q => q.eq('chefId', args.chefId as any))
+        .withIndex('by_chef', q => q.eq('chefId', args.foodCreatorId as any))
         .collect();
 
       const requiredDocuments = documents.filter(d => d.isRequired);
@@ -246,7 +246,7 @@ export const toggleAvailability = mutation({
       }
     }
 
-    await ctx.db.patch(args.chefId, {
+    await ctx.db.patch(args.foodCreatorId, {
       isAvailable: args.isAvailable,
       updatedAt: Date.now(),
     });
@@ -257,7 +257,7 @@ export const toggleAvailability = mutation({
 
 export const update = mutation({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     updates: v.object({
       name: v.optional(v.string()),
       bio: v.optional(v.string()),
@@ -279,7 +279,7 @@ export const update = mutation({
     const user = await requireAuth(ctx, args.sessionToken);
 
     // Get the foodCreator to verify ownership or admin access
-    const foodCreator = await ctx.db.get(args.chefId);
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
     if (!foodCreator) {
       throw new Error("FoodCreator not found");
     }
@@ -325,7 +325,7 @@ export const update = mutation({
     }
 
     // Apply updates
-    await ctx.db.patch(args.chefId, updates as any);
+    await ctx.db.patch(args.foodCreatorId, updates as any);
 
     return { success: true };
   },
@@ -333,7 +333,7 @@ export const update = mutation({
 
 export const saveOnboardingDraft = mutation({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     draft: v.object({
       name: v.optional(v.string()),
       bio: v.optional(v.string()),
@@ -354,7 +354,7 @@ export const saveOnboardingDraft = mutation({
     const user = await requireAuth(ctx, args.sessionToken);
 
     // Get the foodCreator to verify ownership
-    const foodCreator = await ctx.db.get(args.chefId);
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
     if (!foodCreator) {
       throw new Error("FoodCreator not found");
     }
@@ -365,7 +365,7 @@ export const saveOnboardingDraft = mutation({
     }
 
     // Save draft data
-    await ctx.db.patch(args.chefId, {
+    await ctx.db.patch(args.foodCreatorId, {
       onboardingDraft: args.draft,
       updatedAt: Date.now(),
     });
@@ -376,7 +376,7 @@ export const saveOnboardingDraft = mutation({
 
 export const clearOnboardingDraft = mutation({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     sessionToken: v.optional(v.string())
   },
   handler: async (ctx, args) => {
@@ -384,7 +384,7 @@ export const clearOnboardingDraft = mutation({
     const user = await requireAuth(ctx, args.sessionToken);
 
     // Get the foodCreator to verify ownership
-    const foodCreator = await ctx.db.get(args.chefId);
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
     if (!foodCreator) {
       throw new Error("FoodCreator not found");
     }
@@ -395,7 +395,7 @@ export const clearOnboardingDraft = mutation({
     }
 
     // Clear draft data
-    await ctx.db.patch(args.chefId, {
+    await ctx.db.patch(args.foodCreatorId, {
       onboardingDraft: undefined,
       updatedAt: Date.now(),
     });
@@ -406,7 +406,7 @@ export const clearOnboardingDraft = mutation({
 
 export const updateAvailability = mutation({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     updates: v.object({
       isAvailable: v.optional(v.boolean()),
       availableDays: v.optional(v.array(v.string())),
@@ -423,7 +423,7 @@ export const updateAvailability = mutation({
     const user = await requireAuth(ctx, args.sessionToken);
 
     // Get the foodCreator to verify ownership
-    const foodCreator = await ctx.db.get(args.chefId);
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
     if (!foodCreator) {
       throw new Error("FoodCreator not found");
     }
@@ -434,7 +434,7 @@ export const updateAvailability = mutation({
     }
 
     // Apply updates
-    await ctx.db.patch(args.chefId, args.updates as any);
+    await ctx.db.patch(args.foodCreatorId, args.updates as any);
 
     return { success: true };
   },
@@ -584,7 +584,7 @@ export const createCuisineForSeed = internalMutation({
  */
 export const skipComplianceTraining = mutation({
   args: {
-    chefId: v.id("chefs"),
+    foodCreatorId: v.id("chefs"),
     sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -592,7 +592,7 @@ export const skipComplianceTraining = mutation({
     const user = await requireAuth(ctx, args.sessionToken);
 
     // Get foodCreator to verify ownership
-    const foodCreator = await ctx.db.get(args.chefId);
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
 
     if (!foodCreator) {
       throw new Error('FoodCreator not found');
@@ -604,7 +604,7 @@ export const skipComplianceTraining = mutation({
     }
 
     // Mark compliance training as skipped
-    await ctx.db.patch(args.chefId, {
+    await ctx.db.patch(args.foodCreatorId, {
       complianceTrainingSkipped: true,
       updatedAt: Date.now(),
     });
@@ -619,7 +619,7 @@ export const skipComplianceTraining = mutation({
  */
 export const updateFoodCreatorLocation = mutation({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     lat: v.number(),
     lng: v.number(),
     sessionToken: v.optional(v.string())
@@ -629,7 +629,7 @@ export const updateFoodCreatorLocation = mutation({
     const user = await requireAuth(ctx, args.sessionToken);
 
     // Get foodCreator to verify ownership
-    const foodCreator = await ctx.db.get(args.chefId);
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
     if (!foodCreator) {
       throw new Error("FoodCreator not found");
     }
@@ -640,7 +640,7 @@ export const updateFoodCreatorLocation = mutation({
     }
 
     // Update location coordinates while preserving the city
-    await ctx.db.patch(args.chefId, {
+    await ctx.db.patch(args.foodCreatorId, {
       location: {
         city: foodCreator.location.city,
         coordinates: [args.lng, args.lat] // GeoJSON format: [lng, lat]
@@ -653,7 +653,7 @@ export const updateFoodCreatorLocation = mutation({
 
 export const updateFsaRating = mutation({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     rating: v.number(), // 0-5
     sessionToken: v.optional(v.string())
   },
@@ -668,7 +668,7 @@ export const updateFsaRating = mutation({
       throw new Error("FSA Rating must be between 0 and 5");
     }
 
-    await ctx.db.patch(args.chefId, {
+    await ctx.db.patch(args.foodCreatorId, {
       fsaRating: args.rating,
       updatedAt: Date.now(),
     });
@@ -678,7 +678,7 @@ export const updateFsaRating = mutation({
 // Admin: Moderate food creator (suspend, flag, verify)
 export const adminModerateFoodCreator = mutation({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     status: v.union(
       v.literal('active'),
       v.literal('pending'),
@@ -696,12 +696,12 @@ export const adminModerateFoodCreator = mutation({
       throw new Error("Only admins and staff can moderate food creators");
     }
 
-    const chef = await ctx.db.get(args.chefId);
-    if (!chef) {
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
+    if (!foodCreator) {
       throw new Error("Food creator not found");
     }
 
-    await ctx.db.patch(args.chefId, {
+    await ctx.db.patch(args.foodCreatorId, {
       status: args.status,
       // Note: we might need specialized moderation fields in schema
       updatedAt: Date.now(),
@@ -710,7 +710,7 @@ export const adminModerateFoodCreator = mutation({
     // If there's an associated user account, we might want to flag/lock it too
     // But for now we just change the chef profile status
 
-    console.log(`Food creator ${args.chefId} moderated to status: ${args.status} by ${user._id}`);
+    console.log(`Food creator ${args.foodCreatorId} moderated to status: ${args.status} by ${user._id}`);
 
     return {
       success: true,

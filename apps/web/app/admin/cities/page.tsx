@@ -121,7 +121,8 @@ export default function CitiesManagementPage() {
     }
 
     try {
-      await createCity({...newCity,
+      await createCity({
+        ...newCity,
         slug: newCity.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         coordinates: {
           latitude: newCity.latitude,
@@ -142,7 +143,7 @@ export default function CitiesManagementPage() {
         },
         sessionToken: sessionToken || undefined
       });
-      
+
       setNewCity({
         name: '',
         country: '',
@@ -173,9 +174,10 @@ export default function CitiesManagementPage() {
 
   const handleUpdateCity = async (cityId: Id<"cities">, updates: Partial<City>) => {
     try {
-      await updateCity({cityId, ...updates,
-    sessionToken: sessionToken || undefined
-  });
+      await updateCity({
+        cityId, ...updates,
+        sessionToken: sessionToken || undefined
+      });
       setSuccess('City updated successfully');
       setError(null);
       setIsEditing(null);
@@ -187,9 +189,10 @@ export default function CitiesManagementPage() {
   const handleDeleteCity = async (cityId: Id<"cities">) => {
     if (confirm('Are you sure you want to delete this city?')) {
       try {
-        await deleteCity({cityId,
-    sessionToken: sessionToken || undefined
-  });
+        await deleteCity({
+          cityId,
+          sessionToken: sessionToken || undefined
+        });
         setSuccess('City deleted successfully');
         setError(null);
       } catch (err) {
@@ -200,9 +203,10 @@ export default function CitiesManagementPage() {
 
   const handleToggleStatus = async (cityId: Id<"cities">) => {
     try {
-      await toggleCityStatus({cityId,
-    sessionToken: sessionToken || undefined
-  });
+      await toggleCityStatus({
+        cityId,
+        sessionToken: sessionToken || undefined
+      });
       setSuccess('City status updated successfully');
       setError(null);
     } catch (err) {
@@ -211,18 +215,18 @@ export default function CitiesManagementPage() {
   };
 
   const filteredCities = cities?.filter((city: any) => {
-    const matchesSearch = 
+    const matchesSearch =
       city.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       city.country.toLowerCase().includes(searchTerm.toLowerCase()) ||
       city.region.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || 
+
+    const matchesStatus = statusFilter === 'all' ||
       (statusFilter === 'active' && city.isActive) ||
       (statusFilter === 'inactive' && !city.isActive) ||
       (statusFilter === 'launch' && city.isLaunchCity);
-    
+
     const matchesCountry = countryFilter === 'all' || city.country === countryFilter;
-    
+
     return matchesSearch && matchesStatus && matchesCountry;
   }).sort((a: any, b: any) => {
     switch (sortBy) {
@@ -285,7 +289,7 @@ export default function CitiesManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -301,7 +305,7 @@ export default function CitiesManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -317,7 +321,7 @@ export default function CitiesManagementPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -325,7 +329,7 @@ export default function CitiesManagementPage() {
                 <ChefHat className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Chefs</p>
+                <p className="text-sm text-gray-600">Total Food Creators</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {cities?.reduce((sum: any, c: any) => sum + c.stats.totalChefs, 0) || 0}
                 </p>
@@ -464,8 +468,8 @@ export default function CitiesManagementPage() {
                   <Input
                     type="time"
                     value={newCity.operatingHours.open}
-                    onChange={(e) => setNewCity(prev => ({ 
-                      ...prev, 
+                    onChange={(e) => setNewCity(prev => ({
+                      ...prev,
                       operatingHours: { ...prev.operatingHours, open: e.target.value }
                     }))}
                   />
@@ -473,8 +477,8 @@ export default function CitiesManagementPage() {
                   <Input
                     type="time"
                     value={newCity.operatingHours.close}
-                    onChange={(e) => setNewCity(prev => ({ 
-                      ...prev, 
+                    onChange={(e) => setNewCity(prev => ({
+                      ...prev,
                       operatingHours: { ...prev.operatingHours, close: e.target.value }
                     }))}
                   />
@@ -538,7 +542,7 @@ export default function CitiesManagementPage() {
             className="pl-10"
           />
         </div>
-        
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-32">
             <Filter className="w-4 h-4 mr-2" />
@@ -551,7 +555,7 @@ export default function CitiesManagementPage() {
             <SelectItem value="launch">Launch Cities</SelectItem>
           </SelectContent>
         </Select>
-        
+
         <Select value={countryFilter} onValueChange={setCountryFilter}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="Country" />
@@ -563,7 +567,7 @@ export default function CitiesManagementPage() {
             ))}
           </SelectContent>
         </Select>
-        
+
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="Sort by" />
@@ -571,7 +575,7 @@ export default function CitiesManagementPage() {
           <SelectContent>
             <SelectItem value="name">Name</SelectItem>
             <SelectItem value="users">Users</SelectItem>
-            <SelectItem value="chefs">Chefs</SelectItem>
+            <SelectItem value="chefs">Food Creators</SelectItem>
             <SelectItem value="orders">Orders</SelectItem>
             <SelectItem value="recent">Recent</SelectItem>
           </SelectContent>
@@ -580,7 +584,7 @@ export default function CitiesManagementPage() {
 
       {/* Cities Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredCities.map((city: any) => (
+        {filteredCities.map((city: any) => (
           <Card key={city._id} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -594,7 +598,7 @@ export default function CitiesManagementPage() {
                 {getStatusBadge(city)}
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-4">
               {/* City Info */}
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -654,7 +658,7 @@ export default function CitiesManagementPage() {
                   size="sm"
                   variant="outline"
                   className="flex-1"
-                  onClick={() => {/* View city details */}}
+                  onClick={() => {/* View city details */ }}
                 >
                   <Eye className="w-4 h-4 mr-1" />
                   View

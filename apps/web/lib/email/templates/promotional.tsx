@@ -1,31 +1,25 @@
-import React from 'react';
-import { emailUrls } from '../utils/urls';
 import {
+  Container,
   Html as EmailHtml,
   Head,
   Preview,
-  Container,
-  Section,
-  Row,
-  Column,
+  Section
 } from '@react-email/components';
+import React from 'react';
 import {
-  EmailWrapper,
-  ProfessionalHeader,
-  ContentText,
-  EmailButton,
-  FooterSection,
   CallToActionSection,
-  SocialLinks,
-  colors,
-  spacing,
-  typography,
-  ProgressBar,
+  ContentText,
   CountdownTimer,
+  EmailWrapper,
+  FooterSection,
+  ProfessionalHeader,
   RatingStars,
+  SocialLinks,
   SocialProof,
   StatsHighlight,
-  InteractiveButton,
+  colors,
+  spacing,
+  typography
 } from './components';
 
 interface PromotionalEmailProps {
@@ -88,14 +82,14 @@ export const PromotionalEmail: React.FC<PromotionalEmailProps> = ({
           showLogo
           backgroundColor={colors.primary}
         />
-        
+
         <Section style={{ padding: `${spacing['2xl']} ${spacing.xl}` }}>
           <ContentText variant="large" color="text">
             Hi {recipientName}!
           </ContentText>
-          
+
           <ContentText>
-            We're excited to offer you an exclusive {discountPercentage}% discount on your first CribNosh order! 
+            We're excited to offer you an exclusive {discountPercentage}% discount on your first CribNosh order!
             This is our way of welcoming you to our community of food lovers.
           </ContentText>
 
@@ -189,7 +183,7 @@ export const PromotionalEmail: React.FC<PromotionalEmailProps> = ({
           <ContentText style={{ ...typography.heading.h3, textAlign: 'center', margin: `${spacing.xl} 0 ${spacing.lg} 0` }}>
             Meet Our Featured Food Creators
           </ContentText>
-          
+
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.lg }}>
             {featuredChefs.slice(0, 2).map((chef, index) => (
               <div key={index} style={{ flex: '1', minWidth: '250px', textAlign: 'center', padding: spacing.lg, backgroundColor: colors.backgroundSecondary, borderRadius: '8px' }}>
@@ -274,7 +268,7 @@ export const PromotionalEmail: React.FC<PromotionalEmailProps> = ({
                 role: "Food Blogger",
               },
               {
-                quote: "The quality and authenticity of the food is incredible. It's like having a personal chef from around the world!",
+                quote: "The quality and authenticity of the food is incredible. It's like having a personal food creator from around the world!",
                 author: "David K.",
                 role: "Regular Customer",
               },
@@ -289,15 +283,15 @@ export const PromotionalEmail: React.FC<PromotionalEmailProps> = ({
             margin: `${spacing.xl} 0`,
           }}>
             <ContentText style={{ ...typography.body.small, color: colors.textMuted, margin: '0' }}>
-              <strong>Terms & Conditions:</strong> This offer is valid for first-time customers only. 
-              Discount applies to food items only, not delivery fees. Offer expires on {new Date(expiryDate).toLocaleDateString()}. 
+              <strong>Terms & Conditions:</strong> This offer is valid for first-time customers only.
+              Discount applies to food items only, not delivery fees. Offer expires on {new Date(expiryDate).toLocaleDateString()}.
               Cannot be combined with other offers. CribNosh reserves the right to modify or cancel this promotion at any time.
             </ContentText>
           </Container>
         </Section>
 
         <SocialLinks links={socialLinks} />
-        
+
         <FooterSection
           unsubscribeUrl={unsubscribeUrl}
           address={companyAddress}

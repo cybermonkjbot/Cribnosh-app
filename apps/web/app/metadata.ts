@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://cribnosh.com';
+const defaultBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://cribnosh.com';
 
-export const metadata: Metadata = {
+export const getSiteMetadata = (baseUrl: string = defaultBaseUrl): Metadata => ({
   metadataBase: new URL(baseUrl),
   title: {
     default: "CribNosh | The app for foodies",
@@ -153,6 +153,11 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: baseUrl,
+    languages: {
+      'en-GB': 'https://cribnosh.co.uk',
+      'en-US': 'https://cribnosh.com',
+      'x-default': 'https://cribnosh.com',
+    },
   },
   robots: {
     index: true,
@@ -165,4 +170,6 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-}; 
+});
+
+export const metadata: Metadata = getSiteMetadata();

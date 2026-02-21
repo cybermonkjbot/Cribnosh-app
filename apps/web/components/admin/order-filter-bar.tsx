@@ -40,9 +40,9 @@ export function OrderFilterBar({
 }: OrderFilterBarProps) {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  const hasActiveFilters = 
-    searchValue !== "" || 
-    statusFilter !== "all" || 
+  const hasActiveFilters =
+    searchValue !== "" ||
+    statusFilter !== "all" ||
     paymentFilter !== "all" ||
     timeFilter !== "today" ||
     sortBy !== "recent";
@@ -66,7 +66,7 @@ export function OrderFilterBar({
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
-              placeholder="Search by customer, chef, city, or order ID..."
+              placeholder="Search by customer, food creator, city, or order ID..."
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
               className="pl-10 h-10 bg-white border-gray-200 focus:border-gray-400 focus:ring-gray-400"
@@ -283,7 +283,7 @@ export function OrderFilterBar({
           className="flex flex-wrap items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
         >
           <span className="text-xs font-medium text-gray-600">Active filters:</span>
-          
+
           {searchValue && (
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-white text-gray-700 text-xs rounded-md border border-gray-200">
               Search: "{searchValue}"

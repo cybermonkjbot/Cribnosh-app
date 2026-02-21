@@ -1199,44 +1199,41 @@ export const checkCartFoodCreatorAvailability = query({
   },
 });
 
-// Get count of completed orders (servings) for a chef
-// @ts-ignore: Type instantiation is excessively deep
-export const getChefCompletedOrdersCount = query({
+// Get count of completed orders (servings) for a food creator
+export const getFoodCreatorCompletedOrdersCount = query({
   args: {
-    chefId: v.string(),
+    foodCreatorId: v.string(),
     sessionToken: v.optional(v.string()),
   },
   returns: v.number(),
   handler: async (ctx, args) => {
-    // Get authenticated user (optional for public viewing)
-    const user = await getAuthenticatedUser(ctx, args.sessionToken);
-
-    // If authenticated and not admin/staff, verify chef ownership
-    if (user && !isAdmin(user) && !isStaff(user)) {
-      try {
-        const chef = await ctx.runQuery(api.queries.chefs.getById, {
-          chefId: args.chefId as any,
-        });
-        if (!chef || chef.userId !== user._id) {
-          // For public profiles, allow viewing stats
-          // Just continue without throwing error
-        }
-      } catch (error) {
-        // Chef not found or access denied, but allow public viewing
-      }
+    // Check if foodCreatorId is a valid user ID or chef ID
+    let foodCreator;
+    try {
+      foodCreator = await ctx.db.get(args.foodCreatorId as any);
+    } catch (e) {
+      // Not a valid ID
     }
 
-    const orders = await ctx.db
-      .query("orders")
-      .filter((q: any) =>
-        q.and(
-          q.eq(q.field("chef_id"), args.chefId),
-          q.eq(q.field("order_status"), "delivered")
-        )
-      )
+    if (!foodCreator) {
+      // Try by userId
+      foodCreator = await ctx.db
+        .query('chefs')
+        .withIndex('by_user', q => q.eq('userId', args.foodCreatorId as any))
+        .first();
+    }
+
+    if (!foodCreator) {
+      return 0;
+    }
+
+    const completedOrders = await ctx.db
+      .query('orders')
+      .withIndex('by_chef', q => q.eq('chef_id', foodCreator._id))
+      .filter(q => q.eq(q.field('order_status'), 'delivered'))
       .collect();
 
-    return orders.length;
+    return completedOrders.length;
   },
 });
 
@@ -1310,15 +1307,15 @@ export const getEnrichedOrdersBySessionToken = query({
     );
     const mealMap = new Map(meals.filter((m: any): m is any => !!m).map((m: any) => [m._id, m]));
 
-    // Batch fetch chefs for kitchen names
-    const chefIds = new Set<string>();
+    // Batch fetch food creators for kitchen names
+    const foodCreatorIds = new Set<string>();
     paginatedOrders.forEach((order: any) => {
-      if (order.chef_id) chefIds.add(order.chef_id);
+      if (order.chef_id) foodCreatorIds.add(order.chef_id);
     });
-    const chefs = await Promise.all(
-      Array.from(chefIds).map(id => ctx.db.get(id as Id<'chefs'>))
+    const foodCreators = await Promise.all(
+      Array.from(foodCreatorIds).map(id => ctx.db.get(id as Id<'chefs'>))
     );
-    const chefMap = new Map(chefs.filter((c: any): c is any => !!c).map((c: any) => [c._id, c]));
+    const foodCreatorMap = new Map(foodCreators.filter((c: any): c is any => !!c).map((c: any) => [c._id, c]));
 
     // Enrich orders
     const enrichedOrders = await Promise.all(paginatedOrders.map(async (order: any) => {
@@ -1346,11 +1343,11 @@ export const getEnrichedOrdersBySessionToken = query({
         };
       }));
 
-      const chef = chefMap.get(order.chef_id);
+      const foodCreator = foodCreatorMap.get(order.chef_id);
 
       return {
         ...order,
-        kitchen_name: chef?.name || 'Unknown Kitchen',
+        kitchen_name: foodCreator?.name || 'Unknown Kitchen',
         order_items: enrichedItems,
       };
     }));

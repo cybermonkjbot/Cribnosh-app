@@ -1,12 +1,12 @@
 // @ts-nocheck
-import { query } from "../_generated/server";
 import { v } from "convex/values";
+import { query } from "../_generated/server";
 
-// Check if a chef/kitchen is favorited by user
-export const isChefFavorited = query({
+// Check if a food creator/kitchen is favorited by user
+export const isFoodCreatorFavorited = query({
   args: {
     userId: v.id("users"),
-    chefId: v.id("chefs"),
+    foodCreatorId: v.id("chefs"),
   },
   returns: v.object({
     isFavorited: v.boolean(),
@@ -15,10 +15,10 @@ export const isChefFavorited = query({
   handler: async (ctx, args) => {
     const favorite = await ctx.db
       .query("userFavorites")
-      .withIndex("by_user_type", (q) => 
-        q.eq("userId", args.userId).eq("favoriteType", "chef")
+      .withIndex("by_user_type", (q) =>
+        q.eq("userId", args.userId).eq("favoriteType", "foodCreator")
       )
-      .filter((q) => q.eq(q.field("favoriteId"), args.chefId))
+      .filter((q) => q.eq(q.field("favoriteId"), args.foodCreatorId))
       .first();
 
     return {
@@ -37,7 +37,7 @@ export const isKitchenFavorited = query({
   returns: v.object({
     isFavorited: v.boolean(),
     favoriteId: v.optional(v.id("userFavorites")),
-    chefId: v.optional(v.id("chefs")),
+    foodCreatorId: v.optional(v.id("chefs")),
   }),
   handler: async (ctx, args) => {
     // Get kitchen to find owner
@@ -46,29 +46,29 @@ export const isKitchenFavorited = query({
       return { isFavorited: false };
     }
 
-    // Find chef by userId (kitchen owner_id)
-    const chef = await ctx.db
+    // Find food creator by userId (kitchen owner_id)
+    const foodCreator = await ctx.db
       .query("chefs")
       .withIndex("by_user", (q) => q.eq("userId", kitchen.owner_id))
       .first();
 
-    if (!chef) {
-      return { isFavorited: false, chefId: undefined };
+    if (!foodCreator) {
+      return { isFavorited: false, foodCreatorId: undefined };
     }
 
-    // Check if chef is favorited
+    // Check if food creator is favorited
     const favorite = await ctx.db
       .query("userFavorites")
-      .withIndex("by_user_type", (q) => 
-        q.eq("userId", args.userId).eq("favoriteType", "chef")
+      .withIndex("by_user_type", (q) =>
+        q.eq("userId", args.userId).eq("favoriteType", "foodCreator")
       )
-      .filter((q) => q.eq(q.field("favoriteId"), chef._id))
+      .filter((q) => q.eq(q.field("favoriteId"), foodCreator._id))
       .first();
 
     return {
       isFavorited: !!favorite,
       favoriteId: favorite?._id,
-      chefId: chef._id,
+      foodCreatorId: foodCreator._id,
     };
   },
 });
@@ -86,7 +86,7 @@ export const isMealFavorited = query({
   handler: async (ctx, args) => {
     const favorite = await ctx.db
       .query("userFavorites")
-      .withIndex("by_user_type", (q) => 
+      .withIndex("by_user_type", (q) =>
         q.eq("userId", args.userId).eq("favoriteType", "meal")
       )
       .filter((q) => q.eq(q.field("favoriteId"), args.mealId))
@@ -99,23 +99,23 @@ export const isMealFavorited = query({
   },
 });
 
-// Get count of likes (favorites) for a chef
-export const getChefLikesCount = query({
+// Get count of likes (favorites) for a food creator
+export const getFoodCreatorLikesCount = query({
   args: {
-    chefId: v.id("chefs"),
+    foodCreatorId: v.id("chefs"),
   },
   returns: v.number(),
   handler: async (ctx, args) => {
     const favorites = await ctx.db
       .query("userFavorites")
-      .filter((q) => 
+      .filter((q) =>
         q.and(
-          q.eq(q.field("favoriteType"), "chef"),
-          q.eq(q.field("favoriteId"), args.chefId)
+          q.eq(q.field("favoriteType"), "foodCreator"),
+          q.eq(q.field("favoriteId"), args.foodCreatorId)
         )
       )
       .collect();
-    
+
     return favorites.length;
   },
 });

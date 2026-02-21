@@ -1866,7 +1866,7 @@ interface LiveStreamSetupOverlayProps {
 }
 
 function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupOverlayProps) {
-  const { foodCreator: chef, sessionToken, isAuthenticated } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken, isAuthenticated } = useFoodCreatorAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
@@ -1882,8 +1882,8 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
 
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const meals = useQuery(
-    api.queries.meals.getByChefId,
-    chef?._id ? { chefId: chef._id, limit: 50 } : 'skip'
+    api.queries.meals.getByFoodCreatorId,
+    foodCreator?._id ? { foodCreatorId: foodCreator._id, limit: 50 } : 'skip'
   ) as any[] | undefined;
 
   const createLiveSession = useMutation(api.mutations.liveSessions.createLiveSession);
@@ -1914,7 +1914,7 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
   const handleStartLiveStream = async () => {
     if (!isMountedRef.current) return;
 
-    if (!isAuthenticated || !chef?._id || !sessionToken) {
+    if (!isAuthenticated || !foodCreator?._id || !sessionToken) {
       Alert.alert('Sign In Required', 'Please sign in to start a live stream.');
       return;
     }
@@ -1933,11 +1933,11 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
       if (!isMountedRef.current) return;
       setIsStarting(true);
       // Generate a unique channel name
-      const channelName = `chef-${chef._id}-${Date.now()}`;
+      const channelName = `food-creator-${foodCreator._id}-${Date.now()}`;
 
       const liveSessionId = await createLiveSession({
         channelName,
-        chefId: chef._id,
+        foodCreatorId: foodCreator._id,
         title: title.trim(),
         description: description.trim() || 'Live cooking session',
         mealId: selectedMealId as any,
@@ -2043,7 +2043,7 @@ function LiveStreamSetupOverlay({ onClose, onStartLiveStream }: LiveStreamSetupO
                   <View style={styles.mealPickerEmpty}>
                     <Text style={styles.mealPickerEmptyText}>No meals available</Text>
                     <Text style={styles.mealPickerEmptySubtext}>
-                      Create a meal in your chef profile first
+                      Create a meal in your food creator profile first
                     </Text>
                   </View>
                 ) : (

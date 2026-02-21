@@ -24,7 +24,7 @@ interface FoodCreatorOnboardingFlowProps {
   onComplete?: (data: FoodCreatorOnboardingData) => void;
   onSkip?: () => void;
   backgroundImage?: any;
-  chefId?: string;
+  foodCreatorId?: string;
   sessionToken?: string;
   initialDraft?: FoodCreatorOnboardingData & { currentStep?: string };
 }
@@ -33,7 +33,7 @@ export const FoodCreatorOnboardingFlow: React.FC<FoodCreatorOnboardingFlowProps>
   onComplete,
   onSkip,
   backgroundImage,
-  chefId,
+  foodCreatorId,
   sessionToken,
   initialDraft,
 }) => {
@@ -56,11 +56,11 @@ export const FoodCreatorOnboardingFlow: React.FC<FoodCreatorOnboardingFlowProps>
 
   // Save draft to backend after each step
   const saveProgress = useCallback(async (step: string, data: FoodCreatorOnboardingData) => {
-    if (!chefId || !sessionToken) return;
+    if (!foodCreatorId || !sessionToken) return;
 
     try {
       await saveDraft({
-        chefId: chefId as any,
+        foodCreatorId: foodCreatorId as any,
         draft: {
           ...data,
           currentStep: step,
@@ -71,7 +71,7 @@ export const FoodCreatorOnboardingFlow: React.FC<FoodCreatorOnboardingFlowProps>
       console.error('Error saving onboarding draft:', error);
       // Don't block user flow if save fails
     }
-  }, [chefId, sessionToken, saveDraft]);
+  }, [foodCreatorId, sessionToken, saveDraft]);
 
   const handleProfileNext = async (name: string, bio: string, specialties: string[]) => {
     const newData = {

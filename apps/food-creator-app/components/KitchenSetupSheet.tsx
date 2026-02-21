@@ -105,7 +105,7 @@ SetupItemComponent.displayName = 'SetupItemComponent';
 export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { foodCreator: chef, user, sessionToken: authSessionToken } = useFoodCreatorAuth();
+  const { foodCreator, user, sessionToken: authSessionToken } = useFoodCreatorAuth();
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isDocumentSheetVisible, setIsDocumentSheetVisible] = useState(false);
 
@@ -132,8 +132,8 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
   // Get kitchen ID
   // @ts-ignore - Type instantiation is excessively deep (Convex type inference issue)
   const kitchenId = useQuery(
-    api.queries.kitchens.getKitchenByChefId,
-    chef?._id ? { chefId: chef._id } : 'skip'
+    api.queries.kitchens.getKitchenByFoodCreatorId,
+    foodCreator?._id ? { foodCreatorId: foodCreator._id } : 'skip'
   );
 
   // Get kitchen details (depends on kitchenId, but Convex optimizes this)
@@ -144,39 +144,39 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
 
   // These queries can all run in parallel once sessionToken is available
   const queryArgs = useMemo(() => ({
-    hasChef: !!chef?._id,
+    hasFoodCreator: !!foodCreator?._id,
     hasToken: !!sessionToken,
-    chefId: chef?._id,
+    foodCreatorId: foodCreator?._id,
     sessionToken: sessionToken || undefined,
-  }), [chef?._id, sessionToken]);
+  }), [foodCreator?._id, sessionToken]);
 
   // Get onboarding completion status
   const isOnboardingComplete = useQuery(
-    api.queries.chefCourses.isOnboardingComplete,
-    queryArgs.hasChef && queryArgs.hasToken ? { chefId: queryArgs.chefId!, sessionToken: queryArgs.sessionToken! } : 'skip'
+    api.queries.foodCreatorCourses.isOnboardingComplete,
+    queryArgs.hasFoodCreator && queryArgs.hasToken ? { foodCreatorId: queryArgs.foodCreatorId!, sessionToken: queryArgs.sessionToken! } : 'skip'
   );
 
   // Get basic onboarding status
   const isBasicOnboardingComplete = useQuery(
     api.queries.foodCreators.isBasicOnboardingComplete,
-    queryArgs.hasChef && queryArgs.hasToken ? { chefId: queryArgs.chefId!, sessionToken: queryArgs.sessionToken! } : 'skip'
+    queryArgs.hasFoodCreator && queryArgs.hasToken ? { foodCreatorId: queryArgs.foodCreatorId!, sessionToken: queryArgs.sessionToken! } : 'skip'
   );
 
   // Get bank accounts
   const bankAccounts = useQuery(
-    api.queries.chefBankAccounts.getByChefId,
-    queryArgs.hasChef && queryArgs.hasToken ? { chefId: queryArgs.chefId!, sessionToken: queryArgs.sessionToken! } : 'skip'
+    api.queries.foodCreatorBankAccounts.getByFoodCreatorId,
+    queryArgs.hasFoodCreator && queryArgs.hasToken ? { foodCreatorId: queryArgs.foodCreatorId!, sessionToken: queryArgs.sessionToken! } : 'skip'
   );
 
   // Get documents summary
   const documentsSummary = useQuery(
-    api.queries.chefDocuments.getSummary,
-    queryArgs.hasChef && queryArgs.hasToken ? { chefId: queryArgs.chefId!, sessionToken: queryArgs.sessionToken! } : 'skip'
+    api.queries.foodCreatorDocuments.getSummary,
+    queryArgs.hasFoodCreator && queryArgs.hasToken ? { foodCreatorId: queryArgs.foodCreatorId!, sessionToken: queryArgs.sessionToken! } : 'skip'
   );
 
   // Check what's missing
   const setupItems = useMemo<SetupItem[]>(() => {
-    if (!chef || !user) return [];
+    if (!foodCreator || !user) return [];
 
     const items: SetupItem[] = [];
 
@@ -195,17 +195,17 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
       route: '/personal-info',
     });
 
-    // 2. Chef Profile
-    const hasBio = !!chef.bio && chef.bio.trim().length > 0;
-    const hasSpecialties = chef.specialties && chef.specialties.length > 0;
-    const hasLocation = chef.location && chef.location.city && chef.location.coordinates;
-    const chefProfileComplete = hasBio && hasSpecialties && hasLocation;
+    // 2. Food Creator Profile
+    const hasBio = !!foodCreator.bio && foodCreator.bio.trim().length > 0;
+    const hasSpecialties = foodCreator.specialties && foodCreator.specialties.length > 0;
+    const hasLocation = foodCreator.location && foodCreator.location.city && foodCreator.location.coordinates;
+    const foodCreatorProfileComplete = hasBio && hasSpecialties && hasLocation;
 
     items.push({
-      id: 'chef-profile',
+      id: 'food-creator-profile',
       title: 'Complete Food Creator Profile',
       description: 'Add bio, specialties, and location',
-      completed: chefProfileComplete,
+      completed: foodCreatorProfileComplete,
       route: '/(tabs)/profile',
     });
 
@@ -257,7 +257,7 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
     });
 
     return items;
-  }, [chef, user, kitchenId, kitchen, isOnboardingComplete, bankAccounts, documentsSummary]);
+  }, [foodCreator, user, kitchenId, kitchen, isOnboardingComplete, bankAccounts, documentsSummary]);
 
   // Memoize progress calculations
   const { completedCount, totalCount, progressPercentage } = useMemo(() => {
@@ -271,8 +271,8 @@ export function KitchenSetupSheet({ isVisible, onClose }: KitchenSetupSheetProps
   const hasMinimumData = useMemo(() => {
     // We can show content as soon as we have chef and user data
     // Queries will update progressively
-    return !!chef && !!user;
-  }, [chef, user]);
+    return !!foodCreator && !!user;
+  }, [foodCreator, user]);
 
   const handleItemPress = useCallback((item: SetupItem) => {
     if (item.route) {

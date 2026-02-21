@@ -65,7 +65,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
       ...(post.tags || []),
       "CribNosh",
       "Food Delivery",
-      "Home Cooked Meals"
+      "Food Creators"
     ].filter(k => typeof k === 'string' && k.trim() !== '');
 
     return {

@@ -26,7 +26,7 @@ export default function CreateMealPage() {
             {/* Header */}
             <div className="mb-8">
                 <Link
-                    href="/chef/meals"
+                    href="/food-creator/meals"
                     className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
                 >
                     <ArrowLeft className="h-4 w-4" />
@@ -185,7 +185,7 @@ export default function CreateMealPage() {
                             Create Meal
                         </button>
                         <Link
-                            href="/chef/meals"
+                            href="/food-creator/meals"
                             className="px-6 py-3 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-all"
                         >
                             Cancel

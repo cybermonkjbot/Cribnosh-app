@@ -1,21 +1,18 @@
 "use client";
 
-import React from "react";
-import { motion } from "motion/react";
-import { 
-  Globe2, 
-  Heart, 
-  Leaf, 
-  Utensils, 
-  Home, 
-  Shield, 
+import {
   ArrowRight,
-  Sparkles,
   Award,
+  Globe2,
+  Heart,
+  Home,
+  Leaf,
+  Shield,
+  Star,
   Users,
-  Clock,
-  Star
+  Utensils
 } from "lucide-react";
+import { motion } from "motion/react";
 import Link from "next/link";
 
 export default function ValuesPage() {
@@ -50,7 +47,7 @@ export default function ValuesPage() {
       icon: <Home className="w-8 h-8" />,
       color: "from-purple-500 to-violet-600",
       href: "/values/family-traditions",
-      features: ["Home Cooking", "Generational Love", "Time-Honored Methods", "Shared Moments"]
+      features: ["Authentic Recipes", "Generational Love", "Time-Honored Methods", "Shared Moments"]
     },
     {
       title: "Hygienic Standards",
@@ -106,14 +103,14 @@ export default function ValuesPage() {
             >
               Our Values
             </motion.h1>
-            
+
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
               className="text-xl md:text-2xl text-black/70 max-w-3xl mx-auto leading-relaxed"
             >
-              The principles that guide every meal, every connection, and every moment on CribNosh. 
+              The principles that guide every meal, every connection, and every moment on CribNosh.
               We believe great food starts with great values.
             </motion.p>
           </motion.div>
@@ -172,7 +169,7 @@ export default function ValuesPage() {
                     <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${value.color} flex items-center justify-center mb-6 text-white transform group-hover:scale-110 transition-transform duration-300`}>
                       {value.icon}
                     </div>
-                    
+
                     {/* Content */}
                     <h3 className="text-2xl font-display font-bold text-black mb-4 group-hover:text-black/80 transition-colors">
                       {value.title}
@@ -180,7 +177,7 @@ export default function ValuesPage() {
                     <p className="text-black/70 mb-6 leading-relaxed">
                       {value.description}
                     </p>
-                    
+
                     {/* Features */}
                     <div className="space-y-2 mb-6">
                       {value.features.map((feature, idx) => (
@@ -190,7 +187,7 @@ export default function ValuesPage() {
                         </div>
                       ))}
                     </div>
-                    
+
                     {/* CTA */}
                     <div className="flex items-center text-black/60 group-hover:text-black transition-colors">
                       <span className="font-medium">Learn More</span>

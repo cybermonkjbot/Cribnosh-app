@@ -41,7 +41,7 @@ interface OnTheStoveBottomSheetProps {
     foodCreatorName: string;
     ingredients?: string[];
     cookingTime?: string;
-    chefBio?: string;
+    foodCreatorBio?: string;
     liveViewers?: number;
   };
 }
@@ -62,11 +62,11 @@ const OnTheStoveBottomSheet: React.FC<OnTheStoveBottomSheetProps> = ({
     title: 'Nigerian Jollof',
     price: '£ 16',
     imageSource: 'https://avatar.iran.liara.run/public/44',
-    description: 'Watch Food Creator Minnie craft authentic Nigerian Jollof Rice live! Fresh tomatoes, aromatic spices, and perfectly seasoned rice - order now before it\'s ready.', // Changed 'Chef Minnie' to 'Food Creator Minnie'
-    foodCreatorName: 'Minnies FoodCreator',
+    description: 'Watch Food Creator Minnie craft authentic Nigerian Jollof Rice live! Fresh tomatoes, aromatic spices, and perfectly seasoned rice - order now before it\'s ready!',
+    foodCreatorName: 'Food Creator Minnie',
     ingredients: ['Premium Basmati Rice', 'Fresh Tomatoes', 'Bell Peppers', 'Red Onions', 'Secret Spice Blend'],
     cookingTime: '25 minutes',
-    foodCreatorBio: 'Food Creator Minnie brings 15+ years of authentic Nigerian cooking experience. Every dish tells a story of tradition and love.', // Changed from chefBio and updated content
+    foodCreatorBio: 'Minnie brings 15+ years of authentic Nigerian cooking experience. Every dish tells a story of tradition and love.', // Changed from chefBio and updated content
     liveViewers: 127,
   },
 }) => {

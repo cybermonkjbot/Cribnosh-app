@@ -1,4 +1,7 @@
+import { getBaseUrlFromHeaders } from "@/lib/utils/domain";
 import type { Metadata, Viewport } from "next";
+import { getSiteMetadata } from "./metadata";
+
 import { Suspense } from "react";
 import "./globals.css";
 
@@ -22,7 +25,7 @@ export const viewport: Viewport = {
   viewportFit: 'cover'
 };
 
-// Helper to get a valid base URL
+// Helper to get a valid base URL for client components or fallback
 function getBaseUrl() {
   const envUrl = process.env.NEXT_PUBLIC_BASE_URL;
   try {
@@ -35,64 +38,22 @@ function getBaseUrl() {
   return new URL('https://cribnosh.com');
 }
 
-export const metadata: Metadata = {
-  metadataBase: getBaseUrl(),
-  title: {
-    template: "%s | Cribnosh",
-    default: "Cribnosh | The app for foodies",
-  },
-  description: "Personalized meal platform with cultural awareness and family-oriented recipes",
-  keywords: [
-    "Cribnosh",
-    "meal delivery UK",
-    "home cooked meals",
-    "authentic cultural food",
-    "local chefs Midlands",
-    "family recipes",
-    "healthy eating",
-    "sustainable food delivery",
-    "food creators",
-    "chef marketplace",
-    "CribNosh app",
-    "dining experiences",
-    "Birmingham food delivery",
-    "Leicester meal service",
-    "Nottingham home cooking",
-    "Doyle Omachonu",
-    "Doyle Omachonu Cribnosh",
-    "Cribnosh CEO",
-    "Cribnosh Founder"
-  ],
-  icons: {
-    icon: [
-      { url: '/favicon.ico' },
-      { url: '/favicon.png', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
-    other: [
-      { rel: 'icon', url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { rel: 'icon', url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' }
-    ]
-  },
-  manifest: '/site.webmanifest',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'CribNosh',
-    startupImage: '/apple-icon.png'
-  }
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const baseUrl = await getBaseUrlFromHeaders();
+  return getSiteMetadata(baseUrl);
+}
+
 
 // We use Suspense boundaries below to isolate components using usePathname/useSearchParams
 // during static generation. This avoids the need for force-dynamic at the root level.
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const baseUrl = await getBaseUrlFromHeaders();
+
   return (
     <html lang="en-GB" className="light" suppressHydrationWarning>
       <head>
@@ -156,7 +117,7 @@ export default function RootLayout({
             '@context': 'https://schema.org',
             '@type': 'Organization',
             name: 'Cribnosh',
-            url: getBaseUrl().toString(),
+            url: baseUrl,
             logo: '/apple-icon.png',
             address: {
               '@type': 'PostalAddress',
@@ -167,8 +128,8 @@ export default function RootLayout({
               '@type': 'Person',
               name: 'Doyle Omachonu',
               jobTitle: 'Founder & CEO',
-              image: `${getBaseUrl().toString()}IMG_3491.jpg`,
-              url: `${getBaseUrl().toString()}founders-story`
+              image: `${baseUrl}/IMG_3491.jpg`,
+              url: `${baseUrl}/founders-story`
             },
             sameAs: [
               'https://www.facebook.com/share/16yzxEUqpx/',
@@ -181,11 +142,11 @@ export default function RootLayout({
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'WebSite',
-            url: getBaseUrl().toString(),
+            url: baseUrl,
             name: 'Cribnosh',
             potentialAction: {
               '@type': 'SearchAction',
-              target: `${getBaseUrl().toString()}search?q={search_term_string}`,
+              target: `${baseUrl}/search?q={search_term_string}`,
               'query-input': 'required name=search_term_string'
             }
           })
@@ -205,10 +166,12 @@ export default function RootLayout({
         <meta name="revisit-after" content="7 days" />
         <meta name="format-detection" content="telephone=no, email=no, address=no" />
         {/* Example shortlink, update if you have a real short URL */}
-        <link rel="shortlink" href={getBaseUrl().toString()} />
-        {/* Example hreflang for English, add more for other languages */}
-        <link rel="alternate" href={getBaseUrl().toString()} hrefLang="en-gb" />
-        <link rel="alternate" href={getBaseUrl().toString()} hrefLang="en" />
+        <link rel="shortlink" href={baseUrl} />
+        {/* Hreflang for regional domains */}
+        <link rel="alternate" href="https://cribnosh.co.uk" hrefLang="en-gb" />
+        <link rel="alternate" href="https://cribnosh.com" hrefLang="en" />
+        <link rel="alternate" href="https://cribnosh.com" hrefLang="x-default" />
+
       </head>
       <body>
         <ConvexClientProvider>

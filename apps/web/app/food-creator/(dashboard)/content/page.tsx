@@ -17,7 +17,7 @@ export default function ContentPage() {
                 </div>
                 <div className="flex gap-3">
                     <Link
-                        href="/chef/content/recipes/create"
+                        href="/food-creator/content/recipes/create"
                         className="inline-flex items-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition-all shadow-lg hover:shadow-xl"
                     >
                         <Plus className="h-5 w-5" />
@@ -77,14 +77,14 @@ export default function ContentPage() {
                 <p className="text-gray-600 mb-6">Start creating recipes, stories, and videos to engage your customers</p>
                 <div className="flex justify-center gap-3">
                     <Link
-                        href="/chef/content/recipes/create"
+                        href="/food-creator/content/recipes/create"
                         className="inline-flex items-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition-all shadow-lg hover:shadow-xl"
                     >
                         <BookOpen className="h-5 w-5" />
                         Create Recipe
                     </Link>
                     <Link
-                        href="/chef/content/stories/create"
+                        href="/food-creator/content/stories/create"
                         className="inline-flex items-center gap-2 bg-white text-gray-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-50 transition-all border border-gray-300"
                     >
                         <FileText className="h-5 w-5" />

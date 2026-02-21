@@ -19,7 +19,7 @@ export const useSearch = () => {
         priceRange?: { min?: number; max?: number };
         dietary?: string[];
       };
-      contentTypes?: Array<"dishes" | "chefs" | "videos" | "recipes" | "stories" | "livestreams">;
+      contentTypes?: Array<"dishes" | "foodCreators" | "videos" | "recipes" | "stories" | "livestreams">;
       limit?: number;
     }) => {
       try {

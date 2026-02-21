@@ -1,16 +1,14 @@
 "use client";
 
-import React from "react";
-import { motion } from "motion/react";
 import { ParallaxGroup, ParallaxLayer } from "@/components/ui/parallax";
-import { Home, Heart, Clock, Share2, ChevronLeft } from "lucide-react";
-import Link from "next/link";
+import { Clock, Heart, Home, Share2 } from "lucide-react";
+import { motion } from "motion/react";
 
 export default function FamilyTraditionsPage() {
   const features = [
     {
       icon: <Home className="w-6 h-6" />,
-      title: "Home Cooking",
+      title: "Authentic Recipes",
       description: "Bringing the warmth and comfort of home-cooked meals to every table.",
       color: "from-purple-400/20 to-violet-400/20"
     },
@@ -41,7 +39,7 @@ export default function FamilyTraditionsPage() {
         <ParallaxLayer asBackground speed={0.2} className="z-0">
           <div className="fixed inset-0 bg-gradient-to-br from-[#9333ea] to-[#a855f7] opacity-90" />
         </ParallaxLayer>
-        
+
         <ParallaxLayer asBackground speed={0.4} className="z-0 pointer-events-none">
           <div className="fixed inset-0">
             <div className="absolute w-[500px] h-[500px] rounded-full bg-[#c084fc] blur-[120px] -top-20 -right-20 opacity-50" />
@@ -52,7 +50,7 @@ export default function FamilyTraditionsPage() {
         {/* Content layer */}
         <div className="relative z-10 min-h-screen">
           {/* Navigation */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="fixed top-0 left-0 right-0 bg-white/10 backdrop-blur-lg z-50 mt-[calc(1.5rem+40px)] sm:mt-0"
@@ -69,14 +67,14 @@ export default function FamilyTraditionsPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-gradient-to-br from-purple-400/30 to-violet-400/30 rounded-full blur-2xl"
               />
-              <motion.h1 
+              <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="text-6xl md:text-7xl font-display font-bold text-white mb-6 relative"
               >
                 Family Traditions
               </motion.h1>
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
@@ -129,7 +127,7 @@ export default function FamilyTraditionsPage() {
                   <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm" />
                   <div className="text-left">
                     <p className="text-white font-medium">David Kim</p>
-                    <p className="text-white/60 text-sm">Third Generation Chef</p>
+                    <p className="text-white/60 text-sm">Third Generation Food Creator</p>
                   </div>
                 </div>
               </div>

@@ -194,7 +194,7 @@ export default function OrderAnalyticsDashboard({
               <option value="day">Day</option>
               <option value="week">Week</option>
               <option value="month">Month</option>
-              <option value="chef">Chef</option>
+              <option value="chef">Food Creator</option>
               <option value="status">Status</option>
             </select>
           </div>
@@ -330,7 +330,7 @@ export default function OrderAnalyticsDashboard({
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {filters.groupBy === 'day' ? 'Date' :
-                    filters.groupBy === 'chef' ? 'Chef ID' :
+                    filters.groupBy === 'chef' ? 'Food Creator ID' :
                       filters.groupBy === 'status' ? 'Status' : 'Period'}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">

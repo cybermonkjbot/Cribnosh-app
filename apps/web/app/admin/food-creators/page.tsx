@@ -126,7 +126,7 @@ function AddChefModal({ open, onOpenChange }: { open: boolean; onOpenChange: (op
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Add Chef</DialogTitle>
+          <DialogTitle>Add Food Creator</DialogTitle>
           <DialogDescription>
             Promote an existing user to a chef. They will be auto-enrolled in compliance training.
           </DialogDescription>
@@ -149,7 +149,7 @@ function AddChefModal({ open, onOpenChange }: { open: boolean; onOpenChange: (op
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Adding..." : "Add Chef"}</Button>
+            <Button type="submit" disabled={loading}>{loading ? "Adding..." : "Add Food Creator"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -286,7 +286,7 @@ export default function ChefManagementPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold font-asgard text-gray-900">Chef Management</h1>
+            <h1 className="text-3xl font-bold font-asgard text-gray-900">Food Creator Management</h1>
             <p className="text-gray-600 font-satoshi mt-2">Manage food creators, verification, and performance</p>
           </div>
         </div>
@@ -320,7 +320,7 @@ export default function ChefManagementPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-asgard text-gray-900">Chef Management</h1>
+          <h1 className="text-3xl font-bold font-asgard text-gray-900">Food Creator Management</h1>
           <p className="text-gray-600 font-satoshi mt-2">Manage food creators, verification, and performance</p>
         </div>
         <div className="flex gap-2">
@@ -336,13 +336,13 @@ export default function ChefManagementPage() {
             className="bg-[#F23E2E] hover:bg-[#F23E2E]/90 text-white"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Chef
+            Add Food Creator
           </Button>
           <Button
             onClick={() => setShowVerificationModal(true)}
             variant="outline"
           >
-            Verify Chef
+            Verify Food Creator
           </Button>
         </div>
       </div>
@@ -360,7 +360,7 @@ export default function ChefManagementPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Chefs</p>
+                  <p className="text-sm font-medium text-gray-600">Total Food Creators</p>
                   <p className="text-2xl font-bold text-gray-900">{chefs?.length || 0}</p>
                 </div>
                 <ChefHat className="w-8 h-8 text-[#F23E2E]" />
@@ -378,7 +378,7 @@ export default function ChefManagementPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Active Chefs</p>
+                  <p className="text-sm font-medium text-gray-600">Active Food Creators</p>
                   <p className="text-2xl font-bold text-gray-900">
                     {chefs?.filter(c => c.status === 'active').length || 0}
                   </p>
@@ -577,7 +577,7 @@ export default function ChefManagementPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Chef Actions</DropdownMenuLabel>
+                                <DropdownMenuLabel>Food Creator Actions</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => {
                                   setSelectedChef(chef);
@@ -612,7 +612,7 @@ export default function ChefManagementPage() {
                                   });
                                 }}>
                                   <FileText className="w-4 h-4 mr-2" />
-                                  Export Chef Data
+                                  Export Food Creator Data
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -643,7 +643,7 @@ export default function ChefManagementPage() {
         <TabsContent value="verification" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Chef Verification Queue</CardTitle>
+              <CardTitle>Food Creator Verification Queue</CardTitle>
               <CardDescription>
                 Review and approve chef applications and verification documents
               </CardDescription>
@@ -703,7 +703,7 @@ export default function ChefManagementPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Top Performing Chefs</CardTitle>
+                <CardTitle>Top Performing Food Creators</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -733,7 +733,7 @@ export default function ChefManagementPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Chef Ratings</CardTitle>
+                <CardTitle>Food Creator Ratings</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -767,7 +767,7 @@ export default function ChefManagementPage() {
         <TabsContent value="communication" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Chef Communication</CardTitle>
+              <CardTitle>Food Creator Communication</CardTitle>
               <CardDescription>
                 Send messages, updates, and notifications to chefs
               </CardDescription>
@@ -803,18 +803,18 @@ export default function ChefManagementPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Chef Verification Modal */}
+      {/* Food Creator Verification Modal */}
       <Dialog open={showVerificationModal} onOpenChange={setShowVerificationModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold font-asgard text-gray-900">
-              Chef Verification
+              Food Creator Verification
             </DialogTitle>
           </DialogHeader>
 
           {selectedChef && (
             <div className="space-y-6">
-              {/* Chef Info */}
+              {/* Food Creator Info */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-12 h-12 bg-[#F23E2E]/10 rounded-full flex items-center justify-center">
@@ -954,13 +954,13 @@ export default function ChefManagementPage() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold font-asgard text-gray-900">
-              Chef Performance Metrics
+              Food Creator Performance Metrics
             </DialogTitle>
           </DialogHeader>
 
           {selectedChef && (
             <div className="space-y-6">
-              {/* Chef Info */}
+              {/* Food Creator Info */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-[#F23E2E]/10 rounded-full flex items-center justify-center">

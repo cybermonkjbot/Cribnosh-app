@@ -24,8 +24,8 @@ export default function StoryPage() {
     likes: 124,
     date: "March 15, 2026",
     location: "Miami, FL",
-    chefName: "Luis Rodriguez",
-    chefImage: "/delivery-/IMG_2270.png",
+    foodCreatorName: "Luis Rodriguez",
+    foodCreatorImage: "/delivery-/IMG_2270.png",
     additionalImages: [
       "/backgrounds/masonry-1.jpg",
       "/backgrounds/masonry-2.jpg",
@@ -71,7 +71,7 @@ export default function StoryPage() {
             "image": story.mealImage,
             "author": {
               "@type": "Person",
-              "name": story.chefName
+              "name": story.foodCreatorName
             },
             "datePublished": story.date,
             "description": story.story.slice(0, 160),
@@ -81,7 +81,7 @@ export default function StoryPage() {
             "totalTime": "PT75M",
             "recipeYield": "4 servings",
             "recipeCategory": "Main Course",
-            "keywords": `${story.mealName}, ${story.chefName}, home cooked, cultural food`,
+            "keywords": `${story.mealName}, ${story.foodCreatorName}, home cooked, cultural food`,
             "nutrition": {
               "@type": "NutritionInformation",
               "calories": "450 calories"
@@ -224,7 +224,7 @@ export default function StoryPage() {
             </p>
           </motion.div>
 
-          {/* Chef Section */}
+          {/* Food Creator Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -235,14 +235,14 @@ export default function StoryPage() {
             <div className="flex items-center gap-4">
               <div className="relative w-16 h-16 rounded-full overflow-hidden">
                 <Image
-                  src={story.chefImage}
-                  alt={story.chefName}
+                  src={story.foodCreatorImage}
+                  alt={story.foodCreatorName}
                   fill
                   className="object-cover"
                 />
               </div>
               <div>
-                <h3 className="text-xl font-medium font-['Satoshi']">{story.chefName}</h3>
+                <h3 className="text-xl font-medium font-['Satoshi']">{story.foodCreatorName}</h3>
                 <p className="text-gray-600  font-['Satoshi']">CribNosh Verified Food Creator</p>
               </div>
             </div>
@@ -304,7 +304,7 @@ export default function StoryPage() {
               onClick={() => {
                 if (navigator.share) {
                   navigator.share({
-                    title: `${story.mealName} by ${story.chefName}`,
+                    title: `${story.mealName} by ${story.foodCreatorName}`,
                     text: `Check out this story about ${story.mealName} on CribNosh`,
                     url: window.location.href,
                   }).catch(console.error);

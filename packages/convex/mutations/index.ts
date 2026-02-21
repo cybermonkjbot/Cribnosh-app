@@ -14,29 +14,28 @@ export * from './chats';
 // Export chefs mutations with explicit naming to avoid conflicts
 export {
   createChef,
-  createCuisine, updateAvailability, updateChef,
+  createCuisine, skipComplianceTraining, updateAvailability, updateChef,
   // Rename the conflicting 'update' to 'updateChefCustomOrder' for clarity
-  update as updateChefCustomOrder, updateCuisine,
-  skipComplianceTraining
-} from './chefs';
+  update as updateChefCustomOrder, updateCuisine
+} from './foodCreators';
 
-// Export chef admin mutations with explicit naming to avoid conflicts
+// Export food creators admin mutations with explicit naming to avoid conflicts
 export {
   sendChefMessage,
   updateChefPerformance, updateChefVerification
-} from './chefAdmin';
+} from './foodCreatorAdmin';
 
-// Export chef courses mutations
-export * from './chefCourses';
+// Export food creators courses mutations
+export * from './foodCreatorCourses';
 
-// Export chef documents mutations
-export * from './chefDocuments';
+// Export food creators documents mutations
+export * from './foodCreatorDocuments';
 
-// Export chef payouts mutations
-export * from './chefPayouts';
+// Export food creators payouts mutations
+export * from './foodCreatorPayouts';
 
-// Export chef bank accounts mutations
-export * from './chefBankAccounts';
+// Export food creators bank accounts mutations
+export * from './foodCreatorBankAccounts';
 
 // Export course modules mutations
 export * from './courseModules';
@@ -94,9 +93,9 @@ export {
 
 // Export sessions mutations with explicit naming to avoid conflicts
 export {
+  deleteSessionByToken,
   // Rename the conflicting 'deleteSession' to 'deleteUserSession' for clarity
-  deleteSession as deleteUserSession,
-  deleteSessionByToken
+  deleteSession as deleteUserSession
 } from './sessions';
 
 export * from './specialOffers';
@@ -116,9 +115,6 @@ export {
   updateByUserId as updateAllergiesByUserId
 } from './allergies';
 export {
-  updateChefAverageRating
-} from './chefRatings';
-export {
   addTransaction as addCustomerBalanceTransaction, createOrUpdate as createOrUpdateCustomerBalance
 } from './customerBalance';
 export {
@@ -134,6 +130,9 @@ export {
   create as createFamilyProfile
 } from './familyProfiles';
 export {
+  updateChefAverageRating
+} from './foodCreatorRatings';
+export {
   updateCrossContamination as updateFoodSafetyCrossContamination
 } from './foodSafetySettings';
 export {
@@ -141,9 +140,7 @@ export {
   setDefault as setPaymentMethodDefault
 } from './paymentMethods';
 export {
-  create as createSupportCase,
-  resolveCase,
-  rateCase
+  create as createSupportCase, rateCase, resolveCase
 } from './supportCases';
 
 // Export profile tracking mutations

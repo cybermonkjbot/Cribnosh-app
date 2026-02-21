@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
-  chefDetails: {
+  foodCreatorDetails: {
     flex: 1,
   },
   foodCreatorName: {

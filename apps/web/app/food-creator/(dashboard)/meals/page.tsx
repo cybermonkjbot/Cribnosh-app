@@ -33,7 +33,7 @@ export default function MealsPage() {
                     <p className="mt-1 text-gray-600">Manage your meal offerings</p>
                 </div>
                 <Link
-                    href="/chef/meals/create"
+                    href="/food-creator/meals/create"
                     className="inline-flex items-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition-all shadow-lg hover:shadow-xl"
                 >
                     <Plus className="h-5 w-5" />
@@ -59,7 +59,7 @@ export default function MealsPage() {
                     {filteredMeals.map((meal: any) => (
                         <Link
                             key={meal._id}
-                            href={`/chef/meals/${meal._id}/edit`}
+                            href={`/food-creator/meals/${meal._id}/edit`}
                             className="group rounded-xl bg-white/80 backdrop-blur-sm shadow-md border border-white/20 overflow-hidden hover:shadow-lg hover:border-orange-300 transition-all"
                         >
                             {meal.image_url && (
@@ -95,7 +95,7 @@ export default function MealsPage() {
                         {searchQuery ? "No meals match your search." : "Start by creating your first meal."}
                     </p>
                     <Link
-                        href="/chef/meals/create"
+                        href="/food-creator/meals/create"
                         className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-orange-600 hover:to-red-600 transition-all shadow-lg hover:shadow-xl"
                     >
                         <Plus className="h-5 w-5" />

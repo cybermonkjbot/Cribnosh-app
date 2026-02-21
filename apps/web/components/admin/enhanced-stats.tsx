@@ -169,7 +169,7 @@ export function EnhancedStats({ onError }: EnhancedStatsProps) {
       description: 'Revenue generated this month'
     },
     {
-      title: 'Active Chefs',
+      title: 'Active Food Creators',
       value: stats.chefApplications,
       change: analyticsData ? `${analyticsData.chefGrowth >= 0 ? '+' : ''}${analyticsData.chefGrowth.toFixed(1)}%` : '0%',
       changeType: analyticsData && analyticsData.chefGrowth >= 0 ? 'positive' as const : 'negative' as const,

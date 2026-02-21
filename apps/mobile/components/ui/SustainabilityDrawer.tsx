@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CategoryFullDrawer } from './CategoryFullDrawer';
 
@@ -11,7 +10,7 @@ export function SustainabilityDrawer({ onBack }: SustainabilityDrawerProps) {
   return (
     <CategoryFullDrawer
       categoryName="Cribnosh's Sustainability"
-      categoryDescription="We partner with local chefs to reduce food waste, promote conscious cooking, and make sure good food never goes to waste."
+      categoryDescription="We partner with local food creators to reduce food waste, promote conscious cooking, and make sure good food never goes to waste."
       onBack={onBack}
       filterChips={[]}
       activeFilters={[]}
@@ -42,16 +41,16 @@ export function SustainabilityDrawer({ onBack }: SustainabilityDrawerProps) {
         {/* How we do it section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>How we do it</Text>
-          
+
           <View style={styles.numberedList}>
             <View style={styles.numberedItem}>
               <View style={styles.numberBadge}>
                 <Text style={styles.numberText}>1</Text>
               </View>
               <View style={styles.numberedContent}>
-                <Text style={styles.numberedTitle}>Smarter FoodCreators</Text>
+                <Text style={styles.numberedTitle}>Smarter Food Creators</Text>
                 <Text style={styles.numberedDescription}>
-                  Our foodCreators cook with precision, planning meals around real demand and shared grocery pools — not bulk waste.
+                  Our food creators cook with precision, planning meals around real demand and shared grocery pools — not bulk waste.
                 </Text>
               </View>
             </View>
@@ -73,9 +72,9 @@ export function SustainabilityDrawer({ onBack }: SustainabilityDrawerProps) {
                 <Text style={styles.numberText}>3</Text>
               </View>
               <View style={styles.numberedContent}>
-                <Text style={styles.numberedTitle}>Shared FoodCreator Model</Text>
+                <Text style={styles.numberedTitle}>Shared Food Creator Model</Text>
                 <Text style={styles.numberedDescription}>
-                  By connecting certified foodCreators with passionate home chefs, we reduce the need for duplicate equipment, energy use, and unnecessary space.
+                  By connecting certified food creators with passionate home food creators, we reduce the need for duplicate equipment, energy use, and unnecessary space.
                 </Text>
               </View>
             </View>

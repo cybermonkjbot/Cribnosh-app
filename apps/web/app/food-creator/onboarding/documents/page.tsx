@@ -85,7 +85,7 @@ export default function DocumentsPage() {
             {/* Header */}
             <div className="mb-8">
                 <Link
-                    href="/chef/onboarding"
+                    href="/food-creator/onboarding"
                     className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
                 >
                     <ArrowLeft className="h-4 w-4" />

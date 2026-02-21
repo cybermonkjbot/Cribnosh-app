@@ -25,8 +25,8 @@ module.exports = {
       infoPlist: {
         NSPhotoLibraryUsageDescription: 'This app needs access to your photo library to select profile pictures.',
         NSCameraUsageDescription: 'This app needs access to your camera to take photos.',
-        NSLocationWhenInUseUsageDescription: 'CribNosh needs your location to show nearby chefs and provide delivery services',
-        NSLocationAlwaysAndWhenInUseUsageDescription: 'CribNosh needs your location to show nearby chefs and provide delivery services',
+        NSLocationWhenInUseUsageDescription: 'CribNosh needs your location to show nearby food creators and provide delivery services',
+        NSLocationAlwaysAndWhenInUseUsageDescription: 'CribNosh needs your location to show nearby food creators and provide delivery services',
         ITSAppUsesNonExemptEncryption: false,
       },
       deploymentTarget: '16.2',

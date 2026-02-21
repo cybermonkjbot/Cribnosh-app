@@ -269,7 +269,7 @@ export default function RootLayout() {
                 }}
               />
               <Stack.Screen
-                name="event-chef-request"
+                name="event-food-creator-request"
                 options={{
                   headerShown: false,
                   presentation: 'modal',

@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { paginationOptsValidator } from 'convex/server';
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { internalQuery, query } from '../_generated/server';
@@ -6,8 +7,8 @@ import { isAdmin, isStaff, requireAuth, requireStaff } from '../utils/auth';
 import { calculateDeliveryTimeFromLocations, formatDeliveryTime } from '../utils/timeCalculations';
 
 /**
- * Helper function to check if a foodCreator has any meals
- * Returns true if foodCreator has at least one meal (regardless of status)
+ * Helper function to check if a food creator has any meals
+ * Returns true if food creator has at least one meal (regardless of status)
  */
 async function foodCreatorHasMeals(ctx: any, foodCreatorId: Id<"chefs">): Promise<boolean> {
   const meals = await ctx.db
@@ -112,7 +113,7 @@ export const getAllFoodCreatorLocations = query({
     offset: v.optional(v.number()),
   },
   returns: v.array(v.object({
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     userId: v.id('users'),
     city: v.string(),
     coordinates: v.array(v.number()),
@@ -156,6 +157,50 @@ export const getAllFoodCreatorLocations = query({
     // If no limit, return all from offset
     return mapped.slice(offset);
   }
+});
+
+// Get all foodCreators (Paginated)
+export const listPaginated = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    search: v.optional(v.string()),
+    city: v.optional(v.string()),
+    cuisine: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { paginationOpts, search, city, cuisine } = args;
+
+    let baseQuery = ctx.db
+      .query('chefs')
+      .withIndex('by_status', (q) => q.eq('status', 'active'));
+
+    if (city) {
+      const normalizedCity = city.toLowerCase();
+      baseQuery = baseQuery.filter((q) => q.eq(q.field('location.city'), normalizedCity));
+    }
+
+    if (cuisine) {
+      const normalizedCuisine = cuisine.toLowerCase();
+      // Since cuisine is an array, we use filter
+      baseQuery = baseQuery.filter((q) =>
+        q.or(
+          ...[0, 1, 2, 3, 4].map(i => q.eq(q.field('specialties')[i], normalizedCuisine))
+        )
+      );
+    }
+
+    if (search) {
+      const searchLower = search.toLowerCase();
+      baseQuery = baseQuery.filter((q) =>
+        q.or(
+          q.contains(q.field('name'), searchLower),
+          q.contains(q.field('bio'), searchLower)
+        )
+      );
+    }
+
+    return await baseQuery.order('desc').paginate(paginationOpts);
+  },
 });
 
 // Get all foodCreators
@@ -892,11 +937,11 @@ const foodCreatorAvailabilityValidator = v.object({
 });
 
 export const getAvailability = query({
-  args: { chefId: v.id('chefs') },
+  args: { foodCreatorId: v.id('chefs') },
   returns: v.union(foodCreatorAvailabilityValidator, v.null()),
   handler: async (ctx, args) => {
     try {
-      const foodCreator = await ctx.db.get(args.chefId);
+      const foodCreator = await ctx.db.get(args.foodCreatorId);
       if (!foodCreator) return null;
 
       // Return availability information from foodCreator profile
@@ -918,7 +963,7 @@ export const getAvailability = query({
 // Get all foodCreator content (recipes, live sessions, videos, meals)
 export const getAllFoodCreatorContent = query({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     sessionToken: v.optional(v.string()),
     contentType: v.optional(v.union(
       v.literal('all'),
@@ -930,7 +975,7 @@ export const getAllFoodCreatorContent = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const foodCreator = await ctx.db.get(args.chefId);
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
     if (!foodCreator) {
       return {
         recipes: [],
@@ -956,10 +1001,10 @@ export const getAllFoodCreatorContent = query({
       .order('desc')
       .take(limit);
 
-    // Get live sessions by foodCreator
+    // Get live sessions by food creator
     const liveSessions = await ctx.db
       .query('liveSessions')
-      .withIndex('by_chef', q => q.eq('chef_id', args.chefId))
+      .withIndex('by_chef', q => q.eq('chef_id', args.foodCreatorId))
       .order('desc')
       .take(limit);
 
@@ -971,10 +1016,10 @@ export const getAllFoodCreatorContent = query({
       .order('desc')
       .take(limit);
 
-    // Get meals by foodCreator
+    // Get meals by food creator
     const meals = await ctx.db
       .query('meals')
-      .filter(q => q.eq(q.field('chefId'), args.chefId))
+      .filter(q => q.eq(q.field('chefId'), args.foodCreatorId))
       .filter(q => q.or(
         q.eq(q.field('status'), 'available'),
         q.eq(q.field('status'), 'active')
@@ -1046,15 +1091,15 @@ export const getFoodCreatorByUserIdInternal = internalQuery({
 });
 
 /**
- * Internal query to get foodCreator by ID without authentication
+ * Internal query to get food creator by ID without authentication
  * Used by actions during seeding and setup flows
  */
 export const getFoodCreatorByIdInternal = internalQuery({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.chefId);
+    return await ctx.db.get(args.foodCreatorId);
   },
 });
 

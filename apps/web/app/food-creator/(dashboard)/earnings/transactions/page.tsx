@@ -58,7 +58,7 @@ export default function TransactionsPage() {
     return (
         <div className="space-y-6 max-w-6xl mx-auto p-6">
             <div className="flex items-center gap-4">
-                <Link href="/chef/earnings" className="text-muted-foreground hover:text-foreground">
+                <Link href="/food-creator/earnings" className="text-muted-foreground hover:text-foreground">
                     <ArrowLeft className="h-4 w-4" />
                 </Link>
                 <div>

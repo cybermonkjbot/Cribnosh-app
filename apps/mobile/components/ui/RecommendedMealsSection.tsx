@@ -76,12 +76,12 @@ const RecommendedMealsSectionComponent: React.FC<RecommendedMealsSectionProps> =
     if (!apiMeal) return null;
 
     const meal = apiMeal;
-    const chef = meal.chef;
+    const foodCreator = meal.foodCreator || meal.chef;
 
     return {
       id: meal._id || meal.id || '',
       name: meal.name || 'Unknown Meal',
-      foodCreator: chef?.name || chef?.foodCreator_name || 'Unknown FoodCreator',
+      foodCreator: foodCreator?.foodCreator_name || foodCreator?.name || 'Unknown Food Creator',
       price: meal.price ? `£${(typeof meal.price === 'number' ? meal.price / 100 : parseFloat(meal.price)).toFixed(2)}` : '£0.00',
       originalPrice: meal.original_price ? `£${(typeof meal.original_price === 'number' ? meal.original_price / 100 : parseFloat(meal.original_price)).toFixed(2)}` : undefined,
       image: {

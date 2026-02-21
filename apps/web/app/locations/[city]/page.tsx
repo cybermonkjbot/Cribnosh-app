@@ -23,7 +23,7 @@ export async function generateMetadata(
 
     return {
         title: `Homemade Food Delivery in ${city} | Authentic Cultural Meals`,
-        description: `Order authentic homemade meals in ${city}. Connect with local ${city} chefs cooking family recipes. Nigerian, Indian, Caribbean and more delivered to your door in ${city}.`,
+        description: `Order authentic homemade meals in ${city}. Connect with local ${city} food creators cooking family recipes. Nigerian, Indian, Caribbean and more delivered to your door in ${city}.`,
         alternates: {
             canonical: `https://cribnosh.com/locations/${rawCity}`
         },
@@ -40,7 +40,7 @@ export async function generateMetadata(
             `Nigerian food ${city}`,
             `Indian food ${city}`,
             `food creators ${city}`,
-            `cook jobs ${city}`,
+            `food creator jobs ${city}`,
             "Cribnosh"
         ]
     };

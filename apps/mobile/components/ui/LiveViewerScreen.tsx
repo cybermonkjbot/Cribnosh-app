@@ -83,7 +83,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockFoodCr
           data: {
             session: result.session,
             meal: result.session.meal,
-            foodCreator: result.session.chef,
+            foodCreator: result.session.foodCreator || result.session.chef,
           },
         });
       } catch (error: any) {
@@ -316,7 +316,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockFoodCr
         data: {
           session: result.session,
           meal: result.session.meal,
-          foodCreator: result.session.chef,
+          foodCreator: result.session.foodCreator || result.session.chef,
         },
       });
     } catch (error: any) {
@@ -607,7 +607,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockFoodCr
         price: '£ 16', // Default price for mock data
         imageSource: mockFoodCreatorData.image || require('../../assets/images/cribnoshpackaging.png'),
         description: mockFoodCreatorData.description || `Watch ${mockFoodCreatorData.name} cook amazing ${mockFoodCreatorData.cuisine} cuisine live!`,
-        foodCreatorName: mockFoodCreatorData.name || 'Food Creator\'s FoodCreator',
+        foodCreatorName: mockFoodCreatorData.name || 'Food Creator',
         ingredients: ['Fresh Ingredients', 'Premium Spices', 'Authentic Recipe'],
         cookingTime: '25 minutes',
         foodCreatorBio: `${mockFoodCreatorData.name} brings years of ${mockFoodCreatorData.cuisine} cooking experience.`,
@@ -656,7 +656,7 @@ const LiveScreenView: React.FC<LiveViewerScreenProps> = ({ sessionId, mockFoodCr
       price,
       imageSource: typeof mealImage === 'string' ? mealImage : mealImage,
       description: meal?.description || session.description || 'Watch this amazing live cooking session!',
-      foodCreatorName: foodCreator?.foodCreator_name || 'Food Creator\'s FoodCreator',
+      foodCreatorName: foodCreator?.foodCreator_name || 'Food Creator',
       ingredients,
       cookingTime,
       foodCreatorBio: foodCreator?.bio || undefined,

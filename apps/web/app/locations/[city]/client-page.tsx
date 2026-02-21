@@ -227,7 +227,7 @@ export default function LocationClientPage({ city, foodCreators = [] }: Location
                 </div>
             </section>
 
-            {/* Enhanced Chef/Driver CTA Section */}
+            {/* Enhanced Food Creator/Driver CTA Section */}
             <section className="py-16">
                 <div className="container mx-auto px-4">
                     <motion.div
@@ -246,7 +246,7 @@ export default function LocationClientPage({ city, foodCreators = [] }: Location
                     </motion.div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Chef CTA */}
+                        {/* Food Creator CTA */}
                         <motion.div
                             className="rounded-2xl p-8 text-white bg-gradient-to-br from-[#ff3b30] to-[#ff5e54] flex flex-col items-center justify-center relative overflow-hidden"
                             initial={{ opacity: 0, y: 20 }}
@@ -265,7 +265,7 @@ export default function LocationClientPage({ city, foodCreators = [] }: Location
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
                                     >
-                                        <span>Cook on Cribnosh</span>
+                                        <span>Become a Food Creator</span>
                                         <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                         </svg>

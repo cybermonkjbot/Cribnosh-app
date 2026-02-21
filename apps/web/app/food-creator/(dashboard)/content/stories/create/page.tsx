@@ -30,7 +30,7 @@ export default function CreateStoryPage() {
                 status: "published",
                 sessionToken,
             });
-            router.push("/chef/content");
+            router.push("/food-creator/content");
         } catch (error) {
             console.error("Failed to create story:", error);
             alert("Failed to create story: " + (error as Error).message);
@@ -44,7 +44,7 @@ export default function CreateStoryPage() {
             {/* Header */}
             <div className="mb-8 max-w-4xl">
                 <Link
-                    href="/chef/content"
+                    href="/food-creator/content"
                     className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />

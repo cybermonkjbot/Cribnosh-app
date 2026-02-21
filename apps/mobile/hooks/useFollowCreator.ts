@@ -17,7 +17,7 @@ interface UseFollowCreatorResult {
 
 /**
  * Hook to follow/unfollow a food creator with optimistic UI.
- * creatorUserId is the `users` table ID of the creator (not the chef ID).
+ * creatorUserId is the `users` table ID of the creator (not the food creator ID).
  */
 export function useFollowCreator({ creatorUserId }: UseFollowCreatorOptions): UseFollowCreatorResult {
     const [isFollowing, setIsFollowing] = useState(false);

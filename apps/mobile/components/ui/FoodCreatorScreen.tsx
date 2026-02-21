@@ -13,10 +13,10 @@ import Animated, {
 import { Circle, Path, Svg } from 'react-native-svg';
 import { Mascot } from '../Mascot';
 import { AIChatDrawer } from './AIChatDrawer';
-import { GeneratingSuggestionsLoader } from './GeneratingSuggestionsLoader';
 import { BackgroundElements } from './FoodCreatorScreen/BackgroundElements';
 import { FoodCreatorBottomSheet } from './FoodCreatorScreen/FoodCreatorBottomSheet';
 import { FoodCreatorIntroCard } from './FoodCreatorScreen/FoodCreatorIntroCard';
+import { GeneratingSuggestionsLoader } from './GeneratingSuggestionsLoader';
 import { NoshHeavenPlayer } from './NoshHeavenPlayer';
 
 const { width, height } = Dimensions.get('window');
@@ -125,11 +125,11 @@ export const FoodCreatorScreen: React.FC<FoodCreatorScreenProps> = ({
 
   // Use fetched foodCreator name from API
   // If foodCreatorId is provided, always prioritize API data over prop
-  // Never use "Amara's FoodCreator" prop when we have a foodCreatorId
-  const isDemoName = propFoodCreatorName === "Amara's FoodCreator";
+  // Never use "Amara's Food Creator" prop when we have a foodCreatorId
+  const isDemoName = propFoodCreatorName === "Amara's Food Creator";
   const foodCreatorName = foodCreatorId
-    ? (apiFoodCreatorName || (!isDemoName && propFoodCreatorName) || (isLoadingFoodCreatorDetails ? undefined : "FoodCreator"))
-    : (propFoodCreatorName || "Amara's FoodCreator");
+    ? (apiFoodCreatorName || (!isDemoName && propFoodCreatorName) || (isLoadingFoodCreatorDetails ? undefined : "Food Creator"))
+    : (propFoodCreatorName || "Amara's Food Creator");
 
   // Continuous play icon animation
   useEffect(() => {
@@ -159,8 +159,8 @@ export const FoodCreatorScreen: React.FC<FoodCreatorScreenProps> = ({
       videoSource: videoData.videoUrl,
       title: videoData.title || foodCreatorName || 'FoodCreator Story',
       description: videoData.description || undefined,
-      foodCreatorName: foodCreatorName || 'FoodCreator',
-      foodCreator: videoData.creator?.name || videoData.chef || undefined,
+      foodCreatorName: foodCreatorName || 'Food Creator',
+      foodCreator: videoData.creator?.name || videoData.foodCreator?.name || videoData.chef?.name || undefined,
     };
   }, [featuredVideoData, foodCreatorName]);
 

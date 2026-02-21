@@ -651,7 +651,7 @@ export default function AdminUsers() {
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="moderator">Moderator</SelectItem>
-                  <SelectItem value="chef">Chef</SelectItem>
+                  <SelectItem value="chef">Food Creator</SelectItem>
                 </SelectContent>
               </Select>
             </div>

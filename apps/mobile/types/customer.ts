@@ -182,7 +182,7 @@ export interface OrderItem {
 
 export interface SearchQuery {
   query: string;
-  type?: "all" | "chefs" | "dishes" | "cuisines";
+  type?: "all" | "foodCreators" | "dishes" | "cuisines";
   filters?: SearchFilters;
   page?: number;
   limit?: number;
@@ -203,7 +203,7 @@ export interface SearchFilters {
 
 export interface SearchResult {
   id: string;
-  type: "chef" | "dish" | "cuisine";
+  type: "foodCreator" | "dish" | "cuisine";
   title: string;
   description?: string;
   image_url?: string;
@@ -244,8 +244,11 @@ export interface Dish {
   is_safe_for_you?: boolean;
   prep_time?: string;
   delivery_time?: string;
+  foodCreator_name?: string;
   chef_name?: string;
+  foodCreator_story?: string;
   chef_story?: string;
+  foodCreator_tips?: string[];
   chef_tips?: string[];
   rating?: number;
   review_count?: number;
@@ -319,12 +322,14 @@ export interface PaymentIntent {
 
 export interface LiveStream {
   id: string;
-  chef_id: string;
-  chef_name: string;
+  foodCreator_id: string;
+  chef_id?: string;
   foodCreator_name: string;
+  chef_name?: string;
   title: string;
   description?: string;
   thumbnail_url?: string;
+  foodCreator_profile_image?: string;
   chef_profile_image?: string;
   viewer_count: number;
   is_live: boolean;
@@ -645,7 +650,7 @@ export interface RateOrderResponse {
 // POST /customer/search
 export interface SearchRequest {
   query: string;
-  type?: "all" | "chefs" | "dishes" | "cuisines";
+  type?: "all" | "foodCreators" | "dishes" | "cuisines";
   filters?: SearchFilters;
   page?: number;
   limit?: number;
@@ -689,8 +694,10 @@ export interface DishRecommendation {
   price: number; // in pence/cents
   image_url: string;
   description: string;
-  chef_name: string;
-  chef_id: string;
+  foodCreator_name: string;
+  chef_name?: string;
+  foodCreator_id: string;
+  chef_id?: string;
   badge?: string; // "BUSSIN", "BEST FIT", "HIGH PROTEIN"
   relevance_score: number;
   dietary_tags: string[];
@@ -776,7 +783,7 @@ export interface LiveSessionDetails {
     thumbnail_url?: string;
     tags?: string[];
   };
-  chef: {
+  foodCreator: {
     _id: string;
     name: string;
     bio: string;
@@ -785,6 +792,7 @@ export interface LiveSessionDetails {
     specialties?: string[];
     rating: number;
   } | null;
+  chef?: any;
   meal: {
     _id: string;
     id: string;

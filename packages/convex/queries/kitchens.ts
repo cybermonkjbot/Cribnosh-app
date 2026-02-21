@@ -4,13 +4,13 @@ import { Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 
 /**
- * Helper function to check if a chef has any meals
- * Returns true if chef has at least one meal (regardless of status)
+ * Helper function to check if a food creator has any meals
+ * Returns true if food creator has at least one meal (regardless of status)
  */
-async function chefHasMeals(ctx: any, chefId: Id<"chefs">): Promise<boolean> {
+async function foodCreatorHasMeals(ctx: any, foodCreatorId: Id<"chefs">): Promise<boolean> {
   const meals = await ctx.db
     .query('meals')
-    .filter(q => q.eq(q.field('chefId'), chefId))
+    .filter(q => q.eq(q.field('chefId'), foodCreatorId))
     .first();
   return meals !== null;
 }
@@ -112,8 +112,8 @@ export const getFeaturedVideo = query({
   },
 });
 
-// Get chef ID from kitchen ID (helper query)
-export const getChefByKitchenId = query({
+// Get food creator ID from kitchen ID (helper query)
+export const getFoodCreatorByKitchenId = query({
   args: {
     kitchenId: v.id("kitchens"),
   },
@@ -124,39 +124,39 @@ export const getChefByKitchenId = query({
       return null;
     }
 
-    // Find chef by userId (kitchen owner_id)
-    const chef = await ctx.db
+    // Find food creator by userId (kitchen owner_id)
+    const foodCreator = await ctx.db
       .query("chefs")
       .withIndex("by_user", (q) => q.eq("userId", kitchen.owner_id))
       .first();
 
-    return chef?._id || null;
+    return foodCreator?._id || null;
   },
 });
 
-// Get kitchen ID from chef ID (helper query)
-export const getKitchenByChefId = query({
+// Get kitchen ID from food creator ID (helper query)
+export const getKitchenByFoodCreatorId = query({
   args: {
-    chefId: v.id("chefs"),
+    foodCreatorId: v.id("chefs"),
   },
   returns: v.union(v.id("kitchens"), v.null()),
   handler: async (ctx, args) => {
-    const chef = await ctx.db.get(args.chefId);
-    if (!chef) {
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
+    if (!foodCreator) {
       return null;
     }
 
-    // Find kitchen by owner_id (chef userId)
+    // Find kitchen by owner_id (food creator userId)
     const kitchen = await ctx.db
       .query("kitchens")
-      .filter((q) => q.eq(q.field("owner_id"), chef.userId))
+      .filter((q) => q.eq(q.field("owner_id"), foodCreator.userId))
       .first();
 
     return kitchen?._id || null;
   },
 });
 
-// Get kitchen details by kitchen ID or chef ID (including chef name)
+// Get kitchen details by kitchen ID or food creator ID (including food creator name)
 // This flexible version accepts either ID type and normalizes it
 export const getKitchenDetails = query({
   args: {
@@ -165,8 +165,8 @@ export const getKitchenDetails = query({
   returns: v.union(
     v.object({
       kitchenId: v.id("kitchens"),
-      chefId: v.id("chefs"),
-      chefName: v.string(),
+      foodCreatorId: v.id("chefs"),
+      foodCreatorName: v.string(),
       kitchenName: v.string(),
       address: v.string(),
       certified: v.boolean(),
@@ -180,14 +180,14 @@ export const getKitchenDetails = query({
     // Try as kitchen ID first
     kitchen = await ctx.db.get(id);
 
-    // If not found as kitchen, try as chef ID
+    // If not found as kitchen, try as food creator ID
     if (!kitchen) {
-      const chef = await ctx.db.get(id);
-      if (chef) {
-        // Find kitchen by owner_id (chef userId)
+      const foodCreator = await ctx.db.get(id);
+      if (foodCreator) {
+        // Find kitchen by owner_id (food creator userId)
         kitchen = await ctx.db
           .query("kitchens")
-          .filter((q) => q.eq(q.field("owner_id"), chef.userId))
+          .filter((q) => q.eq(q.field("owner_id"), foodCreator.userId))
           .first();
       }
     }
@@ -196,29 +196,29 @@ export const getKitchenDetails = query({
       return null;
     }
 
-    // Find chef by userId (kitchen owner_id)
-    const chef = await ctx.db
+    // Find food creator by userId (kitchen owner_id)
+    const foodCreator = await ctx.db
       .query("chefs")
       .withIndex("by_user", (q) => q.eq("userId", kitchen.owner_id))
       .first();
 
-    if (!chef) {
+    if (!foodCreator) {
       return null;
     }
 
-    // Filter out kitchens where the chef has no meals
-    const hasMeals = await chefHasMeals(ctx, chef._id);
+    // Filter out kitchens where the food creator has no meals
+    const hasMeals = await foodCreatorHasMeals(ctx, foodCreator._id);
     if (!hasMeals) {
       return null;
     }
 
-    const chefName = chef.name || `Chef ${chef._id.slice(-4)}`;
-    const kitchenName = `${chefName}'s Kitchen`;
+    const foodCreatorName = foodCreator.name || `Food Creator ${foodCreator._id.slice(-4)}`;
+    const kitchenName = `${foodCreatorName}'s Kitchen`;
 
     return {
       kitchenId: kitchen._id,
-      chefId: chef._id,
-      chefName,
+      foodCreatorId: foodCreator._id,
+      foodCreatorName,
       kitchenName,
       address: kitchen.address,
       certified: kitchen.certified,
@@ -278,20 +278,20 @@ export const getKitchenTags = query({
       return [];
     }
 
-    // Find chef by userId (kitchen owner_id)
-    const chef = await ctx.db
+    // Find food creator by userId (kitchen owner_id)
+    const foodCreator = await ctx.db
       .query("chefs")
       .withIndex("by_user", (q) => q.eq("userId", kitchen.owner_id))
       .first();
 
-    if (!chef) {
+    if (!foodCreator) {
       return [];
     }
 
-    // Get all meals for this chef
+    // Get all meals for this food creator
     const meals = await ctx.db
       .query("meals")
-      .filter((q) => q.eq(q.field("chefId"), chef._id))
+      .filter((q) => q.eq(q.field("chefId"), foodCreator._id))
       .filter((q) => q.eq(q.field("status"), "available"))
       .collect();
 

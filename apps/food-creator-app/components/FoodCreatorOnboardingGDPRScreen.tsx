@@ -46,14 +46,14 @@ export const FoodCreatorOnboardingGDPRScreen: React.FC<FoodCreatorOnboardingGDPR
 
                         {/* Description */}
                         <Text style={styles.description}>
-                            We value your privacy and are committed to protecting your personal data as a chef on our platform.
+                            We value your privacy and are committed to protecting your personal data as a food creator on our platform.
                         </Text>
 
                         {/* GDPR Notice Content */}
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>How we use your data</Text>
                             <Text style={styles.text}>
-                                We use your personal data to manage your chef profile, process orders, and facilitate payments. Your information is securely stored and shared only as necessary to provide our services.
+                                We use your personal data to manage your food creator profile, process orders, and facilitate payments. Your information is securely stored and shared only as necessary to provide our services.
                             </Text>
                             <Text style={[styles.text, { marginTop: 12 }]}>
                                 By continuing, you acknowledge that you have read and understood our Privacy Policy and Terms of Service, and agree to the processing of your personal data as described therein.

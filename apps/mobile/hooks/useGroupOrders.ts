@@ -12,7 +12,7 @@ export const useGroupOrders = () => {
    */
   const createGroupOrder = useCallback(
     async (data: {
-      chef_id: string;
+      foodCreatorId: string;
       restaurant_name: string;
       initial_budget: number;
       title?: string;
@@ -38,7 +38,7 @@ export const useGroupOrders = () => {
           api.actions.users.customerCreateGroupOrder,
           {
             sessionToken,
-            chef_id: data.chef_id,
+            foodCreatorId: data.foodCreatorId,
             restaurant_name: data.restaurant_name,
             initial_budget: data.initial_budget,
             title: data.title,
