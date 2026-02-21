@@ -21,21 +21,19 @@ export const listPaginated = query({
     handler: async (ctx, args) => {
         const { paginationOpts, search } = args;
 
-        let baseQuery = ctx.db
-            .query("cuisines")
-            .filter((q) => q.eq(q.field("status"), "approved"));
-
         if (search) {
-            const searchLower = search.toLowerCase();
-            baseQuery = baseQuery.filter((q) =>
-                q.or(
-                    q.contains(q.field("name"), searchLower),
-                    q.contains(q.field("description"), searchLower)
-                )
-            );
+            return await ctx.db
+                .query("cuisines")
+                .withSearchIndex("search_name", (q) => q.search("name", search))
+                .filter((q) => q.eq(q.field("status"), "approved"))
+                .paginate(paginationOpts);
         }
 
-        return await baseQuery.order("desc").paginate(paginationOpts);
+        return await ctx.db
+            .query("cuisines")
+            .filter((q) => q.eq(q.field("status"), "approved"))
+            .order("desc")
+            .paginate(paginationOpts);
     },
 });
 

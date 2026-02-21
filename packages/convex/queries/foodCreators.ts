@@ -170,9 +170,18 @@ export const listPaginated = query({
   handler: async (ctx, args) => {
     const { paginationOpts, search, city, cuisine } = args;
 
-    let baseQuery = ctx.db
-      .query('chefs')
-      .withIndex('by_status', (q) => q.eq('status', 'active'));
+    let baseQuery;
+
+    if (search) {
+      baseQuery = ctx.db
+        .query('chefs')
+        .withSearchIndex('search_name', (q) => q.search('name', search))
+        .filter((q) => q.eq(q.field('status'), 'active'));
+    } else {
+      baseQuery = ctx.db
+        .query('chefs')
+        .withIndex('by_status', (q) => q.eq('status', 'active'));
+    }
 
     if (city) {
       const normalizedCity = city.toLowerCase();
@@ -181,25 +190,23 @@ export const listPaginated = query({
 
     if (cuisine) {
       const normalizedCuisine = cuisine.toLowerCase();
-      // Since cuisine is an array, we use filter
+      const titleCaseCuisine = normalizedCuisine.charAt(0).toUpperCase() + normalizedCuisine.slice(1);
+
+      // Since cuisine is an array, we use filter and check both lowercase and Title Case
       baseQuery = baseQuery.filter((q) =>
         q.or(
-          ...[0, 1, 2, 3, 4].map(i => q.eq(q.field('specialties')[i], normalizedCuisine))
+          ...[0, 1, 2, 3, 4].map(i => q.eq(q.field('specialties')[i], normalizedCuisine)),
+          ...[0, 1, 2, 3, 4].map(i => q.eq(q.field('specialties')[i], titleCaseCuisine))
         )
       );
     }
 
     if (search) {
-      const searchLower = search.toLowerCase();
-      baseQuery = baseQuery.filter((q) =>
-        q.or(
-          q.contains(q.field('name'), searchLower),
-          q.contains(q.field('bio'), searchLower)
-        )
-      );
+      // Search queries cannot use .order()
+      return await baseQuery.paginate(paginationOpts);
+    } else {
+      return await baseQuery.order('desc').paginate(paginationOpts);
     }
-
-    return await baseQuery.order('desc').paginate(paginationOpts);
   },
 });
 

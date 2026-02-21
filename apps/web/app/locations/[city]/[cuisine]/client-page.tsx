@@ -116,8 +116,12 @@ export default function LocationCuisineClientPage({ city, cuisine, foodCreators:
                                 >
                                     <div className="relative h-64">
                                         <Image
-                                            src={creator.profileImage || "/placeholder-chef.jpg"}
-                                            alt={creator.name}
+                                            src={
+                                                creator.profileImage?.startsWith('http') || creator.profileImage?.startsWith('/')
+                                                    ? creator.profileImage
+                                                    : "/placeholder-chef.jpg"
+                                            }
+                                            alt={creator.name || 'Food Creator'}
                                             fill
                                             className="object-cover transition-transform duration-500 group-hover:scale-105"
                                         />

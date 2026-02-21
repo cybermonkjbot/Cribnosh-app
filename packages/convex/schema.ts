@@ -433,7 +433,9 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_status", ["status"])
-    .index("by_verification", ["verificationStatus"]),
+    .index("by_verification", ["verificationStatus"])
+    .searchIndex("search_name", { searchField: "name" })
+    .searchIndex("search_bio", { searchField: "bio" }),
   // Meals table
   meals: defineTable({
     chefId: v.id("chefs"),
@@ -1715,7 +1717,9 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
     image: v.optional(v.string()),
-  }),
+  })
+    .searchIndex("search_name", { searchField: "name" })
+    .searchIndex("search_description", { searchField: "description" }),
   emotions_engine_logs: defineTable({
     userId: v.optional(v.string()),
     context: v.any(),

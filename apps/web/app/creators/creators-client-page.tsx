@@ -115,7 +115,11 @@ export default function CreatorsClientPage({ creators: initialCreators }: { crea
                                 {/* Profile Image & Rating */}
                                 <div className="relative aspect-square">
                                     <Image
-                                        src={creator.profileImage || "/placeholder-chef.jpg"}
+                                        src={
+                                            creator.profileImage?.startsWith('http') || creator.profileImage?.startsWith('/')
+                                                ? creator.profileImage
+                                                : "/placeholder-chef.jpg"
+                                        }
                                         alt={creator.name}
                                         fill
                                         className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
