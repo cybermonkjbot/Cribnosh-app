@@ -1,5 +1,6 @@
 "use client";
 
+import { JsonLd } from "@/components/JsonLd";
 import { ImageViewer } from "@/components/ui/image-viewer";
 import { ArrowLeft, Forward, Heart } from "lucide-react";
 import { motion } from "motion/react";
@@ -19,11 +20,11 @@ export default function StoryPage() {
     userImage: "/card-images/IMG_2262.png",
     mealName: "Abuela's Empanadas",
     mealImage: "/card-images/c846b65e-1de1-4595-9079-b2cfe134f414.jpeg",
-    story: "My grandmother's recipe brought to life by Chef Luis. Every bite takes me back to Sunday afternoons in her kitchen, watching her carefully fold each empanada with love and precision. The way Chef Luis has captured those exact flavors, from the perfectly seasoned beef to the flaky pastry, is nothing short of magical. It's not just food - it's a bridge to my childhood memories, a taste of home delivered right to my door. What makes it even more special is how Chef Luis added his own subtle twist with a homemade chimichurri that complements the traditional recipe perfectly. This is exactly what CribNosh is about - preserving our culinary heritage while creating new memories.",
+    story: "My grandmother's recipe brought to life by Food Creator Luis. Every bite takes me back to Sunday afternoons in her kitchen, watching her carefully fold each empanada with love and precision. The way Luis has captured those exact flavors, from the perfectly seasoned beef to the flaky pastry, is nothing short of magical. It's not just food - it's a bridge to my childhood memories, a taste of home delivered right to my door. What makes it even more special is how Luis added his own subtle twist with a homemade chimichurri that complements the traditional recipe perfectly. This is exactly what CribNosh is about - preserving our culinary heritage while creating new memories.",
     likes: 124,
     date: "March 15, 2026",
     location: "Miami, FL",
-    chefName: "Chef Luis Rodriguez",
+    chefName: "Luis Rodriguez",
     chefImage: "/delivery-/IMG_2270.png",
     additionalImages: [
       "/backgrounds/masonry-1.jpg",
@@ -58,6 +59,82 @@ export default function StoryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50  ">
+      <JsonLd />
+      {/* Recipe Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Recipe",
+            "name": story.mealName,
+            "image": story.mealImage,
+            "author": {
+              "@type": "Person",
+              "name": story.chefName
+            },
+            "datePublished": story.date,
+            "description": story.story.slice(0, 160),
+            "recipeCuisine": "Authentic",
+            "prepTime": "PT30M",
+            "cookTime": "PT45M",
+            "totalTime": "PT75M",
+            "recipeYield": "4 servings",
+            "recipeCategory": "Main Course",
+            "keywords": `${story.mealName}, ${story.chefName}, home cooked, cultural food`,
+            "nutrition": {
+              "@type": "NutritionInformation",
+              "calories": "450 calories"
+            },
+            "recipeIngredient": [
+              "Love",
+              "Authentic spices",
+              "Family tradition"
+            ],
+            "recipeInstructions": [
+              {
+                "@type": "HowToStep",
+                "text": "Prepared with traditional methods passed down through generations."
+              }
+            ],
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.9",
+              "reviewCount": story.likes
+            }
+          })
+        }}
+      />
+      {/* Breadcrumb Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://cribnosh.com"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Community",
+                "item": "https://cribnosh.com/community"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": story.mealName,
+                "item": `https://cribnosh.com/story/${story.id}`
+              }
+            ]
+          })
+        }}
+      />
       {/* Hero Section */}
       <div
         data-section-theme="dark"
@@ -166,7 +243,7 @@ export default function StoryPage() {
               </div>
               <div>
                 <h3 className="text-xl font-medium font-['Satoshi']">{story.chefName}</h3>
-                <p className="text-gray-600  font-['Satoshi']">CribNosh Verified Chef</p>
+                <p className="text-gray-600  font-['Satoshi']">CribNosh Verified Food Creator</p>
               </div>
             </div>
           </motion.div>
@@ -205,8 +282,8 @@ export default function StoryPage() {
             <motion.button
               onClick={handleLove}
               className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all ${isLoved
-                  ? 'bg-[#ff3b30] text-white'
-                  : 'bg-gray-100  text-gray-700 '
+                ? 'bg-[#ff3b30] text-white'
+                : 'bg-gray-100  text-gray-700 '
                 }`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

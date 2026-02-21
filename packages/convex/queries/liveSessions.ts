@@ -27,7 +27,7 @@ export const getNearbyLiveSessions = query({
   handler: async (ctx, args): Promise<NearbySession[]> => {
     const maxDistance = args.maxDistanceKm || 50; // Default 50km
     const identity = await ctx.auth.getUserIdentity();
-    
+
     if (!identity) {
       throw new Error("Not authenticated");
     }
@@ -44,7 +44,7 @@ export const getNearbyLiveSessions = query({
       let location = {
         coordinates: [0, 0] as [number, number] // Default coordinates
       };
-      
+
       // Use session location if available, otherwise get chef location
       if (session.location && session.location.coordinates) {
         location = {
@@ -57,27 +57,27 @@ export const getNearbyLiveSessions = query({
           session.location.coordinates[0]  // longitude
         );
       } else {
-            // Fallback: get chef location from chefs table
-            try {
-              const chef = await ctx.db.get(session.chef_id);
-              if (chef && chef.location) {
-                location = {
-                  coordinates: chef.location.coordinates as [number, number]
-                };
-                distance = calculateDistance(
-                  args.latitude,
-                  args.longitude,
-                  chef.location.coordinates[1], // latitude
-                  chef.location.coordinates[0]  // longitude
-                );
-              } else {
-                console.log(`Chef ${session.chef_id} has no location data`);
-              }
-            } catch (error) {
-              console.error(`Failed to get chef location for session ${session._id}:`, error);
-            }
+        // Fallback: get chef location from chefs table
+        try {
+          const chef = await ctx.db.get(session.chef_id);
+          if (chef && chef.location) {
+            location = {
+              coordinates: chef.location.coordinates as [number, number]
+            };
+            distance = calculateDistance(
+              args.latitude,
+              args.longitude,
+              chef.location.coordinates[1], // latitude
+              chef.location.coordinates[0]  // longitude
+            );
+          } else {
+            console.log(`Chef ${session.chef_id} has no location data`);
           }
-      
+        } catch (error) {
+          console.error(`Failed to get chef location for session ${session._id}:`, error);
+        }
+      }
+
       return {
         _id: session._id,
         _creationTime: session._creationTime,
@@ -100,10 +100,10 @@ export const getNearbyLiveSessions = query({
     }));
 
     // Filter by distance and sort by proximity
-    const filteredSessions = nearbySessions.filter(session => 
+    const filteredSessions = nearbySessions.filter(session =>
       session.distance <= maxDistance
     );
-    
+
     // Sort by distance (closest first), then by creation time
     return filteredSessions
       .sort((a, b) => {
@@ -131,8 +131,8 @@ interface EnrichedLiveOrder {
   user: User | null;
 }
 
-// Get live orders for chef
-export const getLiveOrdersForChef = query({
+// Get live orders for food creator
+export const getLiveOrdersForFoodCreator = query({
   args: {
     sessionToken: v.optional(v.string()),
   },
@@ -140,20 +140,20 @@ export const getLiveOrdersForChef = query({
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
 
-    // Get the chef associated with the current user
-    const chef = await ctx.db
+    // Get the food creator associated with the current user
+    const foodCreator = await ctx.db
       .query("chefs")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .first();
 
-    if (!chef) {
-      throw new Error("Chef not found for this user");
+    if (!foodCreator) {
+      throw new Error("Food Creator not found for this user");
     }
 
-    // Get active sessions for this chef
+    // Get active sessions for this food creator
     const sessions = await ctx.db
       .query("liveSessions")
-      .withIndex("by_chef", (q) => q.eq("chef_id", chef._id))
+      .withIndex("by_chef", (q) => q.eq("chef_id", foodCreator._id))
       .filter((q) => q.eq(q.field("status"), "live"))
       .collect();
 
@@ -163,7 +163,7 @@ export const getLiveOrdersForChef = query({
 
     // Get all orders for these sessions
     const channelNames = Array.from(new Set(sessions.map(s => s.session_id)));
-    const ordersPromises = channelNames.map(channelName => 
+    const ordersPromises = channelNames.map(channelName =>
       ctx.db
         .query("liveOrders")
         .withIndex("by_channel", q => q.eq("channelName", channelName))
@@ -176,10 +176,10 @@ export const getLiveOrdersForChef = query({
     const enrichedOrders: EnrichedLiveOrder[] = [];
     for (const order of orders) {
       if (!order) continue; // Skip any null/undefined orders
-      
+
       const user = await ctx.db.get(order.userId);
       if (!user) continue; // Skip if user not found
-      
+
       enrichedOrders.push({
         _id: order._id,
         _creationTime: order._creationTime,
@@ -245,7 +245,7 @@ export const adminGetLiveSessionStats = query({
 
     const now = Date.now();
     let startTime = 0;
-    
+
     switch (args.timeRange) {
       case "24h":
         startTime = now - 24 * 60 * 60 * 1000;
@@ -367,11 +367,11 @@ export const adminGetLiveReports = query({
     try {
       // Base query with proper type
       let reports;
-      
+
       // Add status filter if provided
       if (args.status) {
         reports = await ctx.db.query("liveSessionReports")
-          .withIndex("by_status", (q) => 
+          .withIndex("by_status", (q) =>
             q.eq("status", args.status as ReportStatus)
           )
           .collect();
@@ -380,7 +380,7 @@ export const adminGetLiveReports = query({
           .withIndex("by_session")
           .collect();
       }
-      
+
       // Validate and process reports
       if (!Array.isArray(reports)) {
         console.error('Unexpected reports format:', reports);
@@ -389,7 +389,7 @@ export const adminGetLiveReports = query({
 
       // Sort by reportedAt desc and apply limit with proper type safety
       const sortedReports = reports
-        .filter((report): report is typeof report & { reportedAt: number } => 
+        .filter((report): report is typeof report & { reportedAt: number } =>
           typeof report.reportedAt === 'number'
         )
         .sort((a, b) => b.reportedAt - a.reportedAt)
@@ -402,13 +402,13 @@ export const adminGetLiveReports = query({
             const [session, reporter] = await Promise.all([
               ctx.db
                 .query("liveSessions")
-                .withIndex("by_session_id", (q) => 
+                .withIndex("by_session_id", (q) =>
                   q.eq("session_id", report.channelName)
                 )
                 .first(),
               ctx.db.get(report.reporterId),
             ]);
-            
+
             return {
               ...report,
               sessionTitle: session?.title ?? 'Session not found',
@@ -456,7 +456,7 @@ export const list = query({
     }
 
     let sessions;
-    
+
     if (args.status === "active") {
       sessions = await ctx.db
         .query("liveSessions")
@@ -515,7 +515,7 @@ export const getAllForAdmin = query({
           ...session,
           chef: chef ? {
             _id: chef._id,
-            name: chef.name || `Chef ${chef._id}`,
+            name: chef.name || `Food Creator ${chef._id}`,
             bio: chef.bio,
             specialties: chef.specialties || [],
             rating: chef.rating || 0,
@@ -640,30 +640,30 @@ export const getById = query({
 // Get stream history for a chef with analytics
 export const getStreamHistory = query({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     limit: v.optional(v.number()),
     sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
-    
-    // Get the chef to verify ownership
-    const chef = await ctx.db.get(args.chefId);
-    if (!chef) {
-      throw new Error("Chef not found");
+
+    // Get the food creator to verify ownership
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
+    if (!foodCreator) {
+      throw new Error("Food Creator not found");
     }
-    
+
     // Users can only view their own stream history, staff/admin can view any
-    if (!user.roles?.includes("admin") && !user.roles?.includes("staff") && chef.userId !== user._id) {
+    if (!user.roles?.includes("admin") && !user.roles?.includes("staff") && foodCreator.userId !== user._id) {
       throw new Error("Access denied");
     }
 
     const limit = args.limit || 50;
-    
+
     const sessions = await ctx.db
       .query('liveSessions')
-      .withIndex('by_chef', q => q.eq('chef_id', args.chefId))
+      .withIndex('by_chef', q => q.eq('chef_id', args.foodCreatorId))
       .filter(q => q.eq(q.field('status'), 'ended'))
       .order('desc')
       .take(limit);
@@ -674,8 +674,8 @@ export const getStreamHistory = query({
       description: session.description,
       startedAt: session.actual_start_time || session.scheduled_start_time,
       endedAt: session.endedAt,
-      duration: session.endedAt && session.actual_start_time 
-        ? Math.floor((session.endedAt - session.actual_start_time) / 1000) 
+      duration: session.endedAt && session.actual_start_time
+        ? Math.floor((session.endedAt - session.actual_start_time) / 1000)
         : 0,
       peakViewers: session.sessionStats?.peakViewers || 0,
       totalViewers: session.sessionStats?.totalViewers || session.viewerCount || 0,
@@ -689,37 +689,37 @@ export const getStreamHistory = query({
   },
 });
 
-export const getByChefId = query({
+export const getByFoodCreatorId = query({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     status: v.optional(v.union(v.literal('live'), v.literal('ended'))),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     let sessions;
-    
+
     if (args.status === 'live') {
       sessions = await ctx.db
         .query('liveSessions')
-        .withIndex('by_chef', q => q.eq('chef_id', args.chefId))
+        .withIndex('by_chef', q => q.eq('chef_id', args.foodCreatorId))
         .filter(q => q.eq(q.field('status'), 'live'))
         .collect();
     } else if (args.status === 'ended') {
       sessions = await ctx.db
         .query('liveSessions')
-        .withIndex('by_chef', q => q.eq('chef_id', args.chefId))
+        .withIndex('by_chef', q => q.eq('chef_id', args.foodCreatorId))
         .filter(q => q.eq(q.field('status'), 'ended'))
         .collect();
     } else {
       sessions = await ctx.db
         .query('liveSessions')
-        .withIndex('by_chef', q => q.eq('chef_id', args.chefId))
+        .withIndex('by_chef', q => q.eq('chef_id', args.foodCreatorId))
         .collect();
     }
-    
+
     // Sort by creation time (newest first) and apply limit
     sessions.sort((a, b) => (b._creationTime || 0) - (a._creationTime || 0));
-    
+
     const limit = args.limit || 50;
     return sessions.slice(0, limit);
   },
@@ -743,13 +743,13 @@ export const getLiveSessionWithMeal = query({
 
     // Get chef data
     const chef = await ctx.db.get(session.chef_id);
-    
+
     // Get current viewer count
     const allViewers = await ctx.db
       .query("liveViewers")
       .withIndex("by_session", (q) => q.eq("sessionId", session._id))
       .collect();
-    
+
     // Filter to only active viewers (those who haven't left)
     const viewers = allViewers.filter(viewer => viewer.leftAt === undefined);
 
@@ -765,19 +765,19 @@ export const getLiveSessionWithMeal = query({
     let matchedMeal: Doc<'meals'> | null = null;
     const sessionTitleLower = session.title.toLowerCase();
     const sessionTags = session.tags || [];
-    
+
     // First try exact or partial match with meal name
     matchedMeal = chefMeals.find((meal: Doc<'meals'>) => {
       const mealNameLower = meal.name?.toLowerCase() || '';
-      return mealNameLower.includes(sessionTitleLower) || 
-             sessionTitleLower.includes(mealNameLower);
+      return mealNameLower.includes(sessionTitleLower) ||
+        sessionTitleLower.includes(mealNameLower);
     }) || null;
 
     // If no match, try matching tags
     if (!matchedMeal && sessionTags.length > 0) {
       matchedMeal = chefMeals.find((meal: Doc<'meals'>) => {
         const mealCuisine = meal.cuisine || [];
-        return sessionTags.some(tag => 
+        return sessionTags.some(tag =>
           mealCuisine.some((c: string) => c.toLowerCase().includes(tag.toLowerCase()))
         );
       }) || null;

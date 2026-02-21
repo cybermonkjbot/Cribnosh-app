@@ -42,13 +42,17 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     const images = foodCreator.profileImage ? [foodCreator.profileImage] : ['/og-image.jpg'];
 
     return {
-        title,
+        title: `${foodCreator.name} | Professional Food Creator`,
         description,
+        alternates: {
+            canonical: `https://cribnosh.com/food-creator/${username}`
+        },
         openGraph: {
             title,
             description,
             images,
             type: 'profile',
+            url: `https://cribnosh.com/food-creator/${username}`
         },
         twitter: {
             card: 'summary_large_image',

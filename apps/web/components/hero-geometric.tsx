@@ -1,14 +1,14 @@
 "use client"
 
-import React, { useState, useEffect } from "react";
-import { motion, Variants, AnimatePresence } from "motion/react"
-import Image from "next/image"
-import { cn } from "@/lib/utils"
-import { useMobileDevice } from "@/hooks/use-mobile-device"
-import Link from "next/link"
-import { Mascot } from "@/components/mascot"
-import { CircularPlayButton, VideoPlayer } from "@/components/ui/video-player"
-import { X } from "lucide-react"
+import { Mascot } from "@/components/mascot";
+import { CircularPlayButton, VideoPlayer } from "@/components/ui/video-player";
+import { useMobileDevice } from "@/hooks/use-mobile-device";
+import { cn } from "@/lib/utils";
+import { X } from "lucide-react";
+import { AnimatePresence, motion, Variants } from "motion/react";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 function ElegantShape({
   className,
@@ -128,7 +128,7 @@ export default function HeroGeometric({
   };
 
   return (
-    <div 
+    <div
       data-section="dining-assistant"
       data-section-theme="brand"
       className={cn(
@@ -175,7 +175,7 @@ export default function HeroGeometric({
         "absolute inset-0",
         isOnMobileDevice ? "bg-black/70" : "bg-black/80"
       )} />
-      
+
       {/* Gradient background - simplified on mobile */}
       <div className={cn(
         "absolute inset-0 bg-gradient-to-br from-[#ff3b30]/[0.15] via-transparent to-[#ff5e54]/[0.15]",
@@ -238,7 +238,7 @@ export default function HeroGeometric({
       <div className="relative z-10 container mx-auto px-4 md:px-6">
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[80vh]">
-          
+
           {/* Left Column - Content */}
           <div className="text-center lg:text-left">
             <motion.div
@@ -248,9 +248,9 @@ export default function HeroGeometric({
               transition={{ delay: 0 }}
               className="mb-14 md:mb-18"
             >
-              <Mascot 
-                emotion="excited" 
-                size={isOnMobileDevice ? 80 : 100} 
+              <Mascot
+                emotion="excited"
+                size={isOnMobileDevice ? 80 : 100}
                 className="mx-auto lg:mx-0"
               />
             </motion.div>
@@ -269,9 +269,9 @@ export default function HeroGeometric({
               />
             </motion.div>
 
-            <motion.div 
-              variants={fadeUpVariants} 
-              initial="hidden" 
+            <motion.div
+              variants={fadeUpVariants}
+              initial="hidden"
               animate="visible"
               transition={{ delay: 0.2 }}
             >
@@ -289,9 +289,9 @@ export default function HeroGeometric({
               </h1>
             </motion.div>
 
-            <motion.div 
-              variants={fadeUpVariants} 
-              initial="hidden" 
+            <motion.div
+              variants={fadeUpVariants}
+              initial="hidden"
               animate="visible"
               transition={{ delay: 0.4 }}
             >
@@ -321,16 +321,16 @@ export default function HeroGeometric({
                   <p className="text-sm font-medium">Add your image here</p>
                 </div>
               </div>
-              
-          
+
+
               <Image
                 src="/images/mockup.png"
-                alt="Hero image description"
+                alt="CribNosh App Experience Preview"
                 fill
                 className="object-cover"
                 priority
               />
-             
+
             </motion.div>
           </div>
         </div>
@@ -360,7 +360,7 @@ export default function HeroGeometric({
               >
                 <X className="w-6 h-6 text-white" />
               </button>
-              
+
               <VideoPlayer
                 src="/videos/cribnosh-intro.mp4"
                 poster="/images/video-poster.jpg"

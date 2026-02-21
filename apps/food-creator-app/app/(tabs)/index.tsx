@@ -46,7 +46,7 @@ const getOrderStatusStyle = (status: string) => {
 };
 
 export default function FoodCreatorDashboard() {
-  const { foodCreator: chef, user, sessionToken, isAuthenticated, isBasicOnboardingComplete, isOnboardingComplete } = useFoodCreatorAuth();
+  const { foodCreator, user, sessionToken, isAuthenticated, isBasicOnboardingComplete, isOnboardingComplete } = useFoodCreatorAuth();
   const router = useRouter();
   const { showSuccess } = useToast();
 
@@ -68,17 +68,17 @@ export default function FoodCreatorDashboard() {
 
   // Get recent orders
   const recentOrders = useQuery(
-    api.queries.orders.listByChef,
-    chef?._id && sessionToken
-      ? { chef_id: chef._id.toString(), limit: 5, sessionToken }
+    api.queries.orders.listByFoodCreatorId,
+    foodCreator?._id && sessionToken
+      ? { foodCreatorId: foodCreator._id.toString(), limit: 5, sessionToken }
       : 'skip'
   );
 
-  // Get chef analytics for earnings
+  // Get food creator analytics for earnings
   const analytics = useQuery(
-    api.queries.analytics.getChefAnalytics,
-    chef?._id && sessionToken
-      ? { chefId: chef._id, timeRange: '30d', sessionToken }
+    api.queries.analytics.getFoodCreatorAnalytics,
+    foodCreator?._id && sessionToken
+      ? { foodCreatorId: foodCreator._id, timeRange: '30d', sessionToken }
       : 'skip'
   );
 
@@ -157,7 +157,7 @@ export default function FoodCreatorDashboard() {
   });
 
 
-  if (!chef) {
+  if (!foodCreator) {
     return (
       <GradientBackground>
         <EmptyState
@@ -191,12 +191,12 @@ export default function FoodCreatorDashboard() {
       {!isSticky && (
         <>
           <PremiumHeader
-            title="Chef Dashboard"
+            title="Food Creator Dashboard"
             showInfoButton={false}
           />
           <Animated.View style={welcomeAnimatedStyle}>
             <View style={styles.welcomeContainer}>
-              <Text style={styles.welcomeText}>Welcome back, {chef?.name || user?.name}</Text>
+              <Text style={styles.welcomeText}>Welcome back, {foodCreator?.name || user?.name}</Text>
             </View>
           </Animated.View>
         </>
@@ -267,11 +267,11 @@ export default function FoodCreatorDashboard() {
         )}
 
         {/* Online/Offline Toggle */}
-        {chef?._id && isAuthenticated && (
+        {foodCreator?._id && isAuthenticated && (
           <View style={styles.toggleContainer}>
             <OnlineOfflineToggle
-              chefId={chef._id}
-              isOnline={chef.isAvailable || false}
+              foodCreatorId={foodCreator._id}
+              isOnline={foodCreator.isAvailable || false}
               sessionToken={sessionToken || undefined}
               onShowSetup={() => setIsSetupSheetVisible(true)}
             />

@@ -52,7 +52,7 @@ export function FoodCreatorAuthProvider({ children }: FoodCreatorAuthProviderPro
   // Get user from query result
   const user = userQueryResult;
 
-  // Get food creator profile if user has chef role
+  // Get food creator profile if user has food creator role
   // Only query if user exists, has chef role, and we have a valid session token
   // This prevents calling the query with invalid tokens which would cause errors
   const foodCreatorQueryResult = useQuery(
@@ -74,7 +74,7 @@ export function FoodCreatorAuthProvider({ children }: FoodCreatorAuthProviderPro
   const isBasicOnboardingComplete = useQuery(
     api.queries.foodCreators.isBasicOnboardingComplete,
     foodCreator?._id && sessionToken
-      ? { chefId: foodCreator._id, sessionToken }
+      ? { foodCreatorId: foodCreator._id, sessionToken }
       : 'skip'
   ) ?? false;
 
@@ -82,11 +82,11 @@ export function FoodCreatorAuthProvider({ children }: FoodCreatorAuthProviderPro
   const isOnboardingComplete = useQuery(
     api.queries.chefCourses.isOnboardingComplete,
     foodCreator?._id && sessionToken
-      ? { chefId: foodCreator._id, sessionToken }
+      ? { foodCreatorId: foodCreator._id, sessionToken }
       : 'skip'
   ) ?? false;
 
-  // Check if user is authenticated as a chef
+  // Check if user is authenticated as a food creator
   // User must exist, have a session token, and have the 'chef' role
   const isAuthenticated = !!user && !!sessionToken && user.roles?.includes('chef');
 

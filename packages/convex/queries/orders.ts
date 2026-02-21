@@ -6,9 +6,9 @@ import { query } from '../_generated/server';
 import { getAuthenticatedUser, isAdmin, isStaff, requireAuth } from '../utils/auth';
 
 // @ts-ignore: Type instantiation is excessively deep
-export const listByChef = query({
+export const listByFoodCreatorId = query({
   args: {
-    chef_id: v.string(),
+    foodCreatorId: v.string(),
     sessionToken: v.optional(v.string()),
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
@@ -17,44 +17,44 @@ export const listByChef = query({
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
 
-    // chef_id can be either:
+    // foodCreatorId can be either:
     // 1. A userId string (legacy behavior from web API)
-    // 2. A chef document ID (from mobile chef app)
-    let chef;
+    // 2. A food creator document ID (from mobile food creator app)
+    let foodCreator;
 
-    // First, try to get chef by document ID (in case chef_id is a chef._id)
+    // First, try to get food creator by document ID (in case foodCreatorId is a foodCreator._id)
     try {
-      chef = await ctx.db.get(args.chef_id as Id<'chefs'>);
+      foodCreator = await ctx.db.get(args.foodCreatorId as Id<'chefs'>);
     } catch (error) {
       // Not a valid chef document ID, continue to try userId
     }
 
     // If not found by document ID, try by userId
-    if (!chef) {
-      chef = await ctx.db
+    if (!foodCreator) {
+      foodCreator = await ctx.db
         .query('chefs')
-        .filter((q: any) => q.eq(q.field('userId'), args.chef_id))
+        .filter((q: any) => q.eq(q.field('userId'), args.foodCreatorId))
         .first();
     }
 
-    // If chef not found, user doesn't have a chef profile
-    if (!chef) {
+    // If food creator not found, user doesn't have a food creator profile
+    if (!foodCreator) {
       throw new Error('Access denied');
     }
 
-    // Allow if user is admin/staff, or if they own the chef account
+    // Allow if user is admin/staff, or if they own the food creator account
     if (!isAdmin(user) && !isStaff(user)) {
-      if (chef.userId !== user._id) {
+      if (foodCreator.userId !== user._id) {
         throw new Error('Access denied');
       }
     }
 
     const { limit, offset = 0 } = args;
 
-    // Fetch orders filtered by chef_id (using the actual chef._id)
+    // Fetch orders filtered by foodCreatorId (using the actual foodCreator._id)
     const allOrders = await ctx.db
       .query('orders')
-      .filter((q: any) => q.eq(q.field('chef_id'), chef._id))
+      .filter((q: any) => q.eq(q.field('chef_id'), foodCreator._id))
       .collect();
 
     // Sort by createdAt desc (newest first)

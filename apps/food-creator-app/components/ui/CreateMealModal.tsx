@@ -44,7 +44,7 @@ const ALLERGEN_OPTIONS = [
 ];
 
 export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
-  const { foodCreator: chef, sessionToken, isAuthenticated } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken, isAuthenticated } = useFoodCreatorAuth();
   const { showSuccess, showError } = useToast();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -248,7 +248,7 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
   };
 
   const handleSubmit = async () => {
-    if (!chef?._id || !sessionToken) {
+    if (!foodCreator?._id || !sessionToken) {
       showError('Error', 'Food Creator information not available');
       return;
     }
@@ -287,7 +287,7 @@ export function CreateMealModal({ isVisible, onClose }: CreateMealModalProps) {
 
     try {
       await createMeal({
-        chefId: chef._id.toString(),
+        foodCreatorId: foodCreator._id.toString(),
         name: formData.name.trim(),
         description: formData.description.trim(),
         price: price * 100, // Convert to pence/cents

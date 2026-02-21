@@ -277,9 +277,9 @@ export const getById = query({
   },
 });
 
-export const getByChefId = query({
+export const getByFoodCreatorId = query({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     userId: v.optional(v.id('users')),
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
@@ -293,7 +293,7 @@ export const getByChefId = query({
 
     let meals = await ctx.db
       .query('meals')
-      .filter((q: any) => q.eq(q.field('chefId'), args.chefId))
+      .filter((q: any) => q.eq(q.field('chefId'), args.foodCreatorId))
       .collect();
 
     // Apply filters
@@ -392,9 +392,9 @@ export const getByChefId = query({
 });
 
 // Get all meals by chef ID for management (includes all statuses)
-export const getAllByChefIdForManagement = query({
+export const getAllByFoodCreatorIdForManagement = query({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     sessionToken: v.optional(v.string()),
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
@@ -404,10 +404,10 @@ export const getAllByChefIdForManagement = query({
     // Require authentication
     const user = await requireAuth(ctx, args.sessionToken);
 
-    // Get chef to verify ownership
-    const chef = await ctx.db.get(args.chefId);
-    if (!chef) {
-      throw new Error('Chef not found');
+    // Get food creator to verify ownership
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
+    if (!foodCreator) {
+      throw new Error('Food Creator not found');
     }
 
     // Users can only view meals for their own chef profile, staff/admin can view any
@@ -454,9 +454,9 @@ export const getAllByChefIdForManagement = query({
 });
 
 // Get popular meals by chef ID (sorted by rating/reviews)
-export const getPopularByChefId = query({
+export const getPopularByFoodCreatorId = query({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     userId: v.optional(v.id('users')),
     limit: v.optional(v.number()),
   },
@@ -526,9 +526,9 @@ export const getPopularByChefId = query({
 });
 
 // Get categories by chef ID
-export const getCategoriesByChefId = query({
+export const getCategoriesByFoodCreatorId = query({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
   },
   returns: v.array(v.object({
     category: v.string(),
@@ -564,9 +564,9 @@ export const getCategoriesByChefId = query({
 });
 
 // Search meals by chef ID
-export const searchMealsByChefId = query({
+export const searchMealsByFoodCreatorId = query({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     query: v.string(),
     userId: v.optional(v.id('users')),
     category: v.optional(v.string()),
@@ -616,8 +616,8 @@ export const searchMealsByChefId = query({
       });
     }
 
-    // Get chef data for the query
-    const chef = await ctx.db.get(args.chefId);
+    // Get food creator data for the query
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
 
     // Get reviews for rating
     const mealsWithReviews: HydratedMeal[] = await Promise.all(

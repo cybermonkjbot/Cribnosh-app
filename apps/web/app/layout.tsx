@@ -37,7 +37,10 @@ function getBaseUrl() {
 
 export const metadata: Metadata = {
   metadataBase: getBaseUrl(),
-  title: "Cribnosh | The app for foodies",
+  title: {
+    template: "%s | Cribnosh",
+    default: "Cribnosh | The app for foodies",
+  },
   description: "Personalized meal platform with cultural awareness and family-oriented recipes",
   keywords: [
     "Cribnosh",

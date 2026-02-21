@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { AlertCircle, X, Plus } from "lucide-react";
+import type { FormData } from '@/app/become-a-food-creator/apply/client-page';
 import { useMediaQuery } from "@/hooks/use-media-query";
-import type { FormData } from '@/app/cooking/apply/page';
+import { AlertCircle, Plus, X } from "lucide-react";
+import React, { useState } from "react";
 
 type CulinaryBackgroundFormProps = {
   formData: FormData;
@@ -13,9 +13,9 @@ type CulinaryBackgroundFormProps = {
 };
 
 const cuisineOptions = [
-  "American", "Italian", "Chinese", "Japanese", "Mexican", 
-  "Indian", "Thai", "Mediterranean", "French", "Greek", 
-  "Korean", "Vietnamese", "Middle Eastern", "Caribbean", 
+  "American", "Italian", "Chinese", "Japanese", "Mexican",
+  "Indian", "Thai", "Mediterranean", "French", "Greek",
+  "Korean", "Vietnamese", "Middle Eastern", "Caribbean",
   "African", "Spanish", "Brazilian", "Fusion"
 ];
 
@@ -25,21 +25,21 @@ const experienceOptions = [
   { id: "3-5", label: "3-5 years" },
   { id: "5-10", label: "5-10 years" },
   { id: "10+", label: "10+ years" },
-  { id: "professional", label: "Professional chef experience" }
+  { id: "professional", label: "Professional food creator experience" }
 ];
 
-export function CulinaryBackgroundForm({ 
-  formData, 
-  updateFormData, 
-  formErrors, 
+export function CulinaryBackgroundForm({
+  formData,
+  updateFormData,
+  formErrors,
   setFormErrors,
 }: CulinaryBackgroundFormProps) {
   const [newSpecialty, setNewSpecialty] = useState("");
   const isMobile = useMediaQuery('(max-width: 768px)');
-  
+
   const validateField = (name: string, value: any) => {
     const error = "";
-    
+
     switch (name) {
       case "experience":
         // Experience is now optional
@@ -50,15 +50,15 @@ export function CulinaryBackgroundForm({
       default:
         break;
     }
-    
+
     setFormErrors(prev => ({
       ...prev,
       [name]: error
     }));
-    
+
     return !error;
   };
-  
+
   const handleExperienceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { value } = e.target;
     updateFormData({
@@ -69,12 +69,12 @@ export function CulinaryBackgroundForm({
     });
     validateField("experience", value);
   };
-  
+
   const handleCuisineChange = (cuisine: string) => {
     const updatedCuisines = formData.culinaryBackground.cuisineTypes.includes(cuisine)
       ? formData.culinaryBackground.cuisineTypes.filter((c: string) => c !== cuisine)
       : [...formData.culinaryBackground.cuisineTypes, cuisine];
-    
+
     updateFormData({
       culinaryBackground: {
         ...formData.culinaryBackground,
@@ -257,7 +257,7 @@ export function CulinaryBackgroundForm({
           </label>
         </div>
       </div>
-      
+
     </div>
   );
 } 

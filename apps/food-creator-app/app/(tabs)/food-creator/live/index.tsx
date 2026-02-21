@@ -16,7 +16,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function LiveStreamScreen() {
   const router = useRouter();
-  const { foodCreator: chef, sessionToken, isAuthenticated } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken, isAuthenticated } = useFoodCreatorAuth();
   const cameraRef = useRef<any>(null);
   const [cameraType, setCameraType] = useState<'front' | 'back'>('back');
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -37,22 +37,22 @@ export default function LiveStreamScreen() {
   // Get chef's meals
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const meals = useQuery(
-    api.queries.meals.getByChefId,
-    chef?._id ? { chefId: chef._id, limit: 50 } : 'skip'
+    api.queries.meals.getByFoodCreatorId,
+    foodCreator?._id ? { foodCreatorId: foodCreator._id, limit: 50 } : 'skip'
   ) as any[] | undefined;
 
   // Check for active live sessions
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const activeSessions = useQuery(
-    api.queries.liveSessions.getByChefId,
-    chef?._id ? { chefId: chef._id, status: 'live', limit: 1 } : 'skip'
+    api.queries.liveSessions.getByFoodCreatorId,
+    foodCreator?._id ? { foodCreatorId: foodCreator._id, status: 'live', limit: 1 } : 'skip'
   ) as any[] | undefined;
 
   // Also check for 'starting' status sessions
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const startingSessions = useQuery(
-    api.queries.liveSessions.getByChefId,
-    chef?._id ? { chefId: chef._id, limit: 10 } : 'skip'
+    api.queries.liveSessions.getByFoodCreatorId,
+    foodCreator?._id ? { foodCreatorId: foodCreator._id, limit: 10 } : 'skip'
   ) as any[] | undefined;
 
   const createLiveSession = useMutation(api.mutations.liveSessions.createLiveSession);
@@ -125,7 +125,7 @@ export default function LiveStreamScreen() {
 
 
   const handleStartLiveStream = async () => {
-    if (!isAuthenticated || !chef?._id || !sessionToken) {
+    if (!isAuthenticated || !foodCreator?._id || !sessionToken) {
       Alert.alert('Sign In Required', 'Please sign in to start a live stream.');
       return;
     }
@@ -143,18 +143,18 @@ export default function LiveStreamScreen() {
     try {
       setIsStarting(true);
       // Generate a unique channel name
-      const channelName = `chef-${chef._id}-${Date.now()}`;
-      
+      const channelName = `food-creator-${foodCreator._id}-${Date.now()}`;
+
       const sessionId = await createLiveSession({
         channelName,
-        chefId: chef._id,
+        foodCreatorId: foodCreator._id,
         title: title.trim(),
         description: description.trim() || 'Live cooking session',
         mealId: selectedMealId as any,
         tags: tags,
         sessionToken,
       });
-      
+
       setLiveSessionId(sessionId);
       setChannelName(channelName);
       setIsStreaming(true);
@@ -252,7 +252,7 @@ export default function LiveStreamScreen() {
   if (!isStreaming) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar 
+        <StatusBar
           hidden={false}
           backgroundColor="transparent"
           translucent={true}
@@ -281,8 +281,8 @@ export default function LiveStreamScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView 
-            style={styles.setupContent} 
+          <ScrollView
+            style={styles.setupContent}
             contentContainerStyle={styles.setupContentContainer}
             keyboardShouldPersistTaps="handled"
           >
@@ -350,8 +350,8 @@ export default function LiveStreamScreen() {
             {/* Meal Selection */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Meal Being Cooked *</Text>
-              <TouchableOpacity 
-                style={styles.mealSelectButton} 
+              <TouchableOpacity
+                style={styles.mealSelectButton}
                 disabled={isStarting || !meals}
                 onPress={() => setShowMealPicker(!showMealPicker)}
               >
@@ -372,7 +372,7 @@ export default function LiveStreamScreen() {
                       <View style={styles.mealPickerEmpty}>
                         <Text style={styles.mealPickerEmptyText}>No meals available</Text>
                         <Text style={styles.mealPickerEmptySubtext}>
-                          Create a meal in your chef profile first
+                          Create a meal in your food creator profile first
                         </Text>
                       </View>
                     ) : (
@@ -482,13 +482,13 @@ export default function LiveStreamScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar 
+      <StatusBar
         hidden={false}
         backgroundColor="transparent"
         translucent={true}
         barStyle="light-content"
       />
-      
+
       {/* Camera View - Full Screen Background */}
       <CameraView
         ref={cameraRef}

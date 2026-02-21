@@ -16,8 +16,8 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function ChefProfileScreen() {
-  const { foodCreator: chef, sessionToken } = useFoodCreatorAuth();
+export default function FoodCreatorProfileScreen() {
+  const { foodCreator, sessionToken } = useFoodCreatorAuth();
   const router = useRouter();
   const { showSuccess } = useToast();
   const [activeTab, setActiveTab] = useState<ContentTabType>('all');
@@ -29,12 +29,12 @@ export default function ChefProfileScreen() {
   const [isMealModalVisible, setIsMealModalVisible] = useState(false);
   const [isStoryModalVisible, setIsStoryModalVisible] = useState(false);
 
-  // Get all chef content
+  // Get all food creator content
   const contentData = useQuery(
-    api.queries.foodCreators.getAllChefContent,
-    chef?._id && sessionToken
+    api.queries.foodCreators.getAllFoodCreatorContent,
+    foodCreator?._id && sessionToken
       ? {
-        chefId: chef._id,
+        foodCreatorId: foodCreator._id,
         sessionToken,
         limit: 100,
       }
@@ -49,11 +49,11 @@ export default function ChefProfileScreen() {
     return undefined; // Will be implemented when review query is available
   }, []);
 
-  // Get kitchen ID for chef
+  // Get kitchen ID for food creator
   const kitchenId = useQuery(
-    api.queries.kitchens.getKitchenByChefId,
-    chef?._id
-      ? { chefId: chef._id }
+    api.queries.kitchens.getKitchenByFoodCreatorId,
+    foodCreator?._id
+      ? { foodCreatorId: foodCreator._id }
       : 'skip'
   );
 
@@ -71,25 +71,25 @@ export default function ChefProfileScreen() {
       return kitchenDetails.kitchenName;
     }
     // Fallback to onboarding draft kitchen name
-    if (chef?.onboardingDraft?.kitchenName) {
-      return chef.onboardingDraft.kitchenName;
+    if (foodCreator?.onboardingDraft?.kitchenName) {
+      return foodCreator.onboardingDraft.kitchenName;
     }
     return undefined;
-  }, [kitchenDetails, chef?.onboardingDraft]);
+  }, [kitchenDetails, foodCreator?.onboardingDraft]);
 
-  // Get likes count for chef
+  // Get likes count for food creator
   const likesCount = useQuery(
-    api.queries.userFavorites.getChefLikesCount,
-    chef?._id ? { chefId: chef._id } : 'skip'
+    api.queries.userFavorites.getFoodCreatorLikesCount,
+    foodCreator?._id ? { foodCreatorId: foodCreator._id } : 'skip'
   );
 
-  // Get completed orders count (servings) for chef
+  // Get completed orders count (servings) for food creator
   const servingsCount = useQuery(
-    api.queries.orders.getChefCompletedOrdersCount,
-    chef?._id && sessionToken
-      ? { chefId: chef._id.toString(), sessionToken }
-      : chef?._id
-        ? { chefId: chef._id.toString() }
+    api.queries.orders.getFoodCreatorCompletedOrdersCount,
+    foodCreator?._id && sessionToken
+      ? { foodCreatorId: foodCreator._id.toString(), sessionToken }
+      : foodCreator?._id
+        ? { foodCreatorId: foodCreator._id.toString() }
         : 'skip'
   );
 
@@ -218,7 +218,7 @@ export default function ChefProfileScreen() {
   };
 
 
-  if (!chef) {
+  if (!foodCreator) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -235,19 +235,19 @@ export default function ChefProfileScreen() {
   };
 
   // Generate handle from name (lowercase, replace spaces with underscores)
-  const handle = chef.name?.toLowerCase().replace(/\s+/g, '_') || 'chef';
+  const handle = foodCreator.name?.toLowerCase().replace(/\s+/g, '_') || 'food_creator';
 
-  const isVerified = chef.verificationStatus === 'verified';
-  const rating = chef.rating || 0;
+  const isVerified = foodCreator.verificationStatus === 'verified';
+  const rating = foodCreator.rating || 0;
 
   // Calculate profile completion
   const profileCompletion = useMemo(() => {
     const fields = {
-      name: !!chef.name,
-      bio: !!chef.bio && chef.bio.length > 0,
-      specialties: !!chef.specialties && chef.specialties.length > 0,
-      location: !!chef.location?.city,
-      profileImage: !!(chef.image || chef.profileImage),
+      name: !!foodCreator.name,
+      bio: !!foodCreator.bio && foodCreator.bio.length > 0,
+      specialties: !!foodCreator.specialties && foodCreator.specialties.length > 0,
+      location: !!foodCreator.location?.city,
+      profileImage: !!(foodCreator.image || foodCreator.profileImage),
     };
 
     const completedCount = Object.values(fields).filter(Boolean).length;
@@ -260,7 +260,7 @@ export default function ChefProfileScreen() {
       totalFields,
       fields,
     };
-  }, [chef]);
+  }, [foodCreator]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -318,16 +318,16 @@ export default function ChefProfileScreen() {
         )}
 
         <ProfileHeader
-          name={chef.name || 'Chef'}
+          name={foodCreator.name || 'Food Creator'}
           handle={handle}
-          profileImage={chef.image || chef.profileImage}
+          profileImage={foodCreator.image || foodCreator.profileImage}
           kitchenName={kitchenName}
           stats={stats}
           rating={rating}
           reviewCount={reviewsCount}
           isVerified={isVerified}
-          specialties={chef.specialties}
-          fsaRating={chef.fsaRating}
+          specialties={foodCreator.specialties}
+          fsaRating={foodCreator.fsaRating}
           onMenu={() => setIsMenuVisible(true)}
         />
 

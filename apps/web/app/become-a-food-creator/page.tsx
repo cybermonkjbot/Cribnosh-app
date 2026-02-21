@@ -1,19 +1,19 @@
 "use client";
 
 import {
-  CookingHero,
-  CookingProcess,
-  CookingPerks,
+  FoodCreatorHero,
+  FoodCreatorPerks,
+  FoodCreatorProcess,
 } from '@/components/cooking';
 import { SharedKitchenIntro } from '@/components/cooking/shared-kitchen-intro';
-import { useRouter } from 'next/navigation';
 import { ParallaxGroup, ParallaxLayer } from '@/components/ui/parallax';
+import { useRouter } from 'next/navigation';
 
-export default function CookingPage() {
+export default function BecomeAFoodCreatorPage() {
   const router = useRouter();
 
   const handleApplyClick = () => {
-    router.push('/cooking/apply');
+    router.push('/become-a-food-creator/apply');
   };
 
   return (
@@ -23,7 +23,7 @@ export default function CookingPage() {
         <ParallaxLayer asBackground speed={0.2} className="z-0">
           <div className="fixed inset-0 bg-gradient-to-br from-[#ff3b30] to-[#ff5e54] opacity-90" />
         </ParallaxLayer>
-        
+
         <ParallaxLayer asBackground speed={0.4} className="z-0 pointer-events-none">
           <div className="fixed inset-0">
             <div className="absolute w-[500px] h-[500px] rounded-full bg-[#ff7b54] blur-[120px] -top-20 -right-20 opacity-50" />
@@ -33,9 +33,9 @@ export default function CookingPage() {
 
         {/* Content layer */}
         <div className="relative z-10">
-          <CookingHero />
-          <CookingProcess />
-          <CookingPerks />
+          <FoodCreatorHero />
+          <FoodCreatorProcess />
+          <FoodCreatorPerks />
           <SharedKitchenIntro />
         </div>
       </ParallaxGroup>

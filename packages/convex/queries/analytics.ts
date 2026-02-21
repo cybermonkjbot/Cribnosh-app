@@ -27,13 +27,13 @@ export const getDashboardMetrics = query({
   },
   returns: v.object({
     totalUsers: v.number(),
-    activeChefs: v.number(),
+    activeFoodCreators: v.number(),
     totalOrders: v.number(),
     totalRevenue: v.number(),
     averageRating: v.number(),
     citiesServed: v.number(),
     userGrowth: v.number(),
-    chefGrowth: v.number(),
+    chefGrowth: v.number(), // Keeping field name for schema compatibility for now
     orderGrowth: v.number(),
     revenueGrowth: v.number(),
     topLocations: v.array(v.object({
@@ -258,9 +258,15 @@ export const getRealtimeMetrics = query({
       .filter(q => q.eq(q.field("service"), "main"))
       .first();
 
+    // Get active food creators (chefs with active status)
+    const activeFoodCreators = await ctx.db
+      .query("chefs")
+      .filter(q => q.eq(q.field("status"), "active"))
+      .collect();
+
     return {
       activeUsers,
-      activeSessions: activeSessions.length,
+      activeFoodCreators: activeFoodCreators.length,
       pendingOrders: pendingOrders.length,
       liveStreams: liveStreams.length,
       systemHealth: {
@@ -271,9 +277,9 @@ export const getRealtimeMetrics = query({
   },
 });
 
-export const getChefAnalytics = query({
+export const getFoodCreatorAnalytics = query({
   args: {
-    chefId: v.id("chefs"),
+    foodCreatorId: v.id("chefs"),
     timeRange: v.union(v.literal("7d"), v.literal("30d"), v.literal("90d")),
     sessionToken: v.optional(v.string())
   },
@@ -298,18 +304,18 @@ export const getChefAnalytics = query({
   }),
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx, args.sessionToken);
-    const chef = await ctx.db.get(args.chefId);
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
 
-    if (!chef) {
-      throw new ConvexError("Chef not found");
+    if (!foodCreator) {
+      throw new ConvexError("Food Creator not found");
     }
 
-    // Allow access if user is the chef themselves OR if they are staff
-    const isOwner = user._id === chef.userId;
+    // Allow access if user is the food creator themselves OR if they are staff
+    const isOwner = user._id === foodCreator.userId;
     const staff = isStaff(user);
 
     if (!isOwner && !staff) {
-      throw new ConvexError("Unauthorized access to chef analytics");
+      throw new ConvexError("Unauthorized access to food creator analytics");
     }
 
     const daysInRange = args.timeRange === "7d" ? 7 : args.timeRange === "30d" ? 30 : 90;
@@ -319,7 +325,7 @@ export const getChefAnalytics = query({
     const orders = await ctx.db
       .query("orders")
       .filter(q => q.and(
-        q.eq(q.field("chef_id"), args.chefId),
+        q.eq(q.field("chef_id"), args.foodCreatorId),
         q.gte(q.field("createdAt"), startTime)
       ))
       .collect();
@@ -328,7 +334,7 @@ export const getChefAnalytics = query({
     const reviews = await ctx.db
       .query("reviews")
       .filter(q => q.and(
-        q.eq(q.field("chef_id"), args.chefId),
+        q.eq(q.field("chef_id"), args.foodCreatorId),
         q.gte(q.field("createdAt"), startTime)
       ))
       .collect();
@@ -345,7 +351,7 @@ export const getChefAnalytics = query({
     const previousOrders = await ctx.db
       .query("orders")
       .filter(q => q.and(
-        q.eq(q.field("chef_id"), args.chefId),
+        q.eq(q.field("chef_id"), args.foodCreatorId),
         q.gte(q.field("createdAt"), previousStartTime),
         q.lt(q.field("createdAt"), startTime)
       ))

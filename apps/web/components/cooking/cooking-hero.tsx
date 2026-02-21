@@ -1,15 +1,16 @@
 "use client";
 
 import { ContainerTextFlip } from "@/components/ui/containedtextflip";
+import { ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
-export function CookingHero() {
+export function FoodCreatorHero() {
   const router = useRouter();
 
   const handleApplyClick = () => {
-    router.push('/cooking/apply');
+    router.push('/become-a-food-creator/apply');
   };
 
   return (
@@ -57,47 +58,47 @@ export function CookingHero() {
               transition={{ duration: 0.7, delay: 0.1 }}
             >
               <ContainerTextFlip
-                words={["Share", "Cook", "Earn", "Connect"]}
+                words={["Share", "Create", "Earn", "Connect"]}
                 interval={2000}
-                className="!bg-[#ff3b30]/50 !shadow-none !text-white"
+                className="!bg-white/10 !shadow-none !text-white"
                 textClassName="font-display font-bold"
               />
               <br />
-              <span className="text-5xl md:text-7xl font-display font-bold leading-tight text-white/90">
+              <span className="text-5xl md:text-7xl font-display font-bold leading-tight">
                 Your Kitchen, Your Rules
               </span>
             </motion.div>
 
             <motion.p
-              className="text-lg md:text-xl text-white/80 mb-8 max-w-md"
+              className="text-lg md:text-xl text-white/90 mb-10 leading-relaxed max-w-xl"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.2 }}
             >
-              Turn your culinary passion into profit. Join Cribnosh as a certified Food Creator and share your authentic recipes with food lovers in your community.
-              <br /><br />
-              We provide the platform, certification, and customers. You provide the magic that makes food lovers fall in love with your cooking.
+              We provide the platform, certification, and customers. You provide the magic that makes food lovers fall in love with your creations.
             </motion.p>
 
             <motion.div
+              className="flex flex-col sm:flex-row items-center gap-4"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.3 }}
             >
               <motion.button
                 onClick={handleApplyClick}
-                className="px-8 py-3 bg-white text-[#ff3b30] rounded-lg font-medium hover:bg-white/90 transition-colors"
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.98 }}
+                className="px-8 py-4 bg-white text-[#ff3b30] rounded-full font-bold text-lg hover:bg-opacity-90 transition-all flex items-center gap-2"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                Apply to Cook
+                Become a Food Creator
+                <ArrowRight className="w-5 h-5" />
               </motion.button>
             </motion.div>
           </div>
 
           <div className="relative">
             <motion.div
-              className="relative z-10 rounded-2xl overflow-hidden shadow-2xl"
+              className="relative z-10 rounded-2xl overflow-hidden shadow-2xl border border-white/20"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7, delay: 0.4 }}
@@ -111,7 +112,7 @@ export function CookingHero() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
               <div className="absolute bottom-0 left-0 right-0 p-6">
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md p-3 rounded-xl">
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20">
                   <div className="bg-white rounded-full p-2">
                     <svg className="w-5 h-5 text-[#ff3b30]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -133,4 +134,4 @@ export function CookingHero() {
       </div>
     </motion.section>
   );
-} 
+}

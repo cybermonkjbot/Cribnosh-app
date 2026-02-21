@@ -18,15 +18,20 @@ function formatCityName(cityParam: string): string {
 export async function generateMetadata(
     { params }: Props
 ): Promise<Metadata> {
-    const city = formatCityName(params.city);
+    const { city: rawCity } = await params;
+    const city = formatCityName(rawCity);
 
     return {
-        title: `Homemade Food Delivery in ${city} | Authentic Cultural Meals | Cribnosh`,
+        title: `Homemade Food Delivery in ${city} | Authentic Cultural Meals`,
         description: `Order authentic homemade meals in ${city}. Connect with local ${city} chefs cooking family recipes. Nigerian, Indian, Caribbean and more delivered to your door in ${city}.`,
+        alternates: {
+            canonical: `https://cribnosh.com/locations/${rawCity}`
+        },
         openGraph: {
             title: `Homemade Food Delivery in ${city} | Cribnosh`,
             description: `Experience authentic cultural home cooking in ${city}.`,
             images: ['/og-image.jpg'], // Fallback or dynamic
+            url: `https://cribnosh.com/locations/${rawCity}`
         },
         keywords: [
             `${city} food delivery`,
@@ -90,7 +95,8 @@ export default async function Page({ params }: Props) {
                         },
                         "provider": {
                             "@type": "Organization",
-                            "name": "Cribnosh"
+                            "name": "Cribnosh",
+                            "url": "https://cribnosh.com"
                         },
                         "description": `Connecting ${city} food lovers with local food creators.`
                     })
@@ -104,6 +110,36 @@ export default async function Page({ params }: Props) {
                     }}
                 />
             )}
+            {/* BreadcrumbList Schema */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "BreadcrumbList",
+                        "itemListElement": [
+                            {
+                                "@type": "ListItem",
+                                "position": 1,
+                                "name": "Home",
+                                "item": "https://cribnosh.com"
+                            },
+                            {
+                                "@type": "ListItem",
+                                "position": 2,
+                                "name": "Locations",
+                                "item": "https://cribnosh.com/all-cities"
+                            },
+                            {
+                                "@type": "ListItem",
+                                "position": 3,
+                                "name": city,
+                                "item": `https://cribnosh.com/locations/${cityParam}`
+                            }
+                        ]
+                    })
+                }}
+            />
             <LocationClientPage city={city} foodCreators={foodCreators} />
         </>
     );

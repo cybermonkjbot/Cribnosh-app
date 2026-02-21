@@ -9,8 +9,14 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
-      allow: ['/locations', '/locations/*'],
-      disallow: ['/admin/*'],
+      allow: '/',
+      disallow: [
+        '/admin/*',
+        '/food-creator/sign-in',
+        '/checkout',
+        '/cart',
+        '/api/*'
+      ],
     },
     sitemap: 'https://cribnosh.com/sitemap.xml',
   };

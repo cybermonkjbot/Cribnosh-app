@@ -1,12 +1,7 @@
-export { CookingHero } from './cooking-hero';
-export { CookingProcess } from './cooking-process';
-export { CookingPerks } from './cooking-perks';
-export { SharedKitchenIntro } from './shared-kitchen-intro';
+export { FoodCreatorHero } from './cooking-hero';
+export { FoodCreatorPerks } from './cooking-perks';
+export { FoodCreatorProcess } from './cooking-process';
 export {
-  PersonalInfoForm,
-  KitchenDetailsForm,
-  CulinaryBackgroundForm,
-  MenuItemsForm,
-  UploadPhotosForm,
-  ReviewSubmitForm
-} from './form-steps'; 
+  CulinaryBackgroundForm, KitchenDetailsForm, MenuItemsForm, PersonalInfoForm, ReviewSubmitForm, UploadPhotosForm
+} from './form-steps';
+export { SharedKitchenIntro } from './shared-kitchen-intro';

@@ -3,6 +3,7 @@
 import {
   Calendar,
   ChefHat,
+  PoundSterling,
   Shield,
   Sparkles,
   TrendingUp,
@@ -30,7 +31,7 @@ const perks = [
   {
     icon: <Calendar className="w-6 h-6" />,
     title: "Flexible Schedule",
-    description: "Set your own hours and availability. Cook when it works for you.",
+    description: "Set your own hours and availability. Create when it works for you.",
     color: "bg-gray-100",
     iconColor: "text-gray-900",
   },
@@ -55,9 +56,16 @@ const perks = [
     color: "bg-gray-100",
     iconColor: "text-gray-900",
   },
+  {
+    title: "Earn Extra",
+    icon: <PoundSterling className="w-5 h-5 sm:w-6 sm:h-6" />,
+    description: "Turn your culinary skills into a profitable side hustle or full-time business.",
+    color: "bg-gray-100",
+    iconColor: "text-gray-900",
+  },
 ];
 
-export function CookingPerks() {
+export function FoodCreatorPerks() {
   return (
     <section className="py-16 sm:py-20 lg:py-24 bg-gray-50" id="perks" data-section-theme="light">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -73,7 +81,7 @@ export function CookingPerks() {
               Food Creator Benefits
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold text-gray-900 mt-2 mb-4 sm:mb-6">
-              Why Cook With Cribnosh?
+              Why Create With Cribnosh?
             </h2>
             <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8">
               Turn your kitchen into a thriving business and share your culinary heritage with food lovers in your community. Cribnosh provides everything you need to succeed.
@@ -130,7 +138,7 @@ export function CookingPerks() {
                     </div>
                   </div>
                   <p className="text-sm sm:text-base text-white/90 italic">
-                    "Joining Cribnosh allowed me to share my grandmother's recipes with my community while earning extra income. The certification process was straightforward, and now I have regular customers who love my authentic cooking."
+                    "Joining Cribnosh allowed me to share my grandmother's recipes with my community while earning extra income. The certification process was straightforward, and now I have regular customers who love my authentic creations."
                   </p>
                 </div>
               </div>
@@ -143,4 +151,4 @@ export function CookingPerks() {
       </div>
     </section>
   );
-} 
+}

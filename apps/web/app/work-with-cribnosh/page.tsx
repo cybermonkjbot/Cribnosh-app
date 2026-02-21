@@ -53,14 +53,14 @@ export default function WorkWithCribnosh() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                       </svg>
                     </div>
-                    <h2 className="font-asgard text-xl sm:text-3xl text-gray-900 group-hover:text-[#ff3b30] transition-colors">Cook on Cribnosh</h2>
+                    <h2 className="font-asgard text-xl sm:text-3xl text-gray-900 group-hover:text-[#ff3b30] transition-colors">Become a Food Creator</h2>
                   </div>
                   <p className="font-satoshi text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">Share your culinary passion with food enthusiasts in your area. Set your own menu, prices, and schedule.</p>
                   <Link
-                    href="/cooking/apply"
+                    href="/become-a-food-creator/apply"
                     className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-[#ff3b30] text-white rounded-lg hover:bg-[#ff5e54] transition-all duration-300 font-satoshi group relative overflow-hidden"
                   >
-                    <span className="relative z-10">Start Cooking</span>
+                    <span className="relative z-10">Get Started</span>
                     <motion.svg
                       className="ml-2 w-4 h-4 sm:w-5 sm:h-5 relative z-10 transition-transform duration-300 group-hover:translate-x-1"
                       fill="none"

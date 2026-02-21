@@ -1,4 +1,4 @@
-import { Handshake, Lock, MapPin, Sparkles, TrendingUp } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { motion, Variants } from 'motion/react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -60,7 +60,7 @@ export const SharedKitchenIntro = () => {
 
           {/* Main Content Grid */}
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Left Card - For Chefs */}
+            {/* Left Card - For Food Creators */}
             <motion.div
               custom={0}
               initial="hidden"
@@ -68,42 +68,31 @@ export const SharedKitchenIntro = () => {
               viewport={{ once: true }}
               variants={cardVariants}
               whileHover={{ scale: 1.02 }}
-              className="relative group"
+              className="relative group lg:card-tilt"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-[#ff3b30] to-[#ff5e54] rounded-3xl opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
-              <div className="relative backdrop-blur-sm bg-white/80  rounded-3xl p-8 md:p-10 shadow-xl border border-[#ff3b30]/20 ">
-                <div className="mb-6">
+              <div className="relative backdrop-blur-sm bg-white/80  rounded-3xl p-8 md:p-10 shadow-xl border border-[#ff3b30]/20 flex flex-col items-start gap-4">
+                <motion.div className="relative mb-2 h-20 w-20 overflow-hidden rounded-2xl">
                   <Image
                     src="/kitchenillus.png"
-                    alt="Chef looking for kitchen"
-                    width={80}
-                    height={80}
-                    className="rounded-2xl"
+                    alt="Space illustrative"
+                    fill
+                    className="object-cover"
                   />
-                </div>
-                <h3 className="font-asgard text-3xl text-[#ff3b30]  mb-4">
-                  Got Skills, Need Space?
+                </motion.div>
+                <h3 className="font-asgard text-3xl text-[#ff3b30]  mb-2">
+                  I Need a Space
                 </h3>
-                <ul className="font-satoshi space-y-4 text-gray-600  mb-8">
-                  <li className="flex items-center">
-                    <Sparkles className="w-5 h-5 mr-3 text-gray-900" />
-                    Access fully-equipped professional kitchens
-                  </li>
-                  <li className="flex items-center">
-                    <Handshake className="w-5 h-5 mr-3 text-gray-900" />
-                    Partner with verified kitchen owners
-                  </li>
-                  <li className="flex items-center">
-                    <MapPin className="w-5 h-5 mr-3 text-gray-900" />
-                    Find spaces in your neighborhood
-                  </li>
-                </ul>
+                <p className="text-gray-600 leading-relaxed mb-4">
+                  Access our network of certified shared kitchens and commercial spaces tailored for food creations.
+                </p>
                 <button
-                  onClick={() => router.push('/cooking/apply?type=chef')}
-                  className="w-full font-satoshi px-6 py-3 bg-gradient-to-r from-[#ff3b30] to-[#ff5e54] text-white rounded-xl shadow-lg transition-all duration-300 transform hover:translate-y-[-2px] hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-[#ff3b30] focus:ring-offset-2"
-                  aria-label="Apply as a chef"
+                  onClick={() => router.push('/become-a-food-creator/apply?type=food-creator')}
+                  className="inline-flex items-center gap-2 text-[#ff3b30] font-bold group"
+                  aria-label="Apply as a food creator"
                 >
-                  Apply as Chef
+                  Apply as Food Creator
+                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                 </button>
               </div>
             </motion.div>
@@ -116,42 +105,31 @@ export const SharedKitchenIntro = () => {
               viewport={{ once: true }}
               variants={cardVariants}
               whileHover={{ scale: 1.02 }}
-              className="relative group"
+              className="relative group lg:card-tilt"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-[#ff5e54] to-[#ff3b30] rounded-3xl opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
-              <div className="relative backdrop-blur-sm bg-white/80  rounded-3xl p-8 md:p-10 shadow-xl border border-[#ff5e54]/20 ">
-                <div className="mb-6">
+              <div className="relative backdrop-blur-sm bg-white/80  rounded-3xl p-8 md:p-10 shadow-xl border border-[#ff5e54]/20 flex flex-col items-start gap-4">
+                <motion.div className="relative mb-2 h-20 w-20 overflow-hidden rounded-2xl">
                   <Image
                     src="/backgrounds/masonry-1.jpg"
                     alt="Kitchen space"
-                    width={80}
-                    height={80}
-                    className="rounded-2xl"
+                    fill
+                    className="object-cover"
                   />
-                </div>
-                <h3 className="font-asgard text-3xl text-[#ff5e54]  mb-4">
-                  Got Kitchen, Need Chef?
+                </motion.div>
+                <h3 className="font-asgard text-3xl text-[#ff5e54]  mb-2">
+                  I Have a Space
                 </h3>
-                <ul className="font-satoshi space-y-4 text-gray-600  mb-8">
-                  <li className="flex items-center">
-                    <Sparkles className="w-5 h-5 mr-3 text-gray-900" />
-                    Monetize your unused kitchen time
-                  </li>
-                  <li className="flex items-center">
-                    <Lock className="w-5 h-5 mr-3 text-gray-900" />
-                    Connect with verified, skilled chefs
-                  </li>
-                  <li className="flex items-center">
-                    <TrendingUp className="w-5 h-5 mr-3 text-gray-900" />
-                    Grow your culinary community
-                  </li>
-                </ul>
+                <p className="text-gray-600 leading-relaxed mb-4">
+                  Turn your kitchen's downtime into revenue by hosting verified local food creators.
+                </p>
                 <button
-                  onClick={() => router.push('/cooking/apply?type=kitchen-owner')}
-                  className="w-full font-satoshi px-6 py-3 bg-gradient-to-r from-[#ff5e54] to-[#ff3b30] text-white rounded-xl shadow-lg transition-all duration-300 transform hover:translate-y-[-2px] hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-[#ff5e54] focus:ring-offset-2"
+                  onClick={() => router.push('/become-a-food-creator/apply?type=kitchen-owner')}
+                  className="inline-flex items-center gap-2 text-[#ff5e54] font-bold group"
                   aria-label="List your kitchen"
                 >
                   List Your Kitchen
+                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                 </button>
               </div>
             </motion.div>
@@ -178,4 +156,4 @@ export const SharedKitchenIntro = () => {
   );
 };
 
-export default SharedKitchenIntro; 
+export default SharedKitchenIntro;

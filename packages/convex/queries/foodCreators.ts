@@ -9,10 +9,10 @@ import { calculateDeliveryTimeFromLocations, formatDeliveryTime } from '../utils
  * Helper function to check if a foodCreator has any meals
  * Returns true if foodCreator has at least one meal (regardless of status)
  */
-async function foodCreatorHasMeals(ctx: any, chefId: Id<"chefs">): Promise<boolean> {
+async function foodCreatorHasMeals(ctx: any, foodCreatorId: Id<"chefs">): Promise<boolean> {
   const meals = await ctx.db
     .query('meals')
-    .filter(q => q.eq(q.field('chefId'), chefId))
+    .filter(q => q.eq(q.field('chefId'), foodCreatorId))
     .first();
   return meals !== null;
 }
@@ -138,7 +138,7 @@ export const getAllFoodCreatorLocations = query({
 
     // Map to location format
     const mapped = filteredFoodCreators.map(foodCreator => ({
-      chefId: foodCreator._id,
+      foodCreatorId: foodCreator._id,
       userId: foodCreator.userId,
       city: foodCreator.location.city,
       coordinates: foodCreator.location.coordinates,
@@ -191,16 +191,16 @@ export const getAll = query({
 });
 
 export const getFoodCreatorById = query({
-  args: { chefId: v.id('chefs') },
+  args: { foodCreatorId: v.id('chefs') },
   returns: v.union(foodCreatorDocValidator, v.null()),
   handler: async (ctx, args) => {
-    const foodCreator = await ctx.db.get(args.chefId);
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
     if (!foodCreator) {
       return null;
     }
 
     // Filter out foodCreators with no meals
-    const hasMeals = await foodCreatorHasMeals(ctx, args.chefId);
+    const hasMeals = await foodCreatorHasMeals(ctx, args.foodCreatorId);
     if (!hasMeals) {
       return null;
     }
@@ -215,10 +215,10 @@ export const getById = getFoodCreatorById;
 // Get kitchen phone by foodCreator ID (gets phone from associated user)
 export const getKitchenPhoneByFoodCreatorId = query({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
   },
   handler: async (ctx, args) => {
-    const foodCreator = await ctx.db.get(args.chefId);
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
     if (!foodCreator) {
       return null;
     }
@@ -285,10 +285,10 @@ export const getMenuById = query({
 });
 
 export const getMenusByFoodCreatorId = query({
-  args: { chefId: v.id('chefs') },
+  args: { foodCreatorId: v.id('chefs') },
   returns: v.array(mealDocValidator),
   handler: async (ctx, args) => {
-    return await ctx.db.query('meals').filter(q => q.eq(q.field('chefId'), args.chefId)).collect();
+    return await ctx.db.query('meals').filter(q => q.eq(q.field('chefId'), args.foodCreatorId)).collect();
   }
 });
 
@@ -325,7 +325,7 @@ export const getByUserId = query({
  */
 export const isBasicOnboardingComplete = query({
   args: {
-    chefId: v.id("chefs"),
+    foodCreatorId: v.id("chefs"),
     sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -333,7 +333,7 @@ export const isBasicOnboardingComplete = query({
     const user = await requireAuth(ctx, args.sessionToken);
 
     // Get foodCreator to verify ownership
-    const foodCreator = await ctx.db.get(args.chefId);
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
 
     if (!foodCreator) {
       return false;
@@ -758,11 +758,11 @@ export const getFavoriteFoodCreators = query({
       const favoriteFoodCreatorsResults = await Promise.all(
         favorites.map(async (favorite) => {
           try {
-            const chefId = favorite.favoriteId as Id<"chefs">;
-            const foodCreator = await ctx.db.get(chefId);
+            const foodCreatorId = favorite.favoriteId as Id<"chefs">;
+            const foodCreator = await ctx.db.get(foodCreatorId);
             if (foodCreator && foodCreator.status === 'active') {
               // Check if foodCreator has meals
-              const hasMeals = await foodCreatorHasMeals(ctx, chefId);
+              const hasMeals = await foodCreatorHasMeals(ctx, foodCreatorId);
               if (!hasMeals) {
                 return null;
               }

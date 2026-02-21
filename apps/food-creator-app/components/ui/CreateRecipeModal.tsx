@@ -37,7 +37,7 @@ const STEPS = [
 ];
 
 export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps) {
-  const { foodCreator: chef, sessionToken, isAuthenticated } = useFoodCreatorAuth();
+  const { foodCreator, sessionToken, isAuthenticated } = useFoodCreatorAuth();
   const { showSuccess, showError } = useToast();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -69,8 +69,8 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
   // Get meals for linking
   // @ts-ignore - Type instantiation is excessively deep (Convex type system limitation)
   const meals = useQuery(
-    api.queries.meals.getByChefId,
-    chef?._id ? { chefId: chef._id } : 'skip'
+    api.queries.meals.getByFoodCreatorId,
+    foodCreator?._id ? { foodCreatorId: foodCreator._id } : 'skip'
   ) as any[] | undefined;
 
   // Check authentication when modal opens
@@ -250,7 +250,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
   };
 
   const handleSubmit = async (publish: boolean) => {
-    if (!chef?.name || !sessionToken) {
+    if (!foodCreator?.name || !sessionToken) {
       showError('Error', 'Food Creator information not available');
       return;
     }
@@ -310,7 +310,7 @@ export function CreateRecipeModal({ isVisible, onClose }: CreateRecipeModalProps
         difficulty: formData.difficulty,
         cuisine: formData.cuisine.trim() || 'Other',
         dietary: formData.dietary,
-        author: chef.name,
+        author: foodCreator.name,
         featuredImage: formData.featuredImage || undefined,
         status: publish ? 'published' : 'draft',
         sessionToken,

@@ -166,7 +166,7 @@ export default function TermsOfService() {
                     4. Terms for Food Creators
                   </h2>
                   <p className="text-gray-600 mb-4">
-                    If you register as a Food Creator ("Chef" or "Cook"), the following additional terms apply:
+                    If you register as a Food Creator, the following additional terms apply:
                   </p>
                   <ul className="list-none space-y-3 text-gray-600">
                     <li className="flex items-start gap-2">

@@ -1,15 +1,15 @@
 import { JobPosting, WithContext } from "schema-dts";
 
 interface JobValuesJsonLdProps {
-    type: 'chef' | 'driver';
+    type: 'chef' | 'driver' | 'food-creator';
     datePosted?: string;
 }
 
 export function JobValuesJsonLd({ type, datePosted = new Date().toISOString() }: JobValuesJsonLdProps) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://cribnosh.com';
 
-    const isChef = type === 'chef';
-    const title = isChef ? "Food Creator (Chef)" : "Delivery Driver";
+    const isChef = type === 'chef' || type === 'food-creator';
+    const title = isChef ? "Food Creator" : "Delivery Driver";
     const desc = isChef
         ? "Join CribNosh as a Food Creator. Cook your authentic family recipes from home, set your own schedule, and earn money sharing your culture. We handle delivery and marketing."
         : "Join CribNosh as a Delivery Driver. Deliver joy and authentic meals across your city. Flexible hours, competitive pay, and a supportive community.";

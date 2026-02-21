@@ -23,7 +23,7 @@ import { useEffect, useState } from 'react';
 
 type FormStep = 'personal' | 'kitchen' | 'background' | 'menu' | 'photos' | 'review';
 
-export interface ChefApplicationData {
+export interface FoodCreatorApplicationData {
   personalInfo: {
     firstName: string;
     lastName: string;
@@ -70,7 +70,7 @@ export interface ChefApplicationData {
   };
 }
 
-const initialFormData: ChefApplicationData = {
+const initialFormData: FoodCreatorApplicationData = {
   personalInfo: {
     firstName: '',
     lastName: '',
@@ -105,12 +105,12 @@ const initialFormData: ChefApplicationData = {
 };
 
 // Export the type using export type to fix isolatedModules error
-export type { ChefApplicationData as FormData };
+export type { FoodCreatorApplicationData as FormData };
 
 export default function ApplicationPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<FormStep>('personal');
-  const [formData, setFormData] = useState<ChefApplicationData>(initialFormData);
+  const [formData, setFormData] = useState<FoodCreatorApplicationData>(initialFormData);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const isMobile = useMediaQuery('(max-width: 768px)');
 
@@ -141,7 +141,7 @@ export default function ApplicationPage() {
     }
   }, [formData]);
 
-  const updateFormData = (data: Partial<ChefApplicationData>) => {
+  const updateFormData = (data: Partial<FoodCreatorApplicationData>) => {
     setFormData(prev => ({
       ...prev,
       ...data
@@ -212,8 +212,8 @@ export default function ApplicationPage() {
         throw new Error('User not authenticated');
       }
 
-      // Create chef with minimal required fields - make most fields optional
-      const chefId = await createChef({
+      // Create food creator with minimal required fields - make most fields optional
+      const foodCreatorId = await createChef({
         userId: userId as Id<'users'>,
         name: formData.personalInfo.firstName && formData.personalInfo.lastName
           ? `${formData.personalInfo.firstName} ${formData.personalInfo.lastName}`
@@ -237,7 +237,7 @@ export default function ApplicationPage() {
       // Create kitchen only if basic details are provided
       if (formData.kitchenDetails.address && formData.kitchenDetails.city) {
         await createKitchen({
-          owner_id: chefId,
+          owner_id: foodCreatorId,
           address: `${formData.kitchenDetails.address}, ${formData.kitchenDetails.city}, ${formData.kitchenDetails.state} ${formData.kitchenDetails.zipCode}`,
           certified: false,
           inspectionDates: [],
@@ -246,13 +246,13 @@ export default function ApplicationPage() {
       }
 
       // 2. Queue emails for admin via Convex action
-      const adminDetails = `A new chef applied.\nName: ${formData.personalInfo.firstName} ${formData.personalInfo.lastName}\nEmail: ${formData.personalInfo.email}\nExperience: ${formData.culinaryBackground.experience}`;
+      const adminDetails = `A new food creator applied.\nName: ${formData.personalInfo.firstName} ${formData.personalInfo.lastName}\nEmail: ${formData.personalInfo.email}\nExperience: ${formData.culinaryBackground.experience}`;
 
       await sendEmail({
         to: 'support@cribnosh.com',
         from: 'earlyaccess@emails.cribnosh.com',
-        subject: '[Chef Application] New Chef Signup',
-        html: `<h1>New Chef Application</h1><p>${adminDetails.replace(/\n/g, '<br>')}</p>`,
+        subject: '[Food Creator Application] New Food Creator Signup',
+        html: `<h1>New Food Creator Application</h1><p>${adminDetails.replace(/\n/g, '<br>')}</p>`,
       });
 
       // 3. Add to broadcast list
@@ -262,7 +262,7 @@ export default function ApplicationPage() {
         lastName: formData.personalInfo.lastName,
       });
 
-      // 4. Send confirmation email to chef
+      // 4. Send confirmation email to food creator
       await sendEmail({
         to: formData.personalInfo.email,
         from: 'applications@cribnosh.com',
@@ -290,10 +290,6 @@ export default function ApplicationPage() {
           message: 'Application submitted successfully! We will review your application and get back to you soon.',
         },
       }));
-
-      setTimeout(() => {
-        router.push('/cooking/apply/success');
-      }, 2000);
     } catch (error) {
       setFormData(prev => ({
         ...prev,
@@ -333,7 +329,7 @@ export default function ApplicationPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-      <JobValuesJsonLd type="chef" />
+      <JobValuesJsonLd type="food-creator" />
       <MasonryBackground className="z-0" />
       {/* Mobile Back Button - only on mobile, fixed top left */}
       <MobileBackButton />

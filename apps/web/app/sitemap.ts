@@ -54,6 +54,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
   let dynamicBlogRoutes: MetadataRoute.Sitemap = [];
   let dynamicFoodCreatorRoutes: MetadataRoute.Sitemap = [];
+  let dynamicCityRoutes: MetadataRoute.Sitemap = [];
+  let dynamicStoryRoutes: MetadataRoute.Sitemap = [];
 
   if (convexUrl) {
     const convex = new ConvexHttpClient(convexUrl);
@@ -62,21 +64,37 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // Fetch dynamic blog posts
       // @ts-ignore
       const posts = await convex.query(api.queries.blog.getBlogPosts, { status: 'published' });
-      dynamicBlogRoutes = posts.map((post: any) => ({
+      dynamicBlogRoutes = (posts || []).map((post: any) => ({
         url: `${baseUrl}/by-us/${post.slug}`,
-        lastModified: new Date(post.publishedAt || post.createdAt),
+        lastModified: new Date(post.publishedAt || post.createdAt || Date.now()),
         changeFrequency: 'weekly',
         priority: 0.7,
       }));
+
       // Fetch dynamic food creator profiles
       // @ts-ignore
       const foodCreators = await convex.query(api.queries.chefs.getFoodCreatorSitemapData, {});
-      dynamicFoodCreatorRoutes = foodCreators.map((creator: any) => ({
+      dynamicFoodCreatorRoutes = (foodCreators || []).map((creator: any) => ({
         url: `${baseUrl}/food-creator/${creator.username}`,
-        lastModified: new Date(creator.updatedAt || creator._creationTime),
+        lastModified: new Date(creator.updatedAt || creator._creationTime || Date.now()),
         changeFrequency: 'weekly',
         priority: 0.8,
       }));
+
+      // Fetch unique cities for location pages
+      // @ts-ignore
+      const cities = await convex.query(api.queries.chefs.getAllChefLocations, {});
+      const uniqueCities = Array.from(new Set((cities || []).map((c: any) => c.city.toLowerCase().replace(/\s+/g, '-'))));
+      dynamicCityRoutes = uniqueCities.map((citySlug) => ({
+        url: `${baseUrl}/locations/${citySlug}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.6,
+      }));
+
+      // Note: We don't have a specific "getStories" sitemap query yet, 
+      // but we can add placeholders or use blog posts if they share the same logic.
+      // For now, let's prioritize locations and blogs which are definite.
     } catch (error) {
       console.error('Error fetching dynamic sitemap data:', error);
       // Fallback to static lists if Convex fetch fails to ensure sitemap still generates
@@ -90,5 +108,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: route === '' ? 1 : 0.8,
   }));
 
-  return [...mainSitemap, ...dynamicBlogRoutes, ...dynamicFoodCreatorRoutes];
+  return [
+    ...mainSitemap,
+    ...dynamicBlogRoutes,
+    ...dynamicFoodCreatorRoutes,
+    ...dynamicCityRoutes,
+    ...dynamicStoryRoutes
+  ];
 }

@@ -7,14 +7,14 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 
 interface OnlineOfflineToggleProps {
-  chefId: Id<'chefs'>;
+  foodCreatorId: Id<'chefs'>;
   isOnline: boolean;
   sessionToken?: string;
   onShowSetup?: () => void;
@@ -38,7 +38,7 @@ const COLORS = {
   offline: '#9CA3AF',
 };
 
-export function OnlineOfflineToggle({ chefId, isOnline, sessionToken, onShowSetup }: OnlineOfflineToggleProps) {
+export function OnlineOfflineToggle({ foodCreatorId, isOnline, sessionToken, onShowSetup }: OnlineOfflineToggleProps) {
   const { showSuccess, showError } = useToast();
   const { isAuthenticated } = useFoodCreatorAuth();
   const router = useRouter();
@@ -46,11 +46,11 @@ export function OnlineOfflineToggle({ chefId, isOnline, sessionToken, onShowSetu
   const toggleAvailability = useMutation(api.mutations.foodCreators.toggleAvailability);
   const [isUpdating, setIsUpdating] = React.useState(false);
 
-  // Check if chef can go online
+  // Check if food creator can go online
   const canGoOnlineStatus = useQuery(
     api.queries.chefCourses.canGoOnline,
-    chefId && sessionToken
-      ? { chefId, sessionToken }
+    foodCreatorId && sessionToken
+      ? { foodCreatorId, sessionToken }
       : 'skip'
   );
 
@@ -104,7 +104,7 @@ export function OnlineOfflineToggle({ chefId, isOnline, sessionToken, onShowSetu
     setIsUpdating(true);
     try {
       await toggleAvailability({
-        chefId,
+        foodCreatorId,
         isAvailable: !isOnline,
         sessionToken,
       });

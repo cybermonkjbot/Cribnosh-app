@@ -1,0 +1,254 @@
+npm warn config ignoring workspace config at /Users/joshua/Documents/Cribnosh-app/apps/web/.npmrc
+
+> cribland@0.1.0 prebuild
+> node scripts/setup-convex.js
+
+Found Convex at monorepo path: /Users/joshua/Documents/Cribnosh-app/packages/convex
+Convex symlink already exists and points to correct source, skipping
+
+> cribland@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local, .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 10.7s
+  Running TypeScript ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/189) ...
+  Generating static pages using 9 workers (47/189) 
+  Generating static pages using 9 workers (94/189) 
+  Generating static pages using 9 workers (141/189) 
+Failed to load dynamic font for ▲ . Error: Error: Failed to download dynamic font. Status: 400
+    at ignore-listed frames
+✓ Generating static pages using 9 workers (189/189) in 3.3s
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /about
+├ ○ /admin
+├ ○ /admin/account
+├ ○ /admin/analytics
+├ ○ /admin/analytics/payments
+├ ○ /admin/analytics/reports
+├ ○ /admin/analytics/revenue
+├ ○ /admin/analytics/users
+├ ○ /admin/camera/filters
+├ ○ /admin/careers
+├ ○ /admin/careers/approved
+├ ○ /admin/careers/reviews
+├ ○ /admin/chefs
+├ ○ /admin/cities
+├ ○ /admin/compliance
+├ ○ /admin/compliance/gdpr
+├ ○ /admin/compliance/security
+├ ○ /admin/content
+├ ○ /admin/content/blog
+├ ○ /admin/content/comments
+├ ○ /admin/content/live-sessions
+├ ○ /admin/content/meals
+├ ○ /admin/content/pages
+├ ○ /admin/content/recipes
+├ ○ /admin/content/stories
+├ ○ /admin/content/videos
+├ ○ /admin/coupons
+├ ○ /admin/custom-orders
+├ ○ /admin/debug
+├ ○ /admin/delivery
+├ ○ /admin/email-config
+├ ○ /admin/email-config/queue
+├ ƒ /admin/email-config/template/[id]
+├ ○ /admin/email-config/template/new
+├ ○ /admin/email-templates
+├ ƒ /admin/email-templates/[id]
+├ ○ /admin/email-templates/broadcast
+├ ○ /admin/feature-flags
+├ ○ /admin/forgot-password
+├ ○ /admin/kitchens
+├ ○ /admin/login
+├ ○ /admin/moderation
+├ ○ /admin/offers
+├ ○ /admin/orders
+├ ○ /admin/payroll
+├ ○ /admin/payroll/reports
+├ ○ /admin/payroll/tax-documents
+├ ○ /admin/referrals
+├ ƒ /admin/reset-password
+├ ○ /admin/reviews
+├ ○ /admin/settings
+├ ○ /admin/settings/delivery
+├ ○ /admin/staff
+├ ƒ /admin/staff/[id]
+├ ○ /admin/staff/leave-requests
+├ ○ /admin/staff/overview
+├ ○ /admin/staff/work-email-requests
+├ ○ /admin/staff/work-ids
+├ ○ /admin/support
+├ ○ /admin/system
+├ ○ /admin/system/jobs
+├ ○ /admin/time-tracking
+├ ○ /admin/time-tracking/reports
+├ ○ /admin/users
+├ ○ /admin/users/permissions
+├ ○ /admin/users/roles
+├ ○ /admin/waitlist
+├ ƒ /admin/waitlist/[id]
+├ ○ /admin/waitlist/emails
+├ ○ /analytics
+├ ƒ /api
+├ ƒ /api/admin/[document_id]
+├ ƒ /api/admin/[document_id]/download
+├ ƒ /api/admin/[document_id]/review
+├ ƒ /api/admin/[document_id]/review-new
+├ ƒ /api/apple-maps/directions
+├ ƒ /api/apple-maps/geocode
+├ ƒ /api/apple-maps/places-search
+├ ƒ /api/apple-maps/reverse-geocode
+├ ƒ /api/async-tasks
+├ ƒ /api/auth/apple-signin
+├ ƒ /api/auth/apple/callback
+├ ƒ /api/auth/check-integration
+├ ƒ /api/email-unsubscribe
+├ ƒ /api/emotions-engine
+├ ƒ /api/files/confirm-upload
+├ ƒ /api/files/upload-url
+├ ƒ /api/health
+├ ƒ /api/health/fast
+├ ƒ /api/keep-alive
+├ ƒ /api/legal/community-guidelines
+├ ƒ /api/legal/privacy-policy
+├ ƒ /api/legal/refund-policy
+├ ƒ /api/legal/terms-of-service
+├ ƒ /api/live-streaming/comments
+├ ƒ /api/live-streaming/reactions
+├ ƒ /api/payments/add-card
+├ ƒ /api/payments/cards
+├ ƒ /api/payments/cards/[card_id]
+├ ƒ /api/payments/confirm-payment
+├ ƒ /api/payments/create-customer
+├ ƒ /api/payments/create-payment-intent
+├ ƒ /api/payments/refund
+├ ƒ /api/payroll/tax-documents
+├ ƒ /api/payroll/tax-documents/[documentId]/download
+├ ƒ /api/security/reports/[...path]
+├ ƒ /api/session/handoff
+├ ƒ /api/staff/clockin-status
+├ ƒ /api/stripe/webhook
+├ ƒ /api/test-auth
+├ ƒ /api/timelogs
+├ ƒ /api/timelogs/activity-tracker
+├ ƒ /api/users/[id]
+├ ƒ /api/webhooks/post-created
+├ ƒ /api/webhooks/resend
+├ ƒ /api/webhooks/stripe
+├ ○ /become-a-food-creator
+├ ○ /become-a-food-creator/apply
+├ ○ /by-us
+├ ● /by-us/[slug]
+├ ○ /careers
+├ ƒ /careers/[slug]
+├ ○ /cart
+├ ○ /certification
+├ ○ /checkout
+├ ○ /compliance
+├ ○ /contact
+├ ○ /cookie-policy
+├ ○ /data-protection
+├ ○ /driving/apply
+├ ○ /early-access-perks
+├ ○ /expansions
+├ ○ /features
+├ ƒ /food-creator
+├ ƒ /food-creator/[username]
+├ ○ /food-creator/content
+├ ○ /food-creator/content/recipes/create
+├ ○ /food-creator/content/stories/create
+├ ○ /food-creator/content/videos/upload
+├ ○ /food-creator/dashboard
+├ ○ /food-creator/earnings
+├ ○ /food-creator/earnings/bank-accounts
+├ ○ /food-creator/earnings/payouts
+├ ○ /food-creator/earnings/taxes
+├ ○ /food-creator/earnings/transactions
+├ ○ /food-creator/live
+├ ○ /food-creator/meals
+├ ƒ /food-creator/meals/[id]/edit
+├ ○ /food-creator/meals/create
+├ ○ /food-creator/onboarding
+├ ○ /food-creator/onboarding/course
+├ ƒ /food-creator/onboarding/course/[moduleId]
+├ ○ /food-creator/onboarding/documents
+├ ○ /food-creator/orders
+├ ƒ /food-creator/orders/[id]
+├ ○ /food-creator/profile
+├ ○ /food-creator/settings/account-details
+├ ○ /food-creator/sign-in
+├ ○ /food-creator/support
+├ ○ /founders-story
+├ ○ /history
+├ ○ /launch/edinburgh
+├ ƒ /locations/[city]
+├ ○ /manifesto
+├ ○ /modern-slavery-statement
+├ ○ /opengraph-image
+├ ○ /orders
+├ ƒ /orders/[orderId]
+├ ƒ /orders/[orderId]/success
+├ ○ /privacy
+├ ○ /profile
+├ ƒ /referral
+├ ○ /referral/dashboard
+├ ○ /referral/faq
+├ ○ /referral/guide
+├ ○ /referral/landing
+├ ○ /referral/onboarding
+├ ○ /referral/tips
+├ ○ /refund-policy
+├ ○ /robots.txt
+├ ○ /sitemap.xml
+├ ○ /staff/activitywatch-setup
+├ ○ /staff/blog
+├ ƒ /staff/blog/[id]
+├ ○ /staff/blog/new
+├ ○ /staff/documents
+├ ○ /staff/email-campaigns
+├ ○ /staff/forgot-password
+├ ○ /staff/leave-request
+├ ○ /staff/login
+├ ○ /staff/onboarding
+├ ○ /staff/payroll
+├ ○ /staff/portal
+├ ƒ /staff/reset-password
+├ ○ /staff/time-tracking
+├ ○ /staff/time-tracking/recent-sessions
+├ ƒ /staff/time-tracking/sessions/[sessionId]
+├ ○ /staff/waitlist
+├ ○ /staff/work-email-request
+├ ○ /staff/work-id
+├ ƒ /story/[id]
+├ ○ /terms
+├ ○ /test-build
+├ ƒ /try-it
+├ ○ /us-on-social-media
+├ ○ /values
+├ ○ /values/cultural-roots
+├ ○ /values/family-traditions
+├ ○ /values/healthy-choices
+├ ○ /values/hygienic-standards
+├ ○ /values/sustainable-practices
+├ ○ /values/vibrant-flavors
+├ ○ /waitlist
+├ ○ /waitlist/onboarding
+├ ƒ /waitlist/onboarding/[token]
+└ ○ /work-with-cribnosh
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+

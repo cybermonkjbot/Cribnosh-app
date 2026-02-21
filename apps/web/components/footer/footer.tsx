@@ -24,6 +24,8 @@ export function Footer({
   className = '',
 }: FooterProps) {
   const productLinks: FooterLinkItem[] = [
+    { label: "Cuisines", href: "/cuisines" },
+    { label: "Food Creators", href: "/creators" },
     { label: "Dietary Memory", href: "/features#dietary" },
     { label: "Allergen Safeguard", href: "/features#allergen" },
     { label: "Smart Ordering", href: "/features#ordering" },

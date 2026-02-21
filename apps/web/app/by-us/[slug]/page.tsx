@@ -188,6 +188,36 @@ export default async function ByUsPostPage({ params }: { params: Promise<Params>
           })
         }}
       />
+      {/* BreadcrumbList JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://cribnosh.com"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://cribnosh.com/by-us"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": (post.title && typeof post.title === 'string') ? post.title : 'Blog Post',
+                "item": `https://cribnosh.com/by-us/${slug || ''}`
+              }
+            ]
+          })
+        }}
+      />
       <article className="max-w-3xl mx-auto px-4 py-10">
         {/* Table of contents (if available) */}
         {post.headings && Array.isArray(post.headings) && post.headings.length > 0 && (

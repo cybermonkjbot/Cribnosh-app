@@ -13,14 +13,14 @@ export default function TabLayout() {
   const segmentsArray = Array.isArray(segments) ? segments : [];
 
   // Check if we're on onboarding or compliance pages
-  // Segments can be like: ['(tabs)', 'chef', 'onboarding-setup'] or ['(tabs)', 'chef', 'onboarding', ...]
+  // Segments can be like: ['(tabs)', 'food-creator', 'onboarding-setup'] or ['(tabs)', 'food-creator', 'onboarding', ...]
   const segmentString = segmentsArray.join('/');
-  const isOnOnboardingRoute = 
-    segmentString.includes('onboarding-setup') || 
+  const isOnOnboardingRoute =
+    segmentString.includes('onboarding-setup') ||
     segmentString.includes('onboarding/') ||
     segmentString.endsWith('onboarding') ||
-    segmentsArray.some(segment => 
-      segment === 'onboarding-setup' || 
+    segmentsArray.some(segment =>
+      segment === 'onboarding-setup' ||
       segment === 'onboarding' ||
       (typeof segment === 'string' && segment.includes('onboarding'))
     );
@@ -77,7 +77,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="chef"
+        name="food-creator"
         options={{
           href: null, // Hide from tab bar but keep accessible via navigation
         }}

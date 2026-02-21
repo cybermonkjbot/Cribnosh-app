@@ -4,9 +4,9 @@ import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function ChefLayout() {
+export default function FoodCreatorLayout() {
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
-  const { isLoading, isAuthenticated, isBasicOnboardingComplete, isOnboardingComplete, foodCreator: chef } = useFoodCreatorAuth();
+  const { isLoading, isAuthenticated, isBasicOnboardingComplete, isOnboardingComplete, foodCreator } = useFoodCreatorAuth();
   const router = useRouter();
   const segments = useSegments();
 
@@ -15,46 +15,46 @@ export default function ChefLayout() {
   const isOnOnboardingSetupRoute = (segments as string[]).includes('onboarding-setup');
   const isOnComplianceTrainingRoute = (segments as string[]).includes('onboarding') && !isOnOnboardingSetupRoute;
   const isOnProfileRoute = (segments as string[]).includes('profile');
-  
+
   // Determine what the user needs
   // Basic onboarding (profile setup) must ALWAYS come before compliance training
-  const needsBasicOnboarding = !chef || !isBasicOnboardingComplete;
+  const needsBasicOnboarding = !foodCreator || !isBasicOnboardingComplete;
   // Compliance training can ONLY happen after basic onboarding is complete
-  const needsComplianceTraining = chef && isBasicOnboardingComplete && !isOnboardingComplete && !chef.complianceTrainingSkipped;
-  const hasSkippedTraining = chef?.complianceTrainingSkipped === true;
+  const needsComplianceTraining = foodCreator && isBasicOnboardingComplete && !isOnboardingComplete && !foodCreator.complianceTrainingSkipped;
+  const hasSkippedTraining = foodCreator?.complianceTrainingSkipped === true;
 
   // Redirect BEFORE rendering - prevent mounting of wrong screens
   useEffect(() => {
     if (isLoading || !isAuthenticated) return;
 
-    // PRIORITY 1: If user has chef role but no chef profile, redirect to onboarding-setup
-    if (!chef) {
+    // PRIORITY 1: If user has food creator role but no profile, redirect to onboarding-setup
+    if (!foodCreator) {
       if (!isOnOnboardingSetupRoute && !isOnProfileRoute) {
-        router.replace('/(tabs)/food-creator/onboarding-setup');
+        router.replace('/(tabs)/food-creator/onboarding-setup' as any);
       }
       return;
     }
-    
+
     // PRIORITY 2: Basic onboarding (profile setup) MUST be completed first
     // Block ALL access to compliance training if basic onboarding is not complete
     if (needsBasicOnboarding) {
       // If user tries to access compliance training routes, force them back to basic onboarding
       if (isOnComplianceTrainingRoute) {
-        router.replace('/(tabs)/food-creator/onboarding-setup');
+        router.replace('/(tabs)/food-creator/onboarding-setup' as any);
         return;
       }
       // If not on allowed routes (onboarding-setup or profile), redirect to onboarding-setup
       if (!isOnProfileRoute && !isOnOnboardingSetupRoute) {
-        router.replace('/(tabs)/food-creator/onboarding-setup');
+        router.replace('/(tabs)/food-creator/onboarding-setup' as any);
       }
       return;
     }
-    
+
     // PRIORITY 3: Only after basic onboarding is complete, check compliance training
     // Compliance training can only be accessed if basic onboarding is complete
     if (needsComplianceTraining) {
       if (!isOnComplianceTrainingRoute && !isOnProfileRoute) {
-        router.replace('/(tabs)/food-creator/onboarding');
+        router.replace('/(tabs)/food-creator/onboarding' as any);
       }
       return;
     }
@@ -63,7 +63,7 @@ export default function ChefLayout() {
     if (isOnboardingComplete && (isOnComplianceTrainingRoute || isOnOnboardingSetupRoute)) {
       router.replace('/(tabs)');
     }
-  }, [isLoading, isAuthenticated, isBasicOnboardingComplete, isOnboardingComplete, chef, needsBasicOnboarding, needsComplianceTraining, isOnComplianceTrainingRoute, isOnOnboardingSetupRoute, isOnProfileRoute, router]);
+  }, [isLoading, isAuthenticated, isBasicOnboardingComplete, isOnboardingComplete, foodCreator, needsBasicOnboarding, needsComplianceTraining, isOnComplianceTrainingRoute, isOnOnboardingSetupRoute, isOnProfileRoute, router]);
 
   // Navigate to sign-in screen when not authenticated (instead of showing a button)
   // This MUST be called before any conditional returns to maintain hook order
@@ -73,7 +73,7 @@ export default function ChefLayout() {
       const timeout = setTimeout(() => {
         router.replace('/sign-in?notDismissable=true');
       }, 100);
-      
+
       return () => clearTimeout(timeout);
     }
   }, [isLoading, isAuthenticated, router]);
@@ -114,19 +114,19 @@ export default function ChefLayout() {
       return (
         <SafeAreaView style={styles.container}>
           <View style={styles.content}>
-            <Text style={styles.title}>Chef Platform</Text>
+            <Text style={styles.title}>Food Creator Platform</Text>
             <Text style={styles.subtitle}>Loading...</Text>
           </View>
         </SafeAreaView>
       );
     }
-    
+
     // If needs compliance training and not on compliance training route, show loading while redirecting
     if (needsComplianceTraining && !isOnComplianceTrainingRoute && !isOnProfileRoute) {
       return (
         <SafeAreaView style={styles.container}>
           <View style={styles.content}>
-            <Text style={styles.title}>Chef Platform</Text>
+            <Text style={styles.title}>Food Creator Platform</Text>
             <Text style={styles.subtitle}>Loading...</Text>
           </View>
         </SafeAreaView>
@@ -138,7 +138,7 @@ export default function ChefLayout() {
       return (
         <SafeAreaView style={styles.container}>
           <View style={styles.content}>
-            <Text style={styles.title}>Chef Platform</Text>
+            <Text style={styles.title}>Food Creator Platform</Text>
             <Text style={styles.subtitle}>Loading...</Text>
           </View>
         </SafeAreaView>
@@ -149,8 +149,8 @@ export default function ChefLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="onboarding-setup" />
-      <Stack.Screen 
-        name="onboarding/course/[id]/module/[moduleId]/quiz" 
+      <Stack.Screen
+        name="onboarding/course/[id]/module/[moduleId]/quiz"
         options={{ presentation: 'modal' }}
       />
     </Stack>

@@ -9,7 +9,7 @@ import { requireAuth } from '../utils/auth';
  */
 export const getSummary = query({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     sessionToken: v.optional(v.string()),
   },
   returns: v.object({
@@ -21,14 +21,14 @@ export const getSummary = query({
   }),
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx, args.sessionToken);
-    const chef = await ctx.db.get(args.chefId);
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
 
-    if (!chef) {
-      throw new Error('Chef not found');
+    if (!foodCreator) {
+      throw new Error('Food Creator not found');
     }
 
     // Verify ownership
-    if (chef.userId !== user._id) {
+    if (foodCreator.userId !== user._id) {
       throw new Error('Access denied');
     }
 
@@ -38,7 +38,7 @@ export const getSummary = query({
     // Calculate pending payouts
     const payouts = await ctx.db
       .query('chefPayouts')
-      .withIndex('by_chef', q => q.eq('chefId', args.chefId))
+      .withIndex('by_chef', q => q.eq('chefId', args.foodCreatorId))
       .filter(q => q.eq(q.field('status'), 'requested') || q.eq(q.field('status'), 'processing'))
       .collect();
 
@@ -47,7 +47,7 @@ export const getSummary = query({
     // Calculate all-time paid outs
     const paidPayouts = await ctx.db
       .query('chefPayouts')
-      .withIndex('by_chef', q => q.eq('chefId', args.chefId))
+      .withIndex('by_chef', q => q.eq('chefId', args.foodCreatorId))
       .filter(q => q.eq(q.field('status'), 'paid'))
       .collect();
 
@@ -74,7 +74,7 @@ export const getSummary = query({
  */
 export const getTransactions = query({
   args: {
-    chefId: v.id('chefs'),
+    foodCreatorId: v.id('chefs'),
     limit: v.optional(v.number()),
     sessionToken: v.optional(v.string()),
   },
@@ -93,14 +93,14 @@ export const getTransactions = query({
   })),
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx, args.sessionToken);
-    const chef = await ctx.db.get(args.chefId);
+    const foodCreator = await ctx.db.get(args.foodCreatorId);
 
-    if (!chef) {
-      throw new Error('Chef not found');
+    if (!foodCreator) {
+      throw new Error('Food Creator not found');
     }
 
     // Verify ownership
-    if (chef.userId !== user._id) {
+    if (foodCreator.userId !== user._id) {
       throw new Error('Access denied');
     }
 
@@ -109,7 +109,7 @@ export const getTransactions = query({
     // Get payouts
     const payouts = await ctx.db
       .query('chefPayouts')
-      .withIndex('by_chef', q => q.eq('chefId', args.chefId))
+      .withIndex('by_chef', q => q.eq('chefId', args.foodCreatorId))
       .order('desc')
       .take(limit);
 

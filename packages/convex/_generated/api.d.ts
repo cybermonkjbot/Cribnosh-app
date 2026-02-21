@@ -208,6 +208,7 @@ import type * as queries_contacts from "../queries/contacts.js";
 import type * as queries_content from "../queries/content.js";
 import type * as queries_coupons from "../queries/coupons.js";
 import type * as queries_courseModules from "../queries/courseModules.js";
+import type * as queries_cuisines from "../queries/cuisines.js";
 import type * as queries_custom_orders from "../queries/custom_orders.js";
 import type * as queries_customerBalance from "../queries/customerBalance.js";
 import type * as queries_customerBalanceTransactions from "../queries/customerBalanceTransactions.js";
@@ -504,6 +505,7 @@ declare const fullApi: ApiFromModules<{
   "queries/content": typeof queries_content;
   "queries/coupons": typeof queries_coupons;
   "queries/courseModules": typeof queries_courseModules;
+  "queries/cuisines": typeof queries_cuisines;
   "queries/custom_orders": typeof queries_custom_orders;
   "queries/customerBalance": typeof queries_customerBalance;
   "queries/customerBalanceTransactions": typeof queries_customerBalanceTransactions;

@@ -3,34 +3,34 @@
 import { ChefHat, PoundSterling, ShieldCheck } from "lucide-react";
 import { motion } from "motion/react";
 
-const processSteps = [
+const steps = [
   {
     icon: <ChefHat className="w-8 h-8" />,
     title: "Apply",
-    description: "Submit your application with details about your cooking style, specialties, and kitchen setup.",
+    description: "Submit your application with details about your culinary style, specialties, and kitchen setup.",
     color: "bg-gray-50",
     iconColor: "text-gray-900",
     shadowColor: "shadow-gray-200/50",
   },
   {
     icon: <ShieldCheck className="w-8 h-8" />,
-    title: "Get Certified",
-    description: "Our team will visit your kitchen to verify it meets our hygiene and safety standards. We'll help you get certified.",
+    title: "Verify",
+    description: "Our team will review your application and kitchen to ensure we maintain high standards of quality and safety.",
     color: "bg-gray-50",
     iconColor: "text-gray-900",
     shadowColor: "shadow-gray-200/50",
   },
   {
     icon: <PoundSterling className="w-8 h-8" />,
-    title: "Start Earning",
-    description: "Receive orders, cook delicious meals, and earn money sharing your authentic home cooking with your community.",
+    title: "Create & Earn",
+    description: "Receive orders, create delicious meals, and earn money sharing your authentic home cooking with your community.",
     color: "bg-gray-50",
     iconColor: "text-gray-900",
     shadowColor: "shadow-gray-200/50",
   },
 ];
 
-export function CookingProcess() {
+export function FoodCreatorProcess() {
   return (
     <section className="py-24 bg-white" id="process" data-section-theme="light">
       <div className="container mx-auto px-4 md:px-6">
@@ -56,17 +56,17 @@ export function CookingProcess() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {processSteps.map((step, index) => (
+          {steps.map((step, index) => (
             <motion.div
               key={index}
-              className="relative pb-12 md:pb-0"
+              className="relative pb-12 md:pb-0 group"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
               <div
-                className={`h-full rounded-2xl overflow-hidden border border-gray-100/50 shadow-md hover:shadow-xl transition-all duration-300 max-w-[85%] md:max-w-[85%] mx-auto backdrop-blur-sm ${step.shadowColor} hover:-translate-y-1`}
+                className={`h-full rounded-2xl overflow-hidden border border-gray-100/50 shadow-md hover:shadow-xl transition-all duration-300 max-w-[85%] md:max-w-full mx-auto backdrop-blur-sm ${step.shadowColor} hover:-translate-y-1`}
               >
                 <div className={`p-6 ${step.color} transition-colors duration-300`}>
                   <div
@@ -81,7 +81,7 @@ export function CookingProcess() {
                 </div>
               </div>
 
-              {index < processSteps.length - 1 && (
+              {index < steps.length - 1 && (
                 <>
                   {/* Mobile down arrow */}
                   <div className="block md:hidden absolute left-1/2 bottom-0 transform -translate-x-1/2 z-10">
@@ -125,4 +125,4 @@ export function CookingProcess() {
       </div>
     </section>
   );
-} 
+}
