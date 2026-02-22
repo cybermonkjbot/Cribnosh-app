@@ -82,7 +82,7 @@ export function NoshHeavenPlayer({
         title: foodCreatorIntroVideo.title,
         description: foodCreatorIntroVideo.description || '',
         foodCreatorName: foodCreatorIntroVideo.foodCreatorName,
-        
+
         price: 'Free', // FoodCreator intro videos are instructional content
         likes: 0,
         comments: 0,
@@ -323,7 +323,6 @@ export function NoshHeavenPlayer({
           description={item.description}
           foodCreatorName={item.foodCreatorName}
           price={item.price}
-          foodCreator={item.foodCreator}
           likes={item.likes}
           comments={item.comments}
           isVisible={isCurrentItem}

@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Colors } from '../constants/Colors';
+import Colors from '../constants/Colors';
 import { useColorScheme } from '../hooks/useColorScheme';
 import { BottomSheetBase } from './BottomSheetBase';
 

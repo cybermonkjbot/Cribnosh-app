@@ -573,7 +573,7 @@ export default function LiveContent({
       videoSource: video.videoUrl || '',
       title: video.title,
       description: video.description || '',
-      foodCreator_name: video.creator?.name || 'Unknown Food Creator',
+      foodCreatorName: video.creator?.name || 'Unknown Food Creator',
       price,
       foodCreator: video.creator?.name,
       likes: video.likesCount || 0,

@@ -683,7 +683,9 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isVisible, onClose }
         : [];
 
       // Store dish IDs for cart operations
-      const dishIds = response.data.recommendations?.map(r => r.dish_id) || [];
+      const dishIds =
+        response.data.recommendations?.map((r: DishRecommendation) => r.dish_id) ||
+        [];
 
       // Add AI response message
       const aiMessage: Message = {

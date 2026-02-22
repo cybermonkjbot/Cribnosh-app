@@ -58,6 +58,9 @@ export default function SelectAddressModalScreen() {
             ? {
                 street: params.selectedStreet,
                 city: params.selectedCity,
+                state: '',
+                postal_code: '',
+                country: '',
               }
             : undefined
         }
@@ -65,4 +68,3 @@ export default function SelectAddressModalScreen() {
     </>
   );
 }
-

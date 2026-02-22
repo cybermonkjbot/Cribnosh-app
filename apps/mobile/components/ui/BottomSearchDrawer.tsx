@@ -524,13 +524,11 @@ export function BottomSearchDrawer({
         location,
       });
 
-      // Transform recommendations to product cards
       const products: ProductCardProps[] = response.data.recommendations
         ? response.data.recommendations.map(transformDishToProductCard)
         : [];
 
-      // Store dish IDs for cart operations
-      const dishIds = response.data.recommendations?.map(r => r.dish_id) || [];
+      const dishIds = response.data.recommendations?.map((r: any) => r.dish_id) || [];
 
       setAiResponse({
         message: response.data.message,
@@ -2299,10 +2297,8 @@ export function BottomSearchDrawer({
         if (!suggestion || !suggestion.type) return false;
         if (activeSearchFilter === "all") return true;
 
-        // Map filter IDs to suggestion types
         const filterTypeMap: Record<string, string> = {
           "meals": "meals",
-          "foodCreators": "foodCreators",
           "foodCreators": "foodCreators",
           "videos": "videos",
           "recipes": "recipes",
@@ -2350,7 +2346,6 @@ export function BottomSearchDrawer({
         const filterTypeMap: Record<string, keyof typeof groups> = {
           "meals": "dishes",
           "foodCreators": "foodCreators",
-          "foodCreators": "foodCreators",
           "videos": "videos",
           "recipes": "recipes",
           "stories": "stories",
@@ -2393,13 +2388,12 @@ export function BottomSearchDrawer({
               name: item.name,
               cuisine: item.cuisine,
               foodCreator: item.foodCreatorName ? { name: item.foodCreatorName } : null,
-              foodCreator: item.foodCreatorName,
               price: item.price || 0,
               image_url: item.image,
               rating: item.rating,
               delivery_time: "25 min",
             });
-          } else if (item.type === "foodCreator" || item.type === "foodCreator") {
+          } else if (item.type === "foodCreator") {
             groups.foodCreators.push({
               _id: item.id,
               id: item.id,
@@ -2416,7 +2410,6 @@ export function BottomSearchDrawer({
       if (activeSearchFilter !== "all") {
         const filterTypeMap: Record<string, keyof typeof groups> = {
           "meals": "dishes",
-          "foodCreators": "foodCreators",
           "foodCreators": "foodCreators",
           "videos": "videos",
           "recipes": "recipes",

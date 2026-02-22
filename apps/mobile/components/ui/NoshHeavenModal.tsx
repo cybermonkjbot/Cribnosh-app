@@ -36,7 +36,6 @@ const transformVideoToMeal = (video: VideoPost): MealData => {
     description: video.description || '',
     foodCreatorName: video.creator.name,
     price,
-    foodCreator: video.creator.name,
     likes: video.likesCount,
     comments: video.commentsCount,
     mealId: (video as any).mealId, // Include mealId if video is linked to a meal

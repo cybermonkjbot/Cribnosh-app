@@ -1411,6 +1411,7 @@ export interface SearchSuggestion {
   category?: string;
   image_url?: string;
   chef_name?: string;
+  foodCreatorName?: string;
   price_range?: string;
   rating?: number;
   is_trending: boolean;
@@ -1450,6 +1451,7 @@ export interface TrendingItem {
   search_count: number;
   image_url?: string;
   chef_name?: string;
+  foodCreatorName?: string;
   cuisine?: string;
   price_range?: string;
   rating?: number;

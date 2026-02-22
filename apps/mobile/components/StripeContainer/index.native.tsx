@@ -7,7 +7,7 @@ import React from 'react';
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
 interface StripeContainerProps {
-    children: React.ReactNode;
+    children: React.ReactElement | React.ReactElement[];
 }
 
 export function StripeContainer({ children }: StripeContainerProps) {
@@ -33,5 +33,5 @@ export function StripeContainer({ children }: StripeContainerProps) {
         >
             {children}
         </StripeProvider>
-    ) as React.ReactElement; // Cast to ReactElement to satisfy type checker
+    );
 }

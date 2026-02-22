@@ -1,5 +1,9 @@
-import { Stack, useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useAccount } from "@/hooks/useAccount";
+import { useProfile } from "@/hooks/useProfile";
+import { CustomerSession } from "@/types/customer";
+import { Image } from "expo-image";
+import { Stack, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -10,13 +14,10 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { SvgXml } from 'react-native-svg';
-import { useAccount } from '@/hooks/useAccount';
-import { useProfile } from '@/hooks/useProfile';
-import { useToast } from '../lib/ToastContext';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { SvgXml } from "react-native-svg";
+import { useToast } from "../lib/ToastContext";
 
 // Back arrow SVG
 const backArrowSVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -33,11 +34,9 @@ const deviceIconSVG = `<svg width="20" height="20" viewBox="0 0 20 20" fill="non
   <path d="M8 1V3M12 1V3M10 13H10.01" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-
-
 export default function LoginSecurityScreen() {
   const router = useRouter();
-  const { } = useToast();
+  const {} = useToast();
 
   const [sessionsData, setSessionsData] = useState<any>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
@@ -50,29 +49,28 @@ export default function LoginSecurityScreen() {
     disable2FA,
     isLoading: accountLoading,
   } = useAccount();
-  
+
   // Use profile hook to get user's 2FA status
   const { getCustomerProfile } = useProfile();
-  
+
   // 2FA state
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
   const [showBackupCodesModal, setShowBackupCodesModal] = useState(false);
-  const [qrCodeData, setQrCodeData] = useState<string>('');
+  const [qrCodeData, setQrCodeData] = useState<string>("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
-
 
   // Fetch sessions and 2FA status on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoadingSessions(true);
-        
+
         // Fetch sessions
         const sessionsResult = await getSessions();
         if (sessionsResult.success && sessionsResult.data?.sessions) {
           setSessionsData({ data: { sessions: sessionsResult.data.sessions } });
         }
-        
+
         // Fetch profile to get 2FA status
         try {
           const profileResult = await getCustomerProfile();
@@ -83,10 +81,10 @@ export default function LoginSecurityScreen() {
           }
         } catch (profileError) {
           // Profile fetch is optional, don't fail if it errors
-          console.log('Could not fetch profile for 2FA status:', profileError);
+          console.log("Could not fetch profile for 2FA status:", profileError);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
       } finally {
         setIsLoadingSessions(false);
       }
@@ -99,9 +97,6 @@ export default function LoginSecurityScreen() {
     router.back();
   };
 
-
-
-  
   const handleQRCodeModalClose = () => {
     setShowQRCodeModal(false);
     // Show backup codes modal after QR code is dismissed
@@ -109,7 +104,7 @@ export default function LoginSecurityScreen() {
       setShowBackupCodesModal(true);
     }
   };
-  
+
   const handleBackupCodesModalClose = () => {
     setShowBackupCodesModal(false);
     setBackupCodes([]); // Clear backup codes after showing (one-time only)
@@ -117,29 +112,29 @@ export default function LoginSecurityScreen() {
 
   const handleRevokeSession = async (sessionId: string) => {
     Alert.alert(
-      'Revoke Session',
-      'Are you sure you want to revoke this session? You will need to sign in again on that device.',
+      "Revoke Session",
+      "Are you sure you want to revoke this session? You will need to sign in again on that device.",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Revoke',
-          style: 'destructive',
+          text: "Revoke",
+          style: "destructive",
           onPress: async () => {
             try {
               await revokeSession(sessionId);
-              
+
               // Refresh sessions after revoking
               const result = await getSessions();
               if (result.success && result.data?.sessions) {
                 setSessionsData({ data: { sessions: result.data.sessions } });
               }
             } catch (error: any) {
-              console.error('Error revoking session:', error);
+              console.error("Error revoking session:", error);
               // Error handling is done in the hook
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -148,7 +143,7 @@ export default function LoginSecurityScreen() {
       <Stack.Screen
         options={{
           headerShown: false,
-          title: 'Login & Security',
+          title: "Login & Security",
         }}
       />
       <SafeAreaView style={styles.mainContainer}>
@@ -178,7 +173,7 @@ export default function LoginSecurityScreen() {
 
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => router.push('/change-password')}
+              onPress={() => router.push("/change-password")}
               activeOpacity={0.7}
             >
               <Text style={styles.actionButtonText}>Change Password</Text>
@@ -220,24 +215,28 @@ export default function LoginSecurityScreen() {
               <View style={styles.sectionHeaderText}>
                 <Text style={styles.sectionTitle}>Active Sessions</Text>
                 <Text style={styles.sectionSubtitle}>
-                  Manage devices where you're signed in
+                  Manage devices where you&apos;re signed in
                 </Text>
               </View>
             </View>
 
-            {(isLoadingSessions || accountLoading) ? (
+            {isLoadingSessions || accountLoading ? (
               <View style={styles.placeholderContainer}>
                 <ActivityIndicator size="small" color="#094327" />
                 <Text style={styles.placeholderText}>Loading sessions...</Text>
               </View>
-            ) : sessionsData?.data?.sessions && sessionsData.data.sessions.length > 0 ? (
-              sessionsData.data.sessions.map((session) => (
+            ) : sessionsData?.data?.sessions &&
+              sessionsData.data.sessions.length > 0 ? (
+              sessionsData.data.sessions.map((session: CustomerSession) => (
                 <View key={session.session_id} style={styles.sessionItem}>
                   <View style={styles.sessionInfo}>
                     <Text style={styles.sessionDevice}>{session.device}</Text>
-                    <Text style={styles.sessionLocation}>{session.location}</Text>
+                    <Text style={styles.sessionLocation}>
+                      {session.location}
+                    </Text>
                     <Text style={styles.sessionTime}>
-                      Created: {new Date(session.created_at).toLocaleDateString()}
+                      Created:{" "}
+                      {new Date(session.created_at).toLocaleDateString()}
                     </Text>
                   </View>
                   {!session.is_current && (
@@ -252,13 +251,15 @@ export default function LoginSecurityScreen() {
               ))
             ) : (
               <View style={styles.placeholderContainer}>
-                <Text style={styles.placeholderText}>No active sessions found.</Text>
+                <Text style={styles.placeholderText}>
+                  No active sessions found.
+                </Text>
               </View>
             )}
           </View>
         </ScrollView>
       </SafeAreaView>
-      
+
       {/* QR Code Modal */}
       <Modal
         visible={showQRCodeModal}
@@ -275,11 +276,15 @@ export default function LoginSecurityScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.modalDescription}>
-              Scan this QR code with your authenticator app to enable two-factor authentication.
+              Scan this QR code with your authenticator app to enable two-factor
+              authentication.
             </Text>
             {qrCodeData ? (
               <View style={styles.qrCodeContainer}>
-                <Image source={{ uri: qrCodeData }} style={styles.qrCodeImage} />
+                <Image
+                  source={{ uri: qrCodeData }}
+                  style={styles.qrCodeImage}
+                />
               </View>
             ) : (
               <View style={styles.qrCodeContainer}>
@@ -295,7 +300,7 @@ export default function LoginSecurityScreen() {
           </View>
         </View>
       </Modal>
-      
+
       {/* Backup Codes Modal */}
       <Modal
         visible={showBackupCodesModal}
@@ -312,7 +317,8 @@ export default function LoginSecurityScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.modalDescription}>
-              Save these backup codes in a safe place. You can use them to access your account if you lose access to your authenticator app.
+              Save these backup codes in a safe place. You can use them to
+              access your account if you lose access to your authenticator app.
             </Text>
             <ScrollView style={styles.backupCodesContainer}>
               {backupCodes.map((code, index) => (
@@ -325,7 +331,9 @@ export default function LoginSecurityScreen() {
               style={styles.modalButton}
               onPress={handleBackupCodesModalClose}
             >
-              <Text style={styles.modalButtonText}>I&apos;ve Saved These Codes</Text>
+              <Text style={styles.modalButtonText}>
+                I&apos;ve Saved These Codes
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -337,16 +345,16 @@ export default function LoginSecurityScreen() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#FAFFFA',
+    backgroundColor: "#FAFFFA",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
+    borderBottomColor: "#E5E5E5",
   },
   backButton: {
     padding: 8,
@@ -360,12 +368,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   mainTitle: {
-    fontFamily: 'Archivo',
-    fontWeight: '700',
+    fontFamily: "Archivo",
+    fontWeight: "700",
     fontSize: 24,
     lineHeight: 32,
-    color: '#094327',
-    textAlign: 'left',
+    color: "#094327",
+    textAlign: "left",
     marginTop: 16,
     marginBottom: 24,
   },
@@ -373,176 +381,176 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
   },
   sectionIcon: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     borderRadius: 8,
   },
   sectionHeaderText: {
     flex: 1,
   },
   sectionTitle: {
-    fontFamily: 'Archivo',
-    fontWeight: '600',
+    fontFamily: "Archivo",
+    fontWeight: "600",
     fontSize: 18,
     lineHeight: 24,
-    color: '#094327',
+    color: "#094327",
     marginBottom: 4,
   },
   sectionSubtitle: {
-    fontFamily: 'Inter',
-    fontWeight: '400',
+    fontFamily: "Inter",
+    fontWeight: "400",
     fontSize: 14,
     lineHeight: 20,
-    color: '#6B7280',
+    color: "#6B7280",
   },
   actionButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
+    borderColor: "#E5E7EB",
+    alignItems: "center",
   },
   actionButtonText: {
-    fontFamily: 'Inter',
-    fontWeight: '500',
+    fontFamily: "Inter",
+    fontWeight: "500",
     fontSize: 16,
     lineHeight: 24,
-    color: '#094327',
+    color: "#094327",
   },
   toggleItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    borderColor: "#E5E7EB",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
   },
   sessionItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    borderColor: "#E5E7EB",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   sessionInfo: {
     flex: 1,
   },
   sessionDevice: {
-    fontFamily: 'Inter',
-    fontWeight: '500',
+    fontFamily: "Inter",
+    fontWeight: "500",
     fontSize: 16,
     lineHeight: 24,
-    color: '#094327',
+    color: "#094327",
     marginBottom: 4,
   },
   sessionLocation: {
-    fontFamily: 'Inter',
-    fontWeight: '400',
+    fontFamily: "Inter",
+    fontWeight: "400",
     fontSize: 14,
     lineHeight: 20,
-    color: '#6B7280',
+    color: "#6B7280",
     marginBottom: 2,
   },
   sessionTime: {
-    fontFamily: 'Inter',
-    fontWeight: '400',
+    fontFamily: "Inter",
+    fontWeight: "400",
     fontSize: 12,
     lineHeight: 16,
-    color: '#9CA3AF',
+    color: "#9CA3AF",
   },
   revokeButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: "#EF4444",
   },
   revokeButtonText: {
-    fontFamily: 'Inter',
-    fontWeight: '500',
+    fontFamily: "Inter",
+    fontWeight: "500",
     fontSize: 14,
     lineHeight: 20,
-    color: '#EF4444',
+    color: "#EF4444",
   },
   placeholderContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
+    borderColor: "#E5E7EB",
+    alignItems: "center",
   },
   placeholderText: {
-    fontFamily: 'Inter',
-    fontWeight: '400',
+    fontFamily: "Inter",
+    fontWeight: "400",
     fontSize: 14,
     lineHeight: 20,
-    color: '#6B7280',
-    textAlign: 'center',
+    color: "#6B7280",
+    textAlign: "center",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 24,
-    width: '90%',
-    maxHeight: '80%',
+    width: "90%",
+    maxHeight: "80%",
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   modalTitle: {
-    fontFamily: 'Inter',
-    fontWeight: '600',
+    fontFamily: "Inter",
+    fontWeight: "600",
     fontSize: 20,
     lineHeight: 28,
-    color: '#094327',
+    color: "#094327",
   },
   modalCloseText: {
-    fontFamily: 'Inter',
-    fontWeight: '500',
+    fontFamily: "Inter",
+    fontWeight: "500",
     fontSize: 16,
     lineHeight: 24,
-    color: '#FF3B30',
+    color: "#FF3B30",
   },
   modalDescription: {
-    fontFamily: 'Inter',
-    fontWeight: '400',
+    fontFamily: "Inter",
+    fontWeight: "400",
     fontSize: 14,
     lineHeight: 20,
-    color: '#6B7280',
+    color: "#6B7280",
     marginBottom: 24,
   },
   qrCodeContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 20,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     borderRadius: 12,
     marginBottom: 24,
     minHeight: 250,
@@ -556,33 +564,32 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   backupCodeItem: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
   },
   backupCodeText: {
-    fontFamily: 'Inter',
-    fontWeight: '500',
+    fontFamily: "Inter",
+    fontWeight: "500",
     fontSize: 16,
     lineHeight: 24,
-    color: '#094327',
-    textAlign: 'center',
+    color: "#094327",
+    textAlign: "center",
     letterSpacing: 2,
   },
   modalButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: "#FF3B30",
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,
-    alignItems: 'center',
+    alignItems: "center",
   },
   modalButtonText: {
-    fontFamily: 'Inter',
-    fontWeight: '600',
+    fontFamily: "Inter",
+    fontWeight: "600",
     fontSize: 16,
     lineHeight: 24,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
 });
-
