@@ -18,6 +18,7 @@ provider "azurerm" {
     }
   }
   skip_provider_registration = true
+  subscription_id            = var.subscription_id
 }
 
 resource "azurerm_resource_group" "app_rg" {
@@ -37,7 +38,7 @@ resource "azurerm_container_registry" "acr" {
 resource "azurerm_virtual_network" "vnet" {
   name                = "${var.app_name}-${var.environment}-vnet-ukw"
   address_space       = [var.vnet_cidr]
-  location            = "ukwest"
+  location            = azurerm_resource_group.app_rg.location
   resource_group_name = azurerm_resource_group.app_rg.name
 }
 
@@ -50,7 +51,7 @@ resource "azurerm_subnet" "public" {
 
 resource "azurerm_network_security_group" "nsg" {
   name                = "${var.app_name}-${var.environment}-nsg"
-  location            = "ukwest"
+  location            = azurerm_resource_group.app_rg.location
   resource_group_name = azurerm_resource_group.app_rg.name
 
   security_rule {
@@ -73,7 +74,7 @@ resource "azurerm_subnet_network_security_group_association" "nsg_assoc" {
 
 resource "azurerm_log_analytics_workspace" "logs" {
   name                = "${var.app_name}-${var.environment}-logs"
-  location            = "ukwest"
+  location            = azurerm_resource_group.app_rg.location
   resource_group_name = azurerm_resource_group.app_rg.name
   sku                 = "PerGB2018"
   retention_in_days   = 30
@@ -82,7 +83,7 @@ resource "azurerm_log_analytics_workspace" "logs" {
 # Application Insights
 resource "azurerm_application_insights" "app_insights" {
   name                = "${var.app_name}-${var.environment}-insights"
-  location            = "ukwest"
+  location            = azurerm_resource_group.app_rg.location
   resource_group_name = azurerm_resource_group.app_rg.name
   workspace_id        = azurerm_log_analytics_workspace.logs.id
   application_type    = "web"
@@ -134,7 +135,7 @@ resource "azurerm_security_center_subscription_pricing" "defender_registry" {
 resource "azurerm_purview_account" "governance" {
   name                        = "${var.purview_account_name}-v4"
   resource_group_name         = azurerm_resource_group.app_rg.name
-  location                    = "uksouth"
+  location                    = var.location
   
   identity {
     type = "SystemAssigned"
@@ -143,7 +144,7 @@ resource "azurerm_purview_account" "governance" {
 
 resource "azurerm_container_app_environment" "app_env" {
   name                       = "${var.app_name}-${var.environment}-env"
-  location                   = "ukwest"
+  location                   = azurerm_resource_group.app_rg.location
   resource_group_name        = azurerm_resource_group.app_rg.name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
 }
@@ -275,7 +276,7 @@ resource "azurerm_cdn_frontdoor_profile" "fd" {
 # Coolify VM
 resource "azurerm_public_ip" "vm_pip" {
   name                = "${var.app_name}-coolify-pip"
-  location            = "ukwest" # Must match VM location
+  location            = azurerm_resource_group.app_rg.location
   resource_group_name = azurerm_resource_group.app_rg.name
   allocation_method   = "Static"
   sku                 = "Standard"
@@ -283,7 +284,7 @@ resource "azurerm_public_ip" "vm_pip" {
 
 resource "azurerm_network_interface" "vm_nic" {
   name                = "${var.app_name}-coolify-nic"
-  location            = "ukwest" # Must match VM location
+  location            = azurerm_resource_group.app_rg.location
   resource_group_name = azurerm_resource_group.app_rg.name
 
   ip_configuration {
@@ -297,7 +298,7 @@ resource "azurerm_network_interface" "vm_nic" {
 resource "azurerm_linux_virtual_machine" "coolify_vm" {
   name                = "${var.app_name}-coolify"
   resource_group_name = azurerm_resource_group.app_rg.name
-  location            = "ukwest" # Using ukwest because uksouth is out of B/D/F series stock
+  location            = azurerm_resource_group.app_rg.location
   size                = var.vm_size
   admin_username      = var.admin_username
   network_interface_ids = [
@@ -327,7 +328,7 @@ resource "azurerm_linux_virtual_machine" "coolify_vm" {
 resource "azurerm_public_ip" "lb_pip" {
   count               = var.enable_load_balancer ? 1 : 0
   name                = "${var.app_name}-lb-pip"
-  location            = "ukwest"
+  location            = azurerm_resource_group.app_rg.location
   resource_group_name = azurerm_resource_group.app_rg.name
   allocation_method   = "Static"
   sku                 = "Standard"
@@ -336,7 +337,7 @@ resource "azurerm_public_ip" "lb_pip" {
 resource "azurerm_lb" "app_lb" {
   count               = var.enable_load_balancer ? 1 : 0
   name                = "${var.app_name}-lb"
-  location            = "ukwest"
+  location            = azurerm_resource_group.app_rg.location
   resource_group_name = azurerm_resource_group.app_rg.name
   sku                 = "Standard"
 

@@ -13,7 +13,13 @@ variable "environment" {
 variable "location" {
   description = "Azure region"
   type        = string
-  default     = "UK South"
+  default     = "West US"
+}
+
+variable "subscription_id" {
+  description = "Azure subscription ID"
+  type        = string
+  default     = "8634ef17-165d-4ec0-b041-bd74139ff52a"
 }
 
 variable "vnet_cidr" {
