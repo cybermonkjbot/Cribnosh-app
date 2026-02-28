@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3702D797FAB94CC5CD185145 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 2070E9FE36D00FC55D66A789 /* PrivacyInfo.xcprivacy */; };
-		385D7246BA8957C0761A0591 /* libPods-FuelFinderDriver.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C2A842E673DF21026B8F81C8 /* libPods-FuelFinderDriver.a */; };
+		385D7246BA8957C0761A0591 /* libPods-cribnoshdriver.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C2A842E673DF21026B8F81C8 /* libPods-cribnoshdriver.a */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
@@ -17,19 +17,19 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		13B07F961A680F5B00A75B9A /* FuelFinderDriver.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FuelFinderDriver.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = FuelFinderDriver/Images.xcassets; sourceTree = "<group>"; };
-		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = FuelFinderDriver/Info.plist; sourceTree = "<group>"; };
-		2070E9FE36D00FC55D66A789 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = FuelFinderDriver/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		27C3A8433A374CBF1D0C3677 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-FuelFinderDriver/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		72C8560F967D3C7D4C175B64 /* Pods-FuelFinderDriver.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FuelFinderDriver.debug.xcconfig"; path = "Target Support Files/Pods-FuelFinderDriver/Pods-FuelFinderDriver.debug.xcconfig"; sourceTree = "<group>"; };
-		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = FuelFinderDriver/SplashScreen.storyboard; sourceTree = "<group>"; };
+		13B07F961A680F5B00A75B9A /* cribnoshdriver.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = cribnoshdriver.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = cribnoshdriver/Images.xcassets; sourceTree = "<group>"; };
+		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = cribnoshdriver/Info.plist; sourceTree = "<group>"; };
+		2070E9FE36D00FC55D66A789 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = cribnoshdriver/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		27C3A8433A374CBF1D0C3677 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-cribnoshdriver/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		72C8560F967D3C7D4C175B64 /* Pods-cribnoshdriver.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-cribnoshdriver.debug.xcconfig"; path = "Target Support Files/Pods-cribnoshdriver/Pods-cribnoshdriver.debug.xcconfig"; sourceTree = "<group>"; };
+		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = cribnoshdriver/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		C2A842E673DF21026B8F81C8 /* libPods-FuelFinderDriver.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-FuelFinderDriver.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C2A842E673DF21026B8F81C8 /* libPods-cribnoshdriver.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-cribnoshdriver.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = FuelFinderDriver/AppDelegate.swift; sourceTree = "<group>"; };
-		F11748442D0722820044C1D9 /* FuelFinderDriver-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "FuelFinderDriver-Bridging-Header.h"; path = "FuelFinderDriver/FuelFinderDriver-Bridging-Header.h"; sourceTree = "<group>"; };
-		F2EC9E9CA1D9EAC3EF6C28E4 /* Pods-FuelFinderDriver.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FuelFinderDriver.release.xcconfig"; path = "Target Support Files/Pods-FuelFinderDriver/Pods-FuelFinderDriver.release.xcconfig"; sourceTree = "<group>"; };
+		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = cribnoshdriver/AppDelegate.swift; sourceTree = "<group>"; };
+		F11748442D0722820044C1D9 /* cribnoshdriver-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "cribnoshdriver-Bridging-Header.h"; path = "cribnoshdriver/cribnoshdriver-Bridging-Header.h"; sourceTree = "<group>"; };
+		F2EC9E9CA1D9EAC3EF6C28E4 /* Pods-cribnoshdriver.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-cribnoshdriver.release.xcconfig"; path = "Target Support Files/Pods-cribnoshdriver/Pods-cribnoshdriver.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				385D7246BA8957C0761A0591 /* libPods-FuelFinderDriver.a in Frameworks */,
+				385D7246BA8957C0761A0591 /* libPods-cribnoshdriver.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -47,38 +47,38 @@
 		0DDEBE1128245A788CB3A3AC /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				16E16011BD221B8540BBDAFA /* FuelFinderDriver */,
+				16E16011BD221B8540BBDAFA /* cribnoshdriver */,
 			);
 			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
-		13B07FAE1A68108700A75B9A /* FuelFinderDriver */ = {
+		13B07FAE1A68108700A75B9A /* cribnoshdriver */ = {
 			isa = PBXGroup;
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
-				F11748442D0722820044C1D9 /* FuelFinderDriver-Bridging-Header.h */,
+				F11748442D0722820044C1D9 /* cribnoshdriver-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
 				2070E9FE36D00FC55D66A789 /* PrivacyInfo.xcprivacy */,
 			);
-			name = FuelFinderDriver;
+			name = cribnoshdriver;
 			sourceTree = "<group>";
 		};
-		16E16011BD221B8540BBDAFA /* FuelFinderDriver */ = {
+		16E16011BD221B8540BBDAFA /* cribnoshdriver */ = {
 			isa = PBXGroup;
 			children = (
 				27C3A8433A374CBF1D0C3677 /* ExpoModulesProvider.swift */,
 			);
-			name = FuelFinderDriver;
+			name = cribnoshdriver;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				C2A842E673DF21026B8F81C8 /* libPods-FuelFinderDriver.a */,
+				C2A842E673DF21026B8F81C8 /* libPods-cribnoshdriver.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -86,8 +86,8 @@
 		7681CF9B75F325A732C1DEBC /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				72C8560F967D3C7D4C175B64 /* Pods-FuelFinderDriver.debug.xcconfig */,
-				F2EC9E9CA1D9EAC3EF6C28E4 /* Pods-FuelFinderDriver.release.xcconfig */,
+				72C8560F967D3C7D4C175B64 /* Pods-cribnoshdriver.debug.xcconfig */,
+				F2EC9E9CA1D9EAC3EF6C28E4 /* Pods-cribnoshdriver.release.xcconfig */,
 			);
 			name = Pods;
 			path = Pods;
@@ -103,7 +103,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				13B07FAE1A68108700A75B9A /* FuelFinderDriver */,
+				13B07FAE1A68108700A75B9A /* cribnoshdriver */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
@@ -118,7 +118,7 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* FuelFinderDriver.app */,
+				13B07F961A680F5B00A75B9A /* cribnoshdriver.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -129,15 +129,15 @@
 				BB2F792C24A3F905000567C9 /* Expo.plist */,
 			);
 			name = Supporting;
-			path = FuelFinderDriver/Supporting;
+			path = cribnoshdriver/Supporting;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		13B07F861A680F5B00A75B9A /* FuelFinderDriver */ = {
+		13B07F861A680F5B00A75B9A /* cribnoshdriver */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "FuelFinderDriver" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "cribnoshdriver" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
 				7AAD1F0888470F55797C75DB /* [Expo] Configure project */,
@@ -152,9 +152,9 @@
 			);
 			dependencies = (
 			);
-			name = FuelFinderDriver;
-			productName = FuelFinderDriver;
-			productReference = 13B07F961A680F5B00A75B9A /* FuelFinderDriver.app */;
+			name = cribnoshdriver;
+			productName = cribnoshdriver;
+			productReference = 13B07F961A680F5B00A75B9A /* cribnoshdriver.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -170,7 +170,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "FuelFinderDriver" */;
+			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "cribnoshdriver" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -183,7 +183,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* FuelFinderDriver */,
+				13B07F861A680F5B00A75B9A /* cribnoshdriver */,
 			);
 		};
 /* End PBXProject section */
@@ -235,7 +235,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-FuelFinderDriver-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-cribnoshdriver-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -253,18 +253,18 @@
 			inputPaths = (
 				"$(SRCROOT)/.xcode.env",
 				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/FuelFinderDriver/FuelFinderDriver.entitlements",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-FuelFinderDriver/expo-configure-project.sh",
+				"$(SRCROOT)/cribnoshdriver/cribnoshdriver.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-cribnoshdriver/expo-configure-project.sh",
 			);
 			name = "[Expo] Configure project";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-FuelFinderDriver/ExpoModulesProvider.swift",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-cribnoshdriver/ExpoModulesProvider.swift",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-FuelFinderDriver/expo-configure-project.sh\"\n";
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-cribnoshdriver/expo-configure-project.sh\"\n";
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -272,7 +272,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-FuelFinderDriver/Pods-FuelFinderDriver-resources.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-cribnoshdriver/Pods-cribnoshdriver-resources.sh",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXApplication/ExpoApplication_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
@@ -303,7 +303,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-FuelFinderDriver/Pods-FuelFinderDriver-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-cribnoshdriver/Pods-cribnoshdriver-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		B05421500948C5F75DCA6EAC /* [CP] Embed Pods Frameworks */ = {
@@ -312,7 +312,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-FuelFinderDriver/Pods-FuelFinderDriver-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-cribnoshdriver/Pods-cribnoshdriver-frameworks.sh",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/JitsiWebRTC/WebRTC.framework/WebRTC",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
@@ -327,7 +327,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-FuelFinderDriver/Pods-FuelFinderDriver-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-cribnoshdriver/Pods-cribnoshdriver-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -347,18 +347,18 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 72C8560F967D3C7D4C175B64 /* Pods-FuelFinderDriver.debug.xcconfig */;
+			baseConfigurationReference = 72C8560F967D3C7D4C175B64 /* Pods-cribnoshdriver.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = FuelFinderDriver/FuelFinderDriver.entitlements;
+				CODE_SIGN_ENTITLEMENTS = cribnoshdriver/cribnoshdriver.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
-				INFOPLIST_FILE = FuelFinderDriver/Info.plist;
+				INFOPLIST_FILE = cribnoshdriver/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -371,9 +371,9 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = com.cybermonkj.fuelfinderdriver;
-				PRODUCT_NAME = FuelFinderDriver;
-				SWIFT_OBJC_BRIDGING_HEADER = "FuelFinderDriver/FuelFinderDriver-Bridging-Header.h";
+				PRODUCT_BUNDLE_IDENTIFIER = com.cybermonkj.cribnoshdriver;
+				PRODUCT_NAME = cribnoshdriver;
+				SWIFT_OBJC_BRIDGING_HEADER = "cribnoshdriver/cribnoshdriver-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -383,13 +383,13 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F2EC9E9CA1D9EAC3EF6C28E4 /* Pods-FuelFinderDriver.release.xcconfig */;
+			baseConfigurationReference = F2EC9E9CA1D9EAC3EF6C28E4 /* Pods-cribnoshdriver.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = FuelFinderDriver/FuelFinderDriver.entitlements;
+				CODE_SIGN_ENTITLEMENTS = cribnoshdriver/cribnoshdriver.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				INFOPLIST_FILE = FuelFinderDriver/Info.plist;
+				INFOPLIST_FILE = cribnoshdriver/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -402,9 +402,9 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = com.cybermonkj.fuelfinderdriver;
-				PRODUCT_NAME = FuelFinderDriver;
-				SWIFT_OBJC_BRIDGING_HEADER = "FuelFinderDriver/FuelFinderDriver-Bridging-Header.h";
+				PRODUCT_BUNDLE_IDENTIFIER = com.cybermonkj.cribnoshdriver;
+				PRODUCT_NAME = cribnoshdriver;
+				SWIFT_OBJC_BRIDGING_HEADER = "cribnoshdriver/cribnoshdriver-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -532,7 +532,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "FuelFinderDriver" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "cribnoshdriver" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
@@ -541,7 +541,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "FuelFinderDriver" */ = {
+		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "cribnoshdriver" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,

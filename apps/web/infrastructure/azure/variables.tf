@@ -52,6 +52,12 @@ variable "image_tag" {
   default     = "latest"
 }
 
+variable "use_placeholder_image" {
+  description = "If true, use a public placeholder image so Terraform can create the Container App before your image is pushed to ACR. Set to false after pushing cribnosh-web:latest and run terraform apply again."
+  type        = bool
+  default     = true
+}
+
 variable "purview_account_name" {
   description = "Name of the Microsoft Purview account"
   type        = string

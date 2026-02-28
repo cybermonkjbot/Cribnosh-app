@@ -312,6 +312,34 @@ terraform apply
 - Azure CLI logged in: `az login`
 - Or set: `ARM_SUBSCRIPTION_ID`, `ARM_TENANT_ID`, `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`
 
+#### First apply when no image is pushed yet
+
+The Container App expects `cribnoshregistry.azurecr.io/cribnosh-web:latest`. If that image does not exist yet, Terraform will fail with `MANIFEST_UNKNOWN`.
+
+By default, the config uses a **placeholder image** (`use_placeholder_image = true`) so the Container App can be created. After that:
+
+1. Build and push your image to ACR (see below or use the GitHub workflow).
+2. In `terraform.tfvars` set `use_placeholder_image = false`.
+3. Run `terraform apply` again so the app uses `cribnosh-web:latest`.
+
+#### Building and pushing the web image to ACR
+
+From the **repo root**, with Azure CLI logged in (`az login`):
+
+```bash
+# Login to ACR
+az acr login --name cribnoshregistry
+
+# Build and push (set build args as needed for your env)
+docker build --platform linux/amd64 \
+  -f apps/web/Dockerfile.prod \
+  -t cribnoshregistry.azurecr.io/cribnosh-web:latest \
+  .
+docker push cribnoshregistry.azurecr.io/cribnosh-web:latest
+```
+
+Then set `use_placeholder_image = false` in `terraform.tfvars` and run `terraform apply`.
+
 ---
 
 ## Related Documentation

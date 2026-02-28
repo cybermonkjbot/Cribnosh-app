@@ -1,4 +1,4 @@
-package com.cybermonkj.fuelfinderdriver
+package com.cybermonkj.cribnoshdriver
 
 import android.app.Application
 import android.content.res.Configuration

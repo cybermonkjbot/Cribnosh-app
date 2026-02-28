@@ -155,6 +155,11 @@ resource "azurerm_user_assigned_identity" "app_identity" {
   resource_group_name = azurerm_resource_group.app_rg.name
 }
 
+locals {
+  # Use placeholder image until you push cribnosh-web to ACR; then set use_placeholder_image = false
+  web_container_image = var.use_placeholder_image ? "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest" : "${var.container_registry}/${var.image_name}:${var.image_tag}"
+}
+
 resource "azurerm_container_app" "web_app" {
   name                         = "${var.app_name}-${var.environment}-web-v4"
   container_app_environment_id = azurerm_container_app_environment.app_env.id
@@ -177,7 +182,7 @@ resource "azurerm_container_app" "web_app" {
 
     container {
       name   = "web"
-      image  = "${var.container_registry}/${var.image_name}:${var.image_tag}"
+      image  = local.web_container_image
       cpu    = 1.0
       memory = "2Gi"
 

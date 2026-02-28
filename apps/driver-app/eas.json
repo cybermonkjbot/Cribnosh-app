@@ -15,7 +15,7 @@
         "resourceClass": "medium"
       },
       "env": {
-        "EXPO_PUBLIC_PROJECT_ID": "com.cybermonkj.fuelfinderdriver"
+        "EXPO_PUBLIC_PROJECT_ID": "com.cybermonkj.cribnoshdriver"
       }
     },
     "preview": {
@@ -29,7 +29,7 @@
         "resourceClass": "medium"
       },
       "env": {
-        "EXPO_PUBLIC_PROJECT_ID": "com.cybermonkj.fuelfinderdriver"
+        "EXPO_PUBLIC_PROJECT_ID": "com.cybermonkj.cribnoshdriver"
       }
     },
     "production": {
@@ -45,7 +45,7 @@
       },
       "env": {
         "NODE_ENV": "production",
-        "EXPO_PUBLIC_PROJECT_ID": "com.cybermonkj.fuelfinderdriver"
+        "EXPO_PUBLIC_PROJECT_ID": "com.cybermonkj.cribnoshdriver"
       }
     }
   },
