@@ -15,7 +15,7 @@ const nextConfig = {
   },
 
   // Handle version skew during rolling deployments
-  deploymentId: process.env.GITHUB_SHA || `build-${Date.now()}`,
+  // deploymentId: process.env.GITHUB_SHA || `build-${Date.now()}`,
 
   // Server-side initialization
   serverExternalPackages: ['winston'],
