@@ -51,7 +51,6 @@ ENV DOCKER_BUILD=1
 COPY . .
 
 # Ensure Convex generated files exist
-RUN cd packages/convex && npx convex codegen
 
 # Build the web application
 WORKDIR /app/apps/web
